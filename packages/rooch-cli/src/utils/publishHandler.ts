@@ -1,8 +1,7 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
-import pkg from '@roochnetwork/rooch-sdk';
-import { Dubhe } from '@0xobelisk/rooch-client';
+import { Dubhe, NetworkType } from '@0xobelisk/rooch-client';
 
 import { DubheCliError } from './errors';
 import { saveContractData, validatePrivateKey } from './utils';
@@ -10,7 +9,7 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 
 export async function publishHandler(
 	dubheConfig: DubheConfig,
-	network: pkg.NetWorkType
+	network: NetworkType
 ) {
 	const privateKey = process.env.PRIVATE_KEY;
 	if (!privateKey)
@@ -33,24 +32,22 @@ export async function publishHandler(
 	const path = process.cwd();
 
 	try {
-		const { Result: compileResult } = JSON.parse(
-			execSync(
-				`rooch move build --named-addresses ${
-					dubheConfig.name
-				}=${client.getHexAddress()} --json -p ${path}/contracts/${
-					dubheConfig.name
-				}`,
-				{
-					encoding: 'utf-8',
-				}
-			)
+		execSync(
+			`rooch move build --named-addresses ${
+				dubheConfig.name
+			}=${client.getHexAddress()} --json -p ${path}/contracts/${
+				dubheConfig.name
+			}`,
+			{
+				encoding: 'utf-8',
+			}
 		);
-		if (compileResult != 'Success') {
-			throw new DubheCliError(`Build failed: ${compileResult}`);
-		}
+		// if (compileResult != 'Success') {
+		// 	throw new DubheCliError(`Build failed: ${compileResult}`);
+		// }
 	} catch (error: any) {
 		console.error(chalk.red('Error executing rooch move build:'));
-		console.error(error.stdout);
+		console.error(error);
 		process.exit(1); // You might want to exit with a non-zero status code to indicate an error
 	}
 

@@ -358,14 +358,14 @@ importers:
   packages/rooch-cli:
     dependencies:
       '@0xobelisk/rooch-client':
-        specifier: workspace:*
+        specifier: ^0.0.3
         version: link:../rooch-client
       '@0xobelisk/sui-common':
-        specifier: workspace:*
+        specifier: ^0.5.20
         version: link:../sui-common
       '@roochnetwork/rooch-sdk':
-        specifier: ^0.2.7
-        version: 0.2.7(typescript@5.1.6)
+        specifier: ^0.2.8
+        version: 0.2.8(typescript@5.1.6)
       chalk:
         specifier: ^5.0.1
         version: 5.2.0
@@ -434,8 +434,8 @@ importers:
   packages/rooch-client:
     dependencies:
       '@roochnetwork/rooch-sdk':
-        specifier: ^0.2.7
-        version: 0.2.7(typescript@5.3.3)
+        specifier: ^0.2.8
+        version: 0.2.8(typescript@5.3.3)
       '@scure/bip39':
         specifier: ^1.2.1
         version: 1.4.0
@@ -2967,8 +2967,8 @@ packages:
     dev: true
     optional: true
 
-  /@roochnetwork/rooch-sdk@0.2.7(typescript@5.1.6):
-    resolution: {integrity: sha512-iQdoN06ijFLmdyPfOxgQGhcgl62vkhRKWUQ1fZO0+V2Kpu8wF4qN2Xg7nqZ8VCC5Kr1g9St2CmS60PXPjpCgPw==}
+  /@roochnetwork/rooch-sdk@0.2.8(typescript@5.1.6):
+    resolution: {integrity: sha512-XEdCOYKuTDYNAblRK7LrvoZF4vGCu/13FbajAGnIW0ooHTTN/usrrEMg0l9rfr79N9l8G3k9m/P89mWbNPf0hg==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@mysten/bcs': 1.0.4
@@ -2987,8 +2987,8 @@ packages:
       - typescript
     dev: false
 
-  /@roochnetwork/rooch-sdk@0.2.7(typescript@5.3.3):
-    resolution: {integrity: sha512-iQdoN06ijFLmdyPfOxgQGhcgl62vkhRKWUQ1fZO0+V2Kpu8wF4qN2Xg7nqZ8VCC5Kr1g9St2CmS60PXPjpCgPw==}
+  /@roochnetwork/rooch-sdk@0.2.8(typescript@5.3.3):
+    resolution: {integrity: sha512-XEdCOYKuTDYNAblRK7LrvoZF4vGCu/13FbajAGnIW0ooHTTN/usrrEMg0l9rfr79N9l8G3k9m/P89mWbNPf0hg==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@mysten/bcs': 1.0.4
@@ -8267,7 +8267,7 @@ packages:
     dependencies:
       '@solidity-parser/parser': 0.15.0
       prettier: 3.1.1
-      semver: 7.5.4
+      semver: 7.6.0
       solidity-comments-extractor: 0.0.7
     dev: false
 
@@ -8694,7 +8694,6 @@ packages:
     hasBin: true
     dependencies:
       lru-cache: 6.0.0
-    dev: true
 
   /send@0.16.2:
     resolution: {integrity: sha512-E64YFPUssFHEFBvpbbjr44NCLtI1AohxQ8ZSiJjQLskAdKuriYEP6VyGEsRDH8ScozGpkaX1BGvhanqCwkcEZw==}

@@ -107,7 +107,7 @@ async function init() {
 }`;
 	let a = formatAndWriteMove(
 		output,
-		'/Users/feng/Desktop/obelisk/dubhe/packages/cli',
+		`/packages/rooch-cli`,
 		'formatAndWriteMove'
 	);
 	// console.log(output)

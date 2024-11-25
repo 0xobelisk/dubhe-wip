@@ -3,7 +3,7 @@ import {
   ExecuteTransactionResponseView,
   ModuleABIView,
   TypeTag,
-  NetWorkType,
+  NetworkType,
   MoveFunctionTypeParamView,
   Transaction,
 } from '@roochnetwork/rooch-sdk';
@@ -13,7 +13,7 @@ export type DubheParams = {
   secretKey?: string;
   fullnodeUrls?: string[];
   faucetUrl?: string;
-  networkType?: NetWorkType;
+  networkType?: NetworkType;
   packageId?: string;
   metadata?: ModuleABIView[];
 };
@@ -71,9 +71,10 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (params?: any[], typeArguments?: TypeTag[]): Promise<
-    AnnotatedFunctionResultView[]
-  >;
+  (
+    params?: any[],
+    typeArguments?: TypeTag[]
+  ): Promise<AnnotatedFunctionResultView>;
 }
 
 export interface ContractTx extends MessageMeta {
