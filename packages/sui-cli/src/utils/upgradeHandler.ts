@@ -39,9 +39,9 @@ function updateMigrateMethod(projectPath: string, migrations: Migration[]): void
 		const fileContent = fs.readFileSync(filePath, 'utf-8');
 		const migrateMethodRegex = new RegExp(`public fun migrate\\(_${migration.schemaName}: &mut ${capitalizeAndRemoveUnderscores(migration.schemaName)}, _cap: &UpgradeCap\\) {[^}]*}`);
 		const newMigrateMethod = `
-public fun migrate(assets: &mut Assets, _cap: &UpgradeCap) {
+public fun migrate(${migration.schemaName}: &mut ${capitalizeAndRemoveUnderscores(migration.schemaName)}, _cap: &UpgradeCap) {
 ${migration.fields.map((field) => {
-			let storage_type = ""
+			let storage_type = '';
 			if (field.type.includes('StorageValue')) {
 				storage_type = `storage_value::new()`;
 			} else if (field.type.includes('StorageMap')) {
@@ -51,13 +51,14 @@ ${migration.fields.map((field) => {
 			) {
 				storage_type = `storage_double_map::new()`;
 			}
-			return `storage_migrate::add_field<${field.type}>(&mut assets.id, b"${field.name}", ${storage_type});`}).join('')}
+			return `storage_migrate::add_field<${field.type}>(&mut ${migration.schemaName}.id, b"${field.name}", ${storage_type});`;
+		}).join('')}
 }
 `;
 
 		const updatedContent = fileContent.replace(migrateMethodRegex, newMigrateMethod);
 		fs.writeFileSync(filePath, updatedContent, 'utf-8');
-	})
+	});
 
 
 }
@@ -90,7 +91,7 @@ export async function upgradeHandler(
 		throw new DubheCliError(
 			`Missing PRIVATE_KEY environment variable.
 Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
-in your contracts directory to use the default sui private key.`
+in your contracts directory to use the default sui private key.`,
 		);
 
 	const privateKeyFormat = validatePrivateKey(privateKey);
@@ -126,17 +127,17 @@ in your contracts directory to use the default sui private key.`
 						fields.push({
 							name: key,
 							type: config.schemas[schemaKey].structure[key],
-						})
+						});
 						schema.structure[key] = config.schemas[schemaKey].structure[key];
 					}
 				}
 				if (isMigration) {
 					migrate.schemaName = schemaKey;
 					migrate.fields = fields;
-					pendingMigration.push(migrate)
+					pendingMigration.push(migrate);
 				}
 			}
-		})
+		});
 	}
 
 
@@ -158,8 +159,8 @@ in your contracts directory to use the default sui private key.`
 					`sui move build --dump-bytecode-as-base64 --path ${path}/contracts/${name}`,
 					{
 						encoding: 'utf-8',
-					}
-				)
+					},
+				),
 			);
 
 			modules = extractedModules;
@@ -208,17 +209,17 @@ in your contracts directory to use the default sui private key.`
 		result.objectChanges!.map(object => {
 			if (object.type === 'published') {
 				console.log(
-					chalk.blue(`${name} PackageId: ${object.packageId}`)
+					chalk.blue(`${name} PackageId: ${object.packageId}`),
 				);
 				console.log(
-					chalk.blue(`${name} Version: ${oldVersion + 1}`)
+					chalk.blue(`${name} Version: ${oldVersion + 1}`),
 				);
 				newPackageId = object.packageId;
 			}
 		});
 
 		console.log(
-			chalk.green(`Upgrade Transaction Digest: ${result.digest}`)
+			chalk.green(`Upgrade Transaction Digest: ${result.digest}`),
 		);
 
 		saveContractData(

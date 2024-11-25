@@ -1,29 +1,29 @@
 export type BaseType =
-  | "String"
-  | "vector<String>"
-  | "address"
-  | "bool"
-  | "u8"
-  | "u32"
-  | "u64"
-  | "u128"
-  | "vector<address>"
-  | "vector<bool>"
-  | "vector<u8>"
-  | "vector<vector<u8>>"
-  | "vector<u32>"
-  | "vector<u64>"
-  | "vector<u128>"
+  | 'String'
+  | 'vector<String>'
+  | 'address'
+  | 'bool'
+  | 'u8'
+  | 'u32'
+  | 'u64'
+  | 'u128'
+  | 'vector<address>'
+  | 'vector<bool>'
+  | 'vector<u8>'
+  | 'vector<vector<u8>>'
+  | 'vector<u32>'
+  | 'vector<u64>'
+  | 'vector<u128>'
   | string;
 
 export type StorageDataType =
-    | "Struct"
-    | "Enum";
+  | 'Struct'
+  | 'Enum';
 
 export type StorageMapType =
-    | "Map"
-    | "Bag"
-    | "Table";
+  | 'Map'
+  | 'Bag'
+  | 'Table';
 
 type Address = string;
 type Bool = boolean;
@@ -49,13 +49,13 @@ export type BaseValueType =
   | Vector<U128>;
 
 
-export type SchemaData =  {
+export type SchemaData = {
   name: string;
   type?: StorageDataType;
   fields: Record<string, BaseType> | string[];
 }
 
-export type SchemaType =  {
+export type SchemaType = {
   data?: SchemaData[];
   structure: Record<string, string>;
   events?: SchemaData[];
@@ -65,24 +65,23 @@ export type DubheConfig = {
   name: string;
   description: string;
   schemas: Record<string, SchemaType>;
-  migration_enabled: boolean
 };
 
 export type MoveType =
-  | "string"
-  | "vector<string>"
-  | "String"
-  | "vector<String>"
-  | "address"
-  | "bool"
-  | "u8"
-  | "u32"
-  | "u64"
-  | "u128"
-  | "vector<address>"
-  | "vector<bool>"
-  | "vector<u8>"
-  | "vector<vector<u8>>"
-  | "vector<u32>"
-  | "vector<u64>"
-  | "vector<u128>";
+  | 'string'
+  | 'vector<string>'
+  | 'String'
+  | 'vector<String>'
+  | 'address'
+  | 'bool'
+  | 'u8'
+  | 'u32'
+  | 'u64'
+  | 'u128'
+  | 'vector<address>'
+  | 'vector<bool>'
+  | 'vector<u8>'
+  | 'vector<vector<u8>>'
+  | 'vector<u32>'
+  | 'vector<u64>'
+  | 'vector<u128>';

@@ -16,7 +16,7 @@ export const dubheConfig = {
 				},
 				{
 					name: 'Account',
-					fields: {balance: 'u256', status: 'AccountStatus'},
+					fields: { balance: 'u256', status: 'AccountStatus' },
 				},
 				{
 					name: 'Metadata',
@@ -70,10 +70,10 @@ export const dubheConfig = {
 						asset_id: 'u32',
 						name: 'String',
 						symbol: 'String',
-						owner: "address",
-						is_mintable: "bool",
-						is_burnable: "bool",
-						is_freezable: "bool",
+						owner: 'address',
+						is_mintable: 'bool',
+						is_burnable: 'bool',
+						is_freezable: 'bool',
 					},
 				},
 				{
@@ -125,23 +125,23 @@ export const dubheConfig = {
 				{
 					name: 'FrozenAsset',
 					fields: {
-						asset_id: 'u32'
+						asset_id: 'u32',
 					},
 				},
 				{
 					name: 'ThawedAsset',
 					fields: {
-						asset_id: 'u32'
+						asset_id: 'u32',
 					},
 				},
 				{
-					name: "OwnershipTransferred",
+					name: 'OwnershipTransferred',
 					fields: {
 						asset_id: 'u32',
 						from: 'address',
 						to: 'address',
-					}
-				}
+					},
+				},
 			],
 		},
 		dex: {
@@ -161,8 +161,8 @@ export const dubheConfig = {
 					fields: {
 						asset_id: 'u32',
 						balance: 'u256',
-					}
-				}
+					},
+				},
 			],
 			structure: {
 				next_pool_id: 'StorageValue<u32>',
@@ -188,7 +188,7 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: "LiquidityAdded",
+					name: 'LiquidityAdded',
 					fields: {
 						who: 'address',
 						pool_id: 'u32',
@@ -196,10 +196,10 @@ export const dubheConfig = {
 						asset2_amount: 'u256',
 						lp_asset_id: 'u32',
 						lp_asset_minted: 'u256',
-					}
+					},
 				},
 				{
-					name: "LiquidityRemoved",
+					name: 'LiquidityRemoved',
 					fields: {
 						who: 'address',
 						pool_id: 'u32',
@@ -207,50 +207,50 @@ export const dubheConfig = {
 						asset2_amount: 'u256',
 						lp_asset_id: 'u32',
 						lp_asset_burned: 'u256',
-					}
+					},
 				},
 				{
-					name: "SwapExecuted",
+					name: 'SwapExecuted',
 					fields: {
 						who: 'address',
 						send_to: 'address',
 						amount_in: 'u256',
 						amount_out: 'u256',
-						path: "vector<u32>",
-					}
+						path: 'vector<u32>',
+					},
 				},
 				{
-					name: "Registered",
+					name: 'Registered',
 					fields: {
 						who: 'address',
 						asset_id: 'u32',
-					}
+					},
 				},
 				{
-					name: "Wrapped",
+					name: 'Wrapped',
 					fields: {
 						from: 'address',
 						asset_id: 'u32',
 						amount: 'u256',
 						beneficiary: 'address',
-					}
+					},
 				},
 				{
-					name: "Unwrapped",
+					name: 'Unwrapped',
 					fields: {
 						from: 'address',
 						asset_id: 'u32',
 						amount: 'u256',
 						beneficiary: 'address',
-					}
-				}
-			]
+					},
+				},
+			],
 		},
 		counter: {
 			structure: {
 				value: 'StorageValue<u32>',
+				value1: 'StorageValue<u32>',
 			},
-		}
+		},
 	},
-	migration_enabled: true,
 } as DubheConfig;
