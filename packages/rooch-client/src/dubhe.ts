@@ -222,6 +222,17 @@ export class Dubhe {
       params
     );
   };
+
+  /**
+   * if derivePathParams is not provided or mnemonics is empty, it will return the keypair.
+   * else:
+   * it will generate signer from the mnemonic with the given derivePathParams.
+   * @param derivePathParams, such as { accountIndex: 2, isExternal: false, addressIndex: 10 }, comply with the BIP44 standard
+   */
+  getKeypair(derivePathParams?: DerivePathParams) {
+    return this.accountManager.getKeyPair(derivePathParams);
+  }
+
   /**
    * if derivePathParams is not provided or mnemonics is empty, it will return the currentSigner.
    * else:
@@ -275,6 +286,14 @@ export class Dubhe {
 
   getMetadata(): ModuleABIView[] | undefined {
     return this.contractFactory.metadata;
+  }
+
+  getNetwork() {
+    return this.roochInteractor.network;
+  }
+
+  getFullNodeUrl() {
+    return this.roochInteractor.currentFullNode;
   }
 
   async getRpcApiVersion(): Promise<string | undefined> {

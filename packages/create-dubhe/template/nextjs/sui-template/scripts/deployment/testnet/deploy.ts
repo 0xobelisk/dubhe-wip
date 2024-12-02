@@ -4,7 +4,7 @@ import { dubheConfig } from '../../../dubhe.config';
 import fs from 'fs/promises';
 import path from 'path';
 
-const TESTNET_FRAMEWORK_ID = '0x1736475f476c5dec96f33c03c778843f572239d3a887d795eef66d2836484c28';
+const TESTNET_FRAMEWORK_ID = '0x417ad1864a56a29ad0b5aaddd2e11bac1eeab6a68883ef53184a4cc5c293fec6';
 
 async function updateDubheMoveToml(projectName: string) {
   try {
@@ -14,7 +14,7 @@ async function updateDubheMoveToml(projectName: string) {
 
     content = content.replace(
       /Dubhe = \{[^}]+\}/,
-      `Dubhe = { git = "https://github.com/0xobelisk/dubhe.git", subdir = "packages/dubhe-framework", rev = "main" }`,
+      `Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", rev = "release-dubhe-v1.0.0-rc1" }`,
     );
 
     content = content.replace(/^dubhe\s+=\s+"0x[0-9a-fA-F]+"/m, `dubhe = "${TESTNET_FRAMEWORK_ID}"`);

@@ -5,9 +5,9 @@ edition = "2024.beta"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.36.2" }
-Dubhe = { local = "../../localnet/dubhe-framework" }
+Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", rev = "release-dubhe-v1.0.0-rc1" }
 
 [addresses]
 sui = "0x2"
-dubhe = "0x5ec19bb568f850de86b05cefa617c73d2c7cbd2e66800e44f30fa3465e18a7cf"
+dubhe = "0x417ad1864a56a29ad0b5aaddd2e11bac1eeab6a68883ef53184a4cc5c293fec6"
 counter = "0x0"

@@ -23,6 +23,7 @@ const init = async () => {
 			message: 'Pick your chain.',
 			choices: [
 				{ title: 'sui', description: 'Sui', value: 'sui' },
+				{ title: 'rooch', description: 'Rooch', value: 'rooch' },
 				{ title: 'aptos', description: 'Aptos', value: 'aptos' },
 			],
 			initial: 0,

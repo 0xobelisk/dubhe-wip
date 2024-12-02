@@ -21,9 +21,9 @@ async function getDappsObjectId(
 ) {
 	switch (network) {
 		case 'testnet':
-			return '0x92c78ef688a5cb7f6a9f18e76d1da927e26281c367564ffbe5f886ec06434f08';
+			return '0x181befc40b3dafe2740b41d5a970e49bed2cca20205506ee6be2cfb73ff2d3e9';
 		default:
-			return '0x92c78ef688a5cb7f6a9f18e76d1da927e26281c367564ffbe5f886ec06434f08';
+			return '0x181befc40b3dafe2740b41d5a970e49bed2cca20205506ee6be2cfb73ff2d3e9';
 	}
 }
 
@@ -126,6 +126,7 @@ in your contracts directory to use the default sui private key.`
 	let packageId = '';
 	let schemas: schema[] = [];
 	let upgradeCapId = '';
+	let schemaHubId = '';
 
 	result.objectChanges!.map(object => {
 		if (object.type === 'published') {
@@ -139,6 +140,13 @@ in your contracts directory to use the default sui private key.`
 			console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
 			upgradeCapId = object.objectId;
 		}
+		if (
+			object.type === 'created' &&
+			object.objectType.includes("schema_hub")
+		) {
+			console.log(`  ├─ Schema Hub: ${object.objectId}`);
+			schemaHubId = object.objectId;
+		}
 	});
 
 	console.log(`  └─ Transaction: ${result.digest}`);
@@ -150,7 +158,9 @@ in your contracts directory to use the default sui private key.`
 	deployHookTx.moveCall({
 		target: `${packageId}::deploy_hook::run`,
 		arguments: [
+			deployHookTx.object(schemaHubId),
 			deployHookTx.object(dappsObjectId),
+			deployHookTx.object(upgradeCapId),
 			deployHookTx.object('0x6'),
 		],
 	});
@@ -176,7 +186,7 @@ in your contracts directory to use the default sui private key.`
 		deployHookResult.objectChanges?.map(object => {
 			if (
 				object.type === 'created' &&
-				object.objectType.includes('schema')
+				object.objectType.includes('_schema') && !object.objectType.includes("dynamic_field")
 			) {
 				console.log(`  ├─ ${object.objectType}`);
 				console.log(`     └─ ID: ${object.objectId}`);
@@ -200,9 +210,10 @@ in your contracts directory to use the default sui private key.`
 			dubheConfig.name,
 			network,
 			packageId,
-			schemas,
 			upgradeCapId,
-			version
+			schemaHubId,
+			version,
+			schemas,
 		);
 		console.log('\n✅ Contract Publication Complete\n');
 	} else {

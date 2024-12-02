@@ -1,7 +1,7 @@
 type NetworkType = 'testnet' | 'mainnet' | 'devnet' | 'localnet';
 
-export const NETWORK: NetworkType = 'testnet';
+export const NETWORK: NetworkType = 'localnet';
 
-export const PACKAGE_ID = '0x1a4fd49be571fe83244d98cf07fbf409784a1785c4ac4be1b0ba3b54d0b03883'
+export const PACKAGE_ID = '0x578a4e578b31cc9a0e749e35a94e85adb2adf9f16794d5636b9f23b2ef02cf16'
 
-export const Counter_Object_Id = '0x751d522aec9be038c584094d7ec5fce761a6225b9b2bd2d9c2af4f9144341453'
+export const Counter_Object_Id = '0x31bee9e1c6973d825480a645ce018e927a448b62f958e4aadd9e7c63b66233ee'

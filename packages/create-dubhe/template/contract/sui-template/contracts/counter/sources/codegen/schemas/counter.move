@@ -8,9 +8,15 @@
 
   use std::ascii::String;
 
+  use std::ascii::string;
+
+  use sui::package::UpgradeCap;
+
   use std::type_name;
 
   use dubhe::dapps_system;
+
+  use dubhe::storage_migrate;
 
   use dubhe::dapps_schema::Dapps;
 
@@ -22,36 +28,32 @@
 
   use counter::dapp_key::DappKey;
 
+  use sui::dynamic_field as df;
+
   public struct Counter has key, store {
     id: UID,
-    value: StorageValue<u32>,
   }
 
   public fun borrow_value(self: &Counter): &StorageValue<u32> {
-    &self.value
+    storage_migrate::borrow_field(&self.id, b"value")
   }
 
   public(package) fun borrow_mut_value(self: &mut Counter): &mut StorageValue<u32> {
-    &mut self.value
+    storage_migrate::borrow_mut_field(&mut self.id, b"value")
   }
 
-  public fun register(dapps: &mut Dapps, ctx: &mut TxContext): Counter {
-    let package_id = dapps_system::current_package_id<DappKey>();
-    assert!(dapps.borrow_metadata().contains_key(package_id), 0);
-    assert!(dapps.borrow_admin().get(package_id) == ctx.sender(), 0);
-    let schema = type_name::get<Counter>().into_string();
-    assert!(!dapps.borrow_schemas().get(package_id).contains(&schema), 0);
-    dapps_system::add_schema<Counter>(dapps, package_id, ctx);
-    Counter {
-                          id: object::new(ctx),
-                          value: storage_value::new(),
-                        }
+  public(package) fun create(ctx: &mut TxContext): Counter {
+    let mut id = object::new(ctx);
+    storage_migrate::add_field<StorageValue<u32>>(&mut id, b"value", storage_value::new());
+    Counter { id }
   }
+
+  public fun migrate(_counter: &mut Counter, _cap: &UpgradeCap) {}
 
   // ======================================== View Functions ========================================
 
   public fun get_value(self: &Counter): Option<u32> {
-    self.value.try_get()
+    self.borrow_value().try_get()
   }
 
   // =========================================================================================================

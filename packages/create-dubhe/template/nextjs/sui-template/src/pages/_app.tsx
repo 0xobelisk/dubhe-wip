@@ -2,6 +2,7 @@ import 'tailwindcss/tailwind.css';
 import type { AppProps } from 'next/app';
 import '../css/font-awesome.css';
 import '@mysten/dapp-kit/dist/index.css';
+import { Toaster } from 'sonner';
 
 import { createNetworkConfig, SuiClientProvider, WalletProvider } from '@mysten/dapp-kit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -15,6 +16,7 @@ const { networkConfig } = createNetworkConfig({
   testnet: { url: getFullnodeUrl('testnet') },
   mainnet: { url: getFullnodeUrl('mainnet') },
 });
+
 const queryClient = new QueryClient();
 
 function MyApp({ Component, pageProps }: AppProps) {
@@ -22,6 +24,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork={NETWORK}>
         <WalletProvider>
+          <Toaster />
           <Component {...pageProps} />
         </WalletProvider>
       </SuiClientProvider>

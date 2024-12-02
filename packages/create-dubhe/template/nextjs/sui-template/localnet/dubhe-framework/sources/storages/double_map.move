@@ -1,6 +1,3 @@
-// Copyright (c) Mysten Labs, Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 #[allow(unused_variable)]
 module dubhe::storage_double_map {
 
