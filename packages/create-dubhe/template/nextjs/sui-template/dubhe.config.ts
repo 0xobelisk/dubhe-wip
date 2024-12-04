@@ -7,9 +7,8 @@ export const dubheConfig = {
   schemas: {
     counter: {
       structure: {
-        value: "StorageValue<u32>"
-      }
+        value: 'StorageValue<u32>',
+      },
     },
   },
-  migration_enabled: true,
 } as DubheConfig;

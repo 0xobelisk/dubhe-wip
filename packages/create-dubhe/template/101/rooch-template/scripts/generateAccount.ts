@@ -24,8 +24,10 @@ async function generateAccount() {
 export const ACCOUNT = '${keypair.getRoochAddress().toHexAddress()}';
 `,
       );
-
-      console.log(`Using existing Account: ${keypair.getRoochAddress().toHexAddress()}`);
+      console.log(`Using existing account:`);
+      console.log(`Rooch Bech32 address: ${keypair.getRoochAddress().toStr()}`);
+      console.log(`Rooch Hex address: ${keypair.getRoochAddress().toHexAddress()}`);
+      console.log(`Bitcoin address: ${keypair.getBitcoinAddress().toStr()}`);
       return;
     }
   } catch (error) {
@@ -49,7 +51,10 @@ export const ACCOUNT = '${keypair.getRoochAddress().toHexAddress()}';
   `,
   );
 
-  console.log(`Generate new Account: ${keypair.getRoochAddress().toHexAddress()}`);
+  console.log(`Generate new Account:`);
+  console.log(`Rooch Bech32 address: ${keypair.getRoochAddress().toStr()}`);
+  console.log(`Rooch Hex address: ${keypair.getRoochAddress().toHexAddress()}`);
+  console.log(`Bitcoin address: ${keypair.getBitcoinAddress().toStr()}`);
 }
 
 generateAccount();

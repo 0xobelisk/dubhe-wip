@@ -1,10 +1,11 @@
-import { loadMetadata, Dubhe, Transaction } from '@0xobelisk/rooch-client';
+import { loadMetadata, Dubhe, Transaction, NetworkType } from '@0xobelisk/rooch-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '../../jotai';
 import { useRouter } from 'next/router';
 import { NETWORK, PACKAGE_ID } from '../../chain/config';
 import { PRIVATEKEY } from '../../chain/key';
+import { toast } from 'sonner';
 
 const Home = () => {
   const router = useRouter();
@@ -43,10 +44,18 @@ const Home = () => {
       if (response.execution_info.status.type == 'executed') {
         setTimeout(async () => {
           await query_counter_value();
+          toast('Transfer Successful', {
+            description: new Date().toUTCString(),
+            action: {
+              label: 'Check in Explorer',
+              onClick: () => window.open(`https://roochscan.io/tx/${response.execution_info.tx_hash}`, '_blank'),
+            },
+          });
           setLoading(false);
         }, 200);
       }
     } catch (error) {
+      toast.error('Transaction failed. Please try again.');
       setLoading(false);
       console.error(error);
     }
@@ -61,7 +70,7 @@ const Home = () => {
     <div className="max-w-7xl mx-auto text-center py-12 px-4 sm:px-6 lg:py-16 lg:px-8 flex-6">
       <div className="flex flex-col gap-6 mt-12">
         <div className="flex flex-col gap-4">
-          You account already have some sui from testnet
+          You account already have some rooch gas from {NETWORK}
           <div className="flex flex-col gap-6 text-2xl text-green-600 mt-6 ">Counter: {value}</div>
           <div className="flex flex-col gap-6">
             <button

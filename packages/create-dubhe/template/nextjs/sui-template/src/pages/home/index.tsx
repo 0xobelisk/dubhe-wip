@@ -1,11 +1,24 @@
-import { loadMetadata, Dubhe, Transaction, DevInspectResults } from '@0xobelisk/sui-client';
+import { loadMetadata, Dubhe, Transaction, DevInspectResults, NetworkType } from '@0xobelisk/sui-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '../../jotai';
 import { useRouter } from 'next/router';
 import { Counter_Object_Id, NETWORK, PACKAGE_ID } from '../../chain/config';
 import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
+import { toast } from 'sonner';
 
+function getExplorerUrl(network: NetworkType, digest: string) {
+  switch (network) {
+    case 'testnet':
+      return `https://explorer.polymedia.app/txblock/${digest}?network=${network}`;
+    case 'mainnet':
+      return `https://suiscan.xyz/tx/${digest}`;
+    case 'devnet':
+      return `https://explorer.polymedia.app/txblock/${digest}?network=${network}`;
+    case 'localnet':
+      return `https://explorer.polymedia.app/txblock/${digest}?network=local`;
+  }
+}
 /**
  * Home component for the counter application
  * Manages the counter state, user balance, and interactions with the Sui blockchain
@@ -32,7 +45,6 @@ const Home: React.FC = () => {
         metadata: metadata,
       });
       const tx = new Transaction();
-      console.log('Counter Object ID:', Counter_Object_Id);
       const queryValue = (await dubhe.query.counter_schema.get_value(tx, [
         tx.object(Counter_Object_Id),
       ])) as DevInspectResults;
@@ -77,16 +89,24 @@ const Home: React.FC = () => {
           chain: `sui:${NETWORK}`,
         },
         {
-          onSuccess: async () => {
+          onSuccess: async result => {
             // Wait for a short period before querying the latest data
             setTimeout(async () => {
               await queryCounter();
               await getBalance();
+              toast('Transfer Successful', {
+                description: new Date().toUTCString(),
+                action: {
+                  label: 'Check in Explorer',
+                  onClick: () => window.open(getExplorerUrl(NETWORK, result.digest), '_blank'),
+                },
+              });
               setLoading(false);
             }, 2000); // Wait for 2 seconds before querying, adjust as needed
           },
           onError: error => {
             console.error('Transaction failed:', error);
+            toast.error('Transaction failed. Please try again.');
             setLoading(false);
           },
         },

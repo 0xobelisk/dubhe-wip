@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@0xobelisk/rooch-client": "^0.0.3",
-    "@0xobelisk/rooch-cli": "^0.0.1",
-    "@0xobelisk/sui-common": "^0.5.20",
+    "@0xobelisk/rooch-cli": "^0.0.2",
+    "@0xobelisk/sui-common": "^0.5.21",
     "clsx": "^1.2.1",
     "dotenv": "^16.4.5",
     "framer-motion": "^10.12.16",
@@ -39,6 +39,7 @@
     "react-dom": "18.1.0",
     "react-select": "^5.4.0",
     "swiper": "^9.2.4",
+    "sonner": "^1.5.0",
     "chalk": "^4.1.2"
   },
   "devDependencies": {

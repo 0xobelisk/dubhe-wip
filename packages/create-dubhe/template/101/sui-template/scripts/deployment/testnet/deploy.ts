@@ -14,7 +14,7 @@ async function updateDubheMoveToml(projectName: string) {
 
     content = content.replace(
       /Dubhe = \{[^}]+\}/,
-      `Dubhe = { git = "https://github.com/0xobelisk/dubhe.git", rev = "release-dubhe-v1.0.0-rc1" }`,
+      `Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", rev = "release-dubhe-v1.0.0-rc1" }`,
     );
 
     content = content.replace(/^dubhe\s+=\s+"0x[0-9a-fA-F]+"/m, `dubhe = "${TESTNET_FRAMEWORK_ID}"`);
