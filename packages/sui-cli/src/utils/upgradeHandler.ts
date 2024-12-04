@@ -79,6 +79,46 @@ function getLastSegment(input: string): string {
 	return segments.length > 0 ? segments[segments.length - 1] : '';
 }
 
+function replaceEnvField(
+	filePath: string,
+	networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+	field: 'original-published-id' | 'latest-published-id' | 'published-version',
+	newValue: string
+): string {
+	const envFilePath = path.resolve(filePath);
+	const envContent = fs.readFileSync(envFilePath, 'utf-8');
+	const envLines = envContent.split('\n');
+
+	const networkSectionIndex = envLines.findIndex(line => line.trim() === `[env.${networkType}]`);
+	if (networkSectionIndex === -1) {
+		console.log(`Network type [env.${networkType}] not found in the file.`);
+		return "";
+	}
+
+	let fieldIndex = -1;
+	let previousValue: string = "";
+	for (let i = networkSectionIndex + 1; i < envLines.length; i++) {
+		const line = envLines[i].trim();
+		if (line.startsWith('[')) break; // End of the current network section
+
+		if (line.startsWith(field)) {
+			fieldIndex = i;
+			previousValue = line.split('=')[1].trim().replace(/"/g, '');
+			break;
+		}
+	}
+
+	if (fieldIndex !== -1) {
+		envLines[fieldIndex] = `${field} = "${newValue}"`;
+		const newEnvContent = envLines.join('\n');
+		fs.writeFileSync(envFilePath, newEnvContent, 'utf-8');
+		console.log(`${field} for [env.${networkType}] replaced successfully.`);
+	} else {
+		console.log(`${field} not found for [env.${networkType}].`);
+	}
+
+	return previousValue;
+}
 export async function upgradeHandler(
 	config: DubheConfig,
 	name: string,
@@ -111,7 +151,8 @@ in your contracts directory to use the default sui private key.`,
 	let oldPackageId = await getOldPackageId(projectPath, network);
 	let schemaHub = await getSchemaHub(projectPath, network);
 	let upgradeCap = await getUpgradeCap(projectPath, network);
-	// let adminCap = await getAdminCap(projectPath, network);
+
+	const original_published_id =  replaceEnvField(`${projectPath}/Move.lock`, network, 'original-published-id', "0x0000000000000000000000000000000000000000000000000000000000000000");
 
 	let pendingMigration: Migration[] = [];
 	let schemas = await getOnchainSchemas(projectPath, network);
@@ -217,6 +258,10 @@ in your contracts directory to use the default sui private key.`,
 				newPackageId = object.packageId;
 			}
 		});
+
+		replaceEnvField(`${projectPath}/Move.lock`, network, 'original-published-id', original_published_id);
+		replaceEnvField(`${projectPath}/Move.lock`, network, 'latest-published-id', newPackageId);
+		replaceEnvField(`${projectPath}/Move.lock`, network, 'published-version', (oldVersion + 1) + "");
 
 		console.log(
 			chalk.green(`Upgrade Transaction Digest: ${result.digest}`),

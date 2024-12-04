@@ -9,12 +9,12 @@ export async function generateDeployHook(
 ) {
 	console.log('\n📝 Starting Deploy Hook Generation...');
 	console.log(
-		`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/script/deploy_hook.move`
+		`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/scripts/deploy_hook.move`
 	);
 
 	if (
 		!existsSync(
-			`${srcPrefix}/contracts/${config.name}/sources/script/deploy_hook.move`
+			`${srcPrefix}/contracts/${config.name}/sources/scripts/deploy_hook.move`
 		)
 	) {
 		let code = `module ${config.name}::deploy_hook {
@@ -23,6 +23,8 @@ export async function generateDeployHook(
     use ${config.name}::schema_hub::SchemaHub;
     use std::ascii::string;
     use sui::clock::Clock;
+    use sui::sui::SUI;
+    use sui::coin::Coin;
     use sui::package::UpgradeCap;
     use sui::transfer::public_share_object;
     ${Object.keys(config.schemas).map(schemaName => {
@@ -30,6 +32,8 @@ export async function generateDeployHook(
 		}
       #[test_only]
       use sui::clock;
+      #[test_only]
+      use sui::coin;
       #[test_only]
       use sui::test_scenario;
       #[test_only]
@@ -41,9 +45,9 @@ export async function generateDeployHook(
       #[test_only]
       use sui::test_scenario::Scenario;
 
-    public entry fun run(schema_hub: &mut SchemaHub, dapps: &mut Dapps, cap: &UpgradeCap, clock: &Clock, ctx: &mut TxContext) {
+    public entry fun run(schema_hub: &mut SchemaHub, dapps: &mut Dapps, cap: &UpgradeCap, clock: &Clock, coin: Coin<SUI>, ctx: &mut TxContext) {
         // Register the dapp to dubhe.
-        dapps_system::register(dapps,cap,string(b"${config.name}"),string(b"${config.description}"),clock,ctx);
+        dapps_system::register(dapps,cap,string(b"${config.name}"),string(b"${config.description}"),clock,coin,ctx);
         // Create schemas
         ${Object.keys(config.schemas).map(schemaName => {
 				return `let ${schemaName} = ${config.name}::${schemaName}_schema::create(ctx);`;
@@ -75,7 +79,8 @@ export async function generateDeployHook(
     let ctx = test_scenario::ctx(&mut scenario);
     let clock = clock::create_for_testing(ctx);
     let upgrade_cap = package::test_publish(@0x42.to_id(), ctx);
-    run(&mut schema_hub, &mut dapps, &upgrade_cap, &clock, ctx);
+    let coin  = coin::mint_for_testing<SUI>(1_000_000_000, ctx);
+    run(&mut schema_hub, &mut dapps, &upgrade_cap, &clock, coin, ctx);
 
     clock::destroy_for_testing(clock);
     upgrade_cap.make_immutable();
@@ -86,7 +91,7 @@ export async function generateDeployHook(
 `;
 		await formatAndWriteMove(
 			code,
-			`${srcPrefix}/contracts/${config.name}/sources/script/deploy_hook.move`,
+			`${srcPrefix}/contracts/${config.name}/sources/scripts/deploy_hook.move`,
 			'formatAndWriteMove'
 		);
 	}
@@ -96,7 +101,7 @@ export async function generateDeployHook(
 export async function generateMigrate(config: DubheConfig, srcPrefix: string) {
 	if (
 		!existsSync(
-			`${srcPrefix}/contracts/${config.name}/sources/script/migrate.move`
+			`${srcPrefix}/contracts/${config.name}/sources/scripts/migrate.move`
 		)
 	) {
 		let code = `module ${config.name}::migrate {
@@ -109,7 +114,7 @@ export async function generateMigrate(config: DubheConfig, srcPrefix: string) {
 `;
 		await formatAndWriteMove(
 			code,
-			`${srcPrefix}/contracts/${config.name}/sources/script/migrate.move`,
+			`${srcPrefix}/contracts/${config.name}/sources/scripts/migrate.move`,
 			'formatAndWriteMove'
 		);
 	}
