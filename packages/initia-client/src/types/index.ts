@@ -99,10 +99,10 @@ export type AccountMangerParams = {
 };
 
 export type DerivePathParams = {
-  coinType?: number;
   accountIndex?: number;
   // isExternal?: boolean;
   addressIndex?: number;
+  coinType?: number;
   eth?: boolean;
 };
 

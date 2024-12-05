@@ -9,9 +9,9 @@ export const getDerivePathForInitia = (
   derivePathParams: DerivePathParams = {}
 ) => {
   const {
-    coinType = 784,
     accountIndex = 0,
     addressIndex = 0,
+    coinType = 118,
     eth = false,
   } = derivePathParams;
   return {

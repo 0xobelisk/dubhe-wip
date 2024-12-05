@@ -12,9 +12,14 @@ import {
   SyncTxBroadcastResult,
   Coins,
   Coin,
+  MsgSend,
+  WaitTxBroadcastResult,
+  Msg,
+  MsgPublish,
 } from '@initia/initia.js';
 import { delay } from './util';
 import { NetworkType } from '../../types';
+import { getKeyPair } from '../initiaAccountManager/keypair';
 /**
  * `SuiTransactionSender` is used to send transaction with a given gas coin.
  * It always uses the gas coin to pay for the gas,
@@ -141,18 +146,25 @@ export class InitiaInteractor {
 
   async sendTxWithPayload(
     signer: Key,
-    payload: MsgExecute[]
+    payload: Msg[]
   ): Promise<SyncTxBroadcastResult> {
     for (const client of this.clients) {
       try {
         const wallet = new Wallet(client, signer);
+        if (!AccAddress.validate(signer.accAddress)) {
+          throw new Error(`Invalid signer address: ${signer.accAddress}`);
+        }
+
         const tx = await wallet.createAndSignTx({ msgs: payload });
-        const result = await client.tx.broadcastSync(tx);
+        const result = await client.tx.broadcast(tx);
         return result;
-      } catch (err) {
+      } catch (err: any) {
         console.warn(
           `Failed to send transaction with fullnode ${client.URL}: ${err}`
         );
+        if (err.response?.data?.message) {
+          throw new Error(err.response.data.message);
+        }
         await delay(2000);
       }
     }
@@ -190,5 +202,22 @@ export class InitiaInteractor {
       }
     }
     throw new Error('Failed to get balance with all fullnodes');
+  }
+
+  async transfer(sender: Key, recipient: AccAddress, amount: Coins.Input) {
+    for (const client of this.clients) {
+      try {
+        const wallet = new Wallet(client, sender);
+        const tx = await wallet.createAndSignTx({
+          msgs: [new MsgSend(sender.accAddress, recipient, amount)],
+        });
+        const result = await client.tx.broadcast(tx);
+        return result;
+      } catch (err) {
+        console.warn(`Failed to transfer: ${client.URL} ${err}`);
+        await delay(2000);
+      }
+    }
+    throw new Error('Failed to transfer with all fullnodes');
   }
 }

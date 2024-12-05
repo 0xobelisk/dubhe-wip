@@ -7,7 +7,7 @@ export async function loadMetadata(
   fullnodeUrls?: string[]
 ): Promise<MoveModule[] | undefined> {
   // Init the rpc provider
-  fullnodeUrls = fullnodeUrls ?? [getDefaultURL(networkType).fullNode];
+  fullnodeUrls = fullnodeUrls ?? [getDefaultURL(networkType).rest];
   const initiaInteractor = new InitiaInteractor(fullnodeUrls, networkType);
   if (packageId !== undefined) {
     // let allModules: Module[] = [];

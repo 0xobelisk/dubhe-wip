@@ -1,4 +1,14 @@
-import { AccAddress, Key, MsgExecute, Wallet } from '@initia/initia.js';
+import {
+  AccAddress,
+  Coin,
+  Coins,
+  Key,
+  Msg,
+  MsgExecute,
+  MsgPublish,
+  WaitTxBroadcastResult,
+  Wallet,
+} from '@initia/initia.js';
 import { InitiaAccountManager } from './libs/initiaAccountManager';
 import { getDefaultURL, InitiaInteractor } from './libs/initiaInteractor';
 import { InitiaContractFactory } from './libs/initiaContractFactory';
@@ -12,6 +22,8 @@ import {
   MoveModuleFuncType,
   MoveModule,
 } from './types';
+import { getKeyPair } from './libs/initiaAccountManager/keypair';
+import { Alice } from './libs/initiaAccountManager/dev-account';
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
@@ -102,7 +114,7 @@ export class Dubhe {
     this.accountManager = new InitiaAccountManager({ mnemonics, secretKey });
     // Init the rpc provider
     fullnodeUrls = fullnodeUrls || [
-      getDefaultURL(networkType ?? 'mainnet').fullNode,
+      getDefaultURL(networkType ?? 'mainnet').rest,
     ];
     chainId = chainId ?? getDefaultURL(networkType ?? 'mainnet').chainId;
     this.initiaInteractor = new InitiaInteractor(fullnodeUrls, chainId);
@@ -223,7 +235,7 @@ export class Dubhe {
   }
 
   async signAndSendTxnWithPayload(
-    payloads: MsgExecute[],
+    payloads: MsgPublish[] | MsgExecute[],
     sender?: AccAddress | string,
     derivePathParams?: DerivePathParams
   ) {
@@ -232,15 +244,17 @@ export class Dubhe {
       sender = signer.accAddress;
     }
 
-    if (typeof sender === 'string') {
-      sender = AccAddress.fromHex(sender);
+    if (sender.toString().match(/^(0x)?[0-9a-fA-F]{40}$/)) {
+      sender = AccAddress.fromHex(sender.toString());
     }
+    console.log('sender', AccAddress.toHex(sender));
 
     if (sender) {
       payloads.forEach((p) => {
         p.sender = sender as AccAddress;
       });
     }
+    console.log('ser payloads', payloads);
 
     return this.initiaInteractor.sendTxWithPayload(signer, payloads);
   }
@@ -315,6 +329,41 @@ export class Dubhe {
       coinType
     );
     return resource;
+  }
+
+  async requestFaucet(
+    address?: AccAddress | string,
+    amount?: number,
+    network?: 'testnet' | 'localnet',
+    derivePathParams?: DerivePathParams
+  ) {
+    if (address === undefined) {
+      address = this.accountManager.getAddress(derivePathParams);
+    }
+
+    if (amount === undefined) {
+      amount = 10000000;
+    }
+
+    if (amount > 1000000000) {
+      throw new Error('request amount is too large');
+    }
+
+    try {
+      const faucetKeyPair = Alice();
+      const networkInteractor = new InitiaInteractor(
+        [getDefaultURL(network ?? 'localnet').rest],
+        getDefaultURL(network ?? 'localnet').chainId
+      );
+      return await networkInteractor.transfer(
+        faucetKeyPair,
+        address,
+        amount.toString() + 'uinit'
+      );
+    } catch (err) {
+      console.warn(`Failed to request faucet: ${err}`);
+      throw err;
+    }
   }
 }
 
