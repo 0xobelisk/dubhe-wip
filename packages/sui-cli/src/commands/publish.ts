@@ -26,19 +26,19 @@ const commandModule: CommandModule<Options, Options> = {
 				default: 'dubhe.config.ts',
 				desc: 'Configuration file path',
 			},
-			name: {
+			contractName: {
 				type: 'string',
-				desc: 'Optional dappsObjectId',
+				desc: 'Optional contract name',
 			},
 		});
 	},
 
-	async handler({ network, configPath, name }) {
+	async handler({ network, configPath, contractName }) {
 		try {
 			const dubheConfig = (await loadConfig(
 				configPath
 			)) as DubheConfig;
-			await publishHandler(dubheConfig, network, name);
+			await publishHandler(dubheConfig, network, contractName);
 		} catch (error: any) {
 			logError(error);
 			process.exit(1);

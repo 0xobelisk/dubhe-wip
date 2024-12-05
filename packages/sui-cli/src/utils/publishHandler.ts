@@ -408,7 +408,7 @@ async function publishDubheFramework(
 export async function publishHandler(
 	dubheConfig: DubheConfig,
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
-	name?: string
+	contractName?: unknown,
 ) {
 	const privateKey = process.env.PRIVATE_KEY;
 	if (!privateKey) {
@@ -429,7 +429,7 @@ in your contracts directory to use the default sui private key.`
 
 	const client = new SuiClient({ url: getFullnodeUrl(network) });
 
-	if (name == "dubhe-framework") {
+	if (contractName == "dubhe-framework") {
 		await publishDubheFramework(client, dubhe, network);
 	} else {
 		const path = process.cwd();
