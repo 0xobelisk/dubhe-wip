@@ -6,7 +6,7 @@ import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 type Options = {
 	network: any;
 	configPath: string;
-	name?: string;
+	contractName?: string;
 };
 
 const commandModule: CommandModule<Options, Options> = {

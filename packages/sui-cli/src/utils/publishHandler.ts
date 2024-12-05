@@ -408,7 +408,7 @@ async function publishDubheFramework(
 export async function publishHandler(
 	dubheConfig: DubheConfig,
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
-	contractName?: unknown,
+	contractName?: string,
 ) {
 	const privateKey = process.env.PRIVATE_KEY;
 	if (!privateKey) {
