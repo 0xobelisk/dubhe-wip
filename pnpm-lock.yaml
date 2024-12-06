@@ -62,6 +62,9 @@ importers:
       '@0xobelisk/aptos-common':
         specifier: ^0.0.7
         version: link:../aptos-common
+      '@aptos-labs/ts-sdk':
+        specifier: ^1.33.1
+        version: 1.33.1
       aptos:
         specifier: ^1.20.0
         version: 1.21.0
@@ -159,15 +162,12 @@ importers:
 
   packages/aptos-client:
     dependencies:
-      '@aptos-labs/aptos-client':
-        specifier: ^0.0.2
-        version: 0.0.2
+      '@aptos-labs/ts-sdk':
+        specifier: ^1.33.1
+        version: 1.33.1
       '@scure/bip39':
         specifier: ^1.2.1
         version: 1.5.0
-      aptos:
-        specifier: ^1.20.0
-        version: 1.21.0
       assert:
         specifier: ^2.0.0
         version: 2.1.0
@@ -1017,14 +1017,11 @@ packages:
       '@jridgewell/trace-mapping': 0.3.25
     dev: true
 
-  /@aptos-labs/aptos-client@0.0.2:
-    resolution: {integrity: sha512-FgKZb5zDPz8MmAcVxXzYhxP6OkzuIPoDRJp48YJ8+vrZ9EOZ35HaWGN2M3u+GPdnFE9mODFqkxw3azh3kHGZjQ==}
-    engines: {node: '>=15.10.0'}
+  /@aptos-labs/aptos-cli@1.0.2:
+    resolution: {integrity: sha512-PYPsd0Kk3ynkxNfe3S4fanI3DiUICCoh4ibQderbvjPFL5A0oK6F4lPEO2t0MDsQySTk2t4vh99Xjy6Bd9y+aQ==}
+    hasBin: true
     dependencies:
-      axios: 0.27.2
-      got: 11.8.6
-    transitivePeerDependencies:
-      - debug
+      commander: 12.1.0
     dev: false
 
   /@aptos-labs/aptos-client@0.1.1:
@@ -1033,6 +1030,25 @@ packages:
     dependencies:
       axios: 1.7.4
       got: 11.8.6
+    transitivePeerDependencies:
+      - debug
+    dev: false
+
+  /@aptos-labs/ts-sdk@1.33.1:
+    resolution: {integrity: sha512-d6nWtUI//fyEN8DeLjm3+ro87Ad6+IKwR9pCqfrs/Azahso1xR1Llxd/O6fj/m1DDsuDj/HAsCsy5TC/aKD6Eg==}
+    engines: {node: '>=11.0.0'}
+    dependencies:
+      '@aptos-labs/aptos-cli': 1.0.2
+      '@aptos-labs/aptos-client': 0.1.1
+      '@noble/curves': 1.7.0
+      '@noble/hashes': 1.6.1
+      '@scure/bip32': 1.6.0
+      '@scure/bip39': 1.5.0
+      eventemitter3: 5.0.1
+      form-data: 4.0.1
+      js-base64: 3.7.7
+      jwt-decode: 4.0.0
+      poseidon-lite: 0.2.1
     transitivePeerDependencies:
       - debug
     dev: false
@@ -5005,15 +5021,6 @@ packages:
       - debug
     dev: false
 
-  /axios@0.27.2:
-    resolution: {integrity: sha512-t+yRIyySRTp/wua5xEr+z1q60QmLq8ABsS5O9Me1AsE5dfKqgnCFzwiCZZ/cGNd1lq4/7akDWMxdhVlucjmnOQ==}
-    dependencies:
-      follow-redirects: 1.15.9(debug@4.3.2)
-      form-data: 4.0.1
-    transitivePeerDependencies:
-      - debug
-    dev: false
-
   /axios@1.7.4:
     resolution: {integrity: sha512-DukmaFRnY6AzAALSH4J2M3k6PkaC+MfaAGdEERRWcC9q3/TWQwLpHR8ZRLKTdQ3aBDL64EdluRDjJqKw+BPZEw==}
     dependencies:
@@ -5635,7 +5642,6 @@ packages:
   /commander@12.1.0:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
     engines: {node: '>=18'}
-    dev: true
 
   /commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -7855,6 +7861,11 @@ packages:
     resolution: {integrity: sha512-POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==}
     engines: {'0': node >= 0.2.0}
     dev: true
+
+  /jwt-decode@4.0.0:
+    resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
+    engines: {node: '>=18'}
+    dev: false
 
   /keccak256@1.0.6:
     resolution: {integrity: sha512-8GLiM01PkdJVGUhR1e6M/AvWnSqYS0HaERI+K/QtStGDGlSTx2B1zTqZk4Zlqu5TxHJNTxWAdP9Y+WI50OApUw==}

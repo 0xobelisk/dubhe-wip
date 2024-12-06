@@ -1,4 +1,4 @@
-import { AptosAccount, AptosAccountObject } from 'aptos';
+import { Account, Ed25519PrivateKey } from '@aptos-labs/ts-sdk';
 import { getKeyPair } from './keypair';
 import { generateMnemonic } from './crypto';
 import type { AccountMangerParams, DerivePathParams } from '../../types';
@@ -6,7 +6,7 @@ import type { AccountMangerParams, DerivePathParams } from '../../types';
 export class AptosAccountManager {
   private mnemonics: string;
   private secretKey: string;
-  public currentKeyPair: AptosAccount;
+  public currentKeyPair: Account;
   public currentAddress: string;
 
   /**
@@ -37,12 +37,12 @@ export class AptosAccountManager {
      *  }
      */
     this.currentKeyPair = this.secretKey
-      ? AptosAccount.fromAptosAccountObject({
-          privateKeyHex: secretKey!,
+      ? Account.fromPrivateKey({
+          privateKey: new Ed25519PrivateKey(secretKey!),
         })
       : getKeyPair(this.mnemonics);
 
-    this.currentAddress = this.currentKeyPair.address().toString();
+    this.currentAddress = this.currentKeyPair.accountAddress.toString();
   }
 
   /**
@@ -62,7 +62,10 @@ export class AptosAccountManager {
    */
   getAddress(derivePathParams?: DerivePathParams) {
     if (!derivePathParams || !this.mnemonics) return this.currentAddress;
-    return getKeyPair(this.mnemonics, derivePathParams).address().toString();
+    return getKeyPair(
+      this.mnemonics,
+      derivePathParams
+    ).accountAddress.toString();
   }
 
   /**
@@ -72,7 +75,7 @@ export class AptosAccountManager {
   switchAccount(derivePathParams: DerivePathParams) {
     if (this.mnemonics) {
       this.currentKeyPair = getKeyPair(this.mnemonics, derivePathParams);
-      this.currentAddress = this.currentKeyPair.address().toString();
+      this.currentAddress = this.currentKeyPair.accountAddress.toString();
     }
   }
 }
