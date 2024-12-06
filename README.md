@@ -11,9 +11,9 @@
   </a>
 </div>
 
-> Dubhe is a community-driven open-source Move Application Creation Engine and Provable Game Engine, providing a comprehensive toolkit for building verifiable dapps/games and autonomous worlds.
+> Dubhe is a community-driven open-source Move Application Creation Engine and Provable Game Engine that provides a comprehensive toolkit for building verifiable Dapps and fully on-chain world/universe-type applications.
 
-Currently in early development, Dubhe aims to reduce project setup time from days to hours through its powerful toolkit and active community contributions.
+In early development, Dubhe aims to reduce project setup time from days to hours through its powerful toolkit and active community contributions.
 
 ## 🔑 Key Features
 - ⚡️ Built with [Move](https://move-language.github.io/move/)

@@ -13,16 +13,15 @@ export async function generateToml(
 
 	let code = `[package]
 name = "${config.name}"
-version = "0.0.1"
-edition = "2024.beta"
+version = "1.0.0"
+edition = "2024"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.36.2" }
-Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", rev = "release-dubhe-v1.0.0-rc1" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.38.3" }
+Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", rev = "dubhe-testnet-v1.0.0" }
 
 [addresses]
 sui = "0x2"
-dubhe = "${frameworkId}"
 ${config.name} = "0x0"
 `;
 	await formatAndWriteMove(

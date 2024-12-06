@@ -247,12 +247,14 @@ export class Dubhe {
     if (sender.toString().match(/^(0x)?[0-9a-fA-F]{40}$/)) {
       sender = AccAddress.fromHex(sender.toString());
     }
+    console.log('sender', AccAddress.toHex(sender));
 
     if (sender) {
       payloads.forEach((p) => {
         p.sender = sender as AccAddress;
       });
     }
+    console.log('ser payloads', payloads);
 
     return this.initiaInteractor.sendTxWithPayload(signer, payloads);
   }

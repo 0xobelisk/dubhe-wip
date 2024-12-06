@@ -362,7 +362,7 @@ importers:
         version: link:../initia-client
       '@0xobelisk/sui-common':
         specifier: ^0.5.21
-        version: 0.5.22
+        version: link:../sui-common
       '@initia/builder.js':
         specifier: ^0.2.6
         version: 0.2.6(eslint@8.57.1)(typescript@5.1.6)
@@ -535,7 +535,7 @@ importers:
         version: link:../rooch-client
       '@0xobelisk/sui-common':
         specifier: ^0.5.21
-        version: 0.5.22
+        version: link:../sui-common
       '@roochnetwork/rooch-sdk':
         specifier: ^0.2.8
         version: 0.2.8(typescript@5.1.6)
@@ -701,8 +701,8 @@ importers:
         specifier: ^0.5.28
         version: link:../sui-client
       '@0xobelisk/sui-common':
-        specifier: ^0.5.21
-        version: 0.5.22
+        specifier: ^0.5.22
+        version: link:../sui-common
       '@mysten/sui':
         specifier: ^1.7.0
         version: 1.16.0(typescript@5.1.6)
@@ -1007,34 +1007,6 @@ packages:
       '@gql.tada/internal': 1.0.8(graphql@16.9.0)(typescript@5.7.2)
       graphql: 16.9.0
       typescript: 5.7.2
-    dev: false
-
-  /@0xobelisk/sui-common@0.5.22:
-    resolution: {integrity: sha512-kQgQvcDHhEA97S8ML0kjP9NwiD2I/vL0XHxfQ8dOXkHE58RXbYqMlTlYPYF4RIRF8O39SY5ej29Dt5sVYk0c0Q==}
-    engines: {node: '>=18'}
-    dependencies:
-      '@mysten/sui': 1.16.0(typescript@5.1.6)
-      chalk: 5.3.0
-      debug: 4.3.7
-      dotenv: 16.4.5
-      ejs: 3.1.10
-      esbuild: 0.17.19
-      execa: 7.2.0
-      find-up: 6.3.0
-      glob: 8.1.0
-      path: 0.12.7
-      prettier: 3.4.1
-      prettier-plugin-move-js: 0.0.5
-      prettier-plugin-rust: 0.1.9
-      prettier-plugin-solidity: 1.4.1(prettier@3.4.1)
-      typescript: 5.1.6
-      yargs: 17.7.2
-      zod: 3.23.8
-      zod-validation-error: 1.5.0(zod@3.23.8)
-    transitivePeerDependencies:
-      - '@gql.tada/svelte-support'
-      - '@gql.tada/vue-support'
-      - supports-color
     dev: false
 
   /@ampproject/remapping@2.3.0:

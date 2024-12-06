@@ -12,14 +12,20 @@ import {
 	updateVersionInFile,
 	saveContractData,
 	validatePrivateKey,
-	schema,
+	schema, getSchemaHub,
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function getDappsObjectId(
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
 	switch (network) {
+		case "localnet": {
+			const path = process.cwd();
+			return await getSchemaHub(`${path}/contracts/dubhe-framework`, network)
+		}
 		case 'testnet':
 			return '0x181befc40b3dafe2740b41d5a970e49bed2cca20205506ee6be2cfb73ff2d3e9';
 		default:
@@ -27,6 +33,97 @@ async function getDappsObjectId(
 	}
 }
 
+function removeEnvContent(filePath: string, networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet'): void {
+	if (!fs.existsSync(filePath)) {
+		return;
+	}
+	const content = fs.readFileSync(filePath, 'utf-8');
+	const regex = new RegExp(`\\[env\\.${networkType}\\][\\s\\S]*?(?=\\[|$)`, 'g');
+	const updatedContent = content.replace(regex, '');
+	fs.writeFileSync(filePath, updatedContent, 'utf-8');
+}
+
+interface EnvConfig {
+	chainId: string;
+	originalPublishedId: string;
+	latestPublishedId: string;
+	publishedVersion: number;
+}
+
+const chainIds: { [key: string]: string } = {
+	localnet: 'dfa7bb83',
+	testnet: '4c78adac',
+	mainnet: '35834a8a',
+};
+
+function updateEnvFile(filePath: string, networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet', operation: 'publish' | 'upgrade', publishedId: string): void {
+	const envFilePath = path.resolve(filePath);
+	const envContent = fs.readFileSync(envFilePath, 'utf-8');
+	const envLines = envContent.split('\n');
+
+	const networkSectionIndex = envLines.findIndex(line => line.trim() === `[env.${networkType}]`);
+	const config: EnvConfig = {
+		chainId: chainIds[networkType] || '',
+		originalPublishedId: '',
+		latestPublishedId: '',
+		publishedVersion: 0,
+	};
+
+	if (networkSectionIndex === -1) {
+		// If network section is not found, add a new section
+		if (operation === 'publish') {
+			config.originalPublishedId = publishedId;
+			config.latestPublishedId = publishedId;
+			config.publishedVersion = 1;
+		} else {
+			throw new Error(`Network type [env.${networkType}] not found in the file and cannot upgrade.`);
+		}
+	} else {
+		for (let i = networkSectionIndex + 1; i < envLines.length; i++) {
+			const line = envLines[i].trim();
+			if (line.startsWith('[')) break; // End of the current network section
+
+			const [key, value] = line.split('=').map(part => part.trim().replace(/"/g, ''));
+			switch (key) {
+				case 'chain-id':
+					config.chainId = value;
+					break;
+				case 'original-published-id':
+					config.originalPublishedId = value;
+					break;
+				case 'latest-published-id':
+					config.latestPublishedId = value;
+					break;
+				case 'published-version':
+					config.publishedVersion = parseInt(value, 10);
+					break;
+			}
+		}
+
+		if (operation === 'publish') {
+			config.originalPublishedId = publishedId;
+			config.latestPublishedId = publishedId;
+			config.publishedVersion = 1;
+		} else if (operation === 'upgrade') {
+			config.latestPublishedId = publishedId;
+			config.publishedVersion += 1;
+		}
+	}
+
+	const updatedSection = `
+[env.${networkType}]
+chain-id = "${config.chainId}"
+original-published-id = "${config.originalPublishedId}"
+latest-published-id = "${config.latestPublishedId}"
+published-version = "${config.publishedVersion}"
+`;
+
+	const newEnvContent = networkSectionIndex === -1
+		? envContent + updatedSection
+		: envLines.slice(0, networkSectionIndex).join('\n') + updatedSection;
+
+	fs.writeFileSync(envFilePath, newEnvContent, 'utf-8');
+}
 function capitalizeAndRemoveUnderscores(input: string): string {
 	return input
 		.split('_')
@@ -43,42 +140,7 @@ function getLastSegment(input: string): string {
 	return segments.length > 0 ? segments[segments.length - 1] : '';
 }
 
-export async function publishHandler(
-	dubheConfig: DubheConfig,
-	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
-	dappsObjectId?: string
-) {
-
-
-	const path = process.cwd();
-	const projectPath = `${path}/contracts/${dubheConfig.name}`;
-	dappsObjectId = dappsObjectId || (await getDappsObjectId(network));
-
-	console.log('\n🚀 Starting Contract Publication...');
-	console.log(`  ├─ Project: ${projectPath}`);
-	console.log(`  ├─ Network: ${network}`);
-	console.log('  ├─ Validating Environment...');
-	const privateKey = process.env.PRIVATE_KEY;
-	if (!privateKey) {
-		throw new DubheCliError(
-			`Missing PRIVATE_KEY environment variable.
-Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
-in your contracts directory to use the default sui private key.`
-		);
-	}
-
-	const privateKeyFormat = validatePrivateKey(privateKey);
-	if (privateKeyFormat === false) {
-		throw new DubheCliError(`Please check your privateKey.`);
-	}
-
-	const dubhe = new Dubhe({ secretKey: privateKeyFormat });
-	const keypair = dubhe.getKeypair();
-	console.log(`  └─ Account: ${keypair.toSuiAddress()}`);
-
-	const client = new SuiClient({ url: getFullnodeUrl(network) });
-
-	console.log('\n📦 Building Contract...');
+function buildContract(projectPath: string):  string[][] {
 	let modules: any, dependencies: any;
 	try {
 		const buildResult = JSON.parse(
@@ -97,6 +159,31 @@ in your contracts directory to use the default sui private key.`
 		console.error(error.stdout);
 		process.exit(1);
 	}
+	return [modules, dependencies];
+}
+
+async function publishContract(
+	client: SuiClient,
+	dubhe: Dubhe,
+	dubheConfig: DubheConfig,
+	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+	projectPath: string
+) {
+
+	const dappsObjectId = await getDappsObjectId(network);
+	console.log("dappsObjectId", dappsObjectId);
+
+	removeEnvContent(`${projectPath}/Move.lock`, network);
+	console.log('\n🚀 Starting Contract Publication...');
+	console.log(`  ├─ Project: ${projectPath}`);
+	console.log(`  ├─ Network: ${network}`);
+	console.log('  ├─ Validating Environment...');
+
+	const keypair = dubhe.getKeypair();
+	console.log(`  └─ Account: ${keypair.toSuiAddress()}`);
+
+	console.log('\n📦 Building Contract...');
+	const [modules, dependencies] = buildContract(projectPath);
 
 	console.log('\n🔄 Publishing Contract...');
 	const tx = new Transaction();
@@ -151,10 +238,14 @@ in your contracts directory to use the default sui private key.`
 
 	console.log(`  └─ Transaction: ${result.digest}`);
 
+	updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', packageId);
+
 	console.log('\n⚡ Executing Deploy Hook...');
 	await new Promise(resolve => setTimeout(resolve, 5000));
 
 	const deployHookTx = new Transaction();
+	deployHookTx.setGasBudget(2000000000);
+	const [txCoin] = deployHookTx.splitCoins(deployHookTx.gas, ["1000000000"]);
 	deployHookTx.moveCall({
 		target: `${packageId}::deploy_hook::run`,
 		arguments: [
@@ -162,6 +253,7 @@ in your contracts directory to use the default sui private key.`
 			deployHookTx.object(dappsObjectId),
 			deployHookTx.object(upgradeCapId),
 			deployHookTx.object('0x6'),
+			txCoin
 		],
 	});
 
@@ -223,5 +315,125 @@ in your contracts directory to use the default sui private key.`
 				'     Please republish or manually call deploy_hook::run'
 			)
 		);
+	}
+}
+
+async function publishDubheFramework(
+	client: SuiClient,
+	dubhe: Dubhe,
+	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+) {
+	const path = process.cwd();
+	const projectPath = `${path}/contracts/dubhe-framework`;
+
+	removeEnvContent(`${projectPath}/Move.lock`, network);
+	console.log('\n🚀 Starting Contract Publication...');
+	console.log(`  ├─ Project: ${projectPath}`);
+	console.log(`  ├─ Network: ${network}`);
+	console.log('  ├─ Validating Environment...');
+
+	const keypair = dubhe.getKeypair();
+	console.log(`  └─ Account: ${keypair.toSuiAddress()}`);
+
+
+	console.log('\n📦 Building Contract...');
+	const [modules, dependencies] = buildContract(projectPath);
+
+	console.log('\n🔄 Publishing Contract...');
+	const tx = new Transaction();
+	const [upgradeCap] = tx.publish({ modules, dependencies });
+	tx.transferObjects([upgradeCap], keypair.toSuiAddress());
+
+	let result: SuiTransactionBlockResponse;
+	try {
+		result = await client.signAndExecuteTransaction({
+			signer: keypair,
+			transaction: tx,
+			options: { showObjectChanges: true },
+		});
+	} catch (error: any) {
+		console.error(chalk.red('  └─ Publication failed'));
+		console.error(error.message);
+		process.exit(1);
+	}
+
+	if (result.effects?.status.status === 'failure') {
+		console.log(chalk.red('  └─ Publication failed'));
+		process.exit(1);
+	}
+
+	console.log('  ├─ Processing publication results...');
+	let version = 1;
+	let packageId = '';
+	let schemas: schema[] = [];
+	let upgradeCapId = '';
+	let schemaHubId = '';
+
+	result.objectChanges!.map(object => {
+		if (object.type === 'published') {
+			console.log(`  ├─ Package ID: ${object.packageId}`);
+			packageId = object.packageId;
+		}
+		if (
+			object.type === 'created' &&
+			object.objectType === '0x2::package::UpgradeCap'
+		) {
+			console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
+			upgradeCapId = object.objectId;
+		}
+		if (
+			object.type === 'created' &&
+			object.objectType.includes("dapps")
+		) {
+			console.log(`  ├─ Dapps: ${object.objectId}`);
+			schemaHubId = object.objectId;
+		}
+	});
+
+	console.log(`  └─ Transaction: ${result.digest}`);
+
+	updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', packageId);
+
+	saveContractData(
+		"dubhe-framework",
+		network,
+		packageId,
+		upgradeCapId,
+		schemaHubId,
+		version,
+		schemas,
+	);
+}
+
+export async function publishHandler(
+	dubheConfig: DubheConfig,
+	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+	contractName?: string,
+) {
+	const privateKey = process.env.PRIVATE_KEY;
+	if (!privateKey) {
+		throw new DubheCliError(
+			`Missing PRIVATE_KEY environment variable.
+Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
+in your contracts directory to use the default sui private key.`
+		);
+	}
+	const privateKeyFormat = validatePrivateKey(privateKey);
+	if (privateKeyFormat === false) {
+		throw new DubheCliError(`Please check your privateKey.`);
+	}
+
+	const dubhe = new Dubhe({ secretKey: privateKeyFormat });
+	const keypair = dubhe.getKeypair();
+	console.log(`  └─ Account: ${keypair.toSuiAddress()}`);
+
+	const client = new SuiClient({ url: getFullnodeUrl(network) });
+
+	if (contractName == "dubhe-framework") {
+		await publishDubheFramework(client, dubhe, network);
+	} else {
+		const path = process.cwd();
+		const projectPath = `${path}/contracts/${dubheConfig.name}`;
+		await publishContract(client, dubhe, dubheConfig, network, projectPath);
 	}
 }
