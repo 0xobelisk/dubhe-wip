@@ -362,10 +362,10 @@ importers:
         version: link:../initia-client
       '@0xobelisk/sui-common':
         specifier: ^0.5.21
-        version: link:../sui-common
+        version: 0.5.22
       '@initia/builder.js':
-        specifier: ^0.2.5
-        version: 0.2.5(eslint@8.57.1)(typescript@5.1.6)
+        specifier: ^0.2.6
+        version: 0.2.6(eslint@8.57.1)(typescript@5.1.6)
       '@roochnetwork/rooch-sdk':
         specifier: ^0.2.8
         version: 0.2.8(typescript@5.1.6)
@@ -535,7 +535,7 @@ importers:
         version: link:../rooch-client
       '@0xobelisk/sui-common':
         specifier: ^0.5.21
-        version: link:../sui-common
+        version: 0.5.22
       '@roochnetwork/rooch-sdk':
         specifier: ^0.2.8
         version: 0.2.8(typescript@5.1.6)
@@ -702,7 +702,7 @@ importers:
         version: link:../sui-client
       '@0xobelisk/sui-common':
         specifier: ^0.5.21
-        version: link:../sui-common
+        version: 0.5.22
       '@mysten/sui':
         specifier: ^1.7.0
         version: 1.16.0(typescript@5.1.6)
@@ -1007,6 +1007,34 @@ packages:
       '@gql.tada/internal': 1.0.8(graphql@16.9.0)(typescript@5.7.2)
       graphql: 16.9.0
       typescript: 5.7.2
+    dev: false
+
+  /@0xobelisk/sui-common@0.5.22:
+    resolution: {integrity: sha512-kQgQvcDHhEA97S8ML0kjP9NwiD2I/vL0XHxfQ8dOXkHE58RXbYqMlTlYPYF4RIRF8O39SY5ej29Dt5sVYk0c0Q==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@mysten/sui': 1.16.0(typescript@5.1.6)
+      chalk: 5.3.0
+      debug: 4.3.7
+      dotenv: 16.4.5
+      ejs: 3.1.10
+      esbuild: 0.17.19
+      execa: 7.2.0
+      find-up: 6.3.0
+      glob: 8.1.0
+      path: 0.12.7
+      prettier: 3.4.1
+      prettier-plugin-move-js: 0.0.5
+      prettier-plugin-rust: 0.1.9
+      prettier-plugin-solidity: 1.4.1(prettier@3.4.1)
+      typescript: 5.1.6
+      yargs: 17.7.2
+      zod: 3.23.8
+      zod-validation-error: 1.5.0(zod@3.23.8)
+    transitivePeerDependencies:
+      - '@gql.tada/svelte-support'
+      - '@gql.tada/vue-support'
+      - supports-color
     dev: false
 
   /@ampproject/remapping@2.3.0:
@@ -3065,21 +3093,6 @@ packages:
       google-protobuf: 3.21.4
     dev: false
 
-  /@initia/builder.js@0.2.5(eslint@8.57.1)(typescript@5.1.6):
-    resolution: {integrity: sha512-h/WeTZolh6yI8KUvfKvfOi8jAKdweOipRab2+V4BIJj0ZHozSZTZSWLz8fQGVl/+Ptjqa1cJg04rEudCJZ7yqg==}
-    engines: {node: '>=20'}
-    dependencies:
-      '@eleccookie/ffi-napi': 0.0.1
-      '@eleccookie/ref-napi': 0.0.2
-      '@mysten/bcs': 1.1.1
-      ref-struct-di: 1.1.1
-      typescript-eslint: 7.18.0(eslint@8.57.1)(typescript@5.1.6)
-    transitivePeerDependencies:
-      - eslint
-      - supports-color
-      - typescript
-    dev: false
-
   /@initia/builder.js@0.2.5(eslint@8.57.1)(typescript@5.7.2):
     resolution: {integrity: sha512-h/WeTZolh6yI8KUvfKvfOi8jAKdweOipRab2+V4BIJj0ZHozSZTZSWLz8fQGVl/+Ptjqa1cJg04rEudCJZ7yqg==}
     engines: {node: '>=20'}
@@ -3089,6 +3102,21 @@ packages:
       '@mysten/bcs': 1.1.1
       ref-struct-di: 1.1.1
       typescript-eslint: 7.18.0(eslint@8.57.1)(typescript@5.7.2)
+    transitivePeerDependencies:
+      - eslint
+      - supports-color
+      - typescript
+    dev: false
+
+  /@initia/builder.js@0.2.6(eslint@8.57.1)(typescript@5.1.6):
+    resolution: {integrity: sha512-gL+UGz3eNZ/+Q3kKJS5LM/bTG8AyAlDKGKlo9T8OpjqFp58cuBkLmx8pVYvd9SYhSTqBZYmvFoLMrab9GN/3Jw==}
+    engines: {node: '>=20'}
+    dependencies:
+      '@eleccookie/ffi-napi': 0.0.1
+      '@eleccookie/ref-napi': 0.0.2
+      '@mysten/bcs': 1.1.1
+      ref-struct-di: 1.1.1
+      typescript-eslint: 7.18.0(eslint@8.57.1)(typescript@5.1.6)
     transitivePeerDependencies:
       - eslint
       - supports-color
