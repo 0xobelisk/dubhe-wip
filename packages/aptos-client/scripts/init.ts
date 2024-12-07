@@ -1,4 +1,4 @@
-import { NetworkType, Dubhe, Types } from './../src';
+import { NetworkType, Dubhe, PendingTransactionResponse } from './../src';
 import { loadMetadata } from '../src/metadata/index';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -34,7 +34,7 @@ async function init() {
   console.log('======= set our message ========');
   const res1 = (await dubhe.tx.message.set_message(dubhe.getAddress(), [
     'first set',
-  ])) as Types.PendingTransaction;
+  ])) as PendingTransactionResponse;
   console.log(res1.hash);
   await delay(1000);
 
@@ -46,7 +46,7 @@ async function init() {
 
   const res2 = (await dubhe.tx.message.set_message(dubhe.getAddress(), [
     'hello world',
-  ])) as Types.PendingTransaction;
+  ])) as PendingTransactionResponse;
   console.log(res2.hash);
   await delay(1000);
 

@@ -22,11 +22,7 @@ import {
 } from '@aptos-labs/ts-sdk';
 import { getDefaultURL } from './defaultConfig';
 import { delay } from './util';
-import {
-  MovementNetwork,
-  NetworkType,
-  NetworkNameToIndexerAPI,
-} from 'src/types';
+import { MovementNetwork, NetworkType } from 'src/types';
 
 /**
  * `SuiTransactionSender` is used to send transaction with a given gas coin.
@@ -34,8 +30,8 @@ import {
  * and update the gas coin after the transaction.
  */
 export class AptosInteractor {
-  public readonly providers: Aptos[];
-  public currentProvider: Aptos;
+  public readonly clients: Aptos[];
+  public currentClient: Aptos;
   public network?: NetworkType;
 
   constructor(
@@ -45,17 +41,21 @@ export class AptosInteractor {
   ) {
     if (fullNodeUrls.length === 0)
       throw new Error('fullNodeUrls must not be empty');
-    this.providers = fullNodeUrls.map(
+    this.clients = fullNodeUrls.map(
       (url) =>
         new Aptos(
           new AptosConfig({
             fullnode: url,
-            network: network ?? Network.TESTNET,
+            network: Object.values(MovementNetwork).includes(
+              network as MovementNetwork
+            )
+              ? Network.CUSTOM
+              : (network as Network) ?? Network.TESTNET,
             indexer: indexerUrl,
           })
         )
     );
-    this.currentProvider = this.providers[0];
+    this.currentClient = this.clients[0];
     // this.currentClient = AptosConfig
 
     this.network = network;
@@ -72,10 +72,10 @@ export class AptosInteractor {
     // }
   }
 
-  switchToNextProvider() {
-    const currentProviderIdx = this.providers.indexOf(this.currentProvider);
-    this.currentProvider =
-      this.providers[(currentProviderIdx + 1) % this.providers.length];
+  switchToNextClient() {
+    const currentClientIdx = this.clients.indexOf(this.currentClient);
+    this.currentClient =
+      this.clients[(currentClientIdx + 1) % this.clients.length];
   }
 
   async buildTransaction({
@@ -89,7 +89,7 @@ export class AptosInteractor {
     options?: InputGenerateTransactionOptions;
     withFeePayer?: boolean;
   }): Promise<SimpleTransaction> {
-    return this.currentProvider.transaction.build.simple({
+    return this.currentClient.transaction.build.simple({
       sender,
       data,
       options,
@@ -98,16 +98,16 @@ export class AptosInteractor {
   }
 
   async signTransaction(signer: Account, transaction: AnyRawTransaction) {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        const senderAuthenticator = provider.transaction.sign({
+        const senderAuthenticator = client.transaction.sign({
           signer,
           transaction,
         });
         return senderAuthenticator;
       } catch (err) {
         console.warn(
-          `Failed to sign transaction with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to sign transaction with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -120,9 +120,9 @@ export class AptosInteractor {
     senderAuthenticator: AccountAuthenticator,
     feePayerAuthenticator?: AccountAuthenticator
   ) {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        const pendingTxn = await provider.transaction.submit.simple({
+        const pendingTxn = await client.transaction.submit.simple({
           transaction,
           senderAuthenticator,
           feePayerAuthenticator,
@@ -130,7 +130,7 @@ export class AptosInteractor {
         return pendingTxn;
       } catch (err) {
         console.warn(
-          `Failed to submit transaction with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to submit transaction with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -142,16 +142,16 @@ export class AptosInteractor {
     transactionHash: HexInput,
     options?: WaitForTransactionOptions
   ) {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        const executedTransaction = await provider.waitForTransaction({
+        const executedTransaction = await client.waitForTransaction({
           transactionHash,
           options,
         });
         return executedTransaction;
       } catch (err) {
         console.warn(
-          `Failed to wait for transaction: ${transactionHash} with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to wait for transaction: ${transactionHash} with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -167,19 +167,19 @@ export class AptosInteractor {
     withFeePayer?: boolean,
     feePayerAuthenticator?: AccountAuthenticator
   ): Promise<PendingTransactionResponse> {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        const transaction = await provider.transaction.build.simple({
+        const transaction = await client.transaction.build.simple({
           sender,
           data,
           options,
           withFeePayer,
         });
-        const senderAuthenticator = provider.transaction.sign({
+        const senderAuthenticator = client.transaction.sign({
           signer,
           transaction,
         });
-        const committedTransaction = await provider.transaction.submit.simple({
+        const committedTransaction = await client.transaction.submit.simple({
           transaction,
           senderAuthenticator,
           feePayerAuthenticator,
@@ -187,7 +187,7 @@ export class AptosInteractor {
         return committedTransaction;
       } catch (err) {
         console.warn(
-          `Failed to send transaction with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to send transaction with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -195,21 +195,24 @@ export class AptosInteractor {
     throw new Error('Failed to send transaction with all fullnodes');
   }
 
-  async signAndSubmitTransaction(
-    sender: Account,
-    transaction: AnyRawTransaction
-  ): Promise<any> {
-    for (const provider of this.providers) {
+  async signAndSubmitTransaction({
+    sender,
+    transaction,
+  }: {
+    sender: Account;
+    transaction: AnyRawTransaction;
+  }): Promise<PendingTransactionResponse> {
+    for (const client of this.clients) {
       try {
         const committedTransaction =
-          await provider.transaction.signAndSubmitTransaction({
+          await client.transaction.signAndSubmitTransaction({
             signer: sender,
             transaction: transaction,
           });
         return committedTransaction;
       } catch (err) {
         console.warn(
-          `Failed to send transaction with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to send transaction with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -218,14 +221,14 @@ export class AptosInteractor {
   }
 
   async getAccountResources(accountAddress: string) {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        return provider.getAccountResources({
+        return client.getAccountResources({
           accountAddress,
         });
       } catch (err) {
         console.warn(
-          `Failed to get AccountResources with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to get AccountResources with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -238,16 +241,16 @@ export class AptosInteractor {
     resourceType: MoveStructId,
     options?: LedgerVersionArg
   ) {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        return provider.getAccountResource({
+        return client.getAccountResource({
           accountAddress,
           resourceType,
           options,
         });
       } catch (err) {
         console.warn(
-          `Failed to get AccountResource with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to get AccountResource with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -260,16 +263,16 @@ export class AptosInteractor {
     moduleName: string,
     options?: LedgerVersionArg
   ): Promise<MoveModuleBytecode> {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        return provider.getAccountModule({
+        return client.getAccountModule({
           accountAddress,
           moduleName,
           options,
         });
       } catch (err) {
         console.warn(
-          `Failed to get AccountModule with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to get AccountModule with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -281,15 +284,15 @@ export class AptosInteractor {
     accountAddress: AccountAddressInput,
     options?: PaginationArgs & LedgerVersionArg
   ): Promise<MoveModuleBytecode[]> {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        return provider.getAccountModules({
+        return client.getAccountModules({
           accountAddress,
           options,
         });
       } catch (err) {
         console.warn(
-          `Failed to get AccountModules with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to get AccountModules with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -304,15 +307,15 @@ export class AptosInteractor {
     payload: InputViewFunctionData;
     options?: LedgerVersionArg;
   }): Promise<MoveValue[]> {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        return provider.view({
+        return client.view({
           payload,
           options,
         });
       } catch (err) {
         console.warn(
-          `Failed to view with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to view with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
@@ -325,20 +328,49 @@ export class AptosInteractor {
     amount: number,
     options?: WaitForTransactionOptions
   ) {
-    for (const provider of this.providers) {
+    for (const client of this.clients) {
       try {
-        return await provider.fundAccount({
+        return await client.fundAccount({
           accountAddress,
           amount,
           options,
         });
       } catch (err) {
         console.warn(
-          `Failed to fund token with fullnode ${provider.config.fullnode}: ${err}`
+          `Failed to fund token with fullnode ${client.config.fullnode}: ${err}`
         );
         await delay(2000);
       }
     }
     throw new Error('Failed to fund token with all fullnodes');
+  }
+
+  async publishPackageTransaction({
+    account,
+    metadataBytes,
+    moduleBytecode,
+    options,
+  }: {
+    account: AccountAddressInput;
+    metadataBytes: HexInput;
+    moduleBytecode: HexInput[];
+    options?: InputGenerateTransactionOptions;
+  }) {
+    for (const client of this.clients) {
+      try {
+        return client.publishPackageTransaction({
+          account,
+          metadataBytes,
+          moduleBytecode,
+          options,
+        });
+      } catch (err) {
+        console.warn(
+          `Failed to publish package with fullnode ${client.config.fullnode}: ${err}`
+        );
+        await delay(2000);
+      }
+    }
+    throw new Error('Failed to publish package with all fullnodes');
   }
 }

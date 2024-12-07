@@ -1,4 +1,14 @@
-import { HexString, Network, Types } from 'aptos';
+import {
+  AccountAddressInput,
+  HexInput,
+  InputGenerateTransactionPayloadData,
+  MoveModule,
+  MoveValue,
+  Network,
+  PendingTransactionResponse,
+  PrivateKeyVariants,
+  TypeArgument,
+} from '@aptos-labs/ts-sdk';
 
 import { MoveModuleFuncType } from '../libs/aptosContractFactory/types';
 
@@ -9,7 +19,8 @@ export type DubheParams = {
   faucetUrl?: string;
   networkType?: NetworkType;
   packageId?: string;
-  metadata?: Types.MoveModule[];
+  metadata?: MoveModule[];
+  signatureType?: PrivateKeyVariants;
 };
 
 export type ComponentFieldType = {
@@ -47,18 +58,16 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (params?: any[], typeArguments?: Types.MoveType[]): Promise<
-    Types.MoveValue[]
-  >;
+  (params?: any[], typeArguments?: TypeArgument[]): Promise<MoveValue[]>;
 }
 
 export interface ContractTx extends MessageMeta {
   (
-    sender?: HexString | string,
+    sender?: AccountAddressInput,
     params?: any[],
-    typeArguments?: Types.MoveType[],
+    typeArguments?: TypeArgument[],
     isRaw?: boolean
-  ): Promise<Types.PendingTransaction | Types.EntryFunctionPayload>;
+  ): Promise<PendingTransactionResponse | InputGenerateTransactionPayloadData>;
 }
 
 export type MapMessageTx = Record<string, ContractTx>;
@@ -73,6 +82,7 @@ export type MapModuleFuncQueryTest = Record<string, Record<string, string>>;
 export type AccountMangerParams = {
   mnemonics?: string;
   secretKey?: string;
+  signatureType?: PrivateKeyVariants;
 };
 
 export type DerivePathParams = {
@@ -87,17 +97,6 @@ export enum MovementNetwork {
   DEVNET = 'movementdevnet',
   LOCAL = 'movementlocal',
 }
-
-export const NetworkNameToIndexerAPI: Record<string, string> = {
-  mainnet: 'https://api.mainnet.aptoslabs.com/v1/graphql',
-  testnet: 'https://api.testnet.aptoslabs.com/v1/graphql',
-  devnet: 'https://api.devnet.aptoslabs.com/v1/graphql',
-  local: 'http://127.0.0.1:8090/v1/graphql',
-  movementmainnet: '',
-  movementtestnet: '',
-  movementdevnet: '',
-  movementlocal: '',
-};
 
 export type NetworkType = Network | MovementNetwork;
 

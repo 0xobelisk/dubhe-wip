@@ -19,6 +19,7 @@ import {
   InputViewFunctionData,
   LedgerVersionArg,
   PendingTransactionResponse,
+  WaitForTransactionOptions,
 } from '@aptos-labs/ts-sdk';
 import { AptosAccountManager } from './libs/aptosAccountManager';
 // import { SuiTxBlock } from './libs/suiTxBuilder';
@@ -74,7 +75,7 @@ function createQuery(
 function createTx(
   meta: MoveModuleFuncType,
   fn: (
-    sender?: HexInput,
+    sender?: AccountAddressInput,
     params?: any[],
     typeArguments?: TypeArgument[],
     isRaw?: boolean
@@ -83,7 +84,7 @@ function createTx(
   return withMeta(
     meta,
     async (
-      sender?: HexInput,
+      sender?: AccountAddressInput,
       params?: any[],
       typeArguments?: TypeArgument[],
       isRaw?: boolean
@@ -128,12 +129,22 @@ export class Dubhe {
     fullnodeUrls,
     packageId,
     metadata,
+    signatureType,
   }: DubheParams = {}) {
     // Init the account manager
-    this.accountManager = new AptosAccountManager({ mnemonics, secretKey });
+    this.accountManager = new AptosAccountManager({
+      mnemonics,
+      secretKey,
+      signatureType,
+    });
     // Init the rpc provider
-    fullnodeUrls = fullnodeUrls || [getDefaultURL(networkType).fullNode];
-    this.aptosInteractor = new AptosInteractor(fullnodeUrls, networkType);
+    fullnodeUrls = fullnodeUrls || [
+      getDefaultURL(networkType ?? Network.TESTNET).fullNode,
+    ];
+    this.aptosInteractor = new AptosInteractor(
+      fullnodeUrls,
+      networkType ?? Network.TESTNET
+    );
 
     this.packageId = packageId;
     if (metadata !== undefined) {
@@ -196,7 +207,7 @@ export class Dubhe {
 
   #exec = async (
     meta: MoveModuleFuncType,
-    sender?: HexInput,
+    sender?: AccountAddressInput,
     params?: any[],
     typeArguments?: TypeArgument[],
     isRaw?: boolean
@@ -245,6 +256,7 @@ export class Dubhe {
       params,
     });
   };
+
   /**
    * if derivePathParams is not provided or mnemonics is empty, it will return the currentSigner.
    * else:
@@ -271,12 +283,13 @@ export class Dubhe {
   getAddress(derivePathParams?: DerivePathParams) {
     return this.accountManager.getAddress(derivePathParams);
   }
+
   currentAddress() {
     return this.accountManager.currentAddress;
   }
 
-  provider() {
-    return this.aptosInteractor.currentProvider;
+  client() {
+    return this.aptosInteractor.currentClient;
   }
 
   getPackageId() {
@@ -291,18 +304,25 @@ export class Dubhe {
    * Request some APT from faucet
    * @Returns {Promise<boolean>}, true if the request is successful, false otherwise.
    */
-  async requestFaucet(accountAddress?: string, amount?: number) {
+  async requestFaucet(accountAddress?: AccountAddressInput, amount?: number) {
     if (accountAddress === undefined) {
       accountAddress = this.getAddress();
     }
     if (amount === undefined) {
       amount = 50000000;
     }
-    return this.aptosInteractor.requestFaucet(accountAddress, amount);
+    let options: WaitForTransactionOptions | undefined;
+    if (this.aptosInteractor.network === Network.LOCAL) {
+      options = {
+        checkSuccess: false,
+        waitForIndexer: false,
+      };
+    }
+    return this.aptosInteractor.requestFaucet(accountAddress, amount, options);
   }
 
   async getBalance(
-    accountAddress?: string,
+    accountAddress?: AccountAddressInput,
     coinType?: string
   ): Promise<string | number> {
     try {
@@ -317,8 +337,7 @@ export class Dubhe {
         accountAddress,
         `0x1::coin::CoinStore<${coinType}>`
       );
-
-      return parseInt((resource.data as any)['coin']['value']);
+      return parseInt((resource as any)['coin']['value']);
     } catch (_) {
       return 0;
     }
@@ -387,7 +406,7 @@ export class Dubhe {
     options,
     withFeePayer,
   }: {
-    sender: HexInput;
+    sender: AccountAddressInput;
     contractAddress: string;
     moduleName: string;
     funcName: string;
@@ -411,16 +430,22 @@ export class Dubhe {
     return rawTxn;
   }
 
-  async waitForTransaction(txnHash: string) {
-    return this.aptosInteractor.waitForTransaction(txnHash);
+  async waitForTransaction(
+    transactionHash: string,
+    options?: WaitForTransactionOptions
+  ) {
+    return this.aptosInteractor.waitForTransaction(transactionHash, options);
   }
 
-  async signAndSendTxn(
-    tx: AnyRawTransaction,
+  async signAndSubmitTransaction(
+    transaction: AnyRawTransaction,
     derivePathParams?: DerivePathParams
   ) {
     const sender = this.getSigner(derivePathParams);
-    return this.aptosInteractor.signAndSubmitTransaction(sender, tx);
+    return this.aptosInteractor.signAndSubmitTransaction({
+      sender,
+      transaction,
+    });
   }
 
   async viewFunction({
@@ -447,6 +472,60 @@ export class Dubhe {
     })) as InputViewFunctionData;
     return this.aptosInteractor.view({
       payload,
+      options,
+    });
+  }
+
+  async moveCall({
+    sender,
+    contractAddress,
+    moduleName,
+    funcName,
+    typeArguments,
+    params,
+    derivePathParams,
+    options,
+    withFeePayer,
+    feePayerAuthenticator,
+  }: {
+    sender: AccountAddressInput;
+    contractAddress: string;
+    moduleName: string;
+    funcName: string;
+    typeArguments?: Array<TypeArgument>;
+    params: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >;
+    derivePathParams?: DerivePathParams;
+    options?: InputGenerateTransactionOptions;
+    withFeePayer?: boolean;
+    feePayerAuthenticator?: AccountAuthenticator;
+  }) {
+    const payload = (await this.generatePayload({
+      target: `${contractAddress}::${moduleName}::${funcName}`,
+      typeArguments,
+      params,
+    })) as InputGenerateTransactionPayloadData;
+    return this.signAndSendTxnWithPayload({
+      payload,
+      sender,
+      derivePathParams,
+      options,
+      withFeePayer,
+      feePayerAuthenticator,
+    });
+  }
+
+  async publishPackageTransaction(
+    account: AccountAddressInput,
+    metadataBytes: HexInput,
+    moduleBytecode: HexInput[],
+    options?: InputGenerateTransactionOptions
+  ) {
+    return this.aptosInteractor.publishPackageTransaction({
+      account,
+      metadataBytes,
+      moduleBytecode,
       options,
     });
   }
