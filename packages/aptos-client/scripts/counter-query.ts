@@ -31,23 +31,14 @@ async function init() {
 
   console.log('======= query counter value ========');
 
-  let result = await dubhe.viewFunction({
-    contractAddress: packageId,
-    moduleName: 'counter_schema',
-    funcName: 'schema_type',
-    typeArguments: [], // 显式传入空数组
-    params: [], // 显式传入空数组
-  });
-
-  console.log(result);
-  // let message = await dubhe.query.counter_schema.schema_type();
-  // console.log(message);
+  let message = await dubhe.query.counter_schema.get();
+  console.log(message);
 
   console.log('======= increase counter value ========');
   const res1 =
     (await dubhe.tx.counter_system.increase()) as PendingTransactionResponse;
   console.log(res1.hash);
-  await delay(1000);
+  await dubhe.waitForTransaction(res1.hash);
 
   console.log('======= query counter value ========');
   let myMessage = await dubhe.query.counter_schema.get();
@@ -57,8 +48,7 @@ async function init() {
 
   const res2 =
     (await dubhe.tx.counter_system.increase()) as PendingTransactionResponse;
-  console.log(res2.hash);
-  await delay(1000);
+  await dubhe.waitForTransaction(res2.hash);
 
   console.log('======= query counter value ========');
   let mySecondMessage = await dubhe.query.counter_schema.get();

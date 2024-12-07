@@ -234,11 +234,11 @@ export class Dubhe {
       params = [];
     }
 
-    const payload = (await this.generatePayload({
+    const payload = await this.generateTransactionPayload({
       target: `${this.contractFactory.packageId}::${meta.moduleName}::${meta.funcName}`,
       typeArguments,
       params,
-    })) as InputGenerateTransactionPayloadData;
+    });
 
     if (isRaw === true) {
       return payload;
@@ -264,10 +264,6 @@ export class Dubhe {
       params = [];
     }
 
-    console.log('meta', meta);
-    console.log('params', params);
-    console.log('typeArguments', typeArguments);
-
     const result = await this.viewFunction({
       contractAddress: this.contractFactory.packageId,
       moduleName: meta.moduleName,
@@ -275,7 +271,6 @@ export class Dubhe {
       params,
       typeArguments,
     });
-    console.log('result', result);
     return result;
   };
 
@@ -395,7 +390,7 @@ export class Dubhe {
     );
   }
 
-  async generatePayload({
+  async generateTransactionPayload({
     target,
     typeArguments,
     params,
@@ -407,14 +402,17 @@ export class Dubhe {
       EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
     >;
     abi?: EntryFunctionABI;
-  }): Promise<InputGenerateTransactionPayloadData | InputViewFunctionData> {
-    const payload: InputGenerateTransactionPayloadData | InputViewFunctionData =
-      {
-        function: target, // `${contractAddress}::${moduleName}::${funcName}`
-        typeArguments,
-        functionArguments: params,
-        abi,
-      };
+  }): Promise<InputGenerateTransactionPayloadData> {
+    const payload: InputGenerateTransactionPayloadData = {
+      function: target, // `${contractAddress}::${moduleName}::${funcName}`
+      typeArguments,
+      functionArguments: params,
+    };
+
+    if (abi && Object.keys(abi).length > 0) {
+      (payload as any).abi = abi;
+    }
+
     return payload;
   }
   async generateViewPayload({
@@ -434,8 +432,12 @@ export class Dubhe {
       function: target,
       typeArguments,
       functionArguments: params,
-      abi,
     };
+
+    if (abi && Object.keys(abi).length > 0) {
+      (payload as any).abi = abi;
+    }
+
     return payload;
   }
 
@@ -508,17 +510,11 @@ export class Dubhe {
     typeArguments?: Array<TypeArgument>;
     options?: LedgerVersionArg;
   }) {
-    // const payload: InputViewFunctionData = {
-    //   function: `${contractAddress}::${moduleName}::${funcName}`,
-    //   typeArguments,
-    //   functionArguments: params,
-    // };
     const payload: InputViewFunctionData = await this.generateViewPayload({
       target: `${contractAddress}::${moduleName}::${funcName}`,
       typeArguments,
       params,
     });
-    console.log('payload', payload);
     return await this.aptosInteractor.view({
       payload,
       options,
@@ -550,11 +546,11 @@ export class Dubhe {
     withFeePayer?: boolean;
     feePayerAuthenticator?: AccountAuthenticator;
   }) {
-    const payload = (await this.generatePayload({
+    const payload = await this.generateTransactionPayload({
       target: `${contractAddress}::${moduleName}::${funcName}`,
       typeArguments,
       params,
-    })) as InputGenerateTransactionPayloadData;
+    });
     return this.signAndSendTxnWithPayload({
       payload,
       sender,
