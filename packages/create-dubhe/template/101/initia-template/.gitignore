@@ -41,3 +41,5 @@ localnode.nohup.out
 
 contracts/dubhe-framework
 src/chain/key.ts
+
+.local-initia/

@@ -13,7 +13,7 @@ type DeploymentJsonType = {
 
 async function getDeploymentJson(projectPath: string, network: string) {
   try {
-    const data = await fsAsync.readFile(`${projectPath}/.history/rooch_${network}/latest.json`, 'utf8');
+    const data = await fsAsync.readFile(`${projectPath}/.history/initia_${network}/latest.json`, 'utf8');
     return JSON.parse(data) as DeploymentJsonType;
   } catch {
     console.log('store config failed.');

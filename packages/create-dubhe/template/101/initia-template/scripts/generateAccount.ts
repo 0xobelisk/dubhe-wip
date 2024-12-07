@@ -1,4 +1,4 @@
-import { Dubhe } from '@0xobelisk/rooch-client';
+import { Dubhe } from '@0xobelisk/initia-client';
 import * as fs from 'fs';
 
 async function generateAccount() {
@@ -12,7 +12,6 @@ async function generateAccount() {
     if (match && match[1]) {
       privateKey = match[1];
       const dubhe = new Dubhe({ secretKey: privateKey });
-      const keypair = dubhe.getKeypair();
 
       // Only update key.ts file
       const chainFolderPath = `${path}/src/chain`;
@@ -21,13 +20,12 @@ async function generateAccount() {
       fs.writeFileSync(
         `${path}/src/chain/key.ts`,
         `export const PRIVATEKEY = '${privateKey}';
-export const ACCOUNT = '${keypair.getRoochAddress().toHexAddress()}';
+export const ACCOUNT = '${dubhe.getHexAddress()}';
 `,
       );
       console.log(`Using existing account:`);
-      console.log(`Rooch Bech32 address: ${keypair.getRoochAddress().toStr()}`);
-      console.log(`Rooch Hex address: ${keypair.getRoochAddress().toHexAddress()}`);
-      console.log(`Bitcoin address: ${keypair.getBitcoinAddress().toStr()}`);
+      console.log(`Initia Bech32 address: ${dubhe.getAddress()}`);
+      console.log(`Initia Hex address: ${dubhe.getHexAddress()}`);
       return;
     }
   } catch (error) {
@@ -36,8 +34,8 @@ export const ACCOUNT = '${keypair.getRoochAddress().toHexAddress()}';
 
   // If no existing private key, generate new account
   const dubhe = new Dubhe();
-  const keypair = dubhe.getKeypair();
-  privateKey = keypair.getSecretKey();
+  const keypair = dubhe.getSigner();
+  privateKey = keypair.privateKey.toString('hex');
 
   const chainFolderPath = `${path}/src/chain`;
   fs.mkdirSync(chainFolderPath, { recursive: true });
@@ -47,14 +45,13 @@ export const ACCOUNT = '${keypair.getRoochAddress().toHexAddress()}';
   fs.writeFileSync(
     `${path}/src/chain/key.ts`,
     `export const PRIVATEKEY = '${privateKey}';
-  export const ACCOUNT = '${keypair.getRoochAddress().toHexAddress()}';
+  export const ACCOUNT = '${dubhe.getHexAddress()}';
   `,
   );
 
   console.log(`Generate new Account:`);
-  console.log(`Rooch Bech32 address: ${keypair.getRoochAddress().toStr()}`);
-  console.log(`Rooch Hex address: ${keypair.getRoochAddress().toHexAddress()}`);
-  console.log(`Bitcoin address: ${keypair.getBitcoinAddress().toStr()}`);
+  console.log(`Initia Bech32 address: ${dubhe.getAddress()}`);
+  console.log(`Initia Hex address: ${dubhe.getHexAddress()}`);
 }
 
 generateAccount();

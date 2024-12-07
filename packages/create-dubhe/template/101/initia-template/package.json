@@ -1,5 +1,5 @@
 {
-  "name": "rooch-101",
+  "name": "dubhe-101-template",
   "version": "0.0.1",
   "description": "Simple starter template",
   "author": "team@0xobelisk.com",
@@ -10,6 +10,7 @@
     "account:gen": "NODE_NO_WARNINGS=1 ts-node scripts/generateAccount.ts",
     "config:store": "ts-node scripts/storeConfig.ts",
     "start:localnet": "pnpm dubhe localnode start",
+    "faucet": "pnpm dubhe faucet --network",
     "check-balance": "NODE_NO_WARNINGS=1 ts-node scripts/checkBalance.ts",
     "deploy:localnet": "NODE_NO_WARNINGS=1 pnpm dubhe publish --network localnet && pnpm config:store localnet",
     "deploy:testnet": "NODE_NO_WARNINGS=1 pnpm dubhe publish --network testnet && pnpm config:store testnet",
@@ -17,7 +18,7 @@
     "dev": "pnpm dev:localnet",
     "dev:localnet": "pnpm setup:localnet && pnpm next",
     "dev:testnet": "pnpm setup:testnet && pnpm next",
-    "setup:localnet": "pnpm account:gen && pnpm deploy:localnet",
+    "setup:localnet": "pnpm account:gen && pnpm faucet localnet && pnpm deploy:localnet",
     "setup:testnet": "pnpm account:gen && pnpm check-balance testnet && pnpm deploy:testnet",
     "build": "next build",
     "start": "next start",
@@ -26,7 +27,7 @@
     "prod:testnet": "pnpm config:store testnet && pnpm next"
   },
   "dependencies": {
-    "@0xobelisk/initia-client": "^0.0.1",
+    "@0xobelisk/initia-client": "^0.0.2",
     "@0xobelisk/initia-cli": "^0.0.2",
     "@0xobelisk/sui-common": "^0.5.21",
     "clsx": "^1.2.1",
