@@ -20,6 +20,7 @@ import {
   LedgerVersionArg,
   PendingTransactionResponse,
   WaitForTransactionOptions,
+  ViewFunctionABI,
 } from '@aptos-labs/ts-sdk';
 import { AptosAccountManager } from './libs/aptosAccountManager';
 // import { SuiTxBlock } from './libs/suiTxBuilder';
@@ -58,13 +59,20 @@ export function withMeta<T extends { meta: MoveModuleFuncType }>(
 
 function createQuery(
   meta: MoveModuleFuncType,
-  fn: (params?: any[], typeArguments?: TypeArgument[]) => Promise<MoveValue[]>
+  fn: (
+    params?: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >,
+    typeArguments?: Array<TypeArgument>
+  ) => Promise<MoveValue[]>
 ): ContractQuery {
   return withMeta(
     meta,
     async (
-      params?: any[],
-      typeArguments?: TypeArgument[]
+      params?: Array<
+        EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+      >,
+      typeArguments?: Array<TypeArgument>
     ): Promise<MoveValue[]> => {
       const result = await fn(params, typeArguments);
       return result;
@@ -76,8 +84,10 @@ function createTx(
   meta: MoveModuleFuncType,
   fn: (
     sender?: AccountAddressInput,
-    params?: any[],
-    typeArguments?: TypeArgument[],
+    params?: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >,
+    typeArguments?: Array<TypeArgument>,
     isRaw?: boolean
   ) => Promise<PendingTransactionResponse | InputGenerateTransactionPayloadData>
 ): ContractTx {
@@ -85,8 +95,10 @@ function createTx(
     meta,
     async (
       sender?: AccountAddressInput,
-      params?: any[],
-      typeArguments?: TypeArgument[],
+      params?: Array<
+        EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+      >,
+      typeArguments?: Array<TypeArgument>,
       isRaw?: boolean
     ): Promise<
       PendingTransactionResponse | InputGenerateTransactionPayloadData
@@ -208,8 +220,10 @@ export class Dubhe {
   #exec = async (
     meta: MoveModuleFuncType,
     sender?: AccountAddressInput,
-    params?: any[],
-    typeArguments?: TypeArgument[],
+    params?: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >,
+    typeArguments?: Array<TypeArgument>,
     isRaw?: boolean
   ) => {
     if (typeArguments === undefined) {
@@ -237,24 +251,32 @@ export class Dubhe {
 
   #read = async (
     meta: MoveModuleFuncType,
-    params?: any[],
-    typeArguments?: TypeArgument[]
+    params?: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >,
+    typeArguments?: Array<TypeArgument>
   ) => {
-    if (typeArguments === undefined) {
-      typeArguments = [];
-    }
+    // if (typeArguments === undefined) {
+    //   typeArguments = [];
+    // }
 
     if (params === undefined) {
       params = [];
     }
 
-    return this.viewFunction({
+    console.log('meta', meta);
+    console.log('params', params);
+    console.log('typeArguments', typeArguments);
+
+    const result = await this.viewFunction({
       contractAddress: this.contractFactory.packageId,
       moduleName: meta.moduleName,
       funcName: meta.funcName,
-      typeArguments,
       params,
+      typeArguments,
     });
+    console.log('result', result);
+    return result;
   };
 
   /**
@@ -395,6 +417,27 @@ export class Dubhe {
       };
     return payload;
   }
+  async generateViewPayload({
+    target,
+    params,
+    typeArguments,
+    abi,
+  }: {
+    target: MoveFunctionId;
+    params: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >;
+    typeArguments?: Array<TypeArgument>;
+    abi?: ViewFunctionABI;
+  }): Promise<InputViewFunctionData> {
+    const payload: InputViewFunctionData = {
+      function: target,
+      typeArguments,
+      functionArguments: params,
+      abi,
+    };
+    return payload;
+  }
 
   async buildTransaction({
     sender,
@@ -452,25 +495,31 @@ export class Dubhe {
     contractAddress,
     moduleName,
     funcName,
-    typeArguments,
     params,
+    typeArguments,
     options,
   }: {
     contractAddress: string;
     moduleName: string;
     funcName: string;
-    typeArguments?: Array<TypeArgument>;
     params: Array<
       EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
     >;
+    typeArguments?: Array<TypeArgument>;
     options?: LedgerVersionArg;
   }) {
-    const payload = (await this.generatePayload({
+    // const payload: InputViewFunctionData = {
+    //   function: `${contractAddress}::${moduleName}::${funcName}`,
+    //   typeArguments,
+    //   functionArguments: params,
+    // };
+    const payload: InputViewFunctionData = await this.generateViewPayload({
       target: `${contractAddress}::${moduleName}::${funcName}`,
       typeArguments,
       params,
-    })) as InputViewFunctionData;
-    return this.aptosInteractor.view({
+    });
+    console.log('payload', payload);
+    return await this.aptosInteractor.view({
       payload,
       options,
     });

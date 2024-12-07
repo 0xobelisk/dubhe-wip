@@ -75,9 +75,9 @@ export async function upgradeHandler(
 	let version = 0;
 
 	try {
-		const { metadataBytes, byteCode } = getPackageBytesToPublish(
-			'move/facoin/facoin.json'
-		);
+		const buildOutputPath = `contracts/${projectName}/${projectName}.json`;
+		const { metadataBytes, byteCode } =
+			getPackageBytesToPublish(buildOutputPath);
 
 		let transaction = await dubhe.publishPackageTransaction(
 			dubhe.getAddress(),

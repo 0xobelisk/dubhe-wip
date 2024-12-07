@@ -3,6 +3,7 @@ import {
 	InputNetworkType,
 	Dubhe,
 	AccountAddress,
+	NetworkType,
 } from '@0xobelisk/aptos-client';
 
 import { DubheCliError } from './errors';
@@ -33,6 +34,7 @@ export async function publishHandler(
 
 	const dubhe = new Dubhe({
 		secretKey: privateKeyFormat.toString(),
+		networkType: network as NetworkType,
 	});
 
 	if (namedAddresses === undefined) {
@@ -76,6 +78,7 @@ export async function publishHandler(
 	let version = 0;
 
 	try {
+		const buildOutputPath = `contracts/${projectName}/${projectName}.json`;
 		// const packageMetadata = fs.readFileSync(
 		// 	`${path}/contracts/${projectName}/build/${projectName}/package-metadata.bcs`
 		// );
@@ -91,9 +94,8 @@ export async function publishHandler(
 		// 		new Module(new (moduleData.toString('hex').toUint8Array)())
 		// 	);
 		// });
-		const { metadataBytes, byteCode } = getPackageBytesToPublish(
-			'move/facoin/facoin.json'
-		);
+		const { metadataBytes, byteCode } =
+			getPackageBytesToPublish(buildOutputPath);
 
 		let transaction = await dubhe.publishPackageTransaction(
 			dubhe.getAddress(),

@@ -1,5 +1,6 @@
 import {
   AccountAddressInput,
+  EntryFunctionArgumentTypes,
   HexInput,
   InputGenerateTransactionPayloadData,
   MoveModule,
@@ -7,6 +8,7 @@ import {
   Network,
   PendingTransactionResponse,
   PrivateKeyVariants,
+  SimpleEntryFunctionArgumentTypes,
   TypeArgument,
 } from '@aptos-labs/ts-sdk';
 
@@ -58,14 +60,21 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (params?: any[], typeArguments?: TypeArgument[]): Promise<MoveValue[]>;
+  (
+    params?: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >,
+    typeArguments?: Array<TypeArgument>
+  ): Promise<MoveValue[]>;
 }
 
 export interface ContractTx extends MessageMeta {
   (
     sender?: AccountAddressInput,
-    params?: any[],
-    typeArguments?: TypeArgument[],
+    params?: Array<
+      EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
+    >,
+    typeArguments?: Array<TypeArgument>,
     isRaw?: boolean
   ): Promise<PendingTransactionResponse | InputGenerateTransactionPayloadData>;
 }
