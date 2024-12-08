@@ -31,9 +31,9 @@ export async function generateSchemaError(
 				let	code = `module ${projectName}::${schemaName}_error_${convertToSnakeCase(item.name)} {
 						const ${item.name}: u64 = ${item.code};
 						/// Get the error code.
-            public fun code(): u64 { ${item.code} }
+            public fun code(): u64 { ${item.name} }
             /// Abort execution with the given error code.
-            public fun emit() { abort ${item.code} }
+            public fun emit() { abort ${item.name} }
             /// Require that the given condition is true, otherwise abort with the given error code.
 						public fun require(condition: bool) { if (!condition) { emit() }  }`
 				await formatAndWriteMove(
