@@ -8,6 +8,7 @@ import { generateDappKey } from './generateDappKey';
 import { generateSchemaEvent } from './generateEvent';
 import { generateSystem } from './generateSystem';
 import { generateSchemaHub } from './generateSchemaHub';
+import { generateSchemaError } from './generateError';
 
 function matchFrameworkId(
     network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
@@ -66,6 +67,7 @@ export async function schemaGen(
     await generateSchemaData(config.name, config.schemas, path);
     await generateSchemaStructure(config.name, config.schemas, path);
     await generateSchemaEvent(config.name, config.schemas, path);
+    await generateSchemaError(config.name, config.schemas, path);
     await generateDappKey(config, path);
     await generateSchemaHub(config, path);
     await generateSystem(config, path);

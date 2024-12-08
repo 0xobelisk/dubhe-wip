@@ -143,6 +143,10 @@ export const dubheConfig = {
 					},
 				},
 			],
+			errors: [
+				{ name: 'AccountNotFound', code: 0 },
+				{ name: 'AssetNotFound', code: 1 }
+			]
 		},
 		dex: {
 			data: [

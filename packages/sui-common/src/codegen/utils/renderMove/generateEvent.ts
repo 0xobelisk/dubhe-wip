@@ -42,7 +42,7 @@ export async function generateSchemaEvent(
 					}`
 				);
 
-				let	code = `module ${projectName}::${schemaName}_${convertToSnakeCase(item.name)}_event {
+				let	code = `module ${projectName}::${schemaName}_event_${convertToSnakeCase(item.name)} {
 						use sui::event;
 						use std::ascii::String;
                         public struct ${item.name}Event has copy, drop {
@@ -62,9 +62,9 @@ export async function generateSchemaEvent(
                         }`;
 				await formatAndWriteMove(
 					code,
-					`${path}/contracts/${projectName}/sources/codegen/events/${schemaName}_${convertToSnakeCase(
+					`${path}/contracts/${projectName}/sources/codegen/events/${schemaName}_event_${convertToSnakeCase(
 						item.name
-					)}_event.move`,
+					)}.move`,
 					'formatAndWriteMove'
 				);
 			}

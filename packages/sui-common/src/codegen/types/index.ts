@@ -55,10 +55,17 @@ export type SchemaData = {
   fields: Record<string, BaseType> | string[];
 }
 
+export type ErrorData = {
+  name: string;
+  code: number;
+  description?: string;
+}
+
 export type SchemaType = {
   data?: SchemaData[];
   structure: Record<string, string>;
   events?: SchemaData[];
+  errors?: ErrorData[];
 }
 
 export type DubheConfig = {
