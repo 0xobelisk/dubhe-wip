@@ -12,7 +12,11 @@ import {
 	updateVersionInFile,
 	saveContractData,
 	validatePrivateKey,
-	schema, getSchemaHub, updateDubheDependency, switchEnv, delay,
+	schema,
+	getSchemaHub,
+	updateDubheDependency,
+	switchEnv,
+	delay,
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
@@ -22,9 +26,12 @@ async function getDappsObjectId(
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
 	switch (network) {
-		case "localnet": {
+		case 'localnet': {
 			const path = process.cwd();
-			return await getSchemaHub(`${path}/contracts/dubhe-framework`, network)
+			return await getSchemaHub(
+				`${path}/contracts/dubhe-framework`,
+				network
+			);
 		}
 		case 'testnet':
 			return '0x8dbf8d28ac027ba214c9e0951b09f6842843be6cb87242b7d9a326a2677cd47a';
@@ -33,12 +40,18 @@ async function getDappsObjectId(
 	}
 }
 
-function removeEnvContent(filePath: string, networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet'): void {
+function removeEnvContent(
+	filePath: string,
+	networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
+): void {
 	if (!fs.existsSync(filePath)) {
 		return;
 	}
 	const content = fs.readFileSync(filePath, 'utf-8');
-	const regex = new RegExp(`\\[env\\.${networkType}\\][\\s\\S]*?(?=\\[|$)`, 'g');
+	const regex = new RegExp(
+		`\\[env\\.${networkType}\\][\\s\\S]*?(?=\\[|$)`,
+		'g'
+	);
 	const updatedContent = content.replace(regex, '');
 	fs.writeFileSync(filePath, updatedContent, 'utf-8');
 }
@@ -56,12 +69,20 @@ const chainIds: { [key: string]: string } = {
 	mainnet: '35834a8a',
 };
 
-function updateEnvFile(filePath: string, networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet', operation: 'publish' | 'upgrade', chainId: string, publishedId: string): void {
+function updateEnvFile(
+	filePath: string,
+	networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+	operation: 'publish' | 'upgrade',
+	chainId: string,
+	publishedId: string
+): void {
 	const envFilePath = path.resolve(filePath);
 	const envContent = fs.readFileSync(envFilePath, 'utf-8');
 	const envLines = envContent.split('\n');
 
-	const networkSectionIndex = envLines.findIndex(line => line.trim() === `[env.${networkType}]`);
+	const networkSectionIndex = envLines.findIndex(
+		line => line.trim() === `[env.${networkType}]`
+	);
 	const config: EnvConfig = {
 		chainId: chainId,
 		originalPublishedId: '',
@@ -76,14 +97,18 @@ function updateEnvFile(filePath: string, networkType: 'mainnet' | 'testnet' | 'd
 			config.latestPublishedId = publishedId;
 			config.publishedVersion = 1;
 		} else {
-			throw new Error(`Network type [env.${networkType}] not found in the file and cannot upgrade.`);
+			throw new Error(
+				`Network type [env.${networkType}] not found in the file and cannot upgrade.`
+			);
 		}
 	} else {
 		for (let i = networkSectionIndex + 1; i < envLines.length; i++) {
 			const line = envLines[i].trim();
 			if (line.startsWith('[')) break; // End of the current network section
 
-			const [key, value] = line.split('=').map(part => part.trim().replace(/"/g, ''));
+			const [key, value] = line
+				.split('=')
+				.map(part => part.trim().replace(/"/g, ''));
 			switch (key) {
 				case 'original-published-id':
 					config.originalPublishedId = value;
@@ -115,9 +140,11 @@ latest-published-id = "${config.latestPublishedId}"
 published-version = "${config.publishedVersion}"
 `;
 
-	const newEnvContent = networkSectionIndex === -1
-		? envContent + updatedSection
-		: envLines.slice(0, networkSectionIndex).join('\n') + updatedSection;
+	const newEnvContent =
+		networkSectionIndex === -1
+			? envContent + updatedSection
+			: envLines.slice(0, networkSectionIndex).join('\n') +
+			  updatedSection;
 
 	fs.writeFileSync(envFilePath, newEnvContent, 'utf-8');
 }
@@ -137,7 +164,7 @@ function getLastSegment(input: string): string {
 	return segments.length > 0 ? segments[segments.length - 1] : '';
 }
 
-function buildContract(projectPath: string):  string[][] {
+function buildContract(projectPath: string): string[][] {
 	let modules: any, dependencies: any;
 	try {
 		const buildResult = JSON.parse(
@@ -168,7 +195,7 @@ async function publishContract(
 	projectPath: string
 ) {
 	const dappsObjectId = await getDappsObjectId(network);
-	console.log("dappsObjectId", dappsObjectId);
+	console.log('dappsObjectId', dappsObjectId);
 	const chainId = await client.getChainIdentifier();
 	removeEnvContent(`${projectPath}/Move.lock`, network);
 	console.log('\n🚀 Starting Contract Publication...');
@@ -227,7 +254,7 @@ async function publishContract(
 		}
 		if (
 			object.type === 'created' &&
-			object.objectType.includes("schema_hub")
+			object.objectType.includes('schema_hub')
 		) {
 			console.log(`  ├─ Schema Hub: ${object.objectId}`);
 			schemaHubId = object.objectId;
@@ -236,14 +263,20 @@ async function publishContract(
 
 	console.log(`  └─ Transaction: ${result.digest}`);
 
-	updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
+	updateEnvFile(
+		`${projectPath}/Move.lock`,
+		network,
+		'publish',
+		chainId,
+		packageId
+	);
 
 	console.log('\n⚡ Executing Deploy Hook...');
 	await delay(5000);
 
 	const deployHookTx = new Transaction();
 	deployHookTx.setGasBudget(2000000000);
-	const [txCoin] = deployHookTx.splitCoins(deployHookTx.gas, ["1000000000"]);
+	const [txCoin] = deployHookTx.splitCoins(deployHookTx.gas, ['1000000000']);
 	deployHookTx.moveCall({
 		target: `${packageId}::deploy_hook::run`,
 		arguments: [
@@ -251,7 +284,7 @@ async function publishContract(
 			deployHookTx.object(dappsObjectId),
 			deployHookTx.object(upgradeCapId),
 			deployHookTx.object('0x6'),
-			txCoin
+			txCoin,
 		],
 	});
 
@@ -276,14 +309,18 @@ async function publishContract(
 		deployHookResult.objectChanges?.map(object => {
 			if (
 				object.type === 'created' &&
-				object.objectType.includes('_schema') && !object.objectType.includes("dynamic_field")
+				object.objectType.includes('_schema') &&
+				!object.objectType.includes('dynamic_field')
 			) {
 				console.log(`  ├─ ${object.objectType}`);
 				console.log(`     └─ ID: ${object.objectId}`);
 
 				let structure: Record<string, string> = {};
 				for (let schemaKey in dubheConfig.schemas) {
-					if (capitalizeAndRemoveUnderscores(schemaKey) === getLastSegment(object.objectType)) {
+					if (
+						capitalizeAndRemoveUnderscores(schemaKey) ===
+						getLastSegment(object.objectType)
+					) {
 						structure = dubheConfig.schemas[schemaKey].structure;
 					}
 				}
@@ -303,7 +340,7 @@ async function publishContract(
 			upgradeCapId,
 			schemaHubId,
 			version,
-			schemas,
+			schemas
 		);
 		console.log('\n✅ Contract Publication Complete\n');
 	} else {
@@ -319,7 +356,7 @@ async function publishContract(
 export async function publishDubheFramework(
 	client: SuiClient,
 	dubhe: Dubhe,
-	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
 	const path = process.cwd();
 	const projectPath = `${path}/contracts/dubhe-framework`;
@@ -334,7 +371,6 @@ export async function publishDubheFramework(
 
 	const keypair = dubhe.getKeypair();
 	console.log(`  └─ Account: ${keypair.toSuiAddress()}`);
-
 
 	console.log('\n📦 Building Contract...');
 	const [modules, dependencies] = buildContract(projectPath);
@@ -381,10 +417,7 @@ export async function publishDubheFramework(
 			console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
 			upgradeCapId = object.objectId;
 		}
-		if (
-			object.type === 'created' &&
-			object.objectType.includes("dapps")
-		) {
+		if (object.type === 'created' && object.objectType.includes('dapps')) {
 			console.log(`  ├─ Dapps: ${object.objectId}`);
 			schemaHubId = object.objectId;
 		}
@@ -392,23 +425,29 @@ export async function publishDubheFramework(
 
 	console.log(`  └─ Transaction: ${result.digest}`);
 
-	updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
+	updateEnvFile(
+		`${projectPath}/Move.lock`,
+		network,
+		'publish',
+		chainId,
+		packageId
+	);
 
 	saveContractData(
-		"dubhe-framework",
+		'dubhe-framework',
 		network,
 		packageId,
 		upgradeCapId,
 		schemaHubId,
 		version,
-		schemas,
+		schemas
 	);
 }
 
 export async function publishHandler(
 	dubheConfig: DubheConfig,
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
-	contractName?: string,
+	contractName?: string
 ) {
 	await switchEnv(network);
 
@@ -428,7 +467,7 @@ in your contracts directory to use the default sui private key.`
 	const dubhe = new Dubhe({ secretKey: privateKeyFormat });
 	const client = new SuiClient({ url: getFullnodeUrl(network) });
 
-	if (contractName == "dubhe-framework") {
+	if (contractName == 'dubhe-framework') {
 		await publishDubheFramework(client, dubhe, network);
 	} else {
 		const path = process.cwd();

@@ -59,7 +59,6 @@ const init = async () => {
 		t => t.value === platform
 	);
 
-	// 如果没有选择模板（因为链只支持一个模板），使用第一个支持的模板
 	if (!selectedTemplate) {
 		selectedTemplate = selectedChain?.supportedTemplates[0];
 	}
@@ -144,8 +143,10 @@ const init = async () => {
 		);
 	}
 
+	const actualTemplate = selectedTemplate?.value || '101';
+
 	// Platform specific commands
-	switch (platform) {
+	switch (actualTemplate) {
 		case '101':
 		case 'web':
 			console.log(styles.command, `  ${pkgManager} install`);
