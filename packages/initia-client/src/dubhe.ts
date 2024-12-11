@@ -50,7 +50,7 @@ function createQuery(
     }: {
       params?: string[];
       typeArguments?: string[];
-    }): Promise<any> => {
+    } = {}): Promise<any> => {
       const result = await fn(params, typeArguments);
       return result;
     }
@@ -78,7 +78,7 @@ function createTx(
       params?: string[];
       typeArguments?: string[];
       isRaw?: boolean;
-    }): Promise<any> => {
+    } = {}): Promise<any> => {
       const result = await fn(sender, params, typeArguments, isRaw);
       return result;
     }

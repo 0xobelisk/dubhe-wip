@@ -85,7 +85,6 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (): Promise<DevInspectResults | TransactionResult>;
   ({
     tx,
     params,
@@ -100,7 +99,6 @@ export interface ContractQuery extends MessageMeta {
 }
 
 export interface ContractTx extends MessageMeta {
-  (): Promise<SuiTransactionBlockResponse | TransactionResult>;
   ({
     tx,
     params,

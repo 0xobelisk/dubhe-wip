@@ -82,7 +82,6 @@ export interface ContractQuery extends MessageMeta {
 }
 
 export interface ContractTx extends MessageMeta {
-  (): Promise<ExecuteTransactionResponseView>;
   ({
     tx,
     sender,

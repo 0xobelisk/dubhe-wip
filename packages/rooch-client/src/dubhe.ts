@@ -58,7 +58,7 @@ function createQuery(
     }: {
       params?: Args[];
       typeArguments?: TypeTag[];
-    }): Promise<AnnotatedFunctionResultView> => {
+    } = {}): Promise<AnnotatedFunctionResultView> => {
       const result = await fn(params, typeArguments);
       return result;
     }

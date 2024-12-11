@@ -76,7 +76,7 @@ function createQuery(
         EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
       >;
       typeArguments?: Array<TypeArgument>;
-    }): Promise<MoveValue[]> => {
+    } = {}): Promise<MoveValue[]> => {
       const result = await fn(params, typeArguments);
       return result;
     }
@@ -108,7 +108,7 @@ function createTx(
       >;
       typeArguments?: Array<TypeArgument>;
       isRaw?: boolean;
-    }): Promise<
+    } = {}): Promise<
       PendingTransactionResponse | InputGenerateTransactionPayloadData
     > => {
       const result = await fn(sender, params, typeArguments, isRaw);
