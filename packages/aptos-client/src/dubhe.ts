@@ -68,12 +68,15 @@ function createQuery(
 ): ContractQuery {
   return withMeta(
     meta,
-    async (
+    async ({
+      params,
+      typeArguments,
+    }: {
       params?: Array<
         EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
-      >,
-      typeArguments?: Array<TypeArgument>
-    ): Promise<MoveValue[]> => {
+      >;
+      typeArguments?: Array<TypeArgument>;
+    }): Promise<MoveValue[]> => {
       const result = await fn(params, typeArguments);
       return result;
     }
@@ -93,14 +96,19 @@ function createTx(
 ): ContractTx {
   return withMeta(
     meta,
-    async (
-      sender?: AccountAddressInput,
+    async ({
+      sender,
+      params,
+      typeArguments,
+      isRaw,
+    }: {
+      sender?: AccountAddressInput;
       params?: Array<
         EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
-      >,
-      typeArguments?: Array<TypeArgument>,
-      isRaw?: boolean
-    ): Promise<
+      >;
+      typeArguments?: Array<TypeArgument>;
+      isRaw?: boolean;
+    }): Promise<
       PendingTransactionResponse | InputGenerateTransactionPayloadData
     > => {
       const result = await fn(sender, params, typeArguments, isRaw);
@@ -184,7 +192,8 @@ export class Dubhe {
             if (isUndefined(this.#query[moduleName][value.name])) {
               this.#query[moduleName][value.name] = createQuery(
                 meta,
-                (p, type_p) => this.#read(meta, p, type_p)
+                (params, typeArguments) =>
+                  this.#read(meta, params, typeArguments)
               );
             }
           }
@@ -196,7 +205,8 @@ export class Dubhe {
             if (isUndefined(this.#tx[moduleName][value.name])) {
               this.#tx[moduleName][value.name] = createTx(
                 meta,
-                (s, p, type_p, isRaw) => this.#exec(meta, s, p, type_p, isRaw)
+                (sender, params, typeArguments, isRaw) =>
+                  this.#exec(meta, sender, params, typeArguments, isRaw)
               );
             }
           }
@@ -348,7 +358,7 @@ export class Dubhe {
       }
       if (coinType === undefined) {
         coinType = '0x1::aptos_coin::AptosCoin';
-      }
+      } // tx.xx.xx(undef, undef, true)
 
       const resource = await this.aptosInteractor.getAccountResource(
         accountAddress,

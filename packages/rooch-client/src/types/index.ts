@@ -71,20 +71,31 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (
-    params?: any[],
-    typeArguments?: TypeTag[]
-  ): Promise<AnnotatedFunctionResultView>;
+  (): Promise<AnnotatedFunctionResultView>;
+  ({
+    params,
+    typeArguments,
+  }: {
+    params?: any[];
+    typeArguments?: TypeTag[];
+  }): Promise<AnnotatedFunctionResultView>;
 }
 
 export interface ContractTx extends MessageMeta {
-  (
-    tx: Transaction,
-    sender?: string,
-    params?: any[],
-    typeArguments?: TypeTag[],
-    isRaw?: boolean
-  ): Promise<ExecuteTransactionResponseView>;
+  (): Promise<ExecuteTransactionResponseView>;
+  ({
+    tx,
+    sender,
+    params,
+    typeArguments,
+    isRaw,
+  }: {
+    tx: Transaction;
+    sender?: string;
+    params?: any[];
+    typeArguments?: TypeTag[];
+    isRaw?: boolean;
+  }): Promise<ExecuteTransactionResponseView>;
 }
 
 export type MapMessageTx = Record<string, ContractTx>;

@@ -39,7 +39,9 @@ const Home = () => {
       });
 
       const tx = new Transaction();
-      const response = await dubhe.tx.counter.increase(tx);
+      const response = await dubhe.tx.counter.increase({
+        tx,
+      });
       console.log(response.execution_info.tx_hash, response.execution_info.status.type);
       if (response.execution_info.status.type == 'executed') {
         setTimeout(async () => {

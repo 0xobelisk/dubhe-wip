@@ -40,10 +40,10 @@ async function init() {
       '0x156f9442fa03ba6b8a33817f3a2999fcbdbf30714bee31960289af2301a9ac54'
     ),
   ];
-  let query1 = (await dubhe.query.assets_schema.get_next_asset_id(
-    tx1,
-    params
-  )) as DevInspectResults;
+  let query1 = (await dubhe.query.assets_schema.get_next_asset_id({
+    tx: tx1,
+    params,
+  })) as DevInspectResults;
   console.log(JSON.stringify(query1.results![0]));
   let formatData1 = dubhe.view(query1);
   console.log(formatData1);
@@ -55,10 +55,10 @@ async function init() {
     ),
     tx2.pure.u32(1),
   ];
-  let query2 = (await dubhe.query.assets_schema.get_metadata(
-    tx2,
-    params2
-  )) as DevInspectResults;
+  let query2 = (await dubhe.query.assets_schema.get_metadata({
+    tx: tx2,
+    params: params2,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query2.results![0]));
     let formatData2 = dubhe.view(query2);
@@ -73,10 +73,10 @@ async function init() {
       '0x156f9442fa03ba6b8a33817f3a2999fcbdbf30714bee31960289af2301a9ac54'
     ),
   ];
-  let query3 = (await dubhe.query.assets_schema.get_metadata_keys(
-    tx3,
-    params3
-  )) as DevInspectResults;
+  let query3 = (await dubhe.query.assets_schema.get_metadata_keys({
+    tx: tx3,
+    params: params3,
+  })) as DevInspectResults;
   console.log(JSON.stringify(query3.results![0]));
   let formatData3 = dubhe.view(query3);
   console.log(formatData3);
@@ -87,10 +87,10 @@ async function init() {
       '0x156f9442fa03ba6b8a33817f3a2999fcbdbf30714bee31960289af2301a9ac54'
     ),
   ];
-  let query4 = (await dubhe.query.assets_schema.get_metadata_values(
-    tx4,
-    params4
-  )) as DevInspectResults;
+  let query4 = (await dubhe.query.assets_schema.get_metadata_values({
+    tx: tx4,
+    params: params4,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query4.results![0]));
     let formatData4 = dubhe.view(query4);
@@ -106,10 +106,10 @@ async function init() {
     ),
     tx5.pure.u32(1),
   ];
-  let query5 = (await dubhe.query.assets_schema.get_details(
-    tx5,
-    params5
-  )) as DevInspectResults;
+  let query5 = (await dubhe.query.assets_schema.get_details({
+    tx: tx5,
+    params: params5,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query5.results![0]));
     let formatData5 = dubhe.view(query5);
@@ -124,10 +124,10 @@ async function init() {
       '0x156f9442fa03ba6b8a33817f3a2999fcbdbf30714bee31960289af2301a9ac54'
     ),
   ];
-  let query6 = (await dubhe.query.assets_schema.get_details_keys(
-    tx6,
-    params6
-  )) as DevInspectResults;
+  let query6 = (await dubhe.query.assets_schema.get_details_keys({
+    tx: tx6,
+    params: params6,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query6.results![0]));
     let formatData6 = dubhe.view(query6);
@@ -142,10 +142,10 @@ async function init() {
       '0x156f9442fa03ba6b8a33817f3a2999fcbdbf30714bee31960289af2301a9ac54'
     ),
   ];
-  let query7 = (await dubhe.query.assets_schema.get_details_values(
-    tx7,
-    params7
-  )) as DevInspectResults;
+  let query7 = (await dubhe.query.assets_schema.get_details_values({
+    tx: tx7,
+    params: params7,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query7.results![0]));
     let formatData7 = dubhe.view(query7);
@@ -162,10 +162,10 @@ async function init() {
     tx8.pure.u32(0),
     tx8.pure.address('0x0'),
   ];
-  let query8 = (await dubhe.query.assets_schema.get_account(
-    tx8,
-    params8
-  )) as DevInspectResults;
+  let query8 = (await dubhe.query.assets_schema.get_account({
+    tx: tx8,
+    params: params8,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query8.results![0]));
     let formatData8 = dubhe.view(query8);
@@ -180,10 +180,10 @@ async function init() {
       '0x156f9442fa03ba6b8a33817f3a2999fcbdbf30714bee31960289af2301a9ac54'
     ),
   ];
-  let query9 = (await dubhe.query.assets_schema.get_account_keys(
-    tx9,
-    params9
-  )) as DevInspectResults;
+  let query9 = (await dubhe.query.assets_schema.get_account_keys({
+    tx: tx9,
+    params: params9,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query9.results![0]));
     let formatData9 = dubhe.view(query9);
@@ -198,10 +198,10 @@ async function init() {
       '0x156f9442fa03ba6b8a33817f3a2999fcbdbf30714bee31960289af2301a9ac54'
     ),
   ];
-  let query10 = (await dubhe.query.assets_schema.get_account_values(
-    tx10,
-    params10
-  )) as DevInspectResults;
+  let query10 = (await dubhe.query.assets_schema.get_account_values({
+    tx: tx10,
+    params: params10,
+  })) as DevInspectResults;
   try {
     console.log(JSON.stringify(query10.results![0]));
     const databcs = bcs.vector(

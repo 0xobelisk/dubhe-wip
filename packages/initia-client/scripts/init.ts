@@ -30,9 +30,10 @@ async function init() {
   console.log(content);
 
   console.log('======= write content value ========');
-  const res1 = await dubhe.tx.read_write.write(myHexAddr, [
-    bcs.string().serialize('reset new content!').toBase64(),
-  ]);
+  const res1 = await dubhe.tx.read_write.write({
+    sender: myHexAddr,
+    params: [bcs.string().serialize('reset new content!').toBase64()],
+  });
   console.log(res1);
   await delay(6000);
 

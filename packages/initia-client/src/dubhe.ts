@@ -44,7 +44,13 @@ function createQuery(
 ): ContractQuery {
   return withMeta(
     meta,
-    async (params?: string[], typeArguments?: string[]): Promise<any> => {
+    async ({
+      params,
+      typeArguments,
+    }: {
+      params?: string[];
+      typeArguments?: string[];
+    }): Promise<any> => {
       const result = await fn(params, typeArguments);
       return result;
     }
@@ -62,13 +68,17 @@ function createTx(
 ): ContractTx {
   return withMeta(
     meta,
-    async (
-      sender?: AccAddress | string,
-      params?: string[],
-      typeArguments?: string[],
-      isRaw?: boolean
-    ): Promise<any> => {
-      // const result = await fn(signer, params, typeArguments, isRaw);
+    async ({
+      sender,
+      params,
+      typeArguments,
+      isRaw,
+    }: {
+      sender?: AccAddress | string;
+      params?: string[];
+      typeArguments?: string[];
+      isRaw?: boolean;
+    }): Promise<any> => {
       const result = await fn(sender, params, typeArguments, isRaw);
       return result;
     }

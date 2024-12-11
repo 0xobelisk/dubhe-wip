@@ -529,7 +529,7 @@ importers:
     dependencies:
       '@0xobelisk/rooch-client':
         specifier: ^0.0.3
-        version: link:../rooch-client
+        version: 0.0.3(typescript@5.1.6)
       '@0xobelisk/sui-common':
         specifier: ^0.5.21
         version: link:../sui-common
@@ -1004,6 +1004,24 @@ packages:
       '@gql.tada/internal': 1.0.8(graphql@16.9.0)(typescript@5.7.2)
       graphql: 16.9.0
       typescript: 5.7.2
+    dev: false
+
+  /@0xobelisk/rooch-client@0.0.3(typescript@5.1.6):
+    resolution: {integrity: sha512-LzalSTbSNRy7/mzdL5RBGa4wWQy2fKrFQ01Y2vmfoF+jqxQnITAraopTw4Kb1tTRh5sbgsjGBqtbr2p8hSUIxA==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@roochnetwork/rooch-sdk': 0.2.8(typescript@5.1.6)
+      '@scure/bip39': 1.5.0
+      assert: 2.1.0
+      colorts: 0.1.63
+      husky: 8.0.3
+      keccak256: 1.0.6
+      process: 0.11.10
+      superstruct: 1.0.4
+      tmp: 0.2.3
+      ts-retry-promise: 0.7.1
+    transitivePeerDependencies:
+      - typescript
     dev: false
 
   /@ampproject/remapping@2.3.0:

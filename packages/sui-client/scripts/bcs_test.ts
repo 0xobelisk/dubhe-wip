@@ -57,10 +57,10 @@ async function init() {
   let asset_id = tx.pure.u32(assetId);
   let params: TransactionArgument[] = [assets, asset_id];
 
-  let asset_metadata = (await dubhe.query.assets_system.metadata_of(
+  let asset_metadata = (await dubhe.query.assets_system.metadata_of({
     tx,
-    params
-  )) as DevInspectResults;
+    params,
+  })) as DevInspectResults;
   console.log('asset_metadata.results[0]', asset_metadata.results![0]);
   const format_metadata = dubhe.view(asset_metadata);
 

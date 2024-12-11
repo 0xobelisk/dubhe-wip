@@ -1,4 +1,4 @@
-import { NetWorkType, Dubhe } from '../src';
+import { NetworkType, Dubhe } from '../src';
 import * as fs from 'fs';
 
 import dotenv from 'dotenv';
@@ -8,7 +8,7 @@ export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 async function init() {
-  const network = 'localnet' as NetWorkType;
+  const network = 'localnet' as NetworkType;
   const privateKey = process.env.PRIVATE_KEY;
   const dubhe = new Dubhe({
     networkType: network,

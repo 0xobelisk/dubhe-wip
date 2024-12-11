@@ -40,9 +40,10 @@ const Home = () => {
       metadata: metadata,
     });
     const tx = new Transaction();
-    const query_value = (await dubhe.query.counter_schema.get_value(tx, [
-      tx.object(Counter_Object_Id),
-    ])) as DevInspectResults;
+    const query_value = (await dubhe.query.counter_schema.get_value({
+      tx,
+      params: [tx.object(Counter_Object_Id)],
+    })) as DevInspectResults;
     console.log('Counter value:', dubhe.view(query_value)[0]);
     setValue(dubhe.view(query_value)[0]);
   };
@@ -58,7 +59,11 @@ const Home = () => {
         secretKey: PRIVATEKEY,
       });
       const tx = new Transaction();
-      (await dubhe.tx.counter_system.inc(tx, [tx.object(Counter_Object_Id)], undefined, true)) as TransactionResult;
+      (await dubhe.tx.counter_system.inc({
+        tx,
+        params: [tx.object(Counter_Object_Id)],
+        isRaw: true,
+      })) as TransactionResult;
       const response = await dubhe.signAndSendTxn(tx);
       if (response.effects.status.status == 'success') {
         setTimeout(async () => {

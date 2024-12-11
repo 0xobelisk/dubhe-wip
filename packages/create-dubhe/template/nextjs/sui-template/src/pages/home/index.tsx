@@ -45,9 +45,10 @@ const Home: React.FC = () => {
         metadata: metadata,
       });
       const tx = new Transaction();
-      const queryValue = (await dubhe.query.counter_schema.get_value(tx, [
-        tx.object(Counter_Object_Id),
-      ])) as DevInspectResults;
+      const queryValue = (await dubhe.query.counter_schema.get_value({
+        tx,
+        params: [tx.object(Counter_Object_Id)],
+      })) as DevInspectResults;
       console.log('Counter value:', dubhe.view(queryValue)[0]);
       setValue(dubhe.view(queryValue)[0]);
     } catch (error) {
@@ -82,7 +83,11 @@ const Home: React.FC = () => {
         metadata: metadata,
       });
       const tx = new Transaction();
-      await dubhe.tx.counter_system.inc(tx, [tx.object(Counter_Object_Id)], undefined, true);
+      await dubhe.tx.counter_system.inc({
+        tx,
+        params: [tx.object(Counter_Object_Id)],
+        isRaw: true,
+      });
       await signAndExecuteTransaction(
         {
           transaction: tx.serialize(),

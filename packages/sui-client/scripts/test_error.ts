@@ -47,10 +47,10 @@ async function main() {
     tx.pure.u64(1000000000),
   ] as TransactionArgument[];
 
-  const dryResult = (await dubhe.query['dex_system'].get_amount_out(
+  const dryResult = (await dubhe.query['dex_system'].get_amount_out({
     tx,
-    params
-  )) as DevInspectResults;
+    params,
+  })) as DevInspectResults;
   console.log('getAmountOut', dryResult);
   console.log('getAmountOut');
   const res = dubhe.view(dryResult);
