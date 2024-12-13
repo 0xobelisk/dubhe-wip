@@ -10,7 +10,7 @@ async function init() {
   const privateKey = process.env.PRIVATE_KEY;
   const dubhe = new Dubhe({
     secretKey: privateKey,
-    networkType: Network.LOCAL,
+    networkType: 'localnet',
   });
 
   let myAddr = dubhe.getAddress();

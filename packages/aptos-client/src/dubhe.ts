@@ -43,6 +43,7 @@ import {
   MapModuleFuncTx,
   NetworkType,
 } from './types';
+import { NetworkConfig } from './libs/aptosInteractor/defaultConfig';
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
@@ -327,6 +328,14 @@ export class Dubhe {
     return this.contractFactory.metadata;
   }
 
+  getNetworkType(): NetworkType {
+    return this.aptosInteractor.network;
+  }
+
+  getNetworkConfig(): NetworkConfig {
+    return getDefaultURL(this.aptosInteractor.network);
+  }
+
   /**
    * Request some APT from faucet
    * @Returns {Promise<boolean>}, true if the request is successful, false otherwise.
@@ -339,7 +348,7 @@ export class Dubhe {
       amount = 50000000;
     }
     let options: WaitForTransactionOptions | undefined;
-    if (this.aptosInteractor.network === Network.LOCAL) {
+    if (this.aptosInteractor.network === 'localnet') {
       options = {
         checkSuccess: false,
         waitForIndexer: false,

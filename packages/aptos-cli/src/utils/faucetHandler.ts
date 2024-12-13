@@ -1,7 +1,6 @@
 import {
 	Dubhe,
 	getDefaultURL,
-	InputNetworkType,
 	Network,
 	NetworkType,
 } from '@0xobelisk/aptos-client';
@@ -10,14 +9,14 @@ import chalk from 'chalk';
 import { DubheCliError } from './errors';
 
 export async function requestFaucet(
-	network: InputNetworkType,
+	network: NetworkType,
 	accountAddress: string,
 	amount?: number
 ) {
 	try {
 		console.log('network', network);
 		const dubhe = new Dubhe({
-			networkType: network as NetworkType,
+			networkType: network,
 		});
 
 		const response = await dubhe.requestFaucet(accountAddress, amount);
@@ -27,10 +26,7 @@ export async function requestFaucet(
 	}
 }
 
-export async function getBalance(
-	network: InputNetworkType,
-	accountAddress: string
-) {
+export async function getBalance(network: NetworkType, accountAddress: string) {
 	try {
 		const client = new Dubhe({
 			networkType: network as NetworkType,

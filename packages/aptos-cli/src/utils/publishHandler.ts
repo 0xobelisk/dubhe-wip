@@ -1,10 +1,5 @@
 import chalk from 'chalk';
-import {
-	InputNetworkType,
-	Dubhe,
-	AccountAddress,
-	NetworkType,
-} from '@0xobelisk/aptos-client';
+import { Dubhe, AccountAddress, NetworkType } from '@0xobelisk/aptos-client';
 
 import { DubheCliError } from './errors';
 import {
@@ -16,7 +11,7 @@ import {
 
 export async function publishHandler(
 	projectName: string,
-	network: InputNetworkType,
+	network: NetworkType,
 	namedAddresses?: Array<{ name: string; address: AccountAddress }>
 ) {
 	const privateKey = process.env.PRIVATE_KEY;
@@ -34,7 +29,7 @@ export async function publishHandler(
 
 	const dubhe = new Dubhe({
 		secretKey: privateKeyFormat.toString(),
-		networkType: network as NetworkType,
+		networkType: network,
 	});
 
 	if (namedAddresses === undefined) {

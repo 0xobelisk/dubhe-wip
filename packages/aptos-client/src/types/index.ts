@@ -110,23 +110,13 @@ export type DerivePathParams = {
   addressIndex?: number;
 };
 
-export enum MovementNetwork {
-  // MAINNET = "movementmainnet",
-  TESTNET = 'movementtestnet',
-  DEVNET = 'movementdevnet',
-  LOCAL = 'movementlocal',
-}
-
-export type NetworkType = Network | MovementNetwork;
-
-export type InputNetworkType =
+export type NetworkType =
   | 'mainnet'
   | 'testnet'
   | 'devnet'
-  | 'local'
-  | 'movementtestnet'
-  | 'movementdevnet'
-  | 'movementlocal';
+  | 'localnet'
+  | 'movementmainnet'
+  | 'movementtestnet';
 
 /**
  * These are the basics types that can be used in the APT

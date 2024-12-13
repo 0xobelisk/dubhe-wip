@@ -1,9 +1,5 @@
 import chalk from 'chalk';
-import {
-	InputNetworkType,
-	Dubhe,
-	AccountAddress,
-} from '@0xobelisk/aptos-client';
+import { Dubhe, AccountAddress, NetworkType } from '@0xobelisk/aptos-client';
 import { DubheCliError } from './errors';
 import {
 	saveContractData,
@@ -14,7 +10,7 @@ import {
 
 export async function upgradeHandler(
 	projectName: string,
-	network: InputNetworkType,
+	network: NetworkType,
 	namedAddresses?: Array<{ name: string; address: AccountAddress }>
 ) {
 	const privateKey = process.env.PRIVATE_KEY;
