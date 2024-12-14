@@ -49,8 +49,7 @@ const Home = () => {
             description: new Date().toUTCString(),
             action: {
               label: 'Check in Explorer',
-              onClick: () =>
-                window.open(`https://explorer.aptoslabs.com/txn/${response.hash}?network=${NETWORK}`, '_blank'),
+              onClick: () => window.open(dubhe.getTxExplorerUrl(response.hash), '_blank'),
             },
           });
           setLoading(false);

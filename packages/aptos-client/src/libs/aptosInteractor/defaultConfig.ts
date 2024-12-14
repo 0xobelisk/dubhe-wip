@@ -8,7 +8,10 @@ export interface NetworkConfig {
   pepper?: string;
   prover?: string;
   chainId?: string;
-  network?: Network;
+  network: Network;
+  txExplorer: string;
+  accountExplorer: string;
+  explorer: string;
 }
 
 export function isValidNetworkType(network: string): network is NetworkType {
@@ -63,6 +66,10 @@ export const getDefaultURL = (
         prover: 'https://api.devnet.aptoslabs.com/keyless/prover/v0',
         chainId: '4',
         network: getNetwork(networkType),
+        txExplorer: 'https://explorer.aptoslabs.com/txn/:txHash?network=local',
+        accountExplorer:
+          'https://explorer.aptoslabs.com/account/:address?network=local',
+        explorer: 'https://explorer.aptoslabs.com?network=local',
       };
     case 'devnet':
       return {
@@ -72,6 +79,10 @@ export const getDefaultURL = (
         pepper: 'https://api.devnet.aptoslabs.com/keyless/pepper/v0',
         prover: 'https://api.devnet.aptoslabs.com/keyless/prover/v0',
         network: getNetwork(networkType),
+        txExplorer: 'https://explorer.aptoslabs.com/txn/:txHash?network=devnet',
+        accountExplorer:
+          'https://explorer.aptoslabs.com/account/:address?network=devnet',
+        explorer: 'https://explorer.aptoslabs.com?network=devnet',
       };
     case 'testnet':
       return {
@@ -82,6 +93,11 @@ export const getDefaultURL = (
         prover: 'https://api.testnet.aptoslabs.com/keyless/prover/v0',
         chainId: '2',
         network: getNetwork(networkType),
+        txExplorer:
+          'https://explorer.aptoslabs.com/txn/:txHash?network=testnet',
+        accountExplorer:
+          'https://explorer.aptoslabs.com/account/:address?network=testnet',
+        explorer: 'https://explorer.aptoslabs.com?network=testnet',
       };
     case 'mainnet':
       return {
@@ -91,17 +107,32 @@ export const getDefaultURL = (
         prover: 'https://api.mainnet.aptoslabs.com/keyless/prover/v0',
         chainId: '1',
         network: getNetwork(networkType),
+        txExplorer:
+          'https://explorer.aptoslabs.com/txn/:txHash?network=mainnet',
+        accountExplorer:
+          'https://explorer.aptoslabs.com/account/:address?network=mainnet',
+        explorer: 'https://explorer.aptoslabs.com?network=mainnet',
       };
     case 'movementmainnet':
       return {
         fullNode: 'https://mainnet.movementnetwork.xyz/v1',
         network: getNetwork(networkType),
+        txExplorer:
+          'https://explorer.movementnetwork.xyz/txn/:txHash?network=mainnet',
+        accountExplorer:
+          'https://explorer.movementnetwork.xyz/account/:address?network=mainnet',
+        explorer: 'https://explorer.movementnetwork.xyz?network=mainnet',
       };
     case 'movementtestnet':
       return {
         fullNode: 'https://aptos.testnet.porto.movementlabs.xyz/v1',
         faucet: 'https://faucet.testnet.porto.movementnetwork.xyz',
         network: getNetwork(networkType),
+        txExplorer:
+          'https://explorer.movementnetwork.xyz/txn/:txHash?network=testnet',
+        accountExplorer:
+          'https://explorer.movementnetwork.xyz/account/:address?network=testnet',
+        explorer: 'https://explorer.movementnetwork.xyz?network=testnet',
       };
     default:
       return {
@@ -112,6 +143,11 @@ export const getDefaultURL = (
         prover: 'https://api.testnet.aptoslabs.com/keyless/prover/v0',
         chainId: '2',
         network: getNetwork('testnet'),
+        txExplorer:
+          'https://explorer.aptoslabs.com/txn/:txHash?network=testnet',
+        accountExplorer:
+          'https://explorer.aptoslabs.com/account/:address?network=testnet',
+        explorer: 'https://explorer.aptoslabs.com?network=testnet',
       };
   }
 };

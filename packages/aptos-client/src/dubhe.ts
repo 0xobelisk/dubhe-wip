@@ -341,6 +341,18 @@ export class Dubhe {
     return getDefaultURL(this.aptosInteractor.network);
   }
 
+  getTxExplorerUrl(txHash: string) {
+    return this.getNetworkConfig().txExplorer.replace(':txHash', txHash);
+  }
+
+  getAccountExplorerUrl(address: string) {
+    return this.getNetworkConfig().accountExplorer.replace(':address', address);
+  }
+
+  getExplorerUrl() {
+    return this.getNetworkConfig().explorer;
+  }
+
   /**
    * Request some APT from faucet
    * @Returns {Promise<boolean>}, true if the request is successful, false otherwise.
