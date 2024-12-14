@@ -85,7 +85,7 @@ const Home: React.FC = () => {
       const tx = new Transaction();
       await dubhe.tx.counter_system.inc({
         tx,
-        params: [tx.object(Counter_Object_Id)],
+        params: [tx.object(Counter_Object_Id), tx.pure.u32(1)],
         isRaw: true,
       });
       await signAndExecuteTransaction(

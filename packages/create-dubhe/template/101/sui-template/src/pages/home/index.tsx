@@ -42,7 +42,7 @@ const Home = () => {
     const tx = new Transaction();
     const query_value = (await dubhe.query.counter_schema.get_value({
       tx,
-      params: [tx.object(Counter_Object_Id)],
+      params: [tx.object(Counter_Object_Id), tx.pure.u32(1)],
     })) as DevInspectResults;
     console.log('Counter value:', dubhe.view(query_value)[0]);
     setValue(dubhe.view(query_value)[0]);
