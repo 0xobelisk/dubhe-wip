@@ -26,12 +26,13 @@ export async function generateSchemaError(
 			console.log(`  ├─ Processing schema: ${schemaName}`);
 			for (const item of schema.errors) {
 				console.log(
-					`     └─ Generating ${item.name} code: ${item.code}`);
+					`     └─ Generating ${item.name} message: ${item.message}`);
 
 				let	code = `module ${projectName}::${schemaName}_error_${convertToSnakeCase(item.name)} {
-						const ${item.name}: u64 = ${item.code};
-						/// Get the error code.
-            public fun code(): u64 { ${item.name} }
+						#[error]
+						const ${item.name}: vector<u8> = b"${item.message}";
+						/// Get the error message.
+            public fun message(): vector<u8> { ${item.name} }
             /// Abort execution with the given error code.
             public fun emit() { abort ${item.name} }
             /// Require that the given condition is true, otherwise abort with the given error code.

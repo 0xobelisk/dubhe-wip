@@ -13,7 +13,6 @@ import {
 	saveContractData,
 	validatePrivateKey,
 	schema,
-	getSchemaHub,
 	updateDubheDependency,
 	switchEnv,
 	delay,
@@ -21,24 +20,6 @@ import {
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
-
-async function getDappsObjectId(
-	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
-) {
-	switch (network) {
-		case 'localnet': {
-			const path = process.cwd();
-			return await getSchemaHub(
-				`${path}/contracts/dubhe-framework`,
-				network
-			);
-		}
-		case 'testnet':
-			return '0x8dbf8d28ac027ba214c9e0951b09f6842843be6cb87242b7d9a326a2677cd47a';
-		default:
-			return '0x8dbf8d28ac027ba214c9e0951b09f6842843be6cb87242b7d9a326a2677cd47a';
-	}
-}
 
 function removeEnvContent(
 	filePath: string,
@@ -62,12 +43,6 @@ interface EnvConfig {
 	latestPublishedId: string;
 	publishedVersion: number;
 }
-
-const chainIds: { [key: string]: string } = {
-	localnet: 'dfa7bb83',
-	testnet: '4c78adac',
-	mainnet: '35834a8a',
-};
 
 function updateEnvFile(
 	filePath: string,
@@ -195,8 +170,6 @@ async function publishContract(
 	projectPath: string,
 	gasBudget?: number
 ) {
-	const dappsObjectId = await getDappsObjectId(network);
-	console.log('dappsObjectId', dappsObjectId);
 	const chainId = await client.getChainIdentifier();
 	removeEnvContent(`${projectPath}/Move.lock`, network);
 	console.log('\n🚀 Starting Contract Publication...');
@@ -242,7 +215,6 @@ async function publishContract(
 	let packageId = '';
 	let schemas: schema[] = [];
 	let upgradeCapId = '';
-	let schemaHubId = '';
 
 	result.objectChanges!.map(object => {
 		if (object.type === 'published') {
@@ -255,13 +227,6 @@ async function publishContract(
 		) {
 			console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
 			upgradeCapId = object.objectId;
-		}
-		if (
-			object.type === 'created' &&
-			object.objectType.includes('schema_hub')
-		) {
-			console.log(`  ├─ Schema Hub: ${object.objectId}`);
-			schemaHubId = object.objectId;
 		}
 	});
 
@@ -279,19 +244,9 @@ async function publishContract(
 	await delay(5000);
 
 	const deployHookTx = new Transaction();
-	if (gasBudget) {
-		deployHookTx.setGasBudget(gasBudget);
-	}
-	const [txCoin] = deployHookTx.splitCoins(deployHookTx.gas, ['1000000000']);
 	deployHookTx.moveCall({
 		target: `${packageId}::deploy_hook::run`,
-		arguments: [
-			deployHookTx.object(schemaHubId),
-			deployHookTx.object(dappsObjectId),
-			deployHookTx.object(upgradeCapId),
-			deployHookTx.object('0x6'),
-			txCoin,
-		],
+		arguments: [ deployHookTx.object('0x6') ],
 	});
 
 	let deployHookResult: SuiTransactionBlockResponse;
@@ -344,7 +299,6 @@ async function publishContract(
 			network,
 			packageId,
 			upgradeCapId,
-			schemaHubId,
 			version,
 			schemas
 		);
@@ -412,7 +366,6 @@ export async function publishDubheFramework(
 	let packageId = '';
 	let schemas: schema[] = [];
 	let upgradeCapId = '';
-	let schemaHubId = '';
 
 	result.objectChanges!.map(object => {
 		if (object.type === 'published') {
@@ -425,10 +378,6 @@ export async function publishDubheFramework(
 		) {
 			console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
 			upgradeCapId = object.objectId;
-		}
-		if (object.type === 'created' && object.objectType.includes('dapps')) {
-			console.log(`  ├─ Dapps: ${object.objectId}`);
-			schemaHubId = object.objectId;
 		}
 	});
 
@@ -447,7 +396,6 @@ export async function publishDubheFramework(
 		network,
 		packageId,
 		upgradeCapId,
-		schemaHubId,
 		version,
 		schemas
 	);

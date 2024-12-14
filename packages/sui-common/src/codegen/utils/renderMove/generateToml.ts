@@ -4,7 +4,6 @@ import { formatAndWriteMove } from '../formatAndWrite';
 export async function generateToml(
 	config: DubheConfig,
 	srcPrefix: string,
-	frameworkId: string
 ) {
 	console.log('\n📄 Starting Move.toml Generation...');
 	console.log(
