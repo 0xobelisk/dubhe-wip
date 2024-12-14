@@ -21,12 +21,12 @@ async function checkBalance(network: string) {
     });
 
     const balance = await dubhe.getBalance();
-    if (balance === '0') {
+    if (balance === 0) {
       console.log(chalk.yellow(`Account balance is 0, need to get ${network} coins`));
       process.exit(1);
     }
 
-    console.log(chalk.green(`Current account balance: ${(Number(balance) / 100_000_000).toFixed(4)} INIT`));
+    console.log(chalk.green(`Current account balance: ${(Number(balance) / 100_000_000).toFixed(4)} MOVE`));
     process.exit(0);
   } catch (error) {
     console.error(chalk.red('Failed to check balance:', error));
