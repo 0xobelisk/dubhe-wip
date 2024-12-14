@@ -201,15 +201,15 @@ export async function generateSchemaStructure(
                     use std::ascii::String;
                     use std::ascii::string;
                     use sui::package::UpgradeCap;
-                    use std::type_name;
-                    use dubhe::dapps_system;
-                    use dubhe::storage_migrate;
-                    use dubhe::dapps_schema::Dapps;
+                    use std::type_name; 
+                    use dubhe::storage_migration;
                     use dubhe::storage_value::{Self, StorageValue};
                     use dubhe::storage_map::{Self, StorageMap};
                     use dubhe::storage_double_map::{Self, StorageDoubleMap};
-                    use ${projectName}::dapp_key::DappKey;
                     use sui::dynamic_field as df;
+                    use sui::sui::SUI;
+                    use sui::coin::Coin;
+    				use sui::balance::Balance;
                     ${generateImport(projectName, schemaName, schema)}
 
                     public struct ${capitalizeAndRemoveUnderscores(
@@ -223,13 +223,13 @@ export async function generateSchemaStructure(
 				return `public fun borrow_${key}(self: &${capitalizeAndRemoveUnderscores(
 					schemaName,
 				)}) : &${value} {
-                        storage_migrate::borrow_field(&self.id, b"${key}")
+                        storage_migration::borrow_field(&self.id, b"${key}")
                     }
                     
                     public(package) fun borrow_mut_${key}(self: &mut ${capitalizeAndRemoveUnderscores(
 					schemaName,
 				)}): &mut ${value} {
-                        storage_migrate::borrow_mut_field(&mut self.id, b"${key}")
+                        storage_migration::borrow_mut_field(&mut self.id, b"${key}")
                     }
                     `;
 			})
@@ -252,7 +252,7 @@ export async function generateSchemaStructure(
 				) {
 					storage_type = `storage_double_map::new()`;
 				}
-				return `storage_migrate::add_field<${value}>(&mut id, b"${key}", ${storage_type});`;
+				return `storage_migration::add_field<${value}>(&mut id, b"${key}", ${storage_type});`;
 			})
 			.join('')}
                       
@@ -275,31 +275,35 @@ export async function generateSchemaStructure(
 				if (value.includes('StorageValue')) {
 					para_key = [];
 					para_value = `${all_types[0]}`;
-					borrow_key = 'try_get()';
+					borrow_key = 'borrow()';
 				} else if (value.includes('StorageMap')) {
 					para_key = [`key: ${all_types[0]}`];
 					para_value = `${all_types[1]}`;
-					borrow_key = 'try_get(key)';
-					extra_code = `public fun get_${key}_keys(self: &${capitalizeAndRemoveUnderscores(schemaName)}) : vector<${all_types[0]}> {
+					borrow_key = 'borrow(key)';
+					if (!value.includes('Balance') && !value.includes('Coin')) {
+						extra_code = `public fun get_${key}_keys(self: &${capitalizeAndRemoveUnderscores(schemaName)}) : vector<${all_types[0]}> {
 									self.borrow_${key}().keys()
 								}
 							
 							public fun get_${key}_values(self: &${capitalizeAndRemoveUnderscores(schemaName)}) : vector<${all_types[1]}> {
 									self.borrow_${key}().values()
 								}`;
+					}
 				} else if (value.includes('StorageDoubleMap')) {
 					para_key = [`key1: ${all_types[0]}`, `key2: ${all_types[1]}`];
 					para_value = `${all_types[2]}`;
-					borrow_key = 'try_get(key1, key2)';
-					extra_code = `public fun get_${key}_keys(self: &${capitalizeAndRemoveUnderscores(schemaName)}) : (vector<${all_types[0]}>, vector<${all_types[1]}>) {
+					borrow_key = 'borrow(key1, key2)';
+					if (!value.includes('Balance') && !value.includes('Coin')) {
+						extra_code = `public fun get_${key}_keys(self: &${capitalizeAndRemoveUnderscores(schemaName)}) : (vector<${all_types[0]}>, vector<${all_types[1]}>) {
 									self.borrow_${key}().keys()
 								}
 							
 							public fun get_${key}_values(self: &${capitalizeAndRemoveUnderscores(schemaName)}) : vector<${all_types[2]}> {
 									self.borrow_${key}().values()
 								}`;
+					}
 				}
-				return `public fun get_${key}(self: &${capitalizeAndRemoveUnderscores(schemaName)}, ${para_key}) : Option<${para_value}> {
+				return `public fun get_${key}(self: &${capitalizeAndRemoveUnderscores(schemaName)}, ${para_key}) : &${para_value} {
 									self.borrow_${key}().${borrow_key}
 								}
 								` + extra_code;

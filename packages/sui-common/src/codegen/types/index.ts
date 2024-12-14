@@ -57,8 +57,7 @@ export type SchemaData = {
 
 export type ErrorData = {
   name: string;
-  code: number;
-  description?: string;
+  message: string;
 }
 
 export type SchemaType = {

@@ -144,8 +144,8 @@ export const dubheConfig = {
 				},
 			],
 			errors: [
-				{ name: 'AccountNotFound', code: 0 },
-				{ name: 'AssetNotFound', code: 1 }
+				{ name: 'AccountNotFound', message: "This account not found" },
+				{ name: 'AssetNotFound', message: "This asset not found" }
 			]
 		},
 		dex: {
@@ -254,6 +254,9 @@ export const dubheConfig = {
 			structure: {
 				value: 'StorageValue<u32>',
 				value1: 'StorageValue<u32>',
+				value2: 'StorageValue<Balance<SUI>>',
+				value3: 'StorageValue<Coin<SUI>>',
+				value4: 'StorageMap<address, Balance<SUI>>',
 			},
 		},
 	},

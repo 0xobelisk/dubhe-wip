@@ -10,7 +10,7 @@ import {
 	getVersion,
 	getUpgradeCap,
 	saveContractData,
-	validatePrivateKey, getOnchainSchemas, getSchemaHub, switchEnv, delay,
+	validatePrivateKey, getOnchainSchemas, switchEnv, delay,
 } from './utils';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -51,7 +51,7 @@ ${migration.fields.map((field) => {
 			) {
 				storage_type = `storage_double_map::new()`;
 			}
-			return `storage_migrate::add_field<${field.type}>(&mut ${migration.schemaName}.id, b"${field.name}", ${storage_type});`;
+			return `storage_migration::add_field<${field.type}>(&mut ${migration.schemaName}.id, b"${field.name}", ${storage_type});`;
 		}).join('')}
 }
 `;
@@ -150,7 +150,6 @@ in your contracts directory to use the default sui private key.`,
 
 	let oldVersion = Number(await getVersion(projectPath, network));
 	let oldPackageId = await getOldPackageId(projectPath, network);
-	let schemaHub = await getSchemaHub(projectPath, network);
 	let upgradeCap = await getUpgradeCap(projectPath, network);
 
 	const original_published_id =  replaceEnvField(`${projectPath}/Move.lock`, network, 'original-published-id', "0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -273,7 +272,6 @@ in your contracts directory to use the default sui private key.`,
 			network,
 			newPackageId,
 			upgradeCap,
-			schemaHub,
 			oldVersion + 1,
 			schemas,
 		);

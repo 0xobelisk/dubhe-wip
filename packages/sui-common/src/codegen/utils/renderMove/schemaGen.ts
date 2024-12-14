@@ -9,25 +9,13 @@ import { generateSchemaEvent } from './generateEvent';
 import { generateSystem } from './generateSystem';
 import { generateSchemaHub } from './generateSchemaHub';
 import { generateSchemaError } from './generateError';
-
-function matchFrameworkId(
-    network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
-): string {
-    switch (network) {
-        case 'testnet':
-            return '0x417ad1864a56a29ad0b5aaddd2e11bac1eeab6a68883ef53184a4cc5c293fec6';
-        case 'localnet':
-            return '0x417ad1864a56a29ad0b5aaddd2e11bac1eeab6a68883ef53184a4cc5c293fec6';
-        default:
-            return '0x417ad1864a56a29ad0b5aaddd2e11bac1eeab6a68883ef53184a4cc5c293fec6';
-    }
-}
+import {generateDefaultSchema} from "./generateDefaultSchema";
+import {generateInit} from "./generateInit";
 
 export async function schemaGen(
     config: DubheConfig,
     srcPrefix?: string,
-    network?: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
-    frameworkId?: string,
+    network?: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
     console.log('\n🚀 Starting Schema Generation Process...');
     console.log('📋 Project Configuration:');
@@ -36,15 +24,8 @@ export async function schemaGen(
         `  ├─ Description: ${config.description || 'No description provided'}`,
     );
     console.log(`  ├─ Network: ${network || 'testnet'}`);
-    console.log(
-        `  └─ Framework ID: ${
-            frameworkId || matchFrameworkId(network ?? 'testnet')
-        }\n`,
-    );
 
     const path = srcPrefix ?? process.cwd();
-
-    frameworkId = frameworkId || matchFrameworkId(network ?? 'testnet');
 
     if (existsSync(`${path}/contracts/${config.name}`)) {
         deleteFolderRecursive(
@@ -53,7 +34,7 @@ export async function schemaGen(
     }
 
     if (!existsSync(`${path}/contracts/${config.name}/Move.toml`)) {
-        await generateToml(config, path, frameworkId);
+        await generateToml(config, path);
     }
 
     if (
@@ -68,8 +49,9 @@ export async function schemaGen(
     await generateSchemaStructure(config.name, config.schemas, path);
     await generateSchemaEvent(config.name, config.schemas, path);
     await generateSchemaError(config.name, config.schemas, path);
-    await generateDappKey(config, path);
-    await generateSchemaHub(config, path);
+
+    await generateDefaultSchema(config, path);
+    await generateInit(config, path);
     await generateSystem(config, path);
     await generateMigrate(config, path);
 

@@ -18,7 +18,6 @@ export type DeploymentJsonType = {
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
 	packageId: string;
 	upgradeCap: string;
-	schemaHub: string;
 	version: number;
 	schemas: schema[];
 };
@@ -119,14 +118,6 @@ export async function getUpgradeCap(
 	return deployment.upgradeCap;
 }
 
-export async function getSchemaHub(
-	projectPath: string,
-	network: string
-): Promise<string> {
-	const deployment = await getDeploymentJson(projectPath, network);
-	return deployment.schemaHub;
-}
-
 export async function getObjectIdBySchemaName(
 	projectPath: string,
 	network: string,
@@ -142,7 +133,6 @@ export function saveContractData(
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
 	packageId: string,
 	upgradeCap: string,
-	schemaHub: string,
 	version: number,
   schemas: schema[],
 ) {
@@ -152,7 +142,6 @@ export function saveContractData(
 		packageId,
 		schemas,
 		upgradeCap,
-		schemaHub,
 		version,
 	};
 
