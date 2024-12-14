@@ -6,7 +6,6 @@ import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 type Options = {
 	network: any;
 	'config-path': string;
-	'contract-name'?: string;
 	'gas-budget'?: number;
 };
 
@@ -27,10 +26,6 @@ const commandModule: CommandModule<Options, Options> = {
 				default: 'dubhe.config.ts',
 				desc: 'Configuration file path',
 			},
-			'contract-name': {
-				type: 'string',
-				desc: 'Optional contract name in contracts/ directory',
-			},
 			'gas-budget': {
 				type: 'number',
 				desc: 'Optional gas budget for the transaction',
@@ -42,12 +37,11 @@ const commandModule: CommandModule<Options, Options> = {
 	async handler({
 		network,
 		'config-path': configPath,
-		'contract-name': contractName,
 		'gas-budget': gasBudget,
 	}) {
 		try {
 			const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
-			await publishHandler(dubheConfig, network, contractName, gasBudget);
+			await publishHandler(dubheConfig, network, gasBudget);
 		} catch (error: any) {
 			logError(error);
 			process.exit(1);

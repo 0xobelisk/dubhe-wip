@@ -21,10 +21,10 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
 
-function removeEnvContent(
+async function removeEnvContent(
 	filePath: string,
 	networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
-): void {
+): Promise<void> {
 	if (!fs.existsSync(filePath)) {
 		return;
 	}
@@ -171,7 +171,7 @@ async function publishContract(
 	gasBudget?: number
 ) {
 	const chainId = await client.getChainIdentifier();
-	removeEnvContent(`${projectPath}/Move.lock`, network);
+	await removeEnvContent(`${projectPath}/Move.lock`, network);
 	console.log('\n🚀 Starting Contract Publication...');
 	console.log(`  ├─ Project: ${projectPath}`);
 	console.log(`  ├─ Network: ${network}`);
@@ -246,7 +246,7 @@ async function publishContract(
 	const deployHookTx = new Transaction();
 	deployHookTx.moveCall({
 		target: `${packageId}::deploy_hook::run`,
-		arguments: [ deployHookTx.object('0x6') ],
+		arguments: [deployHookTx.object('0x6')],
 	});
 
 	let deployHookResult: SuiTransactionBlockResponse;
@@ -316,6 +316,32 @@ async function publishContract(
 	}
 }
 
+async function checkDubheFramework(projectPath: string): Promise<boolean> {
+	if (!fs.existsSync(projectPath)) {
+		console.log(chalk.yellow('\nℹ️ Dubhe Framework Files Not Found'));
+		console.log(chalk.yellow('  ├─ Expected Path:'), projectPath);
+		console.log(chalk.yellow('  ├─ To set up Dubhe Framework:'));
+		console.log(
+			chalk.yellow(
+				'  │  1. Create directory: mkdir -p contracts/dubhe-framework'
+			)
+		);
+		console.log(
+			chalk.yellow(
+				'  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe-framework contracts/dubhe-framework'
+			)
+		);
+		console.log(
+			chalk.yellow(
+				'  │  3. Or download from: https://github.com/0xobelisk/dubhe-framework'
+			)
+		);
+		console.log(chalk.yellow('  └─ After setup, restart the local node'));
+		return false;
+	}
+	return true;
+}
+
 export async function publishDubheFramework(
 	client: SuiClient,
 	dubhe: Dubhe,
@@ -323,14 +349,17 @@ export async function publishDubheFramework(
 ) {
 	const path = process.cwd();
 	const projectPath = `${path}/contracts/dubhe-framework`;
+
+	if (!(await checkDubheFramework(projectPath))) {
+		console.log(chalk.yellow('\n❗ Framework Deployment Skipped'));
+		return;
+	}
+
 	const chainId = await client.getChainIdentifier();
-	console.log(`  └─ Chain ID: ${chainId}`);
-	removeEnvContent(`${projectPath}/Move.lock`, network);
+	await removeEnvContent(`${projectPath}/Move.lock`, network);
 	console.log('\n🚀 Starting Contract Publication...');
 	console.log(`  ├─ Project: ${projectPath}`);
 	console.log(`  ├─ Network: ${network}`);
-	console.log(`  ├─ ChainId: ${chainId}`);
-	console.log('  ├─ Validating Environment...');
 
 	const keypair = dubhe.getKeypair();
 	console.log(`  └─ Account: ${keypair.toSuiAddress()}`);
@@ -361,7 +390,6 @@ export async function publishDubheFramework(
 		process.exit(1);
 	}
 
-	console.log('  ├─ Processing publication results...');
 	let version = 1;
 	let packageId = '';
 	let schemas: schema[] = [];
@@ -399,12 +427,12 @@ export async function publishDubheFramework(
 		version,
 		schemas
 	);
+	console.log(chalk.green('\n✅ Dubhe Framework deployed successfully'));
 }
 
 export async function publishHandler(
 	dubheConfig: DubheConfig,
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
-	contractName?: string,
 	gasBudget?: number
 ) {
 	await switchEnv(network);
@@ -425,19 +453,19 @@ in your contracts directory to use the default sui private key.`
 	const dubhe = new Dubhe({ secretKey: privateKeyFormat });
 	const client = new SuiClient({ url: getFullnodeUrl(network) });
 
-	if (contractName == 'dubhe-framework') {
+	if (network === 'localnet') {
 		await publishDubheFramework(client, dubhe, network);
-	} else {
-		const path = process.cwd();
-		const projectPath = `${path}/contracts/${dubheConfig.name}`;
-		updateDubheDependency(`${projectPath}/Move.toml`, network);
-		await publishContract(
-			client,
-			dubhe,
-			dubheConfig,
-			network,
-			projectPath,
-			gasBudget
-		);
 	}
+
+	const path = process.cwd();
+	const projectPath = `${path}/contracts/${dubheConfig.name}`;
+	updateDubheDependency(`${projectPath}/Move.toml`, network);
+	await publishContract(
+		client,
+		dubhe,
+		dubheConfig,
+		network,
+		projectPath,
+		gasBudget
+	);
 }

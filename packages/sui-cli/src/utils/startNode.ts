@@ -1,7 +1,12 @@
 import { execSync, spawn } from 'child_process';
 import chalk from 'chalk';
 import { printDubhe } from './printDubhe';
-import { delay, DubheCliError, publishDubheFramework, validatePrivateKey } from '../utils';
+import {
+	delay,
+	DubheCliError,
+	publishDubheFramework,
+	validatePrivateKey,
+} from '../utils';
 import { Dubhe } from '@0xobelisk/sui-client';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 
@@ -24,35 +29,54 @@ function isSuiStartRunning(): boolean {
 async function printAccounts() {
 	// These private keys are used for testing purposes only, do not use them in production.
 	const privateKeys = [
-		"suiprivkey1qq3ez3dje66l8pypgxynr7yymwps6uhn7vyczespj84974j3zya0wdpu76v",
-		"suiprivkey1qp6vcyg8r2x88fllmjmxtpzjl95gd9dugqrgz7xxf50w6rqdqzetg7x4d7s",
-		"suiprivkey1qpy3a696eh3m55fwa8h38ss063459u4n2dm9t24w2hlxxzjp2x34q8sdsnc",
-		"suiprivkey1qzxwp29favhzrjd95f6uj9nskjwal6nh9g509jpun395y6g72d6jqlmps4c",
-		"suiprivkey1qzhq4lv38sesah4uzsqkkmeyjx860xqjdz8qgw36tmrdd5tnle3evxpng57",
-		"suiprivkey1qzez45sjjsepjgtksqvpq6jw7dzw3zq0dx7a4sulfypd73acaynw5jl9x2c",
-	]
-	console.log("📝Accounts")
-	console.log("==========")
+		'suiprivkey1qq3ez3dje66l8pypgxynr7yymwps6uhn7vyczespj84974j3zya0wdpu76v',
+		'suiprivkey1qp6vcyg8r2x88fllmjmxtpzjl95gd9dugqrgz7xxf50w6rqdqzetg7x4d7s',
+		'suiprivkey1qpy3a696eh3m55fwa8h38ss063459u4n2dm9t24w2hlxxzjp2x34q8sdsnc',
+		'suiprivkey1qzxwp29favhzrjd95f6uj9nskjwal6nh9g509jpun395y6g72d6jqlmps4c',
+		'suiprivkey1qzhq4lv38sesah4uzsqkkmeyjx860xqjdz8qgw36tmrdd5tnle3evxpng57',
+		'suiprivkey1qzez45sjjsepjgtksqvpq6jw7dzw3zq0dx7a4sulfypd73acaynw5jl9x2c',
+	];
+	console.log('📝Accounts');
+	console.log('==========');
 	privateKeys.forEach((privateKey, index) => {
 		const dubhe = new Dubhe({ secretKey: privateKey });
 		const keypair = dubhe.getKeypair();
 		spawn(
 			'curl',
-			['--location', '--request', 'POST', 'http://127.0.0.1:9123/gas', '--header', 'Content-Type: application/json', '--data-raw', `{"FixedAmountRequest": {"recipient": "${keypair.toSuiAddress()}"}}`],
+			[
+				'--location',
+				'--request',
+				'POST',
+				'http://127.0.0.1:9123/gas',
+				'--header',
+				'Content-Type: application/json',
+				'--data-raw',
+				`{"FixedAmountRequest": {"recipient": "${keypair.toSuiAddress()}"}}`,
+			],
 			{
 				env: { ...process.env },
 				stdio: 'ignore',
 				detached: true,
 			}
-			)
-		console.log(`  ┌─ Account #${index}: ${keypair.toSuiAddress()}(1000 SUI)`);
+		);
+		console.log(
+			`  ┌─ Account #${index}: ${keypair.toSuiAddress()}(1000 SUI)`
+		);
 		console.log(`  └─ Private Key: ${privateKey}`);
 	});
-	console.log("==========")
-	console.log(chalk.yellow("⚠️WARNING: These accounts, and their private keys, are publicly known."));
-	console.log(chalk.yellow("Any funds sent to them on Mainnet or any other live network WILL BE LOST."));
+	console.log('==========');
+	console.log(
+		chalk.yellow(
+			'ℹ️ WARNING: These accounts, and their private keys, are publicly known.'
+		)
+	);
+	console.log(
+		chalk.yellow(
+			'Any funds sent to them on Mainnet or any other live network WILL BE LOST.'
+		)
+	);
 }
-	export async function startLocalNode() {
+export async function startLocalNode() {
 	if (isSuiStartRunning()) {
 		console.log(chalk.yellow('\n⚠️  Warning: Local Node Already Running'));
 		console.log(chalk.yellow('  ├─ Cannot start a new instance'));
@@ -89,18 +113,14 @@ async function printAccounts() {
 
 		await delay(2000);
 
-		const privateKeyFormat = validatePrivateKey("suiprivkey1qzez45sjjsepjgtksqvpq6jw7dzw3zq0dx7a4sulfypd73acaynw5jl9x2c");
+		const privateKeyFormat = validatePrivateKey(
+			'suiprivkey1qzez45sjjsepjgtksqvpq6jw7dzw3zq0dx7a4sulfypd73acaynw5jl9x2c'
+		);
 		if (privateKeyFormat === false) {
 			throw new DubheCliError(`Please check your privateKey.`);
 		}
 
-		const dubhe = new Dubhe({ secretKey: privateKeyFormat });
-		const client = new SuiClient({ url: getFullnodeUrl('localnet') });
-		const originalLog = console.log;
-
-		console.log = () => {};
-		await publishDubheFramework(client, dubhe, 'localnet');
-		console.log = originalLog;
+		console.log(chalk.green('🎉 Local environment is ready!'));
 
 		process.on('SIGINT', () => {
 			console.log(chalk.yellow('\n🔔 Stopping Local Node...'));
@@ -113,5 +133,6 @@ async function printAccounts() {
 	} catch (error: any) {
 		console.error(chalk.red('\n❌ Failed to Start Local Node'));
 		console.error(chalk.red(`  └─ Error: ${error.message}`));
+		process.exit(1);
 	}
 }
