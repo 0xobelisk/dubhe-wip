@@ -32,6 +32,12 @@ export async function publishHandler(
 		networkType: network,
 	});
 
+	let cliName = 'aptos';
+
+	if (network.startsWith('movement')) {
+		cliName = 'movement';
+	}
+
 	if (namedAddresses === undefined) {
 		namedAddresses = [{ name: projectName, address: dubhe.getAddress() }];
 	} else {
@@ -45,12 +51,14 @@ export async function publishHandler(
 			});
 		}
 	}
+	const buildOutputPath = `contracts/${projectName}/build/${projectName}.json`;
 
 	const path = process.cwd();
 	try {
 		compilePackage(
+			cliName,
 			`${path}/contracts/${projectName}`,
-			`${path}/contracts/${projectName}/${projectName}.json`,
+			buildOutputPath,
 			namedAddresses
 		);
 
@@ -73,7 +81,6 @@ export async function publishHandler(
 	let version = 0;
 
 	try {
-		const buildOutputPath = `contracts/${projectName}/${projectName}.json`;
 		// const packageMetadata = fs.readFileSync(
 		// 	`${path}/contracts/${projectName}/build/${projectName}/package-metadata.bcs`
 		// );

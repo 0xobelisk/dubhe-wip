@@ -28,7 +28,10 @@ export async function upgradeHandler(
 
 	const dubhe = new Dubhe({
 		secretKey: privateKeyFormat.toString(),
+		networkType: network,
 	});
+
+	const cliName = network.startsWith('movement') ? 'movement' : 'aptos';
 
 	if (namedAddresses === undefined) {
 		namedAddresses = [{ name: projectName, address: dubhe.getAddress() }];
@@ -44,11 +47,14 @@ export async function upgradeHandler(
 		}
 	}
 
+	const buildOutputPath = `contracts/${projectName}/build/${projectName}.json`;
+
 	const path = process.cwd();
 	try {
 		compilePackage(
+			cliName,
 			`${path}/contracts/${projectName}`,
-			`${path}/contracts/${projectName}/${projectName}.json`,
+			buildOutputPath,
 			namedAddresses
 		);
 
@@ -71,7 +77,6 @@ export async function upgradeHandler(
 	let version = 0;
 
 	try {
-		const buildOutputPath = `contracts/${projectName}/${projectName}.json`;
 		const { metadataBytes, byteCode } =
 			getPackageBytesToPublish(buildOutputPath);
 

@@ -136,6 +136,7 @@ export const delay = (ms: number) =>
  * @param namedAddresses
  */
 export function compilePackage(
+	cliName: string,
 	packageDir: string,
 	outputFile: string,
 	namedAddresses: Array<{ name: string; address: AccountAddress }>
@@ -144,10 +145,10 @@ export function compilePackage(
 		'In order to run compilation, you must have the `aptos` CLI installed.'
 	);
 	try {
-		execSync('aptos --version');
+		execSync(`${cliName} --version`);
 	} catch (e) {
 		console.log(
-			'aptos is not installed. Please install it from the instructions on aptos.dev'
+			`${cliName} is not installed. Please install it from the instructions on aptos.dev`
 		);
 	}
 
@@ -156,7 +157,7 @@ export function compilePackage(
 		.join(' ');
 
 	// Assume-yes automatically overwrites the previous compiled version, only do this if you are sure you want to overwrite the previous version.
-	const compileCommand = `aptos move build-publish-payload --json-output-file ${outputFile} --package-dir ${packageDir} --named-addresses ${addressArg} --assume-yes`;
+	const compileCommand = `${cliName} move build-publish-payload --json-output-file ${outputFile} --package-dir ${packageDir} --named-addresses ${addressArg} --assume-yes`;
 	console.log(
 		'Running the compilation locally, in a real situation you may want to compile this ahead of time.'
 	);
