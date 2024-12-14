@@ -12,7 +12,7 @@ export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 async function init() {
-  const network = 'movementmainnet';
+  const network = 'localnet' as NetworkType;
   const dubhe = new Dubhe({
     networkType: network,
   });

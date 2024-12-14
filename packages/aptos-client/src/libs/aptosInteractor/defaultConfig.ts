@@ -11,6 +11,18 @@ export interface NetworkConfig {
   network?: Network;
 }
 
+export function isValidNetworkType(network: string): network is NetworkType {
+  const validNetworks = [
+    'mainnet',
+    'testnet',
+    'devnet',
+    'localnet',
+    'movementmainnet',
+    'movementtestnet',
+  ];
+  return validNetworks.includes(network);
+}
+
 /**
  * Convert NetworkType to Network enum
  * @param networkType Network identifier of NetworkType

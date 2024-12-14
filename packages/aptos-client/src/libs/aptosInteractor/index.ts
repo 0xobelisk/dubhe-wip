@@ -1,2 +1,3 @@
 export { AptosInteractor } from './aptosInteractor';
-export { getDefaultURL } from './defaultConfig';
+export { isValidNetworkType, getDefaultURL } from './defaultConfig';
+export type { NetworkConfig } from './defaultConfig';

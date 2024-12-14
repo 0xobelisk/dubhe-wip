@@ -43,7 +43,7 @@ import {
   MapModuleFuncTx,
   NetworkType,
 } from './types';
-import { NetworkConfig } from './libs/aptosInteractor/defaultConfig';
+import { isValidNetworkType, NetworkConfig } from './libs/aptosInteractor';
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
@@ -152,6 +152,11 @@ export class Dubhe {
     metadata,
     signatureType,
   }: DubheParams = {}) {
+    if (networkType && !isValidNetworkType(networkType)) {
+      throw new Error(
+        `Invalid network type: ${networkType}. Valid values are: mainnet, testnet, devnet, localnet, movementmainnet, movementtestnet`
+      );
+    }
     // Init the account manager
     this.accountManager = new AptosAccountManager({
       mnemonics,

@@ -23,16 +23,8 @@ const commandModule: CommandModule<Options, Options> = {
 		return yargs.options({
 			network: {
 				type: 'string',
-				desc: 'URL of the aptos faucet',
-				choices: [
-					'testnet',
-					'devnet',
-					'local',
-					'movementtestnet',
-					'movementdevnet',
-					'movementlocal',
-				],
-				default: 'devnet',
+				desc: 'Network of the node (testnet/devnet/localnet/movementtestnet)',
+				choices: ['testnet', 'devnet', 'localnet', 'movementtestnet'],
 			},
 			recipient: {
 				type: 'string',
