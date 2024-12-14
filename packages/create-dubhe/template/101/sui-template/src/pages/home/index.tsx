@@ -42,7 +42,7 @@ const Home = () => {
     const tx = new Transaction();
     const query_value = (await dubhe.query.counter_schema.get_value({
       tx,
-      params: [tx.object(Counter_Object_Id), tx.pure.u32(1)],
+      params: [tx.object(Counter_Object_Id)],
     })) as DevInspectResults;
     console.log('Counter value:', dubhe.view(query_value)[0]);
     setValue(dubhe.view(query_value)[0]);
@@ -61,7 +61,7 @@ const Home = () => {
       const tx = new Transaction();
       (await dubhe.tx.counter_system.inc({
         tx,
-        params: [tx.object(Counter_Object_Id)],
+        params: [tx.object(Counter_Object_Id), tx.pure.u32(1)],
         isRaw: true,
       })) as TransactionResult;
       const response = await dubhe.signAndSendTxn(tx);
