@@ -37,7 +37,7 @@ async function init() {
 
   console.log('======= increase counter value ========');
   const tx = new Transaction();
-  const res1 = await dubhe.tx.counter.increase(tx);
+  const res1 = await dubhe.tx.counter.increase({ tx });
   console.log(res1.execution_info.tx_hash, res1.execution_info.status);
   await delay(1000);
 

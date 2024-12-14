@@ -85,21 +85,31 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (
-    tx: Transaction,
-    params: (TransactionArgument | SerializedBcs<any>)[],
-    typeArguments?: string[],
-    isRaw?: boolean
-  ): Promise<DevInspectResults | TransactionResult>;
+  ({
+    tx,
+    params,
+    typeArguments,
+    isRaw,
+  }: {
+    tx: Transaction;
+    params?: (TransactionArgument | SerializedBcs<any>)[];
+    typeArguments?: string[];
+    isRaw?: boolean;
+  }): Promise<DevInspectResults | TransactionResult>;
 }
 
 export interface ContractTx extends MessageMeta {
-  (
-    tx: Transaction,
-    params: (TransactionArgument | SerializedBcs<any>)[],
-    typeArguments?: string[],
-    isRaw?: boolean
-  ): Promise<SuiTransactionBlockResponse | TransactionResult>;
+  ({
+    tx,
+    params,
+    typeArguments,
+    isRaw,
+  }: {
+    tx: Transaction;
+    params?: (TransactionArgument | SerializedBcs<any>)[];
+    typeArguments?: string[];
+    isRaw?: boolean;
+  }): Promise<SuiTransactionBlockResponse | TransactionResult>;
 }
 
 export type MapMessageTx = Record<string, ContractTx>;

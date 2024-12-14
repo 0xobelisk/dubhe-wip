@@ -58,19 +58,24 @@ function createQuery(
   meta: SuiMoveMoudleFuncType,
   fn: (
     tx: Transaction,
-    params: (TransactionArgument | SerializedBcs<any>)[],
+    params?: (TransactionArgument | SerializedBcs<any>)[],
     typeArguments?: string[],
     isRaw?: boolean
   ) => Promise<DevInspectResults | TransactionResult>
 ): ContractQuery {
   return withMeta(
     meta,
-    async (
-      tx: Transaction,
-      params: (TransactionArgument | SerializedBcs<any>)[],
-      typeArguments?: string[],
-      isRaw?: boolean
-    ): Promise<DevInspectResults | TransactionResult> => {
+    async ({
+      tx,
+      params,
+      typeArguments,
+      isRaw,
+    }: {
+      tx: Transaction;
+      params?: (TransactionArgument | SerializedBcs<any>)[];
+      typeArguments?: string[];
+      isRaw?: boolean;
+    }): Promise<DevInspectResults | TransactionResult> => {
       const result = await fn(tx, params, typeArguments, isRaw);
       return result;
     }
@@ -81,19 +86,24 @@ function createTx(
   meta: SuiMoveMoudleFuncType,
   fn: (
     tx: Transaction,
-    params: (TransactionArgument | SerializedBcs<any>)[],
+    params?: (TransactionArgument | SerializedBcs<any>)[],
     typeArguments?: string[],
     isRaw?: boolean
   ) => Promise<SuiTransactionBlockResponse | TransactionResult>
 ): ContractTx {
   return withMeta(
     meta,
-    async (
-      tx: Transaction,
-      params: (TransactionArgument | SerializedBcs<any>)[],
-      typeArguments?: string[],
-      isRaw?: boolean
-    ): Promise<SuiTransactionBlockResponse | TransactionResult> => {
+    async ({
+      tx,
+      params,
+      typeArguments,
+      isRaw,
+    }: {
+      tx: Transaction;
+      params?: (TransactionArgument | SerializedBcs<any>)[];
+      typeArguments?: string[];
+      isRaw?: boolean;
+    }): Promise<SuiTransactionBlockResponse | TransactionResult> => {
       return await fn(tx, params, typeArguments, isRaw);
     }
   );
@@ -307,7 +317,7 @@ export class Dubhe {
   #exec = async (
     meta: SuiMoveMoudleFuncType,
     tx: Transaction,
-    params: (TransactionArgument | SerializedBcs<any>)[],
+    params?: (TransactionArgument | SerializedBcs<any>)[],
     typeArguments?: string[],
     isRaw?: boolean
   ) => {
@@ -330,7 +340,7 @@ export class Dubhe {
   #read = async (
     meta: SuiMoveMoudleFuncType,
     tx: Transaction,
-    params: (TransactionArgument | SerializedBcs<any>)[],
+    params?: (TransactionArgument | SerializedBcs<any>)[],
     typeArguments?: string[],
     isRaw?: boolean
   ) => {

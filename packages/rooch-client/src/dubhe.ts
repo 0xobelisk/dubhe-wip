@@ -52,10 +52,13 @@ function createQuery(
 ): ContractQuery {
   return withMeta(
     meta,
-    async (
-      params?: Args[],
-      typeArguments?: TypeTag[]
-    ): Promise<AnnotatedFunctionResultView> => {
+    async ({
+      params,
+      typeArguments,
+    }: {
+      params?: Args[];
+      typeArguments?: TypeTag[];
+    } = {}): Promise<AnnotatedFunctionResultView> => {
       const result = await fn(params, typeArguments);
       return result;
     }
@@ -74,13 +77,19 @@ function createTx(
 ): ContractTx {
   return withMeta(
     meta,
-    async (
-      tx: Transaction,
-      signer?: Secp256k1Keypair,
-      params?: Args[],
-      typeArguments?: TypeTag[],
-      isRaw?: boolean
-    ): Promise<ExecuteTransactionResponseView> => {
+    async ({
+      tx,
+      signer,
+      params,
+      typeArguments,
+      isRaw,
+    }: {
+      tx: Transaction;
+      signer?: Secp256k1Keypair;
+      params?: Args[];
+      typeArguments?: TypeTag[];
+      isRaw?: boolean;
+    }): Promise<ExecuteTransactionResponseView> => {
       // const result = await fn(signer, params, typeArguments, isRaw);
       const result = await fn(tx, signer, params, typeArguments, isRaw);
       return result;

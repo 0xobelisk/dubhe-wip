@@ -4590,13 +4590,23 @@ function withMeta(meta, creator) {
   return creator;
 }
 function createQuery(meta, fn) {
-  return withMeta(meta, async (tx, params, typeArguments, isRaw) => {
+  return withMeta(meta, async ({
+    tx,
+    params,
+    typeArguments,
+    isRaw
+  }) => {
     const result = await fn(tx, params, typeArguments, isRaw);
     return result;
   });
 }
 function createTx(meta, fn) {
-  return withMeta(meta, async (tx, params, typeArguments, isRaw) => {
+  return withMeta(meta, async ({
+    tx,
+    params,
+    typeArguments,
+    isRaw
+  }) => {
     return await fn(tx, params, typeArguments, isRaw);
   });
 }

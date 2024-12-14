@@ -72,16 +72,29 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (params?: string[], typeArguments?: string[]): Promise<any>;
+  (): Promise<any>;
+  ({
+    params,
+    typeArguments,
+  }: {
+    params?: string[];
+    typeArguments?: string[];
+  }): Promise<any>;
 }
 
 export interface ContractTx extends MessageMeta {
-  (
-    sender?: AccAddress | string,
-    params?: any[],
-    typeArguments?: string[],
-    isRaw?: boolean
-  ): Promise<any>;
+  (): Promise<any>;
+  ({
+    sender,
+    params,
+    typeArguments,
+    isRaw,
+  }: {
+    sender?: AccAddress | string;
+    params?: any[];
+    typeArguments?: string[];
+    isRaw?: boolean;
+  }): Promise<any>;
 }
 
 export type MapMessageTx = Record<string, ContractTx>;

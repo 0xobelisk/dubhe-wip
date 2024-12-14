@@ -60,23 +60,33 @@ export interface MessageMeta {
 }
 
 export interface ContractQuery extends MessageMeta {
-  (
+  (): Promise<MoveValue[]>;
+  ({
+    params,
+    typeArguments,
+  }: {
     params?: Array<
       EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
-    >,
-    typeArguments?: Array<TypeArgument>
-  ): Promise<MoveValue[]>;
+    >;
+    typeArguments?: Array<TypeArgument>;
+  }): Promise<MoveValue[]>;
 }
 
 export interface ContractTx extends MessageMeta {
-  (
-    sender?: AccountAddressInput,
+  (): Promise<PendingTransactionResponse | InputGenerateTransactionPayloadData>;
+  ({
+    sender,
+    params,
+    typeArguments,
+    isRaw,
+  }: {
+    sender?: AccountAddressInput;
     params?: Array<
       EntryFunctionArgumentTypes | SimpleEntryFunctionArgumentTypes
-    >,
-    typeArguments?: Array<TypeArgument>,
-    isRaw?: boolean
-  ): Promise<PendingTransactionResponse | InputGenerateTransactionPayloadData>;
+    >;
+    typeArguments?: Array<TypeArgument>;
+    isRaw?: boolean;
+  }): Promise<PendingTransactionResponse | InputGenerateTransactionPayloadData>;
 }
 
 export type MapMessageTx = Record<string, ContractTx>;

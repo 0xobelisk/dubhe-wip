@@ -529,7 +529,7 @@ importers:
     dependencies:
       '@0xobelisk/rooch-client':
         specifier: ^0.0.3
-        version: link:../rooch-client
+        version: 0.0.3(typescript@5.1.6)
       '@0xobelisk/sui-common':
         specifier: ^0.5.21
         version: link:../sui-common
@@ -696,9 +696,9 @@ importers:
     dependencies:
       '@0xobelisk/sui-client':
         specifier: ^0.5.28
-        version: 0.5.30(typescript@5.1.6)
+        version: link:../sui-client
       '@0xobelisk/sui-common':
-        specifier: workspace:*
+        specifier: ^0.5.23
         version: link:../sui-common
       '@mysten/sui':
         specifier: ^1.7.0
@@ -1006,34 +1006,21 @@ packages:
       typescript: 5.7.2
     dev: false
 
-  /@0xobelisk/sui-client@0.5.30(typescript@5.1.6):
-    resolution: {integrity: sha512-yfqtCfWDoOZa47lOQLz68F2C7XYSnkhz79I6ikQrel7ctDRPfvB916/e+ZvKtrIKiXcMcCFVop/ezasOWH8q5Q==}
+  /@0xobelisk/rooch-client@0.0.3(typescript@5.1.6):
+    resolution: {integrity: sha512-LzalSTbSNRy7/mzdL5RBGa4wWQy2fKrFQ01Y2vmfoF+jqxQnITAraopTw4Kb1tTRh5sbgsjGBqtbr2p8hSUIxA==}
     engines: {node: '>=18'}
     dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.9.0)
-      '@mysten/bcs': 1.1.1
-      '@mysten/sui': 1.16.0(typescript@5.1.6)
-      '@mysten/zklogin': 0.7.30(typescript@5.1.6)
-      '@noble/curves': 1.7.0
-      '@noble/hashes': 1.6.1
+      '@roochnetwork/rooch-sdk': 0.2.8(typescript@5.1.6)
       '@scure/bip39': 1.5.0
-      '@suchipi/femver': 1.0.0
       assert: 2.1.0
-      bech32: 2.0.0
       colorts: 0.1.63
-      gql.tada: 1.8.10(graphql@16.9.0)(typescript@5.1.6)
-      graphql: 16.9.0
       husky: 8.0.3
       keccak256: 1.0.6
       process: 0.11.10
       superstruct: 1.0.4
       tmp: 0.2.3
       ts-retry-promise: 0.7.1
-      tweetnacl: 1.0.3
-      valibot: 0.36.0
     transitivePeerDependencies:
-      - '@gql.tada/svelte-support'
-      - '@gql.tada/vue-support'
       - typescript
     dev: false
 
@@ -3318,28 +3305,6 @@ packages:
       bs58: 6.0.0
     dev: false
 
-  /@mysten/sui@1.15.1(typescript@5.1.6):
-    resolution: {integrity: sha512-q8m+xtuh//rHEwEmk6pr7Dguw6/2ySNye2Oy1w6ivbkeRFgqoEE64+fYuMK+lX/SEPhOTEZtN7fp/Trno0KMnw==}
-    engines: {node: '>=18'}
-    dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.9.0)
-      '@mysten/bcs': 1.1.1
-      '@noble/curves': 1.7.0
-      '@noble/hashes': 1.6.1
-      '@scure/bip32': 1.6.0
-      '@scure/bip39': 1.5.0
-      '@suchipi/femver': 1.0.0
-      bech32: 2.0.0
-      gql.tada: 1.8.10(graphql@16.9.0)(typescript@5.1.6)
-      graphql: 16.9.0
-      tweetnacl: 1.0.3
-      valibot: 0.36.0
-    transitivePeerDependencies:
-      - '@gql.tada/svelte-support'
-      - '@gql.tada/vue-support'
-      - typescript
-    dev: false
-
   /@mysten/sui@1.15.1(typescript@5.7.2):
     resolution: {integrity: sha512-q8m+xtuh//rHEwEmk6pr7Dguw6/2ySNye2Oy1w6ivbkeRFgqoEE64+fYuMK+lX/SEPhOTEZtN7fp/Trno0KMnw==}
     engines: {node: '>=18'}
@@ -3404,20 +3369,6 @@ packages:
       poseidon-lite: 0.2.1
       tweetnacl: 1.0.3
       valibot: 0.36.0
-    transitivePeerDependencies:
-      - '@gql.tada/svelte-support'
-      - '@gql.tada/vue-support'
-      - typescript
-    dev: false
-
-  /@mysten/zklogin@0.7.30(typescript@5.1.6):
-    resolution: {integrity: sha512-xTUIuBUnPkBbH9kYW1VDIWy9+IoHSEZHcT4c3psbX+p0xdGU6ZsBn2rVdKtCGl2ZqTXLE87czsCqSbWO8Xio/w==}
-    dependencies:
-      '@mysten/bcs': 1.1.1
-      '@mysten/sui': 1.15.1(typescript@5.1.6)
-      '@noble/hashes': 1.6.1
-      jose: 5.9.6
-      poseidon-lite: 0.2.1
     transitivePeerDependencies:
       - '@gql.tada/svelte-support'
       - '@gql.tada/vue-support'
