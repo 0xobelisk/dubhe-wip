@@ -60,7 +60,7 @@ export async function generateDeployHook(
 		code = `module ${config.name}::deploy_hook {
 			use std::ascii::string;
 			use sui::clock::Clock;
-			use merak::dapp_system;
+			use ${config.name}::dapp_system;
 		  ${importSchemas}
 		  public entry fun run(clock: &Clock, ctx: &mut TxContext) {
 		  // Create a dapp.

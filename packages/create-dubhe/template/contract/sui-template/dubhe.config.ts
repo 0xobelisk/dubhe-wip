@@ -19,8 +19,7 @@ export const dubheConfig = {
 			errors: [
 				{
 					name: 'InvalidIncrement',
-					code: 0,
-					description: 'Increment must be greater than zero',
+					message: "Number can't be incremented, must be more than 0",
 				},
 			]
 		},
