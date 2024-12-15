@@ -1,7 +1,7 @@
 import keccak256 from 'keccak256';
 import { getFullnodeUrl } from '@mysten/sui/client';
 import { Transaction, TransactionResult } from '@mysten/sui/transactions';
-import { BcsType, SerializedBcs } from '@mysten/bcs';
+import { BcsType, fromHex, SerializedBcs, toHex } from '@mysten/bcs';
 import type { TransactionArgument } from '@mysten/sui/transactions';
 import type {
   SuiTransactionBlockResponse,
@@ -155,8 +155,8 @@ export class Dubhe {
       bcs.vector(
         bcs.bytes(32).transform({
           // To change the input type, you need to provide a type definition for the input
-          input: (val: string) => fromHEX(val),
-          output: (val) => toHEX(val),
+          input: (val: string) => fromHex(val),
+          output: (val) => toHex(val),
         })
       )
     ),
@@ -170,8 +170,8 @@ export class Dubhe {
     'vector<address>': bcs.vector(
       bcs.bytes(32).transform({
         // To change the input type, you need to provide a type definition for the input
-        input: (val: string) => fromHEX(val),
-        output: (val) => toHEX(val),
+        input: (val: string) => fromHex(val),
+        output: (val) => toHex(val),
       })
     ),
     'vector<u8>': bcs.vector(bcs.u8()),
@@ -185,8 +185,8 @@ export class Dubhe {
       bcs.vector(
         bcs.bytes(32).transform({
           // To change the input type, you need to provide a type definition for the input
-          input: (val: string) => fromHEX(val),
-          output: (val) => toHEX(val),
+          input: (val: string) => fromHex(val),
+          output: (val) => toHex(val),
         })
       )
     ),
@@ -197,6 +197,18 @@ export class Dubhe {
     'vector<vector<u128>>': bcs.vector(bcs.vector(bcs.u128())),
     'vector<vector<u256>>': bcs.vector(bcs.vector(bcs.u256())),
     'vector<vector<bool>>': bcs.vector(bcs.vector(bcs.bool())),
+    '0x2::coin::Coin<T>': bcs.struct('Coin', {
+      id: bcs.fixedArray(32, bcs.u8()).transform({
+        input: (id: string) => fromHex(id),
+        output: (id) => toHex(Uint8Array.from(id)),
+      }),
+      balance: bcs.struct('Balance', {
+        value: bcs.u64(),
+      }),
+    }),
+    '0x2::balance::Balance<T>': bcs.struct('Balance', {
+      value: bcs.u64(),
+    }),
   };
 
   /**
@@ -570,33 +582,47 @@ export class Dubhe {
       for (const res of resultList) {
         let baseValue = res[0];
         let baseType = res[1];
-
         const value = Uint8Array.from(baseValue);
 
-        if (!this.#object[baseType]) {
-          console.log(
-            '\n\x1b[41m\x1b[37m ERROR \x1b[0m \x1b[31mUnsupported Type\x1b[0m'
-          );
-          console.log('\x1b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m');
-          console.log(`\x1b[95m•\x1b[0m Type: \x1b[33m"${baseType}"\x1b[0m`);
-          console.log('\x1b[95m\n✨ Available Types:\x1b[0m');
-          Object.keys(this.#object).forEach((type) => {
-            console.log(`  \x1b[36m◆\x1b[0m ${type}`);
-          });
-          console.log('\n\x1b[34m💡 How to Add Custom Type:\x1b[0m');
-          console.log(
-            `  You can add custom type by extending the #object map in your code:`
-          );
-          console.log(
-            `  \x1b[32mdubhe.object["${baseType}"] = bcs.struct("YourTypeName", {\n    field1: bcs.string(),\n    field2: bcs.u64(),\n    // ... other fields\n  });\x1b[0m`
-          );
-          console.log(
-            '\x1b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m\n'
-          );
-          throw new Error(`Unsupported type: ${baseType}`);
+        if (this.#object[baseType]) {
+          returnValues.push(this.#object[baseType].parse(value));
+          continue;
         }
 
-        returnValues.push(this.#object[baseType].parse(value));
+        const genericMatch = baseType.match(/^([^<]+)<(.+)>$/);
+        if (genericMatch) {
+          const [_, genericBase, _genericParam] = genericMatch;
+          const genericKey = `${genericBase}<T>`;
+
+          if (this.#object[genericKey]) {
+            returnValues.push(this.#object[genericKey].parse(value));
+            continue;
+          }
+        }
+
+        console.log(
+          '\n\x1b[41m\x1b[37m ERROR \x1b[0m \x1b[31mUnsupported Type\x1b[0m'
+        );
+        console.log('\x1b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m');
+        console.log(`\x1b[95m•\x1b[0m Type: \x1b[33m"${baseType}"\x1b[0m`);
+        if (genericMatch) {
+          console.log(
+            `\x1b[95m•\x1b[0m Generic Base Type: \x1b[33m"${genericMatch[1]}<T>"\x1b[0m`
+          );
+        }
+        console.log('\x1b[95m\n✨ Available Types:\x1b[0m');
+        Object.keys(this.#object).forEach((type) => {
+          console.log(`  \x1b[36m◆\x1b[0m ${type}`);
+        });
+        console.log('\n\x1b[34m💡 How to Add Custom Type:\x1b[0m');
+        console.log(
+          `  You can add custom type by extending the #object map in your code:`
+        );
+        console.log(
+          `  \x1b[32mdubhe.object["${baseType}"] = bcs.struct("YourTypeName", {\n    field1: bcs.string(),\n    field2: bcs.u64(),\n    // ... other fields\n  });\x1b[0m`
+        );
+        console.log('\x1b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m\n');
+        throw new Error(`Unsupported type: ${baseType}`);
       }
       return returnValues;
     } else {
