@@ -584,6 +584,73 @@ export class Dubhe {
         let baseType = res[1];
         const value = Uint8Array.from(baseValue);
 
+        const storageValueMatch = baseType.match(
+          /^.*::storage_value::StorageValue<(.+)>$/
+        );
+        if (storageValueMatch) {
+          const innerType = storageValueMatch[1];
+          if (this.#object[innerType]) {
+            const storageValueBcs = bcs.struct('StorageValue', {
+              contents: bcs.vector(
+                bcs.struct('Entry', {
+                  value: this.#object[innerType],
+                })
+              ),
+            });
+            returnValues.push(storageValueBcs.parse(value));
+            continue;
+          }
+        }
+
+        const storageMapMatch = baseType.match(
+          /^.*::storage_map::StorageMap<(.+)>$/
+        );
+        if (storageMapMatch) {
+          const innerType = storageMapMatch[1];
+          const [keyType, valueType] = innerType
+            .split(',')
+            .map((type) => type.trim());
+          if (this.#object[keyType] && this.#object[valueType]) {
+            const storageMapBcs = bcs.struct('StorageMap', {
+              contents: bcs.vector(
+                bcs.struct('Entry', {
+                  key: this.#object[keyType],
+                  value: this.#object[valueType],
+                })
+              ),
+            });
+            returnValues.push(storageMapBcs.parse(value));
+            continue;
+          }
+        }
+
+        const storageDoubleMapMatch = baseType.match(
+          /^.*::storage_double_map::StorageDoubleMap<(.+)>$/
+        );
+        if (storageDoubleMapMatch) {
+          const innerType = storageDoubleMapMatch[1];
+          const [key1, key2, valueType] = innerType
+            .split(',')
+            .map((type) => type.trim());
+          if (
+            this.#object[key1] &&
+            this.#object[key2] &&
+            this.#object[valueType]
+          ) {
+            const storageDoubleMapBcs = bcs.struct('StorageDoubleMap', {
+              contents: bcs.vector(
+                bcs.struct('Entry', {
+                  key1: this.#object[key1],
+                  key2: this.#object[key2],
+                  value: this.#object[valueType],
+                })
+              ),
+            });
+            returnValues.push(storageDoubleMapBcs.parse(value));
+            continue;
+          }
+        }
+
         if (this.#object[baseType]) {
           returnValues.push(this.#object[baseType].parse(value));
           continue;
