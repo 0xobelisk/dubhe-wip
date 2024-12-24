@@ -6,21 +6,11 @@ export const dubheConfig = {
 	schemas: {
 		assets: {
 			data: [
+				{ AccountStatus: ['Liquid', 'Frozen', 'Blocked'] },
+				{ Status: ['Live', 'Frozen', 'Destroying'] },
+				{ Account: { balance: 'u256', status: 'AccountStatus' } },
 				{
-					name: 'AccountStatus',
-					fields: ['Liquid', 'Frozen', 'Blocked'],
-				},
-				{
-					name: 'Status',
-					fields: ['Live', 'Frozen', 'Destroying'],
-				},
-				{
-					name: 'Account',
-					fields: { balance: 'u256', status: 'AccountStatus' },
-				},
-				{
-					name: 'Metadata',
-					fields: {
+					Metadata: {
 						// The user friendly name of this asset. Limited in length by `StringLimit`.
 						name: 'String',
 						// The ticker symbol for this asset. Limited in length by `StringLimit`.
@@ -36,8 +26,7 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'Details',
-					fields: {
+					Details: {
 						// Can change `owner`, `issuer`, `freezer` and `admin` accounts.
 						owner: 'address',
 						// The total supply across all accounts.
@@ -65,8 +54,7 @@ export const dubheConfig = {
 			},
 			events: [
 				{
-					name: 'Created',
-					fields: {
+					Created: {
 						asset_id: 'u32',
 						name: 'String',
 						symbol: 'String',
@@ -77,24 +65,21 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'Minted',
-					fields: {
+					Minted: {
 						asset_id: 'u32',
 						to: 'address',
 						amount: 'u256',
 					},
 				},
 				{
-					name: 'Burned',
-					fields: {
+					Burned: {
 						asset_id: 'u32',
 						from: 'address',
 						amount: 'u256',
 					},
 				},
 				{
-					name: 'Transferred',
-					fields: {
+					Transferred: {
 						asset_id: 'u32',
 						from: 'address',
 						to: 'address',
@@ -102,41 +87,35 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'FrozenAddress',
-					fields: {
+					FrozenAddress: {
 						asset_id: 'u32',
 						owner: 'address',
 					},
 				},
 				{
-					name: 'BlockedAddress',
-					fields: {
+					BlockedAddress: {
 						asset_id: 'u32',
 						owner: 'address',
 					},
 				},
 				{
-					name: 'ThawedAddress',
-					fields: {
+					ThawedAddress: {
 						asset_id: 'u32',
 						owner: 'address',
 					},
 				},
 				{
-					name: 'FrozenAsset',
-					fields: {
+					FrozenAsset: {
 						asset_id: 'u32',
 					},
 				},
 				{
-					name: 'ThawedAsset',
-					fields: {
+					ThawedAsset: {
 						asset_id: 'u32',
 					},
 				},
 				{
-					name: 'OwnershipTransferred',
-					fields: {
+					OwnershipTransferred: {
 						asset_id: 'u32',
 						from: 'address',
 						to: 'address',
@@ -144,15 +123,14 @@ export const dubheConfig = {
 				},
 			],
 			errors: [
-				{ name: 'AccountNotFound', message: "This account not found" },
-				{ name: 'AssetNotFound', message: "This asset not found" }
+				{ AccountNotFound: "This account not found" },
+				{ AssetNotFound: "This asset not found" }
 			]
 		},
 		dex: {
 			data: [
 				{
-					name: 'Pool',
-					fields: {
+					Pool: {
 						pool_id: 'u32',
 						pool_address: 'address',
 						lp_asset_id: 'u32',
@@ -161,8 +139,7 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'PathElement',
-					fields: {
+					PathElement: {
 						asset_id: 'u32',
 						balance: 'u256',
 					},
@@ -180,8 +157,7 @@ export const dubheConfig = {
 			},
 			events: [
 				{
-					name: 'PoolCreated',
-					fields: {
+					PoolCreated: {
 						creator: 'address',
 						pool_id: 'u32',
 						pool_address: 'address',
@@ -192,8 +168,7 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'LiquidityAdded',
-					fields: {
+					LiquidityAdded: {
 						who: 'address',
 						pool_id: 'u32',
 						asset1_amount: 'u256',
@@ -203,8 +178,7 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'LiquidityRemoved',
-					fields: {
+					LiquidityRemoved: {
 						who: 'address',
 						pool_id: 'u32',
 						asset1_amount: 'u256',
@@ -214,8 +188,7 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'SwapExecuted',
-					fields: {
+					SwapExecuted: {
 						who: 'address',
 						send_to: 'address',
 						amount_in: 'u256',
@@ -224,15 +197,13 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'Registered',
-					fields: {
+					Registered: {
 						who: 'address',
 						asset_id: 'u32',
 					},
 				},
 				{
-					name: 'Wrapped',
-					fields: {
+					Wrapped: {
 						from: 'address',
 						asset_id: 'u32',
 						amount: 'u256',
@@ -240,8 +211,7 @@ export const dubheConfig = {
 					},
 				},
 				{
-					name: 'Unwrapped',
-					fields: {
+					Unwrapped: {
 						from: 'address',
 						asset_id: 'u32',
 						amount: 'u256',
