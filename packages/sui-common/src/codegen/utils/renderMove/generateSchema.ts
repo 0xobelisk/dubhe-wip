@@ -88,37 +88,39 @@ export async function generateSchemaData(
 		if (schema.data) {
 			console.log(`  ├─ Processing schema: ${schemaName}`);
 			for (const item of schema.data) {
+				const name = Object.keys(item)[0];
+				const fields = Object.values(item)[0];
 				console.log(
-					`     └─ Generating ${item.name} ${
-						Array.isArray(item.fields) ? '(enum)' : '(struct)'
+					`     └─ Generating ${name} ${
+						Array.isArray(fields) ? '(enum)' : '(struct)'
 					}`,
 				);
 				let code = '';
 
 				const enumNames = schema.data
-					.filter(item => Array.isArray(item.fields))
-					.map(item => item.name);
+					.filter(item => Array.isArray(Object.values(item)[0]))
+					.map(item => Object.keys(item)[0]);
 
-				if (Array.isArray(item.fields)) {
+				if (Array.isArray(fields)) {
 					code = `module ${projectName}::${schemaName}_${convertToSnakeCase(
-						item.name,
+						name,
 					)} {
-                        public enum ${item.name} has copy, drop , store {
-                                ${item.fields}
+                        public enum ${name} has copy, drop , store {
+                                ${fields}
                         }
                         
-                        ${item.fields
+                        ${fields
 						.map((field: string) => {
 							return `public fun new_${convertToSnakeCase(
 								field,
-							)}(): ${item.name} {
-                                ${item.name}::${field}
+							)}(): ${name} {
+                                ${name}::${field}
                             }`;
 						})
 						.join('')}`;
 				} else {
 					code = `module ${projectName}::${schemaName}_${convertToSnakeCase(
-						item.name,
+						name,
 					)} {
                             use std::ascii::String;
                             ${enumNames
@@ -130,29 +132,29 @@ export async function generateSchemaData(
 						)
 						.join('\n')}
 
-                           public struct ${item.name} has copy, drop , store {
-                                ${getStructAttrsWithType(item.fields)}
+                           public struct ${name} has copy, drop , store {
+                                ${getStructAttrsWithType(fields)}
                            }
                         
                            public fun new(${getStructAttrsWithType(
-						item.fields,
-					)}): ${item.name} {
-                               ${item.name} {
-                                   ${getStructAttrs(item.fields)}
+						fields,
+					)}): ${name} {
+                               ${name} {
+                                   ${getStructAttrs(fields)}
                                }
                             }
                         
-                           ${renderGetAllFunc(item.name, item.fields)}
-                           ${renderGetAttrsFunc(item.name, item.fields)}
-                           ${renderSetAttrsFunc(item.name, item.fields)}
-                           ${renderSetFunc(item.name, item.fields)}
+                           ${renderGetAllFunc(name, fields)}
+                           ${renderGetAttrsFunc(name, fields)}
+                           ${renderSetAttrsFunc(name, fields)}
+                           ${renderSetFunc(name, fields)}
                         }`;
 				}
 
 				await formatAndWriteMove(
 					code,
 					`${path}/contracts/${projectName}/sources/codegen/schemas/${schemaName}_${convertToSnakeCase(
-						item.name,
+						name,
 					)}.move`,
 					'formatAndWriteMove',
 				);
@@ -170,9 +172,10 @@ function generateImport(
 	if (schema.data) {
 		return schema.data
 			.map(item => {
+				const name = Object.keys(item)[0]
 				return `use ${projectName}::${schemaName}_${convertToSnakeCase(
-					item.name,
-				)}::${item.name};`;
+					name,
+				)}::${name};`;
 			})
 			.join('\n');
 	} else {
@@ -226,7 +229,7 @@ export async function generateSchemaStructure(
                         storage_migration::borrow_field(&self.id, b"${key}")
                     }
                     
-                    public(package) fun borrow_mut_${key}(self: &mut ${capitalizeAndRemoveUnderscores(
+                    public(package) fun ${key}(self: &mut ${capitalizeAndRemoveUnderscores(
 					schemaName,
 				)}): &mut ${value} {
                         storage_migration::borrow_mut_field(&mut self.id, b"${key}")
