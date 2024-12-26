@@ -1,24 +1,6 @@
 import { Dubhe, loadMetadata } from '@0xobelisk/sui-client';
-import { Transaction } from '@mysten/sui/transactions';
-import {
-	getFullnodeUrl,
-	SuiClient,
-	SuiTransactionBlockResponse,
-} from '@mysten/sui/client';
-import { execSync } from 'child_process';
-import chalk from 'chalk';
 import { DubheCliError } from './errors';
-import {
-	updateVersionInFile,
-	saveContractData,
-	validatePrivateKey,
-	schema,
-	updateDubheDependency,
-	switchEnv,
-	delay,
-	getOldPackageId,
-	getObjectId,
-} from './utils';
+import { validatePrivateKey, getOldPackageId, getObjectId } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -51,28 +33,7 @@ function getExpectedParamsCount(storageType: string): number {
 	}
 }
 
-// async function queryStorage(schema: StorageSchema, params: any[] = []) {
-
-// 	switch (schema.type) {
-// 		case StorageType.Value:
-// 			return await queryStorageValue(schema.name);
-
-// 		case StorageType.Map:
-// 			return await queryStorageMap(schema.name, params[0]);
-
-// 		case StorageType.DoubleMap:
-// 			return await queryStorageDoubleMap(
-// 				schema.name,
-// 				params[0],
-// 				params[1]
-// 			);
-
-// 		default:
-// 			throw new Error(`Unsupported storage type: ${schema.type}`);
-// 	}
-// }
-
-export async function stateQueryHandler({
+export async function queryStorage({
 	dubheConfig,
 	schema,
 	struct,
@@ -91,8 +52,6 @@ export async function stateQueryHandler({
 	packageId?: string;
 	metadataFilePath?: string;
 }) {
-	await switchEnv(network);
-
 	const privateKey = process.env.PRIVATE_KEY;
 	if (!privateKey) {
 		throw new DubheCliError(
@@ -155,9 +114,9 @@ in your contracts directory to use the default sui private key.`
 	const dubhe = new Dubhe({
 		secretKey: privateKeyFormat,
 		networkType: network,
+		packageId,
 		metadata,
 	});
-
 	const result = await dubhe.state({
 		schema,
 		struct,

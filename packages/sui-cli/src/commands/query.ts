@@ -1,6 +1,6 @@
 import type { CommandModule } from 'yargs';
 import { logError } from '../utils/errors';
-import { stateQueryHandler } from '../utils';
+import { queryStorage } from '../utils';
 import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 
 type Options = {
@@ -94,7 +94,7 @@ const commandModule: CommandModule<Options, Options> = {
 		try {
 			const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
 
-			await stateQueryHandler({
+			await queryStorage({
 				dubheConfig,
 				schema,
 				struct,

@@ -714,7 +714,6 @@ export class Dubhe {
     const moduleName = `${schema}_schema`;
     const functionName = `get_${struct}`;
     const schemaObject = tx.object(objectId);
-
     // Parse storage type
     const storageValueMatch = storageType.match(/^StorageValue<(.+)>$/);
     const storageMapMatch = storageType.match(/^StorageMap<(.+),\s*(.+)>$/);
@@ -752,12 +751,10 @@ export class Dubhe {
         `Invalid storage type: ${storageType}. Must be StorageValue<V>, StorageMap<K,V>, or StorageDoubleMap<K1,K2,V>`
       );
     }
-
     const queryResponse = (await this.query[moduleName][functionName]({
       tx,
       params: processedParams,
     })) as DevInspectResults;
-
     return this.view(queryResponse);
   }
 
