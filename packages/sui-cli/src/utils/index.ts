@@ -3,4 +3,4 @@ export * from './publishHandler';
 export * from './errors';
 export * from './printDubhe';
 export * from './utils';
-export * from './stateQueryHandler';
+export * from './queryStorage';
