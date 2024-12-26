@@ -123,9 +123,9 @@ export const dubheConfig = {
 				},
 			],
 			errors: [
-				{ AccountNotFound: "This account not found" },
-				{ AssetNotFound: "This asset not found" }
-			]
+				{ AccountNotFound: 'This account not found' },
+				{ AssetNotFound: 'This asset not found' },
+			],
 		},
 		dex: {
 			data: [

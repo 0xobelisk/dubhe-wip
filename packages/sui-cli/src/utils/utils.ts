@@ -10,7 +10,7 @@ import { spawn } from 'child_process';
 export type schema = {
 	name: string;
 	objectId: string;
-	structure: Record<string, string>
+	structure: Record<string, string>;
 };
 
 export type DeploymentJsonType = {
@@ -110,6 +110,27 @@ export async function getOldPackageId(
 	return deployment.packageId;
 }
 
+export async function getObjectId(
+	projectPath: string,
+	network: string,
+	schemaName: string
+): Promise<string> {
+	const deployment = await getDeploymentJson(projectPath, network);
+	const schema = deployment.schemas.find(schema =>
+		schema.name
+			.toLowerCase()
+			.endsWith(`::${schemaName.toLowerCase()}_schema::${schemaName}`)
+	);
+
+	if (!schema?.objectId) {
+		throw new Error(
+			`Schema '${schemaName}' not found in deployment history`
+		);
+	}
+
+	return schema.objectId;
+}
+
 export async function getUpgradeCap(
 	projectPath: string,
 	network: string
@@ -134,7 +155,7 @@ export function saveContractData(
 	packageId: string,
 	upgradeCap: string,
 	version: number,
-  schemas: schema[],
+	schemas: schema[]
 ) {
 	const DeploymentData: DeploymentJsonType = {
 		projectName,
@@ -167,7 +188,9 @@ export async function writeOutput(
 	}
 }
 
-function getDubheDependency(network: 'mainnet' | 'testnet' |  'devnet' | 'localnet'): string {
+function getDubheDependency(
+	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
+): string {
 	switch (network) {
 		case 'localnet':
 			return 'Dubhe = { local = "../dubhe-framework" }';
@@ -180,14 +203,19 @@ function getDubheDependency(network: 'mainnet' | 'testnet' |  'devnet' | 'localn
 	}
 }
 
-export function updateDubheDependency(filePath: string, network: 'mainnet' | 'testnet' | 'devnet' | 'localnet') {
+export function updateDubheDependency(
+	filePath: string,
+	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
+) {
 	const fileContent = fs.readFileSync(filePath, 'utf-8');
 	const newDependency = getDubheDependency(network);
 	const updatedContent = fileContent.replace(/Dubhe = \{.*\}/, newDependency);
 	fs.writeFileSync(filePath, updatedContent, 'utf-8');
 	console.log(`Updated Dubhe dependency in ${filePath} for ${network}.`);
 }
-export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'localnet') {
+export async function switchEnv(
+	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
+) {
 	try {
 		return new Promise<void>((resolve, reject) => {
 			const suiProcess = spawn(
@@ -195,7 +223,7 @@ export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'loc
 				['client', 'switch', '--env', network],
 				{
 					env: { ...process.env },
-					stdio: 'pipe'
+					stdio: 'pipe',
 				}
 			);
 
@@ -209,9 +237,11 @@ export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'loc
 				reject(error); // Reject promise on error
 			});
 
-			suiProcess.on('exit', (code) => {
+			suiProcess.on('exit', code => {
 				if (code !== 0) {
-					console.error(chalk.red(`\n❌ Process exited with code: ${code}`));
+					console.error(
+						chalk.red(`\n❌ Process exited with code: ${code}`)
+					);
 					reject(new Error(`Process exited with code: ${code}`));
 				} else {
 					resolve(); // Resolve promise on successful exit

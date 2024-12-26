@@ -697,6 +697,114 @@ export class Dubhe {
     }
   }
 
+  async state({
+    schema,
+    struct,
+    objectId,
+    storageType,
+    params,
+  }: {
+    schema: string;
+    struct: string;
+    objectId: string;
+    storageType: string; // 'StorageValue<V>' | 'StorageMap<K, V>' | 'StorageDoubleMap<K1, K2, V>'
+    params: any[];
+  }) {
+    const tx = new Transaction();
+    const moduleName = `${schema}_schema`;
+    const functionName = `get_${struct}`;
+    const schemaObject = tx.object(objectId);
+
+    // Parse storage type
+    const storageValueMatch = storageType.match(/^StorageValue<(.+)>$/);
+    const storageMapMatch = storageType.match(/^StorageMap<(.+),\s*(.+)>$/);
+    const storageDoubleMapMatch = storageType.match(
+      /^StorageDoubleMap<(.+),\s*(.+),\s*(.+)>$/
+    );
+
+    let processedParams = [schemaObject];
+
+    if (storageValueMatch) {
+      // StorageValue only needs the object ID
+      if (params.length > 0) {
+        console.warn(
+          'StorageValue does not require additional parameters. Extra parameters will be ignored.'
+        );
+      }
+    } else if (storageMapMatch) {
+      // StorageMap needs one key
+      if (params.length !== 1) {
+        throw new Error('StorageMap requires exactly one key parameter');
+      }
+      const keyType = storageMapMatch[1].trim();
+      processedParams.push(this.#processKeyParameter(tx, keyType, params[0]));
+    } else if (storageDoubleMapMatch) {
+      // StorageDoubleMap needs two keys
+      if (params.length !== 2) {
+        throw new Error('StorageDoubleMap requires exactly two key parameters');
+      }
+      const key1Type = storageDoubleMapMatch[1].trim();
+      const key2Type = storageDoubleMapMatch[2].trim();
+      processedParams.push(this.#processKeyParameter(tx, key1Type, params[0]));
+      processedParams.push(this.#processKeyParameter(tx, key2Type, params[1]));
+    } else {
+      throw new Error(
+        `Invalid storage type: ${storageType}. Must be StorageValue<V>, StorageMap<K,V>, or StorageDoubleMap<K1,K2,V>`
+      );
+    }
+
+    const queryResponse = (await this.query[moduleName][functionName]({
+      tx,
+      params: processedParams,
+    })) as DevInspectResults;
+
+    return this.view(queryResponse);
+  }
+
+  #processKeyParameter(tx: Transaction, keyType: string, value: any) {
+    // Handle basic types
+    switch (keyType.toLowerCase()) {
+      case 'u8':
+        return tx.pure(value, 'u8');
+      case 'u16':
+        return tx.pure(value, 'u16');
+      case 'u32':
+        return tx.pure(value, 'u32');
+      case 'u64':
+        return tx.pure(value, 'u64');
+      case 'u128':
+        return tx.pure(value, 'u128');
+      case 'u256':
+        return tx.pure(value, 'u256');
+      case 'bool':
+        return tx.pure(value, 'bool');
+      case 'address':
+        return tx.pure(value, 'address');
+      default:
+        // Check if it's an object type
+        if (keyType.includes('::')) {
+          // Assuming it's an object ID if the type contains '::'
+          return tx.object(value);
+        }
+
+        // If we reach here, the key type is not supported
+        console.log(
+          '\n\x1b[41m\x1b[37m ERROR \x1b[0m \x1b[31mUnsupported Key Type\x1b[0m'
+        );
+        console.log('\x1b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m');
+        console.log(`\x1b[95m•\x1b[0m Type: \x1b[33m"${keyType}"\x1b[0m`);
+        console.log('\x1b[95m•\x1b[0m Supported Types:\x1b[0m');
+        console.log('  \x1b[36m◆\x1b[0m u8, u16, u32, u64, u128, u256');
+        console.log('  \x1b[36m◆\x1b[0m bool');
+        console.log('  \x1b[36m◆\x1b[0m address');
+        console.log(
+          '  \x1b[36m◆\x1b[0m object (format: package::module::type)'
+        );
+        console.log('\x1b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m\n');
+        throw new Error(`Unsupported key type: ${keyType}`);
+    }
+  }
+
   /**
    * if derivePathParams is not provided or mnemonics is empty, it will return the keypair.
    * else:
