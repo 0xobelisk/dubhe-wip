@@ -721,7 +721,9 @@ export class Dubhe {
       /^StorageDoubleMap<(.+),\s*(.+),\s*(.+)>$/
     );
 
-    let processedParams = [schemaObject];
+    let processedParams: (TransactionArgument | SerializedBcs<any>)[] = [
+      schemaObject,
+    ];
 
     if (storageValueMatch) {
       // StorageValue only needs the object ID
@@ -762,21 +764,21 @@ export class Dubhe {
     // Handle basic types
     switch (keyType.toLowerCase()) {
       case 'u8':
-        return tx.pure(value, 'u8');
+        return tx.pure.u8(value);
       case 'u16':
-        return tx.pure(value, 'u16');
+        return tx.pure.u16(value);
       case 'u32':
-        return tx.pure(value, 'u32');
+        return tx.pure.u32(value);
       case 'u64':
-        return tx.pure(value, 'u64');
+        return tx.pure.u64(value);
       case 'u128':
-        return tx.pure(value, 'u128');
+        return tx.pure.u128(value);
       case 'u256':
-        return tx.pure(value, 'u256');
+        return tx.pure.u256(value);
       case 'bool':
-        return tx.pure(value, 'bool');
+        return tx.pure.bool(value);
       case 'address':
-        return tx.pure(value, 'address');
+        return tx.pure.address(value);
       default:
         // Check if it's an object type
         if (keyType.includes('::')) {
