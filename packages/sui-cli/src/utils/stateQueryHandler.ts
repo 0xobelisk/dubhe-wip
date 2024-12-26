@@ -23,10 +23,60 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
 
+function validateParams(storageType: string, params: any[]): boolean {
+	const formatStorageType = storageType.split('<')[0].trim();
+	switch (formatStorageType) {
+		case 'StorageValue':
+			return params.length === 0;
+		case 'StorageMap':
+			return params.length === 1;
+		case 'StorageDoubleMap':
+			return params.length === 2;
+		default:
+			return false;
+	}
+}
+
+function getExpectedParamsCount(storageType: string): number {
+	const formatStorageType = storageType.split('<')[0].trim();
+	switch (formatStorageType) {
+		case 'StorageValue':
+			return 0;
+		case 'StorageMap':
+			return 1;
+		case 'StorageDoubleMap':
+			return 2;
+		default:
+			return 0;
+	}
+}
+
+// async function queryStorage(schema: StorageSchema, params: any[] = []) {
+
+// 	switch (schema.type) {
+// 		case StorageType.Value:
+// 			return await queryStorageValue(schema.name);
+
+// 		case StorageType.Map:
+// 			return await queryStorageMap(schema.name, params[0]);
+
+// 		case StorageType.DoubleMap:
+// 			return await queryStorageDoubleMap(
+// 				schema.name,
+// 				params[0],
+// 				params[1]
+// 			);
+
+// 		default:
+// 			throw new Error(`Unsupported storage type: ${schema.type}`);
+// 	}
+// }
+
 export async function stateQueryHandler({
 	dubheConfig,
 	schema,
 	struct,
+	params,
 	network,
 	objectId,
 	packageId,
@@ -35,8 +85,9 @@ export async function stateQueryHandler({
 	dubheConfig: DubheConfig;
 	schema: string;
 	struct: string;
+	params?: any[];
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
-	objectId: string;
+	objectId?: string;
 	packageId?: string;
 	metadataFilePath?: string;
 }) {
@@ -74,6 +125,33 @@ in your contracts directory to use the default sui private key.`
 		);
 	}
 
+	if (!dubheConfig.schemas[schema]) {
+		throw new DubheCliError(
+			`Schema "${schema}" not found in dubhe config. Available schemas: ${Object.keys(
+				dubheConfig.schemas
+			).join(', ')}`
+		);
+	}
+
+	if (!dubheConfig.schemas[schema].structure[struct]) {
+		throw new DubheCliError(
+			`Struct "${struct}" not found in schema "${schema}". Available structs: ${Object.keys(
+				dubheConfig.schemas[schema].structure
+			).join(', ')}`
+		);
+	}
+
+	const storageType = dubheConfig.schemas[schema].structure[struct];
+
+	const processedParams = params || [];
+	if (!validateParams(storageType, processedParams)) {
+		throw new Error(
+			`Invalid params count for ${storageType}. ` +
+				`Expected: ${getExpectedParamsCount(storageType)}, ` +
+				`Got: ${processedParams.length}`
+		);
+	}
+
 	const dubhe = new Dubhe({
 		secretKey: privateKeyFormat,
 		networkType: network,
@@ -81,9 +159,11 @@ in your contracts directory to use the default sui private key.`
 	});
 
 	const result = await dubhe.state({
-		schema: schema,
-		struct: struct,
-		objectId: objectId,
+		schema,
+		struct,
+		objectId,
+		storageType,
+		params: processedParams,
 	});
 
 	console.log(result);

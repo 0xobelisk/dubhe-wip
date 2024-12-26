@@ -11,11 +11,13 @@ import hello from './hello';
 import generateKey from './generateKey';
 import checkBalance from './checkBalance';
 import configStore from './configStore';
+import query from './query';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Each command has different options
 export const commands: CommandModule<any, any>[] = [
-	publish,
 	localnode,
+	publish,
+	query,
 	faucet,
 	schemagen,
 	upgrade,
