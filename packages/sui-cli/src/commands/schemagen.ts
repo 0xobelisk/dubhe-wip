@@ -5,7 +5,6 @@ import chalk from 'chalk';
 type Options = {
 	'config-path'?: string;
 	network?: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
-	'framework-id'?: string;
 };
 
 const commandModule: CommandModule<Options, Options> = {
@@ -24,20 +23,12 @@ const commandModule: CommandModule<Options, Options> = {
 			choices: ['mainnet', 'testnet', 'devnet', 'localnet'] as const,
 			desc: 'Node network (mainnet/testnet/devnet/localnet)',
 		},
-		'framework-id': {
-			type: 'string',
-			desc: 'Framework Package ID',
-		},
 	},
 
-	async handler({
-		'config-path': configPath,
-		network,
-		'framework-id': frameworkId,
-	}) {
+	async handler({ 'config-path': configPath, network }) {
 		try {
 			const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
-			await schemaGen(dubheConfig, undefined, network, frameworkId);
+			await schemaGen(dubheConfig, undefined, network);
 			process.exit(0);
 		} catch (error: any) {
 			console.log(chalk.red('Schemagen failed!'));
