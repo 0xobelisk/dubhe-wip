@@ -78,6 +78,7 @@ const commandModule: CommandModule<Options, Options> = {
 		params: {
 			type: 'array',
 			desc: 'Params for storage type: StorageValue(no params), StorageMap(1 param), StorageDoubleMap(2 params)',
+			string: true,
 		},
 	},
 
