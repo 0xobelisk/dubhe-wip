@@ -48,29 +48,18 @@ export type BaseValueType =
   | Vector<U64>
   | Vector<U128>;
 
-interface EventData {
-  [key: string]: {
-    [field: string]: any;
-  };
-}
-
-interface SchemaData {
-  [key: string]: {
-    [field: string]: any;
-  };
-}
-
-export type SchemaType = {
-  data?: SchemaData[];
-  structure: Record<string, string>;
-  events?: EventData[];
-  errors?: Record<string, string>[];
-}
+export type SchemaData = Record<string, string> | string[]
+export type SchemaType = Record<string, string>
+export type EventData = Record<string, string>
+export type ErrorData = Record<string, string>
 
 export type DubheConfig = {
   name: string;
   description: string;
+  data?: Record<string, SchemaData>;
   schemas: Record<string, SchemaType>;
+  events?: Record<string, EventData>;
+  errors?: ErrorData;
 };
 
 export type MoveType =

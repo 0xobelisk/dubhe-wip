@@ -1,4 +1,4 @@
-import { BaseType, SchemaType } from '../../types';
+import {BaseType, SchemaData, SchemaType} from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
 import {
 	getStructAttrsWithType,
@@ -79,17 +79,13 @@ function convertToSnakeCase(input: string): string {
 
 export async function generateSchemaData(
 	projectName: string,
-	schemas: Record<string, SchemaType>,
+	data: Record<string, SchemaData>,
 	path: string,
 ) {
 	console.log('\n📦 Starting Schema Data Generation...');
-	for (const schemaName in schemas) {
-		const schema = schemas[schemaName];
-		if (schema.data) {
-			console.log(`  ├─ Processing schema: ${schemaName}`);
-			for (const item of schema.data) {
-				const name = Object.keys(item)[0];
-				const fields = Object.values(item)[0];
+	for (const key of Object.keys(data)) {
+				const name = key;
+				const fields = data[key];
 				console.log(
 					`     └─ Generating ${name} ${
 						Array.isArray(fields) ? '(enum)' : '(struct)'
@@ -97,12 +93,14 @@ export async function generateSchemaData(
 				);
 				let code = '';
 
-				const enumNames = schema.data
-					.filter(item => Array.isArray(Object.values(item)[0]))
-					.map(item => Object.keys(item)[0]);
+				const enumNames = Object.keys(data)
+					.filter(item => Array.isArray(data[item]))
+					.map(item => item);
+
+			console.log(enumNames)
 
 				if (Array.isArray(fields)) {
-					code = `module ${projectName}::${schemaName}_${convertToSnakeCase(
+					code = `module ${projectName}::${convertToSnakeCase(
 						name,
 					)} {
                         public enum ${name} has copy, drop , store {
@@ -119,14 +117,14 @@ export async function generateSchemaData(
 						})
 						.join('')}`;
 				} else {
-					code = `module ${projectName}::${schemaName}_${convertToSnakeCase(
+					code = `module ${projectName}::${convertToSnakeCase(
 						name,
 					)} {
                             use std::ascii::String;
                             ${enumNames
 						.map(
 							name =>
-								`use ${projectName}::${schemaName}_${convertToSnakeCase(
+								`use ${projectName}::${convertToSnakeCase(
 									name,
 								)}::${name};`,
 						)
@@ -153,38 +151,35 @@ export async function generateSchemaData(
 
 				await formatAndWriteMove(
 					code,
-					`${path}/contracts/${projectName}/sources/codegen/schemas/${schemaName}_${convertToSnakeCase(
+					`${path}/contracts/${projectName}/sources/codegen/data/${convertToSnakeCase(
 						name,
 					)}.move`,
 					'formatAndWriteMove',
 				);
 			}
-		}
-	}
 	console.log('✅ Schema Data Generation Complete\n');
 }
 
 function generateImport(
 	projectName: string,
-	schemaName: string,
-	schema: SchemaType,
+	data: Record<string, SchemaData> | null,
 ) {
-	if (schema.data) {
-		return schema.data
-			.map(item => {
-				const name = Object.keys(item)[0]
-				return `use ${projectName}::${schemaName}_${convertToSnakeCase(
+	if (data) {
+		const names = Object.keys(data);
+		return names
+			.map(name => {
+				return `use ${projectName}::${convertToSnakeCase(
 					name,
 				)}::${name};`;
 			})
 			.join('\n');
-	} else {
-		return '';
 	}
+
 }
 
 export async function generateSchemaStructure(
 	projectName: string,
+	data: Record<string, SchemaData> | null,
 	schemas: Record<string, SchemaType>,
 	path: string,
 ) {
@@ -196,7 +191,7 @@ export async function generateSchemaStructure(
 		);
 		console.log(
 			`     └─ Structure fields: ${
-				Object.keys(schemas[schemaName].structure).length
+				Object.values(schemas[schemaName]).length
 			}`,
 		);
 		const schema = schemas[schemaName];
@@ -213,7 +208,7 @@ export async function generateSchemaStructure(
                     use sui::sui::SUI;
                     use sui::coin::Coin;
     				use sui::balance::Balance;
-                    ${generateImport(projectName, schemaName, schema)}
+                    ${generateImport(projectName, data)}
 
                     public struct ${capitalizeAndRemoveUnderscores(
 			schemaName,
@@ -221,7 +216,7 @@ export async function generateSchemaStructure(
                         id: UID
 											} 
                     
-                     ${Object.entries(schema.structure)
+                     ${Object.entries(schema)
 			.map(([key, value]) => {
 				return `public fun borrow_${key}(self: &${capitalizeAndRemoveUnderscores(
 					schemaName,
@@ -243,7 +238,7 @@ export async function generateSchemaStructure(
 			schemaName,
 		)} {
                       let mut id = object::new(ctx);
-                      ${Object.entries(schema.structure)
+                      ${Object.entries(schema)
 			.map(([key, value]) => {
 				let storage_type = '';
 				if (value.includes('StorageValue')) {
@@ -267,7 +262,7 @@ export async function generateSchemaStructure(
                     
               
                  // ======================================== View Functions ========================================
-                    ${Object.entries(schema.structure)
+                    ${Object.entries(schema)
 			.map(([key, value]) => {
 				// @ts-ignore
 				let all_types = value.match(/<(.+)>/)[1].split(',').map(type => type.trim());
