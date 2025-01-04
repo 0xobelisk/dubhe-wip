@@ -1,4 +1,4 @@
-import { BaseType, SchemaType } from '../../types';
+import {BaseType, EventData, SchemaData, SchemaType} from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
 import {
 	getStructAttrsWithType,
@@ -27,36 +27,31 @@ function convertToSnakeCase(input: string): string {
 
 function generateImport(
 	projectName: string,
-	schemaName: string,
-	schema: SchemaType,
+	data: Record<string, SchemaData> | null,
 ) {
-	if (schema.data) {
-		return schema.data
-			.map(item => {
-				const name = Object.keys(item)[0]
-				return `use ${projectName}::${schemaName}_${convertToSnakeCase(
+	if (data) {
+		const names = Object.keys(data);
+		return names
+			.map(name => {
+				return `use ${projectName}::${convertToSnakeCase(
 					name,
 				)}::${name};`;
 			})
 			.join('\n');
-	} else {
-		return '';
 	}
+
 }
 
 export async function generateSchemaEvent(
 	projectName: string,
-	schemas: Record<string, SchemaType>,
+	data: Record<string, SchemaData> | null,
+	events: Record<string, EventData>,
 	path: string
 ) {
 	console.log('\n📦 Starting Schema Event Generation...');
-	for (const schemaName in schemas) {
-		const schema = schemas[schemaName];
-		if (schema.events) {
-			console.log(`  ├─ Processing schema: ${schemaName}`);
-			for (const item of schema.events) {
-				const name = Object.keys(item)[0];
-				const fields = Object.values(item)[0];
+	for (const key of Object.keys(events)) {
+				const name = key;
+				const fields = events[key];
 				console.log(
 					`     └─ Generating ${name} event: ${fields}`
 				);
@@ -64,7 +59,7 @@ export async function generateSchemaEvent(
 				let	code = `module ${projectName}::${convertToSnakeCase(name)}_event {
 						use sui::event;
 						use std::ascii::String;
-						${generateImport(projectName, schemaName, schema)}
+						${generateImport(projectName, data)}
 
                         public struct ${name}Event has copy, drop {
                                 ${getStructAttrsWithType(fields as Record<string, string>)}
@@ -89,7 +84,5 @@ export async function generateSchemaEvent(
 					'formatAndWriteMove'
 				);
 			}
-		}
-	}
 	console.log('✅ Schema Event Generation Complete\n');
 }

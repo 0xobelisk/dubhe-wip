@@ -45,10 +45,24 @@ export async function schemaGen(
         await generateDeployHook(config, path);
     }
 
-    await generateSchemaData(config.name, config.schemas, path);
-    await generateSchemaStructure(config.name, config.schemas, path);
-    await generateSchemaEvent(config.name, config.schemas, path);
-    await generateSchemaError(config.name, config.schemas, path);
+    if (config.events) {
+        if (config.data) {
+            await generateSchemaEvent(config.name,  config.data, config.events, path);
+        } else {
+            await generateSchemaEvent(config.name,  null, config.events, path);
+        }
+    }
+
+    if (config.data) {
+        await generateSchemaData(config.name, config.data, path);
+        await generateSchemaStructure(config.name, config.data, config.schemas, path);
+    } else {
+        await generateSchemaStructure(config.name, null, config.schemas, path);
+    }
+
+    if (config.errors) {
+        await generateSchemaError(config.name, config.errors, path);
+    }
 
     await generateDefaultSchema(config, path);
     await generateInit(config, path);

@@ -1,4 +1,4 @@
-import { BaseType, SchemaType } from '../../types';
+import {BaseType, ErrorData, SchemaType} from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
 import {
 	getStructAttrsWithType,
@@ -16,17 +16,13 @@ function convertToSnakeCase(input: string): string {
 
 export async function generateSchemaError(
 	projectName: string,
-	schemas: Record<string, SchemaType>,
+	errors: ErrorData,
 	path: string
 ) {
 	console.log('\n📦 Starting Schema Error Generation...');
-	for (const schemaName in schemas) {
-		const schema = schemas[schemaName];
-		if (schema.errors) {
-			console.log(`  ├─ Processing schema: ${schemaName}`);
-			for (const item of schema.errors) {
-				const name = Object.keys(item)[0]
-				const message = Object.values(item)[0]
+	for (const key of Object.keys(errors)) {
+				const name = key
+				const message = errors[key]
 				console.log(
 					`     └─ Generating ${name} message: ${message}`);
 				let	code = `module ${projectName}::${convertToSnakeCase(name)}_error {
@@ -46,7 +42,5 @@ export async function generateSchemaError(
 					'formatAndWriteMove'
 				);
 			}
-		}
-	}
 	console.log('✅ Schema Error Generation Complete\n');
 }
