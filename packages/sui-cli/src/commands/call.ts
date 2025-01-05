@@ -14,26 +14,7 @@ type Options = {
 };
 
 /**
- * CLI command module for querying schema struct state
- *
- * Examples:
- *
- * 1. Query StorageValue (no params required):
- * ```bash
- * dubhe query --config-path dubhe.config.ts --network devnet --schema counter --struct value
- * ```
- *
- * 2. Query StorageMap (one param required):
- * ```bash
- * dubhe query --config-path dubhe.config.ts --network devnet --schema token --struct balances \
- *   --params "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
- * ```
- *
- * 3. Query StorageDoubleMap (two params required):
- * ```bash
- * dubhe query --config-path dubhe.config.ts --network devnet --schema game --struct player_relations \
- *   --params "0x123...456" "0x789...abc"
- * ```
+ * CLI command for calling a function in a module
  */
 const commandModule: CommandModule<Options, Options> = {
 	command: 'call',
