@@ -36,7 +36,7 @@ function getExpectedParamsCount(storageType: string): number {
 export async function queryStorage({
 	dubheConfig,
 	schema,
-	struct,
+	field,
 	params,
 	network,
 	objectId,
@@ -45,7 +45,7 @@ export async function queryStorage({
 }: {
 	dubheConfig: DubheConfig;
 	schema: string;
-	struct: string;
+	field: string;
 	params?: any[];
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
 	objectId?: string;
@@ -92,15 +92,15 @@ in your contracts directory to use the default sui private key.`
 		);
 	}
 
-	if (!dubheConfig.schemas[schema].structure[struct]) {
+	if (!dubheConfig.schemas[schema][field]) {
 		throw new DubheCliError(
-			`Struct "${struct}" not found in schema "${schema}". Available structs: ${Object.keys(
-				dubheConfig.schemas[schema].structure
+			`Field "${field}" not found in schema "${schema}". Available fields: ${Object.keys(
+				dubheConfig.schemas[schema]
 			).join(', ')}`
 		);
 	}
 
-	const storageType = dubheConfig.schemas[schema].structure[struct];
+	const storageType = dubheConfig.schemas[schema][field];
 
 	const processedParams = params || [];
 	if (!validateParams(storageType, processedParams)) {
@@ -119,7 +119,7 @@ in your contracts directory to use the default sui private key.`
 	});
 	const result = await dubhe.state({
 		schema,
-		struct,
+		field,
 		objectId,
 		storageType,
 		params: processedParams,

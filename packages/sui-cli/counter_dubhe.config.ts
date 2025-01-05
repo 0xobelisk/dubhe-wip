@@ -5,23 +5,21 @@ export const dubheConfig = {
 	description: 'counter contract',
 	schemas: {
 		counter: {
-			structure: {
-				value: 'StorageValue<u32>',
-			},
-			events: [
-				{
-					name: 'Increment',
-					fields: {
-						value: 'u32',
-					},
-				},
-			],
-			errors: [
-				{
-					name: 'InvalidIncrement',
-					message: "Number can't be incremented, must be more than 0",
-				},
-			],
+			value: 'StorageValue<u32>',
 		},
 	},
+	events: [
+		{
+			name: 'Increment',
+			fields: {
+				value: 'u32',
+			},
+		},
+	],
+	errors: [
+		{
+			name: 'InvalidIncrement',
+			message: "Number can't be incremented, must be more than 0",
+		},
+	],
 } as unknown as DubheConfig;
