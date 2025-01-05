@@ -6,6 +6,7 @@ import { DubheConfig, loadConfig } from '@0xobelisk/sui-common';
 type Options = {
   'config-path': string;
   'test'?: string;
+  'gas-limit'?: string;
 };
 
 const commandModule: CommandModule<Options, Options> = {
@@ -24,19 +25,22 @@ const commandModule: CommandModule<Options, Options> = {
         type: 'string',
         desc: 'Run a specific test',
       },
+      'gas-limit': {
+        type: 'string',
+        desc: 'Set the gas limit for the test',
+      },
     });
   },
 
-  async handler({ 'config-path': configPath, test }) {
+  async handler({ 'config-path': configPath, test, 'gas-limit': gasLimit }) {
     // Start an internal anvil process if no world address is provided
     try {
       console.log('🚀 Running move test');
       const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
       const path = process.cwd();
       const projectPath = `${path}/contracts/${dubheConfig.name}`;
-      const command = `sui move test --path ${projectPath} ${test ? ` --test ${test}` : ''}`;
-      const output =  execSync(command, { encoding: "utf-8" });
-      console.log(output);
+      const command = `sui move test --path ${projectPath} ${test ? ` --test ${test}` : ''} ${gasLimit ? ` --gas-limit ${gasLimit}` : ''}`;
+      execSync(command, { stdio: 'inherit', encoding: "utf-8" });
     } catch (error: any) {
       console.error(chalk.red("Error executing sui move test:"));
       console.log(error.stdout);
