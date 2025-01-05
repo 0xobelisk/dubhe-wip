@@ -20,6 +20,7 @@ const BaseTxType = [
 	'id',
 	'string',
 	'address',
+	'object',
 ];
 
 function validateParams(params: any[]) {
