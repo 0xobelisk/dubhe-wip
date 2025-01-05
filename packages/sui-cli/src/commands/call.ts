@@ -5,8 +5,8 @@ import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 
 type Options = {
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
-	'module-name': string;
-	'func-name': string;
+	module: string;
+	function: string;
 	'config-path'?: string;
 	'package-id'?: string;
 	'metadata-path'?: string;
@@ -47,12 +47,12 @@ const commandModule: CommandModule<Options, Options> = {
 			desc: 'Node network (mainnet/testnet/devnet/localnet)',
 			demandOption: true,
 		},
-		'module-name': {
+		module: {
 			type: 'string',
 			desc: 'Module name',
 			demandOption: true,
 		},
-		'func-name': {
+		function: {
 			type: 'string',
 			desc: 'Function name',
 			demandOption: true,
@@ -80,8 +80,8 @@ const commandModule: CommandModule<Options, Options> = {
 	async handler({
 		network,
 		'config-path': configPath,
-		'module-name': moduleName,
-		'func-name': funcName,
+		module: moduleName,
+		function: funcName,
 		'package-id': packageId,
 		'metadata-path': metadataPath,
 		params,
