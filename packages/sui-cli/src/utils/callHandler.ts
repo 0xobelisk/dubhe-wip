@@ -1,9 +1,39 @@
-import { Dubhe, loadMetadata, Transaction } from '@0xobelisk/sui-client';
+import {
+	Dubhe,
+	loadMetadata,
+	Transaction,
+	TransactionResult,
+} from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
 import { validatePrivateKey, getOldPackageId, getObjectId } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
-import * as fs from 'fs';
-import * as path from 'path';
+import { loadMetadataFromFile } from './queryStorage';
+
+const BaseTxType = [
+	'u8',
+	'u16',
+	'u32',
+	'u64',
+	'u128',
+	'u256',
+	'bool',
+	'id',
+	'string',
+	'address',
+];
+
+function validateParams(params: any[]) {
+	try {
+		params.forEach(param => {
+			const [type, value] = param.split(':');
+			if (!BaseTxType.includes(type)) {
+				throw new Error(`Invalid param type: ${type}`);
+			}
+		});
+	} catch (error) {
+		throw new Error(`Invalid params: ${error}`);
+	}
+}
 
 // param:
 // u8:1
@@ -16,10 +46,36 @@ import * as path from 'path';
 // address:0x1
 // bool:true
 // string:"hello"
-// array:[1,2,3]
+function formatBCS(tx: Transaction, param: string) {
+	const [type, value] = param.split(':');
+	switch (type) {
+		case 'u8':
+			return tx.pure.u8(parseInt(value));
+		case 'u16':
+			return tx.pure.u16(parseInt(value));
+		case 'u32':
+			return tx.pure.u32(parseInt(value));
+		case 'u64':
+			return tx.pure.u64(parseInt(value));
+		case 'u128':
+			return tx.pure.u128(parseInt(value));
+		case 'u256':
+			return tx.pure.u256(parseInt(value));
+		case 'object':
+			return tx.object(value);
+		case 'address':
+			return tx.pure.address(value);
+		case 'bool':
+			return tx.pure.bool(value === 'true');
+		case 'string':
+			return tx.pure.string(value);
+		default:
+			throw new Error(`Invalid param type: ${type}`);
+	}
+}
 
-function formatBCSParams(params: any[]) {
-	return params;
+function formatBCSParams(tx: Transaction, params: any[]) {
+	return params.map(param => formatBCS(tx, param));
 }
 
 export async function callHandler({
@@ -28,7 +84,6 @@ export async function callHandler({
 	funcName,
 	params,
 	network,
-	objectId,
 	packageId,
 	metadataFilePath,
 }: {
@@ -37,7 +92,6 @@ export async function callHandler({
 	funcName: string;
 	params?: any[];
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
-	objectId?: string;
 	packageId?: string;
 	metadataFilePath?: string;
 }) {
@@ -92,14 +146,7 @@ in your contracts directory to use the default sui private key.`
 	// const storageType = dubheConfig.schemas[schema].structure[struct];
 
 	const processedParams = params || [];
-	if (!validateParams(processedParams)) {
-		throw new Error(
-			`Invalid params count for ${moduleName}. `
-			// `Expected: ${getExpectedParamsCount(moduleName)}, ` +
-			// `Got: ${processedParams.length}`
-		);
-	}
-
+	validateParams(processedParams);
 	const dubhe = new Dubhe({
 		secretKey: privateKeyFormat,
 		networkType: network,
@@ -107,48 +154,12 @@ in your contracts directory to use the default sui private key.`
 		metadata,
 	});
 	const tx = new Transaction();
+	const formattedParams = formatBCSParams(tx, processedParams);
 
-	const result = await dubhe.tx[moduleName][funcName]({
+	const result = (await dubhe.tx[moduleName][funcName]({
 		tx,
-		params: processedParams,
-	});
+		params: formattedParams,
+	})) as TransactionResult;
 
 	console.log(result);
-}
-
-/**
- * Load metadata from a JSON file and construct the metadata structure
- * @param metadataFilePath Path to the metadata JSON file
- * @param network Network type
- * @param packageId Package ID
- * @returns Constructed metadata object
- */
-export async function loadMetadataFromFile(metadataFilePath: string) {
-	// Verify file extension is .json
-	if (path.extname(metadataFilePath) !== '.json') {
-		throw new Error('Metadata file must be in JSON format');
-	}
-
-	try {
-		// Read JSON file content
-		const rawData = fs.readFileSync(metadataFilePath, 'utf8');
-		const jsonData = JSON.parse(rawData);
-
-		// Validate JSON structure
-		if (!jsonData || typeof jsonData !== 'object') {
-			throw new Error('Invalid JSON format');
-		}
-
-		// Construct metadata structure
-		const metadata = {
-			...jsonData,
-		};
-
-		return metadata;
-	} catch (error) {
-		if (error instanceof Error) {
-			throw new Error(`Failed to read metadata file: ${error.message}`);
-		}
-		throw error;
-	}
 }

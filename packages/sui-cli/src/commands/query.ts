@@ -5,9 +5,9 @@ import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 
 type Options = {
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
-	'config-path': string;
+	'config-path'?: string;
 	schema: string;
-	struct: string;
+	field: string;
 	'object-id'?: string;
 	'package-id'?: string;
 	'metadata-path'?: string;
@@ -21,18 +21,18 @@ type Options = {
  *
  * 1. Query StorageValue (no params required):
  * ```bash
- * dubhe query --config-path dubhe.config.ts --network devnet --schema counter --struct value
+ * dubhe query --config-path dubhe.config.ts --network devnet --schema counter --field value
  * ```
  *
  * 2. Query StorageMap (one param required):
  * ```bash
- * dubhe query --config-path dubhe.config.ts --network devnet --schema token --struct balances \
+ * dubhe query --config-path dubhe.config.ts --network devnet --schema token --field balances \
  *   --params "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
  * ```
  *
  * 3. Query StorageDoubleMap (two params required):
  * ```bash
- * dubhe query --config-path dubhe.config.ts --network devnet --schema game --struct player_relations \
+ * dubhe query --config-path dubhe.config.ts --network devnet --schema game --field player_relations \
  *   --params "0x123...456" "0x789...abc"
  * ```
  */
@@ -58,9 +58,9 @@ const commandModule: CommandModule<Options, Options> = {
 			desc: 'Schema name',
 			demandOption: true,
 		},
-		struct: {
+		field: {
 			type: 'string',
-			desc: 'Struct name',
+			desc: 'Field name',
 			demandOption: true,
 		},
 		'object-id': {
@@ -86,7 +86,7 @@ const commandModule: CommandModule<Options, Options> = {
 		network,
 		'config-path': configPath,
 		schema,
-		struct,
+		field,
 		'object-id': objectId,
 		'package-id': packageId,
 		'metadata-path': metadataPath,
@@ -98,7 +98,7 @@ const commandModule: CommandModule<Options, Options> = {
 			await queryStorage({
 				dubheConfig,
 				schema,
-				struct,
+				field,
 				objectId,
 				network,
 				packageId,

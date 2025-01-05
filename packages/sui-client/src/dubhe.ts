@@ -699,20 +699,20 @@ export class Dubhe {
 
   async state({
     schema,
-    struct,
+    field,
     objectId,
     storageType,
     params,
   }: {
     schema: string;
-    struct: string;
+    field: string;
     objectId: string;
     storageType: string; // 'StorageValue<V>' | 'StorageMap<K, V>' | 'StorageDoubleMap<K1, K2, V>'
     params: any[];
   }) {
     const tx = new Transaction();
     const moduleName = `${schema}_schema`;
-    const functionName = `get_${struct}`;
+    const functionName = `get_${field}`;
     const schemaObject = tx.object(objectId);
     // Parse storage type
     const storageValueMatch = storageType.match(/^StorageValue<(.+)>$/);

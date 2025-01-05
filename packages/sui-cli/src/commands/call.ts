@@ -1,13 +1,13 @@
 import type { CommandModule } from 'yargs';
 import { logError } from '../utils/errors';
-import { queryStorage } from '../utils';
+import { callHandler } from '../utils';
 import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 
 type Options = {
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
-	'config-path': string;
-	module: string;
-	function: string;
+	'module-name': string;
+	'func-name': string;
+	'config-path'?: string;
 	'package-id'?: string;
 	'metadata-path'?: string;
 	params?: any[];
@@ -47,20 +47,20 @@ const commandModule: CommandModule<Options, Options> = {
 			desc: 'Node network (mainnet/testnet/devnet/localnet)',
 			demandOption: true,
 		},
+		'module-name': {
+			type: 'string',
+			desc: 'Module name',
+			demandOption: true,
+		},
+		'func-name': {
+			type: 'string',
+			desc: 'Function name',
+			demandOption: true,
+		},
 		'config-path': {
 			type: 'string',
 			default: 'dubhe.config.ts',
 			desc: 'Configuration file path',
-		},
-		schema: {
-			type: 'string',
-			desc: 'Schema name',
-			demandOption: true,
-		},
-		struct: {
-			type: 'string',
-			desc: 'Struct name',
-			demandOption: true,
 		},
 		'package-id': {
 			type: 'string',
@@ -73,15 +73,15 @@ const commandModule: CommandModule<Options, Options> = {
 		params: {
 			type: 'array',
 			desc: 'Params for the function',
+			string: true,
 		},
 	},
 
 	async handler({
 		network,
 		'config-path': configPath,
-		schema,
-		struct,
-		'object-id': objectId,
+		'module-name': moduleName,
+		'func-name': funcName,
 		'package-id': packageId,
 		'metadata-path': metadataPath,
 		params,
@@ -89,11 +89,10 @@ const commandModule: CommandModule<Options, Options> = {
 		try {
 			const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
 
-			await queryStorage({
+			await callHandler({
 				dubheConfig,
-				schema,
-				struct,
-				objectId,
+				moduleName,
+				funcName,
 				network,
 				packageId,
 				metadataFilePath: metadataPath,
