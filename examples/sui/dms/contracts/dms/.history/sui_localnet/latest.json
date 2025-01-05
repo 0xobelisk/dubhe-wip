@@ -1,0 +1,18 @@
+{
+  "projectName": "dms",
+  "network": "localnet",
+  "packageId": "0xbfe895bfdac7b7e00d3df6934a8e9e5795f573e2e7e012dac691c316acb38fff",
+  "schemas": [
+    {
+      "name": "0xbfe895bfdac7b7e00d3df6934a8e9e5795f573e2e7e012dac691c316acb38fff::dapp_schema::Dapp",
+      "objectId": "0x152062a9c1733245c01255a1b6d4fd769fd85adc661504762386cbd7caf5d218",
+      "structure": {}
+    },
+    {
+      "name": "0xbfe895bfdac7b7e00d3df6934a8e9e5795f573e2e7e012dac691c316acb38fff::mailbox_schema::Mailbox",
+      "objectId": "0xf798c478a370776387827a4dd8a72f1a656dd6eaf3172ee88bf202006fe62f0f"
+    }
+  ],
+  "upgradeCap": "0x00e1b8f603703f13d7bfe508d04f09d83cc22fc3659cbfaf5e80c8fd4daf18ef",
+  "version": 1
+}
