@@ -5,7 +5,7 @@ import {
 	TransactionResult,
 } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
-import { validatePrivateKey, getOldPackageId, getObjectId } from './utils';
+import { validatePrivateKey, getOldPackageId } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import { loadMetadataFromFile } from './queryStorage';
 
@@ -26,7 +26,7 @@ const BaseTxType = [
 function validateParams(params: any[]) {
 	try {
 		params.forEach(param => {
-			const [type, value] = param.split(':');
+			const [type, _] = param.split(':');
 			if (!BaseTxType.includes(type)) {
 				throw new Error(`Invalid param type: ${type}`);
 			}

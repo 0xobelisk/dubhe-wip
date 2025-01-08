@@ -1,6 +1,5 @@
 import * as fsAsync from 'fs/promises';
 import { mkdirSync, writeFileSync } from 'fs';
-import { exit } from 'process';
 import { dirname } from 'path';
 import { DeploymentJsonType, schema } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
