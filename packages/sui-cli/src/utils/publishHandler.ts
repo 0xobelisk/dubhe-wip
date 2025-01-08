@@ -9,7 +9,6 @@ import { execSync } from 'child_process';
 import chalk from 'chalk';
 import { DubheCliError } from './errors';
 import {
-	updateVersionInFile,
 	saveContractData,
 	validatePrivateKey,
 	schema,
@@ -282,7 +281,7 @@ async function publishContract(
 						capitalizeAndRemoveUnderscores(schemaKey) ===
 						getLastSegment(object.objectType)
 					) {
-						structure = dubheConfig.schemas[schemaKey].structure;
+						structure = dubheConfig.schemas[schemaKey];
 					}
 				}
 
@@ -427,6 +426,7 @@ export async function publishDubheFramework(
 		version,
 		schemas
 	);
+	await delay(1000);
 	console.log(chalk.green('\n✅ Dubhe Framework deployed successfully'));
 }
 

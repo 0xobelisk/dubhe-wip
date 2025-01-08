@@ -28,7 +28,7 @@
     "prod:mainnet": "pnpm config:store mainnet && pnpm next"
   },
   "dependencies": {
-    "@0xobelisk/sui-cli": "^1.0.6",
+    "@0xobelisk/sui-cli": "^1.0.7",
     "@0xobelisk/sui-client": "^1.0.3",
     "@0xobelisk/sui-common": "^1.0.3",
     "@mysten/dapp-kit": "0.14.9",

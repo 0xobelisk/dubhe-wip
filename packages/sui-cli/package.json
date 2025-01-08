@@ -1,6 +1,6 @@
 {
 	"name": "@0xobelisk/sui-cli",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"description": "Tookit for interacting with move eps framework",
 	"keywords": [
 		"sui",
@@ -31,12 +31,13 @@
 		"dubhe": "./dist/dubhe.js"
 	},
 	"scripts": {
-		"build": "pnpm run build:js",
+		"build": "pnpm run type-check && pnpm run build:js",
 		"build:js": "tsup && chmod +x ./dist/dubhe.js",
 		"clean": "pnpm run clean:js",
 		"clean:js": "rimraf dist",
 		"dev": "tsup --watch",
-		"lint": "eslint . --ext .ts"
+		"lint": "eslint . --ext .ts",
+		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@0xobelisk/sui-client": "workspace:*",

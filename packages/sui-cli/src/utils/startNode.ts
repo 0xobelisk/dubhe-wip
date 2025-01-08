@@ -1,14 +1,8 @@
 import { execSync, spawn } from 'child_process';
 import chalk from 'chalk';
 import { printDubhe } from './printDubhe';
-import {
-	delay,
-	DubheCliError,
-	publishDubheFramework,
-	validatePrivateKey,
-} from '../utils';
+import { delay, DubheCliError, validatePrivateKey } from '../utils';
 import { Dubhe } from '@0xobelisk/sui-client';
-import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 
 function isSuiStartRunning(): boolean {
 	try {
