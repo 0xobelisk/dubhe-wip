@@ -2,6 +2,7 @@
 	"name": "dubhe-contract-template",
 	"version": "1.0.0",
 	"description": "Simple starter template",
+	"license": "Apache-2.0",
 	"scripts": {
 		"// Utility Commands": "----------------",
 		"start:localnet": "pnpm dubhe node",
@@ -13,9 +14,9 @@
 		"check-balance": "pnpm dubhe check-balance --network"
 	},
 	"dependencies": {
-		"@0xobelisk/sui-cli": "^1.0.0",
-		"@0xobelisk/sui-client": "^1.0.0",
-		"@0xobelisk/sui-common": "^1.0.0",
+		"@0xobelisk/sui-cli": "^1.0.6",
+		"@0xobelisk/sui-client": "^1.0.3",
+		"@0xobelisk/sui-common": "^1.0.3",
 		"dotenv": "^16.4.5",
 		"chalk": "^4.1.2"
 	},

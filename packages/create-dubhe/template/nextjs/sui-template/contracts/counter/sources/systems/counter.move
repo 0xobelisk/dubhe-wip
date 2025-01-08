@@ -1,16 +1,16 @@
 module counter::counter_system {
     use counter::counter_schema::Counter;
-    use counter::counter_event_increment;
-    use counter::counter_error_invalid_increment;
+    use counter::increment_event;
+    use counter::invalid_increment_error;
 
     public entry fun inc(counter: &mut Counter, number: u32) {
         // Check if the increment value is valid.
-        counter_error_invalid_increment::require(number > 0 && number < 100);
-        counter.borrow_mut_value().mutate!(|value| {
-        // Increment the counter value.
-        *value =  *value + number;
-        // Emit an event to notify the increment.
-        counter_event_increment::emit(number);
+        invalid_increment_error::require(number > 0 && number < 100);
+        counter.value().mutate!(|value| {
+            // Increment the counter value.
+            *value =  *value + number;
+            // Emit an event to notify the increment.
+            increment_event::emit(number);
         });
     }
 
