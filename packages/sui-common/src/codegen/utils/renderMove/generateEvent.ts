@@ -29,7 +29,7 @@ function generateImport(
 	projectName: string,
 	data: Record<string, SchemaData> | null,
 ) {
-	if (data) {
+	if (data != null) {
 		const names = Object.keys(data);
 		return names
 			.map(name => {
@@ -38,8 +38,9 @@ function generateImport(
 				)}::${name};`;
 			})
 			.join('\n');
+	} else {
+		return '';
 	}
-
 }
 
 export async function generateSchemaEvent(

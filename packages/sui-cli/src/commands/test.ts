@@ -42,8 +42,6 @@ const commandModule: CommandModule<Options, Options> = {
       const command = `sui move test --path ${projectPath} ${test ? ` --test ${test}` : ''} ${gasLimit ? ` --gas-limit ${gasLimit}` : ''}`;
       execSync(command, { stdio: 'inherit', encoding: "utf-8" });
     } catch (error: any) {
-      console.error(chalk.red("Error executing sui move test:"));
-      console.log(error.stdout);
       process.exit(0);
     }
   },
