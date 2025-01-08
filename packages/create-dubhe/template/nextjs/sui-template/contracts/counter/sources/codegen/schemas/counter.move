@@ -38,7 +38,7 @@
     storage_migration::borrow_field(&self.id, b"value")
   }
 
-  public(package) fun borrow_mut_value(self: &mut Counter): &mut StorageValue<u32> {
+  public(package) fun value(self: &mut Counter): &mut StorageValue<u32> {
     storage_migration::borrow_mut_field(&mut self.id, b"value")
   }
 

@@ -15,8 +15,8 @@
     let mut counter = counter::counter_schema::create(ctx);
     // Logic that needs to be automated once the contract is deployed
     {
-		counter.borrow_mut_value().set(0);
-    };
+			counter.value().set(0);
+			};
     // Authorize schemas and public share objects
     dapp.add_schema<Counter>(counter, ctx);
     sui::transfer::public_share_object(dapp);
