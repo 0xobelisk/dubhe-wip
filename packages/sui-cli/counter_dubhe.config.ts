@@ -8,18 +8,13 @@ export const dubheConfig = {
 			value: 'StorageValue<u32>',
 		},
 	},
-	events: [
-		{
-			name: 'Increment',
-			fields: {
+	events: {
+			Increment: {
 				value: 'u32',
 			},
 		},
-	],
-	errors: [
-		{
-			name: 'InvalidIncrement',
-			message: "Number can't be incremented, must be more than 0",
+
+	errors: {
+			InvalidIncrement: "Number can't be incremented, must be more than 0",
 		},
-	],
 } as unknown as DubheConfig;
