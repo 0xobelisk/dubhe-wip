@@ -162,5 +162,5 @@ in your contracts directory to use the default sui private key.`
 		params: formattedParams,
 	})) as TransactionResult;
 
-	console.log(result);
+	console.log(JSON.stringify(result, null, 2));
 }
