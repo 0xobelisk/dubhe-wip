@@ -15,7 +15,7 @@
 	},
 	"dependencies": {
 		"@0xobelisk/sui-cli": "^1.0.6",
-		"@0xobelisk/sui-client": "^1.0.2",
+		"@0xobelisk/sui-client": "^1.0.3",
 		"@0xobelisk/sui-common": "^1.0.3",
 		"dotenv": "^16.4.5",
 		"chalk": "^4.1.2"
