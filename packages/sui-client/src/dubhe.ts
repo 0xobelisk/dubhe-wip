@@ -24,6 +24,7 @@ import {
   SuiMoveMoudleFuncType,
   SuiMoveMoudleValueType,
 } from './libs/suiContractFactory/types';
+import { getDefaultURL, NetworkConfig } from './libs/suiInteractor';
 import {
   ContractQuery,
   ContractTx,
@@ -709,7 +710,7 @@ export class Dubhe {
     objectId: string;
     storageType: string; // 'StorageValue<V>' | 'StorageMap<K, V>' | 'StorageDoubleMap<K1, K2, V>'
     params: any[];
-  }) {
+  }): Promise<any[] | undefined> {
     const tx = new Transaction();
     const moduleName = `${schema}_schema`;
     const functionName = `get_${field}`;
@@ -753,10 +754,16 @@ export class Dubhe {
         `Invalid storage type: ${storageType}. Must be StorageValue<V>, StorageMap<K,V>, or StorageDoubleMap<K1,K2,V>`
       );
     }
-    const queryResponse = (await this.query[moduleName][functionName]({
-      tx,
-      params: processedParams,
-    })) as DevInspectResults;
+    let queryResponse = undefined;
+    try {
+      queryResponse = (await this.query[moduleName][functionName]({
+        tx,
+        params: processedParams,
+      })) as DevInspectResults;
+    } catch {
+      return undefined;
+    }
+
     return this.view(queryResponse);
   }
 
@@ -845,6 +852,23 @@ export class Dubhe {
   getNetwork() {
     return this.suiInteractor.network;
   }
+
+  getNetworkConfig(): NetworkConfig {
+    return getDefaultURL(this.getNetwork());
+  }
+
+  getTxExplorerUrl(txHash: string) {
+    return this.getNetworkConfig().txExplorer.replace(':txHash', txHash);
+  }
+
+  getAccountExplorerUrl(address: string) {
+    return this.getNetworkConfig().accountExplorer.replace(':address', address);
+  }
+
+  getExplorerUrl() {
+    return this.getNetworkConfig().explorer;
+  }
+
   /**
    * Request some SUI from faucet
    * @Returns {Promise<boolean>}, true if the request is successful, false otherwise.

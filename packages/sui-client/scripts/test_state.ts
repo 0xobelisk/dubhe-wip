@@ -37,7 +37,7 @@ async function init() {
 
   const res = await dubhe.state({
     schema: 'counter',
-    struct: 'value',
+    field: 'value',
     objectId: currencyObjectId,
     storageType: 'StorageValue<u64>',
     params: [],
