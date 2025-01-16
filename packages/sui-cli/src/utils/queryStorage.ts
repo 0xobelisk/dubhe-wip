@@ -1,6 +1,6 @@
 import { Dubhe, loadMetadata } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
-import {validatePrivateKey, getOldPackageId, getSchemaId} from './utils';
+import { validatePrivateKey, getOldPackageId, getSchemaId } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -117,7 +117,7 @@ in your contracts directory to use the default sui private key.`
 		packageId,
 		metadata,
 	});
-	const result = await dubhe.state({
+	const result = await dubhe.parseState({
 		schema,
 		field,
 		objectId,

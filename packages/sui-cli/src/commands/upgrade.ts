@@ -2,17 +2,17 @@
 // import { logError } from '../utils/errors';
 // import { upgradeHandler } from '../utils/upgradeHandler';
 // import { DubheConfig, loadConfig } from '@0xobelisk/sui-common';
-//
+
 // type Options = {
 // 	network: any;
 // 	'config-path': string;
 // };
-//
+
 // const commandModule: CommandModule<Options, Options> = {
 // 	command: 'upgrade',
-//
+
 // 	describe: 'Upgrade your move contracts',
-//
+
 // 	builder(yargs) {
 // 		return yargs.options({
 // 			network: {
@@ -27,7 +27,7 @@
 // 			},
 // 		});
 // 	},
-//
+
 // 	async handler({ network, 'config-path': configPath }) {
 // 		try {
 // 			const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
@@ -39,5 +39,5 @@
 // 		process.exit(0);
 // 	},
 // };
-//
+
 // export default commandModule;

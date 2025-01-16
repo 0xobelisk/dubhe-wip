@@ -177,7 +177,7 @@ function getDubheDependency(
 	}
 }
 
-export function updateDubheDependency(
+export async function updateDubheDependency(
 	filePath: string,
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {

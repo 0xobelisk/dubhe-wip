@@ -1233,14 +1233,14 @@ export class Dubhe {
     derivePathParams?: DerivePathParams
   ): Promise<SuiTransactionBlockResponse> {
     const { bytes, signature } = await this.signTxn(tx, derivePathParams);
-    return this.suiInteractor.sendTx(bytes, signature);
+    return this.sendTx(bytes, signature);
   }
 
-  async sendTxn(
-    transactionBlock: Uint8Array | string,
+  async sendTx(
+    transaction: Uint8Array | string,
     signature: string | string[]
   ): Promise<SuiTransactionBlockResponse> {
-    return this.suiInteractor.sendTx(transactionBlock, signature);
+    return this.suiInteractor.sendTx(transaction, signature);
   }
 
   async waitForTransaction(digest: string) {

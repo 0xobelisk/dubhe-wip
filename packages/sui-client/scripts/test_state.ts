@@ -35,7 +35,7 @@ async function init() {
   const currencyObjectId =
     '0xa7a43920b7f9a30153129e319598516e27938c6b34216b51ee3399bf839bda67';
 
-  const res = await dubhe.state({
+  const res = await dubhe.parseState({
     schema: 'counter',
     field: 'value',
     objectId: currencyObjectId,
