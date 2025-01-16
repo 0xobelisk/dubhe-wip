@@ -11,7 +11,6 @@ import { DubheCliError } from './errors';
 import {
 	saveContractData,
 	validatePrivateKey,
-	schema,
 	updateDubheDependency,
 	switchEnv,
 	delay,
@@ -122,21 +121,21 @@ published-version = "${config.publishedVersion}"
 
 	fs.writeFileSync(envFilePath, newEnvContent, 'utf-8');
 }
-function capitalizeAndRemoveUnderscores(input: string): string {
-	return input
-		.split('_')
-		.map((word, index) => {
-			return index === 0
-				? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-				: word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-		})
-		.join('');
-}
-
-function getLastSegment(input: string): string {
-	const segments = input.split('::');
-	return segments.length > 0 ? segments[segments.length - 1] : '';
-}
+// function capitalizeAndRemoveUnderscores(input: string): string {
+// 	return input
+// 		.split('_')
+// 		.map((word, index) => {
+// 			return index === 0
+// 				? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+// 				: word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+// 		})
+// 		.join('');
+// }
+//
+// function getLastSegment(input: string): string {
+// 	const segments = input.split('::');
+// 	return segments.length > 0 ? segments[segments.length - 1] : '';
+// }
 
 function buildContract(projectPath: string): string[][] {
 	let modules: any, dependencies: any;
@@ -212,7 +211,8 @@ async function publishContract(
 	console.log('  ├─ Processing publication results...');
 	let version = 1;
 	let packageId = '';
-	let schemas: schema[] = [];
+	let schemaId = '';
+	let schemas = dubheConfig.schemas;
 	let upgradeCapId = '';
 
 	result.objectChanges!.map(object => {
@@ -269,27 +269,12 @@ async function publishContract(
 		deployHookResult.objectChanges?.map(object => {
 			if (
 				object.type === 'created' &&
-				object.objectType.includes('_schema') &&
+				object.objectType.includes('schema') &&
 				!object.objectType.includes('dynamic_field')
 			) {
 				console.log(`  ├─ ${object.objectType}`);
 				console.log(`     └─ ID: ${object.objectId}`);
-
-				let structure: Record<string, string> = {};
-				for (let schemaKey in dubheConfig.schemas) {
-					if (
-						capitalizeAndRemoveUnderscores(schemaKey) ===
-						getLastSegment(object.objectType)
-					) {
-						structure = dubheConfig.schemas[schemaKey];
-					}
-				}
-
-				schemas.push({
-					name: object.objectType,
-					objectId: object.objectId,
-					structure,
-				});
+				schemaId = object.objectId;
 			}
 		});
 
@@ -297,6 +282,7 @@ async function publishContract(
 			dubheConfig.name,
 			network,
 			packageId,
+			schemaId,
 			upgradeCapId,
 			version,
 			schemas
@@ -391,7 +377,7 @@ export async function publishDubheFramework(
 
 	let version = 1;
 	let packageId = '';
-	let schemas: schema[] = [];
+	let schemas: Record<string, string> = { };
 	let upgradeCapId = '';
 
 	result.objectChanges!.map(object => {
@@ -422,6 +408,7 @@ export async function publishDubheFramework(
 		'dubhe-framework',
 		network,
 		packageId,
+		"",
 		upgradeCapId,
 		version,
 		schemas

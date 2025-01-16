@@ -49,30 +49,13 @@ export const dubheConfig = {
 		PathElement: { asset_id: 'u32', balance: 'u256' },
 	},
 	schemas: {
-		assets: {
-				next_asset_id: 'StorageValue<u32>',
-				metadata: 'StorageMap<u32, Metadata>',
-				details: 'StorageMap<u32, Details>',
-				account: 'StorageDoubleMap<u32, address, Account>',
+		next_asset_id: 'StorageValue<u32>',
+		metadata: 'StorageMap<u32, Metadata>',
+		details: 'StorageMap<u32, Details>',
+		details1: 'StorageMap<u32, address>',
+		account: 'StorageDoubleMap<u32, address, Account>',
+		account1: 'StorageDoubleMap<u32, address, address>',
 		},
-		dex: {
-				next_pool_id: 'StorageValue<u32>',
-				swap_fee: 'StorageValue<u256>',
-				lp_fee: 'StorageValue<u256>',
-				fee_to: 'StorageValue<address>',
-				max_swap_path_len: 'StorageValue<u8>',
-				min_liquidity: 'StorageValue<u256>',
-				pool_id: 'StorageDoubleMap<u32, u32, u32>',
-				pools: 'StorageMap<u32, Pool>',
-		},
-		counter: {
-				value: 'StorageValue<u32>',
-				value1: 'StorageValue<u32>',
-				value2: 'StorageValue<Balance<SUI>>',
-				value3: 'StorageValue<Coin<SUI>>',
-				value4: 'StorageMap<address, Balance<SUI>>',
-		},
-	},
 	events: {
 			Created: {
 				asset_id: 'u32',

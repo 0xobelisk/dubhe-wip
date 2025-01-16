@@ -1,6 +1,6 @@
 import { Dubhe, loadMetadata } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
-import { validatePrivateKey, getOldPackageId, getObjectId } from './utils';
+import {validatePrivateKey, getOldPackageId, getSchemaId} from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -70,7 +70,7 @@ in your contracts directory to use the default sui private key.`
 
 	packageId = packageId || (await getOldPackageId(projectPath, network));
 
-	objectId = objectId || (await getObjectId(projectPath, network, schema));
+	objectId = objectId || (await getSchemaId(projectPath, network));
 
 	let metadata;
 	if (metadataFilePath) {
@@ -92,7 +92,7 @@ in your contracts directory to use the default sui private key.`
 		);
 	}
 
-	if (!dubheConfig.schemas[schema][field]) {
+	if (!dubheConfig.schemas[schema]) {
 		throw new DubheCliError(
 			`Field "${field}" not found in schema "${schema}". Available fields: ${Object.keys(
 				dubheConfig.schemas[schema]
@@ -100,7 +100,7 @@ in your contracts directory to use the default sui private key.`
 		);
 	}
 
-	const storageType = dubheConfig.schemas[schema][field];
+	const storageType = dubheConfig.schemas[schema];
 
 	const processedParams = params || [];
 	if (!validateParams(storageType, processedParams)) {
