@@ -17,6 +17,8 @@ import type {
   DisplayFieldsResponse,
   SuiMoveNormalizedType,
   MoveStruct,
+  SuiMoveNormalizedEnum,
+  SuiMoveNormalizedStruct,
 } from '@mysten/sui/client';
 import { SuiTx } from '../libs/suiTxBuilder';
 
@@ -118,24 +120,30 @@ export type MapMessageQuery = Record<string, ContractQuery>;
 export type MapMoudleFuncTx = Record<string, MapMessageTx>;
 export type MapMoudleFuncQuery = Record<string, MapMessageQuery>;
 
-export type MoveStructValueType = {
-  fields: {
-    type: SuiMoveNormalizedType;
-    name: string;
-  }[];
-  abilities: {
-    abilities: string[];
-  };
-  typeParameters: {
-    constraints: {
-      abilities: string[];
-    };
-    isPhantom: boolean;
-  }[];
-};
+// export type MoveStructValueType = {
+//   fields: {
+//     type: SuiMoveNormalizedType;
+//     name: string;
+//   }[];
+//   abilities: {
+//     abilities: string[];
+//   };
+//   typeParameters: {
+//     constraints: {
+//       abilities: string[];
+//     };
+//     isPhantom: boolean;
+//   }[];
+// };
 export type MoveStructType = {
   objectId: string;
-  objectType: MoveStructValueType;
+  objectType: SuiMoveNormalizedStruct;
+  objectName: string;
+};
+
+export type MoveEnumType = {
+  objectId: string;
+  objectType: SuiMoveNormalizedEnum;
   objectName: string;
 };
 
