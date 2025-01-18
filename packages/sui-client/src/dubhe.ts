@@ -263,8 +263,8 @@ export class Dubhe {
                   objectName: enumName,
                   objectType: enumType,
                 };
-                console.log('--------');
-                console.log(JSON.stringify(bcsmeta, null, 2));
+                // console.log('--------');
+                // console.log(JSON.stringify(bcsmeta, null, 2));
                 // if (isUndefined(this.#object[objectId])) {
                 let bcsObj = this.#bcsenum(bcsmeta);
                 if (bcsObj.loopFlag === true) {
@@ -284,15 +284,18 @@ export class Dubhe {
                   // });
 
                   this.#object[`vector<${objectId}>`] = bcs.vector(bcsObj.bcs);
+                  this.#object[`vector<vector<${objectId}>>`] = bcs.vector(
+                    bcs.vector(bcsObj.bcs)
+                  );
                   this.#object[`0x1::option::Option<${objectId}>`] = bcs.option(
                     bcsObj.bcs
                   );
-                  console.log('----- check -----');
-                  console.log(objectId);
+                  // console.log('----- check -----');
+                  // console.log(objectId);
 
-                  console.log(this.#object[objectId] === bcsData);
-                  console.log(JSON.stringify(this.#object[objectId], null, 2));
-                  console.log(JSON.stringify(bcsData, null, 2));
+                  // console.log(this.#object[objectId] === bcsData);
+                  // console.log(JSON.stringify(this.#object[objectId], null, 2));
+                  // console.log(JSON.stringify(bcsData, null, 2));
                 }
               });
             }
@@ -418,6 +421,13 @@ export class Dubhe {
     return await this.inspectTxn(tx);
   };
 
+  #getVectorDepth = (field: SuiMoveNormalizedType): number => {
+    if (typeof field === 'object' && 'Vector' in field) {
+      return 1 + this.#getVectorDepth(field.Vector);
+    }
+    return 0;
+  };
+
   #bcs = (bcsmeta: MoveStructType) => {
     let loopFlag = false;
     const bcsJson: Record<string, BcsType<any, any>> = {};
@@ -528,40 +538,68 @@ export class Dubhe {
                 }
                 return;
               case 'Vector':
-                switch (value) {
-                  case 'U8':
-                    bcsJson[objName] = bcs.vector(bcs.u8());
-                    return;
-                  case 'U16':
-                    bcsJson[objName] = bcs.vector(bcs.u16());
-                    return;
-                  case 'U32':
-                    bcsJson[objName] = bcs.vector(bcs.u32());
-                    return;
-                  case 'U64':
-                    bcsJson[objName] = bcs.vector(bcs.u64());
-                    return;
-                  case 'U128':
-                    bcsJson[objName] = bcs.vector(bcs.u128());
-                    return;
-                  case 'U256':
-                    bcsJson[objName] = bcs.vector(bcs.u256());
-                    return;
-                  case 'Bool':
-                    bcsJson[objName] = bcs.vector(bcs.bool());
-                    return;
-                  case 'Address':
-                    bcsJson[objName] = bcs.vector(
-                      bcs.bytes(32).transform({
-                        // To change the input type, you need to provide a type definition for the input
-                        input: (val: string) => fromHEX(val),
-                        output: (val) => toHEX(val),
-                      })
-                    );
-                    return;
-                  default:
-                  // throw new Error('Unsupported type');
+                if (typeof value === 'string') {
+                  switch (value) {
+                    case 'U8':
+                      bcsJson[objName] = bcs.vector(bcs.u8());
+                      return;
+                    case 'U16':
+                      bcsJson[objName] = bcs.vector(bcs.u16());
+                      return;
+                    case 'U32':
+                      bcsJson[objName] = bcs.vector(bcs.u32());
+                      return;
+                    case 'U64':
+                      bcsJson[objName] = bcs.vector(bcs.u64());
+                      return;
+                    case 'U128':
+                      bcsJson[objName] = bcs.vector(bcs.u128());
+                      return;
+                    case 'U256':
+                      bcsJson[objName] = bcs.vector(bcs.u256());
+                      return;
+                    case 'Bool':
+                      bcsJson[objName] = bcs.vector(bcs.bool());
+                      return;
+                    case 'Address':
+                      bcsJson[objName] = bcs.vector(
+                        bcs.bytes(32).transform({
+                          // To change the input type, you need to provide a type definition for the input
+                          input: (val: string) => fromHEX(val),
+                          output: (val) => toHEX(val),
+                        })
+                      );
+                      return;
+                    default:
+                    // throw new Error('Unsupported type');
+                  }
                 }
+                if (typeof value === 'object') {
+                  const vectorDepth = this.#getVectorDepth(value);
+                  let innerType = value;
+                  for (let i = 0; i < vectorDepth; i++) {
+                    innerType = innerType.Vector;
+                  }
+
+                  if ('Struct' in innerType) {
+                    const structType = innerType.Struct;
+                    const structId = `${structType.address}::${structType.module}::${structType.name}`;
+
+                    let bcsType = this.#object[structId];
+                    if (!bcsType) {
+                      loopFlag = true;
+                      return;
+                    }
+                    let baseType = bcsType;
+                    for (let i = 0; i <= vectorDepth; i++) {
+                      baseType = bcs.vector(baseType);
+                    }
+
+                    bcsJson[objName] = baseType;
+                    return;
+                  }
+                }
+                return;
               case 'TypeParameter':
                 bcsJson[objName] = bcs.u128();
                 return;
@@ -748,39 +786,46 @@ export class Dubhe {
                     }
                     return;
                   case 'Vector':
-                    switch (value) {
-                      case 'U8':
-                        variantJson[objName] = bcs.vector(bcs.u8());
-                        return;
-                      case 'U16':
-                        variantJson[objName] = bcs.vector(bcs.u16());
-                        return;
-                      case 'U32':
-                        variantJson[objName] = bcs.vector(bcs.u32());
-                        return;
-                      case 'U64':
-                        variantJson[objName] = bcs.vector(bcs.u64());
-                        return;
-                      case 'U128':
-                        variantJson[objName] = bcs.vector(bcs.u128());
-                        return;
-                      case 'U256':
-                        variantJson[objName] = bcs.vector(bcs.u256());
-                        return;
-                      case 'Bool':
-                        variantJson[objName] = bcs.vector(bcs.bool());
-                        return;
-                      case 'Address':
-                        variantJson[objName] = bcs.vector(
-                          bcs.bytes(32).transform({
-                            // To change the input type, you need to provide a type definition for the input
-                            input: (val: string) => fromHEX(val),
-                            output: (val) => toHEX(val),
-                          })
-                        );
-                        return;
-                      default:
-                      // throw new Error('Unsupported type');
+                    if (typeof value === 'string') {
+                      switch (value) {
+                        case 'U8':
+                          variantJson[objName] = bcs.vector(bcs.u8());
+                          return;
+                        case 'U16':
+                          variantJson[objName] = bcs.vector(bcs.u16());
+                          return;
+                        case 'U32':
+                          variantJson[objName] = bcs.vector(bcs.u32());
+                          return;
+                        case 'U64':
+                          variantJson[objName] = bcs.vector(bcs.u64());
+                          return;
+                        case 'U128':
+                          variantJson[objName] = bcs.vector(bcs.u128());
+                          return;
+                        case 'U256':
+                          variantJson[objName] = bcs.vector(bcs.u256());
+                          return;
+                        case 'Bool':
+                          variantJson[objName] = bcs.vector(bcs.bool());
+                          return;
+                        case 'Address':
+                          variantJson[objName] = bcs.vector(
+                            bcs.bytes(32).transform({
+                              // To change the input type, you need to provide a type definition for the input
+                              input: (val: string) => fromHEX(val),
+                              output: (val) => toHEX(val),
+                            })
+                          );
+                          return;
+                        default:
+                        // throw new Error('Unsupported type');
+                      }
+                    }
+                    console.log(`bcs struct vactor ${objName}`);
+                    if (typeof value === 'object') {
+                      console.log(`bcs struct vactor ${objName}`);
+                      console.log(value);
                     }
                   case 'TypeParameter':
                     variantJson[objName] = bcs.u128();
@@ -923,10 +968,10 @@ export class Dubhe {
         }
 
         if (this.#object[baseType]) {
-          console.log('=========== here');
-          console.log(baseType);
-          console.log(JSON.stringify(this.#object[baseType], null, 2));
-          console.log('-------------');
+          // console.log('=========== here');
+          // console.log(baseType);
+          // console.log(JSON.stringify(this.#object[baseType], null, 2));
+          // console.log('-------------');
           returnValues.push(this.#object[baseType].parse(value));
           continue;
         }
@@ -992,10 +1037,18 @@ export class Dubhe {
         tx,
         params,
       })) as DevInspectResults;
+      console.log(
+        `${moduleName}::${functionName} query result status: `,
+        queryResponse.effects.status.status
+      );
+      if (queryResponse.effects.status.status !== 'success') {
+        return undefined;
+      }
     } catch {
       return undefined;
     }
-
+    console.log('=========== ');
+    console.log(queryResponse);
     return this.view(queryResponse);
   }
 
