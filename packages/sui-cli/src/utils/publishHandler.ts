@@ -313,7 +313,6 @@ async function checkDubheFramework(projectPath: string): Promise<boolean> {
 }
 
 export async function publishDubheFramework(
-	// client: SuiClient,
 	dubhe: Dubhe,
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
@@ -419,7 +418,10 @@ in your contracts directory to use the default sui private key.`
 		throw new DubheCliError(`Please check your privateKey.`);
 	}
 
-	const dubhe = new Dubhe({ secretKey: privateKeyFormat });
+	const dubhe = new Dubhe({
+		secretKey: privateKeyFormat,
+		networkType: network,
+	});
 
 	if (network === 'localnet') {
 		await publishDubheFramework(dubhe, network);
