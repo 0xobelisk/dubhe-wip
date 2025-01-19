@@ -272,17 +272,6 @@ export class Dubhe {
                 }
                 if (this.#object[objectId] === undefined) {
                   this.#object[objectId] = bcsObj.bcs;
-                  let bcsData = bcs.enum('AccountStatus', {
-                    Blocked: null,
-                    Frozen: null,
-                    Liquid: null,
-                  });
-                  // let bcsData = bcs.enum('AccountStatus', {
-                  //   Blocked: null,
-                  //   Frozen: null,
-                  //   Liquid: null,
-                  // });
-
                   this.#object[`vector<${objectId}>`] = bcs.vector(bcsObj.bcs);
                   this.#object[`vector<vector<${objectId}>>`] = bcs.vector(
                     bcs.vector(bcsObj.bcs)
@@ -290,12 +279,6 @@ export class Dubhe {
                   this.#object[`0x1::option::Option<${objectId}>`] = bcs.option(
                     bcsObj.bcs
                   );
-                  // console.log('----- check -----');
-                  // console.log(objectId);
-
-                  // console.log(this.#object[objectId] === bcsData);
-                  // console.log(JSON.stringify(this.#object[objectId], null, 2));
-                  // console.log(JSON.stringify(bcsData, null, 2));
                 }
               });
             }
