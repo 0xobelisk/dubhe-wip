@@ -805,11 +805,8 @@ export class Dubhe {
                         // throw new Error('Unsupported type');
                       }
                     }
-                    console.log(`bcs struct vactor ${objName}`);
-                    if (typeof value === 'object') {
-                      console.log(`bcs struct vactor ${objName}`);
-                      console.log(value);
-                    }
+                  // if (typeof value === 'object') {
+                  // }
                   case 'TypeParameter':
                     variantJson[objName] = bcs.u128();
                     return;
@@ -863,9 +860,6 @@ export class Dubhe {
         variantJson[name] = null;
       }
     });
-    console.log('=========== ');
-    console.log(bcsmeta.objectName);
-    console.log(JSON.stringify(variantJson, null, 2));
     return {
       bcs: bcs.enum(bcsmeta.objectName, variantJson),
       loopFlag,
@@ -1018,10 +1012,7 @@ export class Dubhe {
         tx,
         params,
       })) as DevInspectResults;
-      console.log(
-        `${moduleName}::${functionName} query result status: `,
-        queryResponse.effects.status.status
-      );
+
       if (queryResponse.effects.status.status !== 'success') {
         return undefined;
       }
