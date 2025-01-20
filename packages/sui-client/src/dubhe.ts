@@ -40,7 +40,11 @@ import {
   SuiObjectArg,
   SuiVecTxArg,
 } from './types';
-import { normalizeHexAddress, numberToAddressHex } from './utils';
+import {
+  normalizeHexAddress,
+  normalizePackageId,
+  numberToAddressHex,
+} from './utils';
 import { bcs, fromHEX, toHEX } from '@mysten/bcs';
 import { ContractDataParsingError } from './errors';
 
@@ -240,7 +244,7 @@ export class Dubhe {
     fullnodeUrls = fullnodeUrls || [getFullnodeUrl(networkType ?? 'mainnet')];
     this.suiInteractor = new SuiInteractor(fullnodeUrls, networkType);
 
-    this.packageId = packageId;
+    this.packageId = packageId ? normalizePackageId(packageId) : undefined;
     if (metadata !== undefined) {
       this.metadata = metadata as SuiMoveNormalizedModules;
 

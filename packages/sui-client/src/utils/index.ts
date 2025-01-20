@@ -21,3 +21,10 @@ export function numberToAddressHex(num: number): string {
   const paddedHex = '0x' + hex.padStart(64, '0');
   return paddedHex;
 }
+
+export function normalizePackageId(input: string): string {
+  const withPrefix = input.startsWith('0x') ? input : '0x' + input;
+  const withoutPrefix = withPrefix.slice(2);
+  const normalized = withoutPrefix.replace(/^0+/, '');
+  return '0x' + normalized;
+}
