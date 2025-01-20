@@ -58,11 +58,11 @@ type RemoveRecord = {
 
 const processSetRecord = async (sqliteDB: Database, dbName: string, checkpoint: string, digest: string, event: unknown) => {
 	let res = event as SetRecord;
-	if (typeof res.key1 === 'object' && res.key1 !== null) {
+	if ((typeof res.key1 === 'object' && res.key1 !== null) || Array.isArray(res.key1)) {
 		res.key1 = serializeData(res.key1);
-	} else if (typeof res.key2 === 'object' && res.key2 !== null) {
+	} else if ((typeof res.key2 === 'object' && res.key2 !== null) || Array.isArray(res.key2)) {
 		res.key2 = serializeData(res.key2);
-	} else if (typeof res.value === 'object') {
+	} else if (typeof res.value === 'object' || Array.isArray(res.value)) {
 		res.value = serializeData(res.value);
 	}
 	await insertData(sqliteDB, dbName, {
@@ -74,9 +74,9 @@ const processSetRecord = async (sqliteDB: Database, dbName: string, checkpoint: 
 
 const processRemoveRecord = async (sqliteDB: Database, dbName: string, checkpoint: string, digest: string, event: unknown) => {
 	let res = event as RemoveRecord;
-	if (typeof res.key1 === 'object' && res.key1 !== null) {
+	if ((typeof res.key1 === 'object' && res.key1 !== null) || Array.isArray(res.key1)) {
 		res.key1 = serializeData(res.key1);
-	} else if (typeof res.key2 === 'object' && res.key2 !== null) {
+	} else if ((typeof res.key2 === 'object' && res.key2 !== null) || Array.isArray(res.key2)) {
 		res.key2 = serializeData(res.key2);
 	}
 	await removeData(sqliteDB, dbName, {
@@ -99,8 +99,11 @@ type RemoveData = {
 }
 
 const serializeData = (data: object): string => {
-	// @ts-ignore
-	return JSON.stringify(data["fields"]);
+	if (data.hasOwnProperty("fields")) {
+		// @ts-ignore
+		return JSON.stringify(data["fields"]);
+	}
+	return JSON.stringify(data);
 };
 
 async function insertData(sqliteDB: Database, dbName: string, data: SetData) {

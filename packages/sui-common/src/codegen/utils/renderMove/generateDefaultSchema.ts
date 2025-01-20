@@ -175,6 +175,15 @@ async function generateDappSchema(config: DubheConfig, srcPrefix: string) {
   public(package) fun safe_mode(self: &mut Dapp): &mut StorageValue<bool> {
     storage::borrow_mut_field(&mut self.id, b"safe_mode")
   }
+  
+  public(package) fun borrow_schemas(self: &Dapp): &StorageValue<vector<address>> {
+      storage::borrow_field(&self.id, b"schemas")
+    }
+
+  public(package) fun schemas(self: &mut Dapp): &mut StorageValue<vector<address>> {
+    storage::borrow_mut_field(&mut self.id, b"schemas")
+  }
+
 
   public(package) fun create(ctx: &mut TxContext): Dapp {
     let mut id = object::new(ctx);
@@ -183,6 +192,7 @@ async function generateDappSchema(config: DubheConfig, srcPrefix: string) {
     storage::add_field<StorageValue<u32>>(&mut id, b"version", storage_value::new(b"version", ctx));
     storage::add_field<StorageValue<DappMetadata>>(&mut id, b"metadata", storage_value::new(b"metadata", ctx));
     storage::add_field<StorageValue<bool>>(&mut id, b"safe_mode", storage_value::new(b"safe_mode", ctx));
+    storage::add_field<StorageValue<vector<address>>>(&mut id, b"schemas", storage_value::new(b"schemas", ctx));
     Dapp { id }
   }
 
@@ -193,6 +203,13 @@ async function generateDappSchema(config: DubheConfig, srcPrefix: string) {
     dapp.package_id().set(new_package_id);
     let current_version = dapp.version()[];
     dapp.version().set(current_version + 1);
+  }
+  
+  public(package) fun add_schema<Schema: key + store>(dapp: &mut Dapp, schema: Schema) {
+    let mut schemas = dapp.schemas()[];
+    schemas.push_back(object::id_address<Schema>(&schema));
+    dapp.schemas().set(schemas);
+    public_share_object(schema);
   }
 
   #[test_only]
@@ -252,6 +269,7 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
     dapp.admin().set(ctx.sender());
     dapp.version().set(1);
     dapp.safe_mode().set(false);
+    dapp.schemas().set(vector[]);
     dapp
   }
 
@@ -299,10 +317,10 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
     assert!(dapp.borrow_admin().get() == ctx.sender(), 0);
   }
 
-  // public fun ensure_has_schema<Schema: key + store>(dapp: &Dapp, schema: &Schema) {
-  //   let schema_id = object::id_address(schema);
-  //   assert!(dapp.borrow_schemas().get().contains(&schema_id), 0);
-  // }
+  public fun ensure_has_schema<Schema: key + store>(dapp: &Dapp, schema: &Schema) {
+    let schema_id = object::id_address(schema);
+    assert!(dapp.borrow_schemas().get().contains(&schema_id), 0);
+  }
 }
 
 

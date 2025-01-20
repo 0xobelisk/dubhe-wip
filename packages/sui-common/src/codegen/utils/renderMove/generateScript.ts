@@ -45,8 +45,8 @@ export async function generateDeployHook(
 			{
 			};
 			// Authorize schemas and public share objects
+			 dapp.add_schema(schema);
 			 sui::transfer::public_share_object(dapp);
-			 sui::transfer::public_share_object(schema);
 		  }
 }` } else {
 		const content = extractLogicAndAuthorizationContent(path);
@@ -67,8 +67,8 @@ export async function generateDeployHook(
 			};
 			
 			// Authorize schemas and public share objects
+			 dapp.add_schema(schema);
 			 sui::transfer::public_share_object(dapp);
-			 sui::transfer::public_share_object(schema);
 		  }
 }`
 	}
