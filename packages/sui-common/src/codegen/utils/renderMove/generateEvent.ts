@@ -83,6 +83,7 @@ export async function generateSchemaEvent(
 
 	let	code = `module ${projectName}::events {
 	 	use std::ascii::{String, string};
+	 	${generateImport(projectName, data)}
 		${Object.entries(events).map(([name, fields]) => {
 		return `
 use ${projectName}::${convertToSnakeCase(name)}_event::${name}Event;
