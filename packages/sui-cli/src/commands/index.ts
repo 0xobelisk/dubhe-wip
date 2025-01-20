@@ -4,7 +4,7 @@ import localnode from './localnode';
 import faucet from './faucet';
 import schemagen from './schemagen';
 import publish from './publish';
-// import upgrade from './upgrade';
+import upgrade from './upgrade';
 import test from './test';
 import build from './build';
 import hello from './hello';
@@ -23,7 +23,7 @@ export const commands: CommandModule<any, any>[] = [
 	query,
 	faucet,
 	schemagen,
-	// upgrade,
+	upgrade,
 	test,
 	build,
 	hello,

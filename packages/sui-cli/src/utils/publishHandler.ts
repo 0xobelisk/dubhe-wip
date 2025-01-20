@@ -252,6 +252,9 @@ async function publishContract(
 
 		console.log('\n📋 Created Schemas:');
 		deployHookResult.objectChanges?.map(object => {
+			if (object.type === 'created' && object.objectType.includes('schema::Schema')) {
+				schemaId = object.objectId;
+			}
 			if (
 				object.type === 'created' &&
 				object.objectType.includes('schema') &&
@@ -259,7 +262,6 @@ async function publishContract(
 			) {
 				console.log(`  ├─ ${object.objectType}`);
 				console.log(`     └─ ID: ${object.objectId}`);
-				schemaId = object.objectId;
 			}
 		});
 

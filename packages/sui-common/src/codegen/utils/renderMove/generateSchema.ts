@@ -7,6 +7,21 @@ import {
 	getStructAttrsQuery,
 } from './common';
 
+function sortByFirstLetter(arr: string[]): string[] {
+	return arr.sort((a, b) => {
+		const firstLetterA = a.charAt(0).toLowerCase();
+		const firstLetterB = b.charAt(0).toLowerCase();
+
+		if (firstLetterA < firstLetterB) {
+			return -1;
+		}
+		if (firstLetterA > firstLetterB) {
+			return 1;
+		}
+		return 0;
+	});
+}
+
 export function capitalizeAndRemoveUnderscores(input: string): string {
 	return input
 		.split('_')
@@ -100,14 +115,15 @@ export async function generateSchemaData(
 			console.log(enumNames)
 
 				if (Array.isArray(fields)) {
+					const sortByFirstLetterFields = sortByFirstLetter(fields);
 					code = `module ${projectName}::${convertToSnakeCase(
 						name,
 					)} {
                         public enum ${name} has copy, drop , store {
-                                ${fields}
+                                ${sortByFirstLetterFields}
                         }
                         
-                        ${fields
+                        ${sortByFirstLetterFields
 						.map((field: string) => {
 							return `public fun new_${convertToSnakeCase(
 								field,
@@ -243,9 +259,8 @@ export async function generateSchemaStructure(
                       Schema { id }
                     }
                     
-                    public fun migrate(_schema: &mut Schema, _cap: &UpgradeCap) {  }
+                    public fun migrate(_schema: &mut Schema, _cap: &UpgradeCap, _ctx: &mut TxContext) {  }
 
-                    
               
                  // ======================================== View Functions ========================================
                     ${Object.entries(schemas)

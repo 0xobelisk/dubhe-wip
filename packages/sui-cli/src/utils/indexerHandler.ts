@@ -164,6 +164,12 @@ export async function indexerHandler(
 
 	schemaId = schemaId || (await getSchemaId(projectPath, network));
 
+	console.log('\n🚀 Sqlite Started');
+	console.log(`  ├─ Project: ${projectPath}`);
+	console.log(`  ├─ Network: ${network}`);
+	console.log(`  ├─ Database: ${db}`);
+	console.log(`  ├─ Schema ID: ${schemaId}`);
+
 	if (!schemaId) {
 		throw new DubheCliError(
 			`Schema ID not found. Please provide a schema ID with the --schemaId flag.`
