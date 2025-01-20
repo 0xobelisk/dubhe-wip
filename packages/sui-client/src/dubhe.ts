@@ -1003,16 +1003,14 @@ export class Dubhe {
   async state({
     tx,
     schema,
-    field,
     params,
   }: {
     tx: Transaction;
     schema: string;
-    field: string;
     params: any[];
   }): Promise<any[] | undefined> {
-    const moduleName = `${schema}_schema`;
-    const functionName = `get_${field}`;
+    const moduleName = `schema`;
+    const functionName = `get_${schema}`;
 
     let queryResponse = undefined;
     try {
@@ -1030,20 +1028,16 @@ export class Dubhe {
     } catch {
       return undefined;
     }
-    console.log('=========== ');
-    console.log(queryResponse);
     return this.view(queryResponse);
   }
 
   async parseState({
     schema,
-    field,
     objectId,
     storageType,
     params,
   }: {
     schema: string;
-    field: string;
     objectId: string;
     storageType: string; // 'StorageValue<V>' | 'StorageMap<K, V>' | 'StorageDoubleMap<K1, K2, V>'
     params: any[];
@@ -1092,7 +1086,6 @@ export class Dubhe {
     return this.state({
       tx,
       schema,
-      field,
       params: processedParams,
     });
   }
