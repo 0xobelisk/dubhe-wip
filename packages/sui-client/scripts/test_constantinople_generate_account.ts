@@ -79,8 +79,7 @@ async function init() {
   const entityTx = new Transaction();
   let have_player = await dubhe.state({
     tx: entityTx,
-    schema: 'entity',
-    field: 'player',
+    schema: 'player',
     params: [
       entityTx.object(EntityObjectId),
       entityTx.pure.address(playerAddress),
@@ -139,8 +138,7 @@ async function init() {
   const mapConfigTx = new Transaction();
   const map_data = await dubhe.state({
     tx: mapConfigTx,
-    schema: 'map',
-    field: 'config',
+    schema: 'map_config',
     params: [mapConfigTx.object(Map_Object_Id)],
   });
   console.log('======== map data ========');

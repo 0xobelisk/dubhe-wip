@@ -87,10 +87,18 @@ export class SuiInteractor {
   }) {
     for (const clientIdx in this.clients) {
       try {
+        const txResOptions: SuiTransactionBlockResponseOptions = {
+          showEvents: true,
+          showEffects: true,
+          showObjectChanges: true,
+          showBalanceChanges: true,
+        };
+
         return await this.clients[clientIdx].waitForTransaction({
           digest,
           timeout,
           pollInterval,
+          options: txResOptions,
         });
       } catch (err) {
         console.warn(
