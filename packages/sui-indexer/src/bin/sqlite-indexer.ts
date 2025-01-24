@@ -145,12 +145,12 @@ wss.on("connection", (ws) => {
 
     ws.on("message", (message) => {
         const parsedMessage = JSON.parse(message.toString());
-        if (parsedMessage.type === "subscribe" && parsedMessage.eventName) {
+        if (parsedMessage.type === "subscribe" && parsedMessage.name) {
             if (!subscriptions.has(ws)) {
                 subscriptions.set(ws, new Set());
             }
-            subscriptions.get(ws)!.add(parsedMessage.eventName);
-            console.log(`Client subscribed to event: ${parsedMessage.eventName}`);
+            subscriptions.get(ws)!.add(parsedMessage.name);
+            console.log(`Client subscribed to event: ${parsedMessage.name}`);
         }
     });
 
