@@ -150,7 +150,7 @@ while (true) {
         },
         order: "ascending",
         cursor: lastTxRecord,
-        limit: 10,
+        limit: env.SYNC_LIMIT_PER_TIME,
         options: {
             showEvents: true
         }

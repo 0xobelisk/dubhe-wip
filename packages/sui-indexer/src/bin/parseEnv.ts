@@ -17,7 +17,8 @@ export const indexerEnvSchema = z.intersection(
     START_BLOCK: z.coerce.bigint().nonnegative().default(0n),
     MAX_BLOCK_RANGE: z.coerce.bigint().positive().default(1000n),
     POLLING_INTERVAL: z.coerce.number().positive().default(1000),
-      SCHEMA_ID: z.string().min(1, { message: "SCHEMA_ID is required" }),
+    SCHEMA_ID: z.string().min(1, { message: "SCHEMA_ID is required" }),
+    SYNC_LIMIT_PER_TIME: z.coerce.number().nonnegative().default(100),
     STORE_ADDRESS: z
       .string()
       .optional()
