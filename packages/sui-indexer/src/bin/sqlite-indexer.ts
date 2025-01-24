@@ -25,6 +25,8 @@ import {dubheStoreEvents, dubheStoreTransactions, insertTx, OperationType, syncT
 import {desc, sql} from "drizzle-orm";
 import {metrics} from "../koa-middleware/metrics";
 import {createAppRouter} from "../sqlite/createAppRouter";
+import { createServer } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 
 const env = parseEnv(
   z.intersection(
@@ -100,19 +102,21 @@ let isCaughtUp = false;
 //     console.log("all caught up");
 //   });
 
-const server = new Koa();
+const app = new Koa();
+const server = createServer(app.callback());
+const wss = new WebSocketServer({ server });
 
 if (env.SENTRY_DSN) {
-  server.use(sentry(env.SENTRY_DSN));
+    app.use(sentry(env.SENTRY_DSN));
 }
 
-server.use(cors());
-server.use(
+app.use(cors());
+app.use(
   healthcheck({
     isReady: () => isCaughtUp,
   }),
 );
-server.use(
+app.use(
   metrics({
     isHealthy: () => true,
     isReady: () => isCaughtUp,
@@ -121,10 +125,10 @@ server.use(
     followBlockTag: env.FOLLOW_BLOCK_TAG,
   }),
 );
-server.use(helloWorld());
-server.use(apiRoutes(database));
+app.use(helloWorld());
+app.use(apiRoutes(database));
 
-server.use(
+app.use(
   createKoaMiddleware({
     prefix: "/trpc",
     router: createAppRouter(),
@@ -133,6 +137,28 @@ server.use(
     }),
   }),
 );
+
+const subscriptions = new Map<WebSocket, Set<string>>();
+
+wss.on("connection", (ws) => {
+    console.log("New client connected");
+
+    ws.on("message", (message) => {
+        const parsedMessage = JSON.parse(message.toString());
+        if (parsedMessage.type === "subscribe" && parsedMessage.eventName) {
+            if (!subscriptions.has(ws)) {
+                subscriptions.set(ws, new Set());
+            }
+            subscriptions.get(ws)!.add(parsedMessage.eventName);
+            console.log(`Client subscribed to event: ${parsedMessage.eventName}`);
+        }
+    });
+
+    ws.on("close", () => {
+        subscriptions.delete(ws);
+        console.log("Client disconnected");
+    });
+});
 
 server.listen({ host: env.HOST, port: env.PORT });
 console.log(`sqlite indexer frontend listening on http://${env.HOST}:${env.PORT}`);
@@ -173,11 +199,35 @@ while (true) {
                         // @ts-ignore
                         value: event.parsedJson["value"],
                     })
+                    // Broadcast the event to subscribed WebSocket clients
+                    wss.clients.forEach((client) => {
+                        if (client.readyState === client.OPEN && subscriptions.get(client)?.has(name)) {
+                            // @ts-ignore
+                            const value = event.parsedJson["value"];
+                            if (typeof value === 'object') {
+                                client.send(JSON.stringify(value["fields"]));
+                            } else {
+                                client.send(JSON.stringify(value));
+                            }
+                        }
+                    });
                     // @ts-ignore
                 } else if (event.parsedJson.hasOwnProperty("value")) {
                     await syncToSqlite(database, tx.checkpoint?.toString() as string, tx.digest, event.parsedJson, OperationType.Set);
+                    // Broadcast the event to subscribed WebSocket clients
+                    wss.clients.forEach((client) => {
+                        if (client.readyState === client.OPEN && subscriptions.get(client)?.has(name)) {
+                            client.send(JSON.stringify(event.parsedJson));
+                        }
+                    });
                 } else {
                     await syncToSqlite(database, tx.checkpoint?.toString() as string, tx.digest, event.parsedJson, OperationType.Remove);
+                    // Broadcast the event to subscribed WebSocket clients
+                    wss.clients.forEach((client) => {
+                        if (client.readyState === client.OPEN && subscriptions.get(client)?.has(name)) {
+                            client.send(JSON.stringify(event.parsedJson));
+                        }
+                    });
                 }
             }
         }

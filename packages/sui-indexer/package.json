@@ -58,6 +58,7 @@
     "@latticexyz/protocol-parser": "^2.2.16",
     "@latticexyz/store": "^2.2.16",
     "@latticexyz/store-sync": "^2.2.16",
+    "@mysten/sui": "^1.19.0",
     "@sentry/node": "^7.86.0",
     "@sentry/profiling-node": "^1.2.6",
     "@sentry/utils": "^7.86.0",
@@ -74,9 +75,9 @@
     "prom-client": "^15.1.2",
     "rxjs": "7.5.5",
     "superjson": "^1.12.4",
-    "@mysten/sui": "^1.19.0",
     "trpc-koa-adapter": "^1.1.3",
     "tsup": "^8.3.5",
+    "ws": "^8.18.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
@@ -84,9 +85,10 @@
     "@types/better-sqlite3": "^7.6.4",
     "@types/debug": "^4.1.7",
     "@types/koa": "^2.13.12",
-    "@types/koa-compose": "^3.2.8",
     "@types/koa__cors": "^4.0.3",
     "@types/koa__router": "^12.0.4",
+    "@types/koa-compose": "^3.2.8",
+    "@types/ws": "^8.5.14",
     "concurrently": "^8.2.2",
     "viem": "2.21.19",
     "vitest": "0.34.6"
