@@ -1,12 +1,16 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
-import {and, eq } from 'drizzle-orm';
-import {dubheStoreEvents, dubheStoreSchemas, dubheStoreTransactions} from "../utils/tables";
+import { and, eq } from 'drizzle-orm';
+import {
+	dubheStoreEvents,
+	dubheStoreSchemas,
+	dubheStoreTransactions,
+} from '../utils/tables';
 
 const typeDefs = `
   type Query {
     transactions(checkpoint: Int): [Transaction!]!
-    schemas(name: String): [Schema!]!
+    schemas(name: String, key1: String, key2: String): [Schema!]!
     events(name: String, checkpoint: String): [Event!]!
   }
 
@@ -43,18 +47,19 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 				_: unknown,
 				{ checkpoint }: { checkpoint?: number }
 			) => {
-				if(checkpoint) {
+				if (checkpoint) {
 					return database
 						.select()
 						.from(dubheStoreTransactions)
 						.where(
-							eq(dubheStoreTransactions.checkpoint, checkpoint.toString())
-						).all();
-				} else {
-					return database
-						.select()
-						.from(dubheStoreTransactions)
+							eq(
+								dubheStoreTransactions.checkpoint,
+								checkpoint.toString()
+							)
+						)
 						.all();
+				} else {
+					return database.select().from(dubheStoreTransactions).all();
 				}
 			},
 
@@ -62,22 +67,27 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 				_: unknown,
 				{
 					name,
+					key1,
+					key2,
 				}: {
 					name?: string;
+					key1?: string;
+					key2?: string;
 				}
 			) => {
-				const records = name
-					? database
-						.select()
-						.from(dubheStoreSchemas)
-						.where(
-							eq(dubheStoreSchemas.name, name)
-						).all()
-					: database
-						.select()
-						.from(dubheStoreTransactions)
-						.all();
+				let query = database.select().from(dubheStoreSchemas);
 
+				if (name) {
+					query = query.where(eq(dubheStoreSchemas.name, name));
+				}
+				if (key1) {
+					query = query.where(eq(dubheStoreSchemas.key1, key1));
+				}
+				if (key2) {
+					query = query.where(eq(dubheStoreSchemas.key2, key2));
+				}
+
+				const records = query.all();
 				return records.map((record: any) => {
 					return {
 						...record,
@@ -93,22 +103,31 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 				{ name, checkpoint }: { name?: string; checkpoint?: string }
 			) => {
 				if (name && checkpoint) {
-					const records =  database.select().from(dubheStoreEvents).where(
-						and(
-							eq(dubheStoreEvents.name, name),
-							eq(dubheStoreEvents.checkpoint, checkpoint.toString())
+					const records = database
+						.select()
+						.from(dubheStoreEvents)
+						.where(
+							and(
+								eq(dubheStoreEvents.name, name),
+								eq(
+									dubheStoreEvents.checkpoint,
+									checkpoint.toString()
+								)
+							)
 						)
-					).all();
+						.all();
 					return records.map((record: any) => {
 						return {
 							...record,
 							value: JSON.stringify(record.value),
 						};
-					})
+					});
 				} else if (name) {
-					const records = database.select().from(dubheStoreEvents).where(
-						eq(dubheStoreEvents.name, name)
-					).all();
+					const records = database
+						.select()
+						.from(dubheStoreEvents)
+						.where(eq(dubheStoreEvents.name, name))
+						.all();
 					return records.map((record: any) => {
 						return {
 							...record,
@@ -116,9 +135,16 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 						};
 					});
 				} else if (checkpoint) {
-					const records = database.select().from(dubheStoreEvents).where(
-						eq(dubheStoreEvents.checkpoint, checkpoint.toString())
-					).all();
+					const records = database
+						.select()
+						.from(dubheStoreEvents)
+						.where(
+							eq(
+								dubheStoreEvents.checkpoint,
+								checkpoint.toString()
+							)
+						)
+						.all();
 					return records.map((record: any) => {
 						return {
 							...record,
@@ -126,13 +152,16 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 						};
 					});
 				} else {
-					const records = database.select().from(dubheStoreEvents).all();
+					const records = database
+						.select()
+						.from(dubheStoreEvents)
+						.all();
 					return records.map((record: any) => {
 						return {
 							...record,
 							value: JSON.stringify(record.value),
 						};
-					})
+					});
 				}
 			},
 		},
