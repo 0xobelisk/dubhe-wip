@@ -1,13 +1,13 @@
-# store-indexer
+# sui-indexer
 
-A minimal Typescript indexer for [MUD Store](https://mud.dev/store) events (built on [store-sync](https://npmjs.com/package/@latticexyz/store-sync))
+A minimal Typescript indexer for `Sui Move` events (built on [sui-client](https://npmjs.com/package/@0xobelisk/sui-client))
 
 ## Usage
 
 Install and run with:
 
 ```sh
-npm install @latticexyz/store-indexer
+npm install @0xobelisk/sui-indexer
 
 npm sqlite-indexer
 # or
