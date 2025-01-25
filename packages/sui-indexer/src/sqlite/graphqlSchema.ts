@@ -66,7 +66,7 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 					name?: string;
 				}
 			) => {
-				const results = name
+				const records = name
 					? database
 						.select()
 						.from(dubheStoreSchemas)
@@ -78,19 +78,12 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 						.from(dubheStoreTransactions)
 						.all();
 
-				return results.map((schema: unknown) => {
-					const typedSchema = schema as {
-						last_update_checkpoint: string;
-						last_update_digest: string;
-						is_removed: boolean;
-						[key: string]: any;
-					};
+				return records.map((record: any) => {
 					return {
-						...typedSchema,
-						lastUpdateCheckpoint:
-							typedSchema.last_update_checkpoint,
-						lastUpdateDigest: typedSchema.last_update_digest,
-						isRemoved: typedSchema.is_removed,
+						...record,
+						value: JSON.stringify(record.value),
+						key1: JSON.stringify(record.key1),
+						key2: JSON.stringify(record.key2),
 					};
 				});
 			},
@@ -100,22 +93,46 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 				{ name, checkpoint }: { name?: string; checkpoint?: string }
 			) => {
 				if (name && checkpoint) {
-					return database.select().from(dubheStoreEvents).where(
+					const records =  database.select().from(dubheStoreEvents).where(
 						and(
 							eq(dubheStoreEvents.name, name),
 							eq(dubheStoreEvents.checkpoint, checkpoint.toString())
 						)
 					).all();
+					return records.map((record: any) => {
+						return {
+							...record,
+							value: JSON.stringify(record.value),
+						};
+					})
 				} else if (name) {
-					return database.select().from(dubheStoreEvents).where(
+					const records = database.select().from(dubheStoreEvents).where(
 						eq(dubheStoreEvents.name, name)
 					).all();
+					return records.map((record: any) => {
+						return {
+							...record,
+							value: JSON.stringify(record.value),
+						};
+					});
 				} else if (checkpoint) {
-					return database.select().from(dubheStoreEvents).where(
+					const records = database.select().from(dubheStoreEvents).where(
 						eq(dubheStoreEvents.checkpoint, checkpoint.toString())
 					).all();
+					return records.map((record: any) => {
+						return {
+							...record,
+							value: JSON.stringify(record.value),
+						};
+					});
 				} else {
-					return database.select().from(dubheStoreEvents).all();
+					const records = database.select().from(dubheStoreEvents).all();
+					return records.map((record: any) => {
+						return {
+							...record,
+							value: JSON.stringify(record.value),
+						};
+					})
 				}
 			},
 		},
