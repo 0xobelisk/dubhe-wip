@@ -1,6 +1,7 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
-import { sql } from 'drizzle-orm';
+import {and, eq } from 'drizzle-orm';
+import {dubheStoreEvents, dubheStoreSchemas, dubheStoreTransactions} from "../utils/tables";
 
 const typeDefs = `
   type Query {
@@ -42,11 +43,19 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 				_: unknown,
 				{ checkpoint }: { checkpoint?: number }
 			) => {
-				const query = checkpoint
-					? sql`SELECT * FROM __dubheStoreTransactions WHERE checkpoint = ${checkpoint}`
-					: sql`SELECT * FROM __dubheStoreTransactions`;
-
-				return await database.all(query);
+				if(checkpoint) {
+					return database
+						.select()
+						.from(dubheStoreTransactions)
+						.where(
+							eq(dubheStoreTransactions.checkpoint, checkpoint.toString())
+						).all();
+				} else {
+					return database
+						.select()
+						.from(dubheStoreTransactions)
+						.all();
+				}
 			},
 
 			schemas: async (
@@ -57,11 +66,18 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 					name?: string;
 				}
 			) => {
-				const query = name
-					? sql`SELECT * FROM __dubheStoreSchemas WHERE name = ${name}`
-					: sql`SELECT * FROM __dubheStoreSchemas`;
+				const results = name
+					? database
+						.select()
+						.from(dubheStoreSchemas)
+						.where(
+							eq(dubheStoreSchemas.name, name)
+						).all()
+					: database
+						.select()
+						.from(dubheStoreTransactions)
+						.all();
 
-				const results = await database.all(query);
 				return results.map((schema: unknown) => {
 					const typedSchema = schema as {
 						last_update_checkpoint: string;
@@ -83,17 +99,24 @@ export function createResolvers(database: BaseSQLiteDatabase<'sync', any>) {
 				_: unknown,
 				{ name, checkpoint }: { name?: string; checkpoint?: string }
 			) => {
-				let query = sql`SELECT * FROM __dubheStoreEvents`;
-
 				if (name && checkpoint) {
-					query = sql`SELECT * FROM __dubheStoreEvents WHERE name = ${name} AND checkpoint = ${checkpoint}`;
+					return database.select().from(dubheStoreEvents).where(
+						and(
+							eq(dubheStoreEvents.name, name),
+							eq(dubheStoreEvents.checkpoint, checkpoint.toString())
+						)
+					).all();
 				} else if (name) {
-					query = sql`SELECT * FROM __dubheStoreEvents WHERE name = ${name}`;
+					return database.select().from(dubheStoreEvents).where(
+						eq(dubheStoreEvents.name, name)
+					).all();
 				} else if (checkpoint) {
-					query = sql`SELECT * FROM __dubheStoreEvents WHERE checkpoint = ${checkpoint}`;
+					return database.select().from(dubheStoreEvents).where(
+						eq(dubheStoreEvents.checkpoint, checkpoint.toString())
+					).all();
+				} else {
+					return database.select().from(dubheStoreEvents).all();
 				}
-
-				return await database.all(query);
 			},
 		},
 	};
