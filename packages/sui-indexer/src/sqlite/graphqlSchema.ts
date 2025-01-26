@@ -282,14 +282,20 @@ export function createResolvers(
 
 				query = query.from(dubheStoreSchemas);
 
+				const conditions = [];
+
 				if (name) {
-					query = query.where(eq(dubheStoreSchemas.name, name));
+					conditions.push(eq(dubheStoreSchemas.name, name));
 				}
 				if (key1) {
-					query = query.where(eq(dubheStoreSchemas.key1, key1));
+					conditions.push(eq(dubheStoreSchemas.key1, key1));
 				}
 				if (key2) {
-					query = query.where(eq(dubheStoreSchemas.key2, key2));
+					conditions.push(eq(dubheStoreSchemas.key2, key2));
+				}
+
+				if (conditions.length > 0) {
+					query = query.where(and(...conditions));
 				}
 
 				if (after) {

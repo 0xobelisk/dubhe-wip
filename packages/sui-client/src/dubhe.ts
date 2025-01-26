@@ -41,12 +41,15 @@ import {
   SuiVecTxArg,
 } from './types';
 import {
+  convertHttpToWebSocket,
   normalizeHexAddress,
   normalizePackageId,
   numberToAddressHex,
 } from './utils';
 import { bcs, fromHEX, toHEX } from '@mysten/bcs';
 import { ContractDataParsingError } from './errors';
+import { SuiIndexerClient } from './libs/suiIndexerClient';
+import { Http } from './libs/http';
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
@@ -121,8 +124,10 @@ function createTx(
  * @description This class is used to aggregate the tools that used to interact with SUI network.
  */
 export class Dubhe {
+  public http: Http;
   public accountManager: SuiAccountManager;
   public suiInteractor: SuiInteractor;
+  public suiIndexerClient: SuiIndexerClient;
   public contractFactory: SuiContractFactory;
   public packageId: string | undefined;
   public metadata: SuiMoveNormalizedModules | undefined;
@@ -237,12 +242,26 @@ export class Dubhe {
     fullnodeUrls,
     packageId,
     metadata,
+    customFetch,
+    defaultOptions,
+    indexerUrl,
+    indexerWsUrl,
   }: DubheParams = {}) {
+    networkType = networkType ?? 'mainnet';
+
+    const defaultParams = getDefaultURL(networkType);
+
     // Init the account manager
     this.accountManager = new SuiAccountManager({ mnemonics, secretKey });
     // Init the rpc provider
-    fullnodeUrls = fullnodeUrls || [getFullnodeUrl(networkType ?? 'mainnet')];
+    fullnodeUrls = fullnodeUrls || [defaultParams.fullNode];
     this.suiInteractor = new SuiInteractor(fullnodeUrls, networkType);
+
+    indexerUrl = indexerUrl || defaultParams.indexerUrl;
+    indexerWsUrl = indexerWsUrl || convertHttpToWebSocket(indexerUrl);
+    this.http = new Http(indexerUrl, indexerWsUrl, customFetch, defaultOptions);
+
+    this.suiIndexerClient = new SuiIndexerClient(this.http);
 
     this.packageId = packageId ? normalizePackageId(packageId) : undefined;
     if (metadata !== undefined) {
@@ -1226,6 +1245,10 @@ export class Dubhe {
 
   client() {
     return this.suiInteractor.currentClient;
+  }
+
+  indexerClient() {
+    return this.suiIndexerClient;
   }
 
   async getObject(objectId: string) {

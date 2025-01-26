@@ -28,3 +28,12 @@ export function normalizePackageId(input: string): string {
   const normalized = withoutPrefix.replace(/^0+/, '');
   return '0x' + normalized;
 }
+
+export function convertHttpToWebSocket(url: string): string {
+  if (url.startsWith('https://')) {
+    return url.replace('https://', 'wss://');
+  } else if (url.startsWith('http://')) {
+    return url.replace('http://', 'ws://');
+  }
+  return url;
+}

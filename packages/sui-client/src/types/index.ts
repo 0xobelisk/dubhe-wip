@@ -23,6 +23,7 @@ import type {
 import { SuiTx } from '../libs/suiTxBuilder';
 
 import { SuiMoveMoudleFuncType } from '../libs/suiContractFactory/types';
+import { FetchOptions } from '../libs/http';
 
 export const ObjectContentFields = record(string(), any());
 export type ObjectContentFields = Infer<typeof ObjectContentFields>;
@@ -50,6 +51,10 @@ export type DubheParams = {
   networkType?: NetworkType;
   packageId?: string;
   metadata?: SuiMoveNormalizedModules;
+  customFetch?: typeof fetch;
+  defaultOptions?: FetchOptions;
+  indexerUrl?: string;
+  indexerWsUrl?: string;
 };
 
 export type SchemaFieldType = {
