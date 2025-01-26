@@ -7,7 +7,9 @@ import { createSchema } from './graphqlSchema';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function apiRoutes(
-	database: BaseSQLiteDatabase<'sync', any>
+	database: BaseSQLiteDatabase<'sync', any>,
+	defaultPageSize: number,
+	paginationLimit: number
 ): Middleware {
 	const router = new Router();
 
@@ -56,7 +58,7 @@ export function apiRoutes(
 	// });
 
 	const yoga = createYoga({
-		schema: createSchema(database),
+		schema: createSchema(database, defaultPageSize, paginationLimit),
 		graphqlEndpoint: '/graphql',
 		landingPage: true,
 		cors: true,

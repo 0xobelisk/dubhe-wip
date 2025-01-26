@@ -136,7 +136,7 @@ app.use(
 	})
 );
 app.use(helloWorld());
-app.use(apiRoutes(database));
+app.use(apiRoutes(database, env.DEFAULT_PAGE_SIZE, env.PAGINATION_LIMIT));
 
 app.use(
 	createKoaMiddleware({
