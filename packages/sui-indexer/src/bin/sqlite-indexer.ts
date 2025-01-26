@@ -20,7 +20,7 @@ import { helloWorld } from '../koa-middleware/helloWorld';
 import { apiRoutes } from '../sqlite/apiRoutes';
 import { sentry } from '../koa-middleware/sentry';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
-import { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core/index';
+import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {
 	dubheStoreEvents,
 	dubheStoreTransactions,
@@ -32,8 +32,7 @@ import { desc, sql } from 'drizzle-orm';
 import { metrics } from '../koa-middleware/metrics';
 import { createAppRouter } from '../sqlite/createAppRouter';
 import { createServer } from 'http';
-import { WebSocketServer, WebSocket } from 'ws';
-
+// import { WebSocketServer, WebSocket } from 'ws';
 const env = parseEnv(
 	z.intersection(
 		z.intersection(indexerEnvSchema, frontendEnvSchema),
@@ -83,7 +82,7 @@ database.run(sql`
         )`);
 
 async function getLastTxRecord(
-	sqliteDB: BaseSQLiteDatabase<'sync', any>
+	sqliteDB: BetterSQLite3Database
 ): Promise<string | undefined> {
 	const txRecord = await sqliteDB
 		.select()
@@ -114,7 +113,7 @@ let isCaughtUp = false;
 
 const app = new Koa();
 const server = createServer(app.callback());
-const wss = new WebSocketServer({ server });
+// const wss = new WebSocketServer({ server });
 
 if (env.SENTRY_DSN) {
 	app.use(sentry(env.SENTRY_DSN));
@@ -136,7 +135,9 @@ app.use(
 	})
 );
 app.use(helloWorld());
-app.use(apiRoutes(database, env.DEFAULT_PAGE_SIZE, env.PAGINATION_LIMIT));
+app.use(
+	apiRoutes(database, env.DEFAULT_PAGE_SIZE, env.PAGINATION_LIMIT, server)
+);
 
 app.use(
 	createKoaMiddleware({
@@ -148,27 +149,27 @@ app.use(
 	})
 );
 
-const subscriptions = new Map<WebSocket, Set<string>>();
+// const subscriptions = new Map<WebSocket, Set<string>>();
 
-wss.on('connection', ws => {
-	console.log('New client connected');
+// wss.on('connection', ws => {
+// 	console.log('New client connected');
 
-	ws.on('message', message => {
-		const parsedMessage = JSON.parse(message.toString());
-		if (parsedMessage.type === 'subscribe' && parsedMessage.name) {
-			if (!subscriptions.has(ws)) {
-				subscriptions.set(ws, new Set());
-			}
-			subscriptions.get(ws)!.add(parsedMessage.name);
-			console.log(`Client subscribed to event: ${parsedMessage.name}`);
-		}
-	});
+// 	ws.on('message', message => {
+// 		const parsedMessage = JSON.parse(message.toString());
+// 		if (parsedMessage.type === 'subscribe' && parsedMessage.name) {
+// 			if (!subscriptions.has(ws)) {
+// 				subscriptions.set(ws, new Set());
+// 			}
+// 			subscriptions.get(ws)!.add(parsedMessage.name);
+// 			console.log(`Client subscribed to event: ${parsedMessage.name}`);
+// 		}
+// 	});
 
-	ws.on('close', () => {
-		subscriptions.delete(ws);
-		console.log('Client disconnected');
-	});
-});
+// 	ws.on('close', () => {
+// 		subscriptions.delete(ws);
+// 		console.log('Client disconnected');
+// 	});
+// });
 
 server.listen({ host: env.HOST, port: env.PORT });
 console.log(
@@ -216,21 +217,21 @@ while (true) {
 						// @ts-ignore
 						value: event.parsedJson['value'],
 					});
-					// Broadcast the event to subscribed WebSocket clients
-					wss.clients.forEach(client => {
-						if (
-							client.readyState === client.OPEN &&
-							subscriptions.get(client)?.has(name)
-						) {
-							// @ts-ignore
-							const value = event.parsedJson['value'];
-							if (typeof value === 'object') {
-								client.send(JSON.stringify(value['fields']));
-							} else {
-								client.send(JSON.stringify(value));
-							}
-						}
-					});
+					// // Broadcast the event to subscribed WebSocket clients
+					// wss.clients.forEach(client => {
+					// 	if (
+					// 		client.readyState === client.OPEN &&
+					// 		subscriptions.get(client)?.has(name)
+					// 	) {
+					// 		// @ts-ignore
+					// 		const value = event.parsedJson['value'];
+					// 		if (typeof value === 'object') {
+					// 			client.send(JSON.stringify(value['fields']));
+					// 		} else {
+					// 			client.send(JSON.stringify(value));
+					// 		}
+					// 	}
+					// });
 					// @ts-ignore
 				} else if (event.parsedJson.hasOwnProperty('value')) {
 					await syncToSqlite(
@@ -241,14 +242,14 @@ while (true) {
 						OperationType.Set
 					);
 					// Broadcast the event to subscribed WebSocket clients
-					wss.clients.forEach(client => {
-						if (
-							client.readyState === client.OPEN &&
-							subscriptions.get(client)?.has(name)
-						) {
-							client.send(JSON.stringify(event.parsedJson));
-						}
-					});
+					// wss.clients.forEach(client => {
+					// 	if (
+					// 		client.readyState === client.OPEN &&
+					// 		subscriptions.get(client)?.has(name)
+					// 	) {
+					// 		client.send(JSON.stringify(event.parsedJson));
+					// 	}
+					// });
 				} else {
 					await syncToSqlite(
 						database,
@@ -257,15 +258,15 @@ while (true) {
 						event.parsedJson,
 						OperationType.Remove
 					);
-					// Broadcast the event to subscribed WebSocket clients
-					wss.clients.forEach(client => {
-						if (
-							client.readyState === client.OPEN &&
-							subscriptions.get(client)?.has(name)
-						) {
-							client.send(JSON.stringify(event.parsedJson));
-						}
-					});
+					// // Broadcast the event to subscribed WebSocket clients
+					// wss.clients.forEach(client => {
+					// 	if (
+					// 		client.readyState === client.OPEN &&
+					// 		subscriptions.get(client)?.has(name)
+					// 	) {
+					// 		client.send(JSON.stringify(event.parsedJson));
+					// 	}
+					// });
 				}
 			}
 		}

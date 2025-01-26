@@ -124,6 +124,12 @@ const typeDefs = `
     name: String!
     value: String!
   }
+
+  type Subscription {
+    onNewTransaction: Transaction
+    onNewSchema: Schema
+    onNewEvent: Event
+  }
 `;
 
 export function createResolvers(
@@ -134,11 +140,9 @@ export function createResolvers(
 	const DEFAULT_PAGE_SIZE = defaultPageSize;
 	const PAGINATION_LIMIT = paginationLimit;
 
-	// 辅助函数：编码游标
 	const encodeCursor = (id: number) =>
 		Buffer.from(id.toString()).toString('base64');
 
-	// 解码游标
 	const decodeCursor = (cursor: string) =>
 		parseInt(Buffer.from(cursor, 'base64').toString());
 
@@ -189,10 +193,6 @@ export function createResolvers(
 					query = database.select();
 				}
 
-				// if (distinct) {
-				// 	query = query.from(dubheStoreTransactions).;
-				// }
-
 				query = query.from(dubheStoreTransactions);
 
 				if (checkpoint) {
@@ -204,7 +204,6 @@ export function createResolvers(
 					);
 				}
 
-				// 处理游标
 				if (after) {
 					const afterId = decodeCursor(after);
 					query = query.where(gt(dubheStoreTransactions.id, afterId));
@@ -438,6 +437,87 @@ export function createResolvers(
 						endCursor: edges[edges.length - 1]?.cursor,
 					},
 				};
+			},
+		},
+
+		Subscription: {
+			onNewTransaction: {
+				subscribe: async function* () {
+					let lastId = 0;
+
+					while (true) {
+						const latestTransactions = database
+							.select()
+							.from(dubheStoreTransactions)
+							.where(gt(dubheStoreTransactions.id, lastId))
+							.orderBy(desc(dubheStoreTransactions.id))
+							.limit(1)
+							.all();
+
+						if (latestTransactions.length > 0) {
+							lastId =
+								latestTransactions[
+									latestTransactions.length - 1
+								].id;
+
+							for (const tx of latestTransactions) {
+								yield { onNewTransaction: tx };
+							}
+						}
+
+						await new Promise(resolve => setTimeout(resolve, 1000));
+					}
+				},
+			},
+
+			onNewSchema: {
+				subscribe: async function* () {
+					while (true) {
+						const latestSchema = database
+							.select()
+							.from(dubheStoreSchemas)
+							.orderBy(desc(dubheStoreSchemas.id))
+							.limit(1)
+							.all()[0];
+
+						if (latestSchema) {
+							yield {
+								onNewSchema: {
+									...latestSchema,
+									value: JSON.stringify(latestSchema.value),
+									key1: JSON.stringify(latestSchema.key1),
+									key2: JSON.stringify(latestSchema.key2),
+								},
+							};
+						}
+
+						await new Promise(resolve => setTimeout(resolve, 1000));
+					}
+				},
+			},
+
+			onNewEvent: {
+				subscribe: async function* () {
+					while (true) {
+						const latestEvent = database
+							.select()
+							.from(dubheStoreEvents)
+							.orderBy(desc(dubheStoreEvents.id))
+							.limit(1)
+							.all()[0];
+
+						if (latestEvent) {
+							yield {
+								onNewEvent: {
+									...latestEvent,
+									value: JSON.stringify(latestEvent.value),
+								},
+							};
+						}
+
+						await new Promise(resolve => setTimeout(resolve, 1000));
+					}
+				},
 			},
 		},
 	};
