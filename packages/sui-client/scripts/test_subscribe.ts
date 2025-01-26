@@ -51,7 +51,35 @@ async function testSubscription() {
   }
 }
 
-testSubscription().catch((error) => {
-  console.error('Program error:', error);
-  process.exit(1);
-});
+// testSubscription().catch((error) => {
+//   console.error('Program error:', error);
+//   process.exit(1);
+// });
+
+function testSubscription1() {
+  const ws = new WebSocket('ws://127.0.0.1:3001');
+
+  ws.on('open', () => {
+    console.log('Connected to the WebSocket server');
+    // Subscribe to specific event names
+    const subscribeMessage = JSON.stringify({
+      type: 'subscribe',
+      names: ['monster_catch_attempt_event', 'position'], // Replace with the event name you want to subscribe to
+    });
+    ws.send(subscribeMessage);
+  });
+
+  ws.on('message', (data) => {
+    console.log(`Received message: ${data}`);
+  });
+
+  ws.on('close', () => {
+    console.log('Disconnected from the WebSocket server');
+  });
+
+  ws.on('error', (error) => {
+    console.error(`WebSocket error: ${error}`);
+  });
+}
+
+testSubscription1()

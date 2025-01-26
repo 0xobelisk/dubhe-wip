@@ -440,86 +440,86 @@ export function createResolvers(
 			},
 		},
 
-		Subscription: {
-			onNewTransaction: {
-				subscribe: async function* () {
-					let lastId = 0;
-
-					while (true) {
-						const latestTransactions = database
-							.select()
-							.from(dubheStoreTransactions)
-							.where(gt(dubheStoreTransactions.id, lastId))
-							.orderBy(desc(dubheStoreTransactions.id))
-							.limit(1)
-							.all();
-
-						if (latestTransactions.length > 0) {
-							lastId =
-								latestTransactions[
-									latestTransactions.length - 1
-								].id;
-
-							for (const tx of latestTransactions) {
-								yield { onNewTransaction: tx };
-							}
-						}
-
-						await new Promise(resolve => setTimeout(resolve, 1000));
-					}
-				},
-			},
-
-			onNewSchema: {
-				subscribe: async function* () {
-					while (true) {
-						const latestSchema = database
-							.select()
-							.from(dubheStoreSchemas)
-							.orderBy(desc(dubheStoreSchemas.id))
-							.limit(1)
-							.all()[0];
-
-						if (latestSchema) {
-							yield {
-								onNewSchema: {
-									...latestSchema,
-									value: JSON.stringify(latestSchema.value),
-									key1: JSON.stringify(latestSchema.key1),
-									key2: JSON.stringify(latestSchema.key2),
-								},
-							};
-						}
-
-						await new Promise(resolve => setTimeout(resolve, 1000));
-					}
-				},
-			},
-
-			onNewEvent: {
-				subscribe: async function* () {
-					while (true) {
-						const latestEvent = database
-							.select()
-							.from(dubheStoreEvents)
-							.orderBy(desc(dubheStoreEvents.id))
-							.limit(1)
-							.all()[0];
-
-						if (latestEvent) {
-							yield {
-								onNewEvent: {
-									...latestEvent,
-									value: JSON.stringify(latestEvent.value),
-								},
-							};
-						}
-
-						await new Promise(resolve => setTimeout(resolve, 1000));
-					}
-				},
-			},
-		},
+		// Subscription: {
+		// 	onNewTransaction: {
+		// 		subscribe: async function* () {
+		// 			let lastId = 0;
+		//
+		// 			while (true) {
+		// 				const latestTransactions = database
+		// 					.select()
+		// 					.from(dubheStoreTransactions)
+		// 					.where(gt(dubheStoreTransactions.id, lastId))
+		// 					.orderBy(desc(dubheStoreTransactions.id))
+		// 					.limit(1)
+		// 					.all();
+		//
+		// 				if (latestTransactions.length > 0) {
+		// 					lastId =
+		// 						latestTransactions[
+		// 							latestTransactions.length - 1
+		// 						].id;
+		//
+		// 					for (const tx of latestTransactions) {
+		// 						yield { onNewTransaction: tx };
+		// 					}
+		// 				}
+		//
+		// 				await new Promise(resolve => setTimeout(resolve, 1000));
+		// 			}
+		// 		},
+		// 	},
+		//
+		// 	onNewSchema: {
+		// 		subscribe: async function* () {
+		// 			while (true) {
+		// 				const latestSchema = database
+		// 					.select()
+		// 					.from(dubheStoreSchemas)
+		// 					.orderBy(desc(dubheStoreSchemas.id))
+		// 					.limit(1)
+		// 					.all()[0];
+		//
+		// 				if (latestSchema) {
+		// 					yield {
+		// 						onNewSchema: {
+		// 							...latestSchema,
+		// 							value: JSON.stringify(latestSchema.value),
+		// 							key1: JSON.stringify(latestSchema.key1),
+		// 							key2: JSON.stringify(latestSchema.key2),
+		// 						},
+		// 					};
+		// 				}
+		//
+		// 				await new Promise(resolve => setTimeout(resolve, 1000));
+		// 			}
+		// 		},
+		// 	},
+		//
+		// 	onNewEvent: {
+		// 		subscribe: async function* () {
+		// 			while (true) {
+		// 				const latestEvent = database
+		// 					.select()
+		// 					.from(dubheStoreEvents)
+		// 					.orderBy(desc(dubheStoreEvents.id))
+		// 					.limit(1)
+		// 					.all()[0];
+		//
+		// 				if (latestEvent) {
+		// 					yield {
+		// 						onNewEvent: {
+		// 							...latestEvent,
+		// 							value: JSON.stringify(latestEvent.value),
+		// 						},
+		// 					};
+		// 				}
+		//
+		// 				await new Promise(resolve => setTimeout(resolve, 1000));
+		// 			}
+		// 		},
+		// 	},
+		// },
 	};
 }
 
