@@ -56,21 +56,25 @@ async function testSubscription() {
 //   process.exit(1);
 // });
 
-function testSubscription1() {
-  const ws = new WebSocket('ws://127.0.0.1:3001');
+function testSubscription1(
+    url: string,
+    names: string[],
+    handleData: (data: any) => void
+) {
+  const ws = new WebSocket(url);
 
   ws.on('open', () => {
     console.log('Connected to the WebSocket server');
     // Subscribe to specific event names
     const subscribeMessage = JSON.stringify({
       type: 'subscribe',
-      names: ['monster_catch_attempt_event', 'position'], // Replace with the event name you want to subscribe to
+      names: names,
     });
     ws.send(subscribeMessage);
   });
 
   ws.on('message', (data) => {
-    console.log(`Received message: ${data}`);
+    handleData(data);
   });
 
   ws.on('close', () => {
@@ -82,4 +86,11 @@ function testSubscription1() {
   });
 }
 
-testSubscription1()
+// Example usage:
+testSubscription1(
+    'ws://127.0.0.1:3001',
+    ['monster_catch_attempt_event', 'position'],
+    (data) => {
+      console.log(`Received message: ${data}`);
+    }
+);
