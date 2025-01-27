@@ -1,7 +1,7 @@
 {
 	"name": "@0xobelisk/sui-indexer",
-	"version": "2.2.16",
-	"description": "Minimal Typescript indexer for Store",
+	"version": "0.0.1",
+	"description": "Minimal Typescript indexer for Dubhe",
 	"type": "module",
 	"author": "team@obelisk.build",
 	"homepage": "https://github.com/0xobelisk/dubhe/tree/main/packages/sui-indexer#readme",

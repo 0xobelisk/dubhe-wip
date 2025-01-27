@@ -48,8 +48,14 @@ import {
 } from './utils';
 import { bcs, fromHEX, toHEX } from '@mysten/bcs';
 import { ContractDataParsingError } from './errors';
-import { SuiIndexerClient } from './libs/suiIndexerClient';
+import {
+  ConnectionResponse,
+  OrderBy,
+  Schema,
+  SuiIndexerClient,
+} from './libs/suiIndexerClient';
 import { Http } from './libs/http';
+import { WebSocket } from 'ws';
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
@@ -1102,6 +1108,47 @@ export class Dubhe {
       schema,
       params: processedParams,
     });
+  }
+
+  async getStorage({
+    name,
+    key1,
+    key2,
+    first,
+    after,
+    last,
+    before,
+    orderBy,
+    distinct,
+  }: {
+    name: string;
+    key1?: string;
+    key2?: string;
+    first?: number;
+    after?: string;
+    last?: number;
+    before?: string;
+    orderBy?: OrderBy;
+    distinct?: boolean;
+  }): Promise<ConnectionResponse<Schema>> {
+    return await this.suiIndexerClient.getStorage({
+      name,
+      key1,
+      key2,
+      first,
+      after,
+      last,
+      before,
+      orderBy,
+      distinct,
+    });
+  }
+
+  async subscribe(
+    names: string[],
+    handleData: (data: any) => void
+  ): Promise<WebSocket> {
+    return this.suiIndexerClient.subscribe(names, handleData);
   }
 
   #processKeyParameter(tx: Transaction, keyType: string, value: any) {

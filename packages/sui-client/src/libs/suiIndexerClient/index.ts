@@ -1,30 +1,30 @@
 import { Http } from '../http';
 import { WebSocket } from 'ws';
 
-interface OrderDirection {
+export interface OrderDirection {
   ASC: 'ASC';
   DESC: 'DESC';
 }
 
-interface OrderBy {
+export interface OrderBy {
   field: string;
   direction: OrderDirection['ASC'] | OrderDirection['DESC'];
 }
 
-interface PageInfo {
+export interface PageInfo {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   startCursor?: string;
   endCursor?: string;
 }
 
-interface Transaction {
+export interface Transaction {
   id: number;
   checkpoint: number;
   digest: string;
 }
 
-interface Schema {
+export interface Schema {
   id: number;
   name: string;
   key1?: string;
@@ -35,7 +35,7 @@ interface Schema {
   is_removed: boolean;
 }
 
-interface Event {
+export interface Event {
   id: number;
   checkpoint: string;
   digest: string;
@@ -43,7 +43,7 @@ interface Event {
   value: string;
 }
 
-interface ConnectionResponse<T> {
+export interface ConnectionResponse<T> {
   edges: Array<{
     cursor: string;
     node: T;
@@ -108,7 +108,7 @@ export class SuiIndexerClient {
     key2?: string;
     orderBy?: OrderBy;
     distinct?: boolean;
-  }) {
+  }): Promise<ConnectionResponse<Schema>> {
     const query = `
       query GetSchemas($first: Int, $after: String, $last: Int, $before: String, $name: String, $key1: String, $key2: String, $orderBy: SchemaOrderBy, $distinct: Boolean) {
         schemas(first: $first, after: $after, last: $last, before: $before, name: $name, key1: $key1, key2: $key2, orderBy: $orderBy, distinct: $distinct) {
@@ -200,7 +200,7 @@ export class SuiIndexerClient {
     before?: string;
     orderBy?: OrderBy;
     distinct?: boolean;
-  }) {
+  }): Promise<ConnectionResponse<Schema>> {
     const schemas = await this.getSchemas({
       name,
       key1,
@@ -216,7 +216,10 @@ export class SuiIndexerClient {
     return schemas;
   }
 
-  async subscribe(names: string[], handleData: (data: any) => void): Promise<WebSocket> {
+  async subscribe(
+    names: string[],
+    handleData: (data: any) => void
+  ): Promise<WebSocket> {
     return this.http.subscribe(names, handleData);
   }
 }
