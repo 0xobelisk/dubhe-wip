@@ -81,7 +81,7 @@ database.run(sql`
             digest TEXT,
             name TEXT,
             value TEXT,
-			create_at TEXT
+			created_at TEXT
         )`);
 
 async function getLastTxRecord(

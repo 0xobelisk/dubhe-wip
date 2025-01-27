@@ -137,7 +137,7 @@ export class Http {
     });
 
     ws.on('message', (data) => {
-      handleData(data);
+      handleData(JSON.parse(data.toString()));
     });
 
     ws.on('close', () => {

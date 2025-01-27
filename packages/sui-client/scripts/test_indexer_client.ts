@@ -14,10 +14,10 @@ dotenv.config();
 async function init() {
   const network = 'localnet';
   const packageId =
-    '0x68ed4d88366436c15956f3284132561f41dc76fc6247af3caccf34717d62801e';
+    '0xc2ce7f56f41b7a5754d27b5a184e9b2a60cfff57f9ece2181481aeaeed288667';
 
   const schemaId =
-    '0x29d2f860affdacb9bee4350419bc7d1edc552da738f0c26b67acc9fa15b961d0';
+    '0xea7a58fc55d8e767eabe0501245dc17f3587a2ff85d007584ed7fde97d06e211';
 
   const metadata = await loadMetadata(network as NetworkType, packageId);
 
@@ -37,12 +37,12 @@ async function init() {
     key1: '0x379aa1cc401f024e2fee2ea25bdb85e48355491bd6fcaf685e39a7fcc84b2101',
   });
 
-  console.log(response2.edges[0].node);
+  // console.log(response2.edges[0].node);
 
   await dubhe.suiIndexerClient.subscribe(
     ['monster_catch_attempt_event', 'position'],
     (data) => {
-      console.log(`Received message: ${data}`);
+      console.log(`Received message: `, data);
     }
   );
 
