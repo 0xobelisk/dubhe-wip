@@ -19,6 +19,7 @@ export const dubheStoreTransactions = sqliteTable("__dubheStoreTransactions", {
     id: integer("id").notNull().primaryKey().unique(),
     checkpoint: text("checkpoint").notNull(),
     digest: text("digest").notNull(),
+    created_at: text("created_at").notNull(),
 });
 
 export const dubheStoreSchemas = sqliteTable("__dubheStoreSchemas", {
@@ -30,6 +31,8 @@ export const dubheStoreSchemas = sqliteTable("__dubheStoreSchemas", {
     last_update_checkpoint: text("last_update_checkpoint").notNull(),
     last_update_digest: text("last_update_digest").notNull(),
     is_removed: integer("is_removed", { mode: "boolean" }).notNull().default(false),
+    created_at: text("created_at").notNull(),
+    updated_at: text("updated_at").notNull(),
 });
 
 export const dubheStoreEvents = sqliteTable("__dubheStoreEvents", {
@@ -38,16 +41,18 @@ export const dubheStoreEvents = sqliteTable("__dubheStoreEvents", {
     value: text("value", { mode: "json" }).notNull(),
     checkpoint: text("checkpoint").notNull(),
     digest: text("digest").notNull(),
+    created_at: text("created_at").notNull(),
 });
 
-export async function insertTx(sqliteDB: ReturnType<typeof drizzle>, checkpoint: string, digest: string) {
+export async function insertTx(sqliteDB: ReturnType<typeof drizzle>, checkpoint: string, digest: string, created_at: string) {
     await sqliteDB.insert(dubheStoreTransactions).values({
         checkpoint,
-        digest
+        digest,
+        created_at
     })
 }
 
-export async function syncToSqlite(sqliteDB: ReturnType<typeof drizzle>, checkpoint: string, digest: string, event: unknown, operationType: OperationType) {
+export async function syncToSqlite(sqliteDB: ReturnType<typeof drizzle>, checkpoint: string, digest: string, created_at: string, event: unknown, operationType: OperationType) {
     let res = event as EventData;
     if (operationType === OperationType.Remove) {
         sqliteDB.update(dubheStoreSchemas).set({ is_removed: true }).where(
@@ -79,10 +84,6 @@ export async function syncToSqlite(sqliteDB: ReturnType<typeof drizzle>, checkpo
             )
             .execute();
 
-        // existingRecord
-
-        console.log("existingRecord", existingRecord);
-
         if (existingRecord.length > 0) {
             const id = existingRecord[0].id;
             await sqliteDB
@@ -91,7 +92,8 @@ export async function syncToSqlite(sqliteDB: ReturnType<typeof drizzle>, checkpo
                     last_update_checkpoint: checkpoint,
                     last_update_digest: digest,
                     value: res.value,
-                    is_removed: false
+                    is_removed: false,
+                    updated_at: created_at
                 })
                 .where(eq(dubheStoreSchemas.id, id))
                 .execute();
@@ -106,7 +108,9 @@ export async function syncToSqlite(sqliteDB: ReturnType<typeof drizzle>, checkpo
                     key1: res.key1,
                     key2: res.key2,
                     value: res.value,
-                    is_removed: false
+                    is_removed: false,
+                    created_at,
+                    updated_at: created_at
                 })
                 .execute();
             console.log("Data inserted successfully:", checkpoint, digest, res.name);

@@ -59,7 +59,7 @@ console.log('chainId', chainId);
 const database = drizzle(new Database(env.SQLITE_FILENAME));
 
 database.run(
-	sql`CREATE TABLE IF NOT EXISTS __dubheStoreTransactions (id INTEGER PRIMARY KEY AUTOINCREMENT, checkpoint INTEGER, digest TEXT)`
+	sql`CREATE TABLE IF NOT EXISTS __dubheStoreTransactions (id INTEGER PRIMARY KEY AUTOINCREMENT, checkpoint INTEGER, digest TEXT, created_at TEXT)`
 );
 database.run(sql`
         CREATE TABLE IF NOT EXISTS __dubheStoreSchemas (
@@ -70,7 +70,9 @@ database.run(sql`
             key1 TEXT,
             key2 TEXT,
             value TEXT,
-            is_removed BOOLEAN DEFAULT FALSE
+            is_removed BOOLEAN DEFAULT FALSE,
+			created_at TEXT,
+			updated_at TEXT
         )`);
 database.run(sql`
         CREATE TABLE IF NOT EXISTS __dubheStoreEvents (
@@ -78,7 +80,8 @@ database.run(sql`
             checkpoint TEXT,
             digest TEXT,
             name TEXT,
-            value TEXT
+            value TEXT,
+			create_at TEXT
         )`);
 
 async function getLastTxRecord(
@@ -197,7 +200,8 @@ while (true) {
 		await insertTx(
 			database,
 			tx.checkpoint?.toString() as string,
-			tx.digest
+			tx.digest,
+			tx.timestampMs?.toString() as string
 		);
 		if (tx.events) {
 			for (const event of tx.events) {
@@ -210,6 +214,7 @@ while (true) {
 					await database.insert(dubheStoreEvents).values({
 						checkpoint: tx.checkpoint?.toString() as string,
 						digest: tx.digest,
+						created_at: tx.timestampMs?.toString() as string,
 						name: name,
 						// @ts-ignore
 						value: event.parsedJson['value'],
@@ -235,6 +240,7 @@ while (true) {
 						database,
 						tx.checkpoint?.toString() as string,
 						tx.digest,
+						tx.timestampMs?.toString() as string,
 						event.parsedJson,
 						OperationType.Set
 					);
@@ -252,6 +258,7 @@ while (true) {
 						database,
 						tx.checkpoint?.toString() as string,
 						tx.digest,
+						tx.timestampMs?.toString() as string,
 						event.parsedJson,
 						OperationType.Remove
 					);

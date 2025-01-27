@@ -104,6 +104,7 @@ const typeDefs = `
     id: Int!
     checkpoint: Int!
     digest: String!
+    created_at: String!
   }
 
   type Schema {
@@ -115,6 +116,8 @@ const typeDefs = `
     last_update_checkpoint: String!
     last_update_digest: String!
     is_removed: Boolean!
+    created_at: String!
+    updated_at: String!
   }
 
   type Event {
@@ -123,6 +126,7 @@ const typeDefs = `
     digest: String!
     name: String!
     value: String!
+    created_at: String!
   }
 
   type Subscription {
