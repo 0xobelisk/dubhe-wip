@@ -123,7 +123,7 @@ export class Http {
     }
   }
 
-  async subscribe(names: string[], handleData: (data: any) => void) {
+  async subscribe(names: string[], handleData: (data: any) => void): Promise<WebSocket> {
     const ws = new WebSocket(this.wsEndpoint);
 
     ws.on('open', () => {
@@ -147,5 +147,7 @@ export class Http {
     ws.on('error', (error) => {
       console.error(`WebSocket error: ${error}`);
     });
+
+    return ws;
   }
 }

@@ -1,4 +1,5 @@
 import { Http } from '../http';
+import { WebSocket } from 'ws';
 
 interface OrderDirection {
   ASC: 'ASC';
@@ -215,7 +216,7 @@ export class SuiIndexerClient {
     return schemas;
   }
 
-  async subscribe(names: string[], handleData: (data: any) => void) {
-    this.http.subscribe(names, handleData);
+  async subscribe(names: string[], handleData: (data: any) => void): Promise<WebSocket> {
+    return this.http.subscribe(names, handleData);
   }
 }

@@ -8,8 +8,11 @@ import {
   bcs,
 } from '../src/index';
 import * as process from 'process';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 dotenv.config();
+import { WebSocket } from "ws";
+
+let sub: WebSocket;
 
 async function init() {
   const network = 'localnet';
@@ -39,7 +42,7 @@ async function init() {
 
   // console.log(response2.edges[0].node);
 
-  await dubhe.suiIndexerClient.subscribe(
+  sub = await dubhe.suiIndexerClient.subscribe(
     ['monster_catch_attempt_event', 'position'],
     (data) => {
       console.log(`Received message: `, data);
@@ -49,4 +52,4 @@ async function init() {
   //   console.log(JSON.stringify(response2, null, 2));
 }
 
-init();
+init()
