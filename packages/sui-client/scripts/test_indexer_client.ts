@@ -10,7 +10,6 @@ import {
 import * as process from 'process';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { WebSocket } from 'ws';
 
 let sub: WebSocket;
 

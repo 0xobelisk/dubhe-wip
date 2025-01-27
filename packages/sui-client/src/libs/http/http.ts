@@ -1,5 +1,5 @@
-import { WebSocket } from 'ws';
 import { BaseError, HttpError, GraphQLError, ParseError } from './errors';
+import { createWebSocketClient, WebSocketInstance } from './ws-adapter';
 
 export type FetchOptions = RequestInit & {
   next?: {
@@ -62,7 +62,6 @@ export class Http {
     try {
       const isFirstPage = variables?.after === 'first';
       const fetchFn = this.getFetch();
-      console.log(query);
       const response = await fetchFn(this.graphqlEndpoint, {
         method: 'POST',
         headers: {
@@ -109,7 +108,6 @@ export class Http {
 
       return data.data;
     } catch (error) {
-      console.log(error);
       if (error instanceof BaseError) {
         throw error;
       }
@@ -123,30 +121,32 @@ export class Http {
     }
   }
 
-  async subscribe(names: string[], handleData: (data: any) => void): Promise<WebSocket> {
-    const ws = new WebSocket(this.wsEndpoint);
+  async subscribe(
+    names: string[],
+    handleData: (data: any) => void
+  ): Promise<WebSocketInstance> {
+    const ws = createWebSocketClient(this.wsEndpoint);
 
-    ws.on('open', () => {
+    ws.onopen = () => {
       console.log('Connected to the WebSocket server');
-      // Subscribe to specific event names
       const subscribeMessage = JSON.stringify({
         type: 'subscribe',
         names: names,
       });
       ws.send(subscribeMessage);
-    });
+    };
 
-    ws.on('message', (data) => {
-      handleData(JSON.parse(data.toString()));
-    });
+    ws.onmessage = (event) => {
+      handleData(JSON.parse(event.data.toString()));
+    };
 
-    ws.on('close', () => {
+    ws.onclose = () => {
       console.log('Disconnected from the WebSocket server');
-    });
+    };
 
-    ws.on('error', (error) => {
-      console.error(`WebSocket error: ${error}`);
-    });
+    ws.onerror = (error) => {
+      console.error(`WebSocket error:`, error);
+    };
 
     return ws;
   }

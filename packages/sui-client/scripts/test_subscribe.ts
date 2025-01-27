@@ -1,5 +1,6 @@
-import { WebSocket } from 'ws';
+// import { WebSocket } from 'ws';
 import { createClient } from 'graphql-ws';
+import { createWebSocketClient } from '../src/libs/http/ws-adapter';
 
 async function testSubscription() {
   const PORT = process.env.PORT || 3001;
@@ -17,14 +18,14 @@ async function testSubscription() {
     const unsubscribe = client.subscribe(
       {
         query: `
-					subscription {
-						onNewTransaction {
-							id
-							checkpoint
-							digest
-						}
-					}
-				`,
+            subscription {
+              onNewTransaction {
+                id
+                checkpoint
+                digest
+              }
+            }
+          `,
       },
       {
         next: (data) => {
@@ -57,13 +58,13 @@ async function testSubscription() {
 // });
 
 function testSubscription1(
-    url: string,
-    names: string[],
-    handleData: (data: any) => void
+  url: string,
+  names: string[],
+  handleData: (data: any) => void
 ) {
-  const ws = new WebSocket(url);
+  const ws = createWebSocketClient(url);
 
-  ws.on('open', () => {
+  ws.onopen = () => {
     console.log('Connected to the WebSocket server');
     // Subscribe to specific event names
     const subscribeMessage = JSON.stringify({
@@ -71,26 +72,26 @@ function testSubscription1(
       names: names,
     });
     ws.send(subscribeMessage);
-  });
+  };
 
-  ws.on('message', (data) => {
-    handleData(data);
-  });
+  ws.onmessage = (event) => {
+    handleData(event.data);
+  };
 
-  ws.on('close', () => {
+  ws.onclose = () => {
     console.log('Disconnected from the WebSocket server');
-  });
+  };
 
-  ws.on('error', (error) => {
+  ws.onerror = (error) => {
     console.error(`WebSocket error: ${error}`);
-  });
+  };
 }
 
 // Example usage:
 testSubscription1(
-    'ws://127.0.0.1:3001',
-    ['monster_catch_attempt_event', 'position'],
-    (data) => {
-      console.log(`Received message: ${data}`);
-    }
+  'ws://127.0.0.1:3001',
+  ['monster_catch_attempt_event', 'position'],
+  (data) => {
+    console.log(`Received message: ${data}`);
+  }
 );

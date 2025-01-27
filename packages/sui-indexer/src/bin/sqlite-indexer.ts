@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 // import fs from "node:fs";
-import { z } from 'zod';
 // import { eq } from "drizzle-orm";
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
@@ -14,7 +13,6 @@ import { createKoaMiddleware } from 'trpc-koa-adapter';
 import { createQueryAdapter } from '../sqlite/createQueryAdapter';
 // import { isDefined } from "@latticexyz/common/utils";
 // import { combineLatest, filter, first } from "rxjs";
-import { frontendEnvSchema, indexerEnvSchema, parseEnv } from './parseEnv';
 import { healthcheck } from '../koa-middleware/healthcheck';
 import { helloWorld } from '../koa-middleware/helloWorld';
 import { apiRoutes } from '../sqlite/apiRoutes';
@@ -33,17 +31,65 @@ import { metrics } from '../koa-middleware/metrics';
 import { createAppRouter } from '../sqlite/createAppRouter';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-const env = parseEnv(
-	z.intersection(
-		z.intersection(indexerEnvSchema, frontendEnvSchema),
-		z.object({
-			SQLITE_FILENAME: z.string().default('indexer.db'),
-			SENTRY_DSN: z.string().optional(),
-		})
-	)
-);
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import { getSchemaId } from '../utils/read-history';
+import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 
-console.log(env);
+const argv = await yargs(hideBin(process.argv))
+	.option('network', {
+		type: 'string',
+		choices: ['mainnet', 'testnet', 'localnet'],
+		default: 'localnet',
+		desc: 'Node network (mainnet/testnet/localnet)',
+	})
+	.option('config-path', {
+		type: 'string',
+		default: 'dubhe.config.ts',
+		desc: 'Configuration file path',
+	})
+	.option('schema-id', {
+		type: 'string',
+		description: 'Schema ID to filter transactions',
+		// demandOption: true,
+	})
+	.option('host', {
+		type: 'string',
+		description: 'Host to listen on',
+		default: '0.0.0.0',
+	})
+	.option('port', {
+		type: 'number',
+		description: 'Port to listen on',
+		default: 3001,
+	})
+	.option('sqlite-filename', {
+		type: 'string',
+		description: 'SQLite database filename',
+		default: './indexer.db',
+	})
+	.option('sync-limit', {
+		type: 'number',
+		description: 'Number of transactions to sync per time',
+		default: 50,
+	})
+	.option('default-page-size', {
+		type: 'number',
+		description: 'Default page size for pagination',
+		default: 10,
+	})
+	.option('pagination-limit', {
+		type: 'number',
+		description: 'Maximum pagination limit',
+		default: 100,
+	})
+	.option('sentry-dsn', {
+		type: 'string',
+		description: 'Sentry DSN for error tracking',
+	})
+	.help().argv;
+
+// console.log(argv);
 
 // const transports: Transport[] = [
 //   // prefer WS when specified
@@ -52,11 +98,13 @@ console.log(env);
 //   env.RPC_HTTP_URL ? http(env.RPC_HTTP_URL) : undefined,
 // ].filter(isDefined);
 
-const publicClient = new SuiClient({ url: getFullnodeUrl(env.NETWORK) });
+const publicClient = new SuiClient({
+	url: getFullnodeUrl(argv.network as any),
+});
 
 const chainId = await publicClient.getChainIdentifier();
 console.log('chainId', chainId);
-const database = drizzle(new Database(env.SQLITE_FILENAME));
+const database = drizzle(new Database(argv.sqliteFilename));
 
 database.run(
 	sql`CREATE TABLE IF NOT EXISTS __dubheStoreTransactions (id INTEGER PRIMARY KEY AUTOINCREMENT, checkpoint INTEGER, digest TEXT, created_at TEXT)`
@@ -118,8 +166,8 @@ const app = new Koa();
 const server = createServer(app.callback());
 const wss = new WebSocketServer({ server });
 
-if (env.SENTRY_DSN) {
-	app.use(sentry(env.SENTRY_DSN));
+if (argv.sentryDsn) {
+	app.use(sentry(argv.sentryDsn));
 }
 
 app.use(cors());
@@ -132,15 +180,11 @@ app.use(
 	metrics({
 		isHealthy: () => true,
 		isReady: () => isCaughtUp,
-		// getLatestStoredBlockNumber,
-		// getDistanceFromFollowBlock,
-		followBlockTag: env.FOLLOW_BLOCK_TAG,
+		followBlockTag: 'latest',
 	})
 );
 app.use(helloWorld());
-app.use(
-	apiRoutes(database, env.DEFAULT_PAGE_SIZE, env.PAGINATION_LIMIT)
-);
+app.use(apiRoutes(database, argv.defaultPageSize, argv.paginationLimit));
 
 app.use(
 	createKoaMiddleware({
@@ -171,13 +215,18 @@ wss.on('connection', ws => {
 	});
 });
 
-server.listen({ host: env.HOST, port: env.PORT });
-console.log(
-	`sqlite indexer frontend listening on http://${env.HOST}:${env.PORT}`
-);
-console.log(
-	`sqlite indexer graphql listening on http://${env.HOST}:${env.PORT}/graphql`
-);
+server.listen({ host: argv.host, port: argv.port });
+console.log(`sqlite indexer frontend exposed on port ${argv.port}`);
+console.log(`  - HTTP:   http://${argv.host}:${argv.port}`);
+console.log(`  - WS:     ws://${argv.host}:${argv.port}`);
+console.log(`  - GraphQL:   http://${argv.host}:${argv.port}/graphql`);
+const dubheConfig = (await loadConfig(argv.configPath)) as DubheConfig;
+
+const path = process.cwd();
+const projectPath = `${path}/contracts/${dubheConfig.name}`;
+
+const schemaId =
+	argv.schemaId || (await getSchemaId(projectPath, argv.network));
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -186,11 +235,11 @@ while (true) {
 	const lastTxRecord = await getLastTxRecord(database);
 	const response = await publicClient.queryTransactionBlocks({
 		filter: {
-			ChangedObject: env.SCHEMA_ID,
+			ChangedObject: schemaId,
 		},
 		order: 'ascending',
 		cursor: lastTxRecord,
-		limit: env.SYNC_LIMIT_PER_TIME,
+		limit: argv.syncLimit,
 		options: {
 			showEvents: true,
 		},

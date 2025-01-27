@@ -55,7 +55,6 @@ import {
   SuiIndexerClient,
 } from './libs/suiIndexerClient';
 import { Http } from './libs/http';
-import { WebSocket } from 'ws';
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;

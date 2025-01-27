@@ -75,7 +75,8 @@
     "tmp": "^0.2.1",
     "ts-retry-promise": "^0.7.1",
     "tweetnacl": "^1.0.3",
-    "valibot": "0.36.0"
+    "valibot": "0.36.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.0.0",
@@ -84,7 +85,6 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^20.8.7",
     "@types/tmp": "^0.2.5",
-    "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^6.8.0",
     "@typescript-eslint/parser": "^6.8.0",
     "dotenv": "^16.3.1",
@@ -100,7 +100,7 @@
     "tsup": "^7.1.0",
     "typedoc": "^0.25.2",
     "typescript": "^5.2.2",
-    "ws": "^8.18.0"
+    "@types/ws": "^8.5.14"
   },
   "lint-staged": {
     "**/*.ts": [

@@ -1,5 +1,4 @@
 import { Http } from '../http';
-import { WebSocket } from 'ws';
 
 export interface OrderDirection {
   ASC: 'ASC';
@@ -22,6 +21,7 @@ export interface Transaction {
   id: number;
   checkpoint: number;
   digest: string;
+  created_at: string;
 }
 
 export interface Schema {
@@ -33,6 +33,8 @@ export interface Schema {
   last_update_checkpoint: string;
   last_update_digest: string;
   is_removed: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Event {
@@ -41,6 +43,7 @@ export interface Event {
   digest: string;
   name: string;
   value: string;
+  created_at: string;
 }
 
 export interface ConnectionResponse<T> {
@@ -80,6 +83,7 @@ export class SuiIndexerClient {
               id
               checkpoint
               digest
+              created_at
             }
           }
           pageInfo {
@@ -123,6 +127,8 @@ export class SuiIndexerClient {
               last_update_checkpoint
               last_update_digest
               is_removed
+              created_at
+              updated_at
             }
           }
           pageInfo {
@@ -162,6 +168,7 @@ export class SuiIndexerClient {
               digest
               name
               value
+              created_at
             }
           }
           pageInfo {
