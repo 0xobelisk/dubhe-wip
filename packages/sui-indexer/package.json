@@ -1,6 +1,6 @@
 {
 	"name": "@0xobelisk/sui-indexer",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "Minimal Typescript indexer for Dubhe",
 	"type": "module",
 	"author": "team@obelisk.build",
@@ -51,7 +51,7 @@
 		"test:ci": "pnpm run test"
 	},
 	"dependencies": {
-		"@0xobelisk/sui-common": "^1.0.5",
+		"@0xobelisk/sui-common": "workspace:*",
 		"@graphql-tools/schema": "^10.0.16",
 		"@koa/cors": "^4.0.0",
 		"@koa/router": "^12.0.1",
