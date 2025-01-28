@@ -233,7 +233,7 @@ async function publishContract(
 
 	const deployHookTx = new Transaction();
 	deployHookTx.moveCall({
-		target: `${packageId}::deploy_hook::run`,
+		target: `${packageId}::genesis::run`,
 		arguments: [deployHookTx.object('0x6')],
 	});
 
