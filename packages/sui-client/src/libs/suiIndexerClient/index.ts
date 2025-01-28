@@ -1,30 +1,29 @@
 import { Http } from '../http';
+import { parseValue } from './utils';
 
 export interface OrderDirection {
   ASC: 'ASC';
   DESC: 'DESC';
 }
 
-export interface OrderBy {
-  field: string;
-  direction: OrderDirection['ASC'] | OrderDirection['DESC'];
-}
+// export interface OrderBy {
+//   field: string;
+//   direction: OrderDirection['ASC'] | OrderDirection['DESC'];
+// }
 
 export interface PageInfo {
   hasNextPage: boolean;
-  hasPreviousPage: boolean;
-  startCursor?: string;
   endCursor?: string;
 }
 
-export interface Transaction {
+export interface IndexerTransaction {
   id: number;
   checkpoint: number;
   digest: string;
   created_at: string;
 }
 
-export interface Schema {
+export interface IndexerSchema {
   id: number;
   name: string;
   key1?: string;
@@ -37,7 +36,7 @@ export interface Schema {
   updated_at: string;
 }
 
-export interface Event {
+export interface IndexerEvent {
   id: number;
   checkpoint: string;
   digest: string;
@@ -52,6 +51,19 @@ export interface ConnectionResponse<T> {
     node: T;
   }>;
   pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface StorageResponse<T> {
+  data: T[];
+  value: any[];
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface StorageItemResponse<T> {
+  data: T;
+  value: any;
 }
 
 export class SuiIndexerClient {
@@ -68,15 +80,12 @@ export class SuiIndexerClient {
   async getTransactions(params?: {
     first?: number;
     after?: string;
-    last?: number;
-    before?: string;
     checkpoint?: number;
-    orderBy?: OrderBy;
-    distinct?: boolean;
+    orderBy?: string[];
   }) {
     const query = `
-      query GetTransactions($first: Int, $after: String, $last: Int, $before: String, $checkpoint: Int, $orderBy: TransactionOrderBy, $distinct: Boolean) {
-        transactions(first: $first, after: $after, last: $last, before: $before, checkpoint: $checkpoint, orderBy: $orderBy, distinct: $distinct) {
+      query GetTransactions($first: Int, $after: String, $checkpoint: Int, $orderBy: [TransactionOrderField!]) {
+        transactions(first: $first, after: $after, checkpoint: $checkpoint, orderBy: $orderBy) {
           edges {
             cursor
             node {
@@ -88,16 +97,15 @@ export class SuiIndexerClient {
           }
           pageInfo {
             hasNextPage
-            hasPreviousPage
-            startCursor
             endCursor
           }
+          totalCount
         }
       }
     `;
 
     const response = await this.fetchGraphql<{
-      transactions: ConnectionResponse<Transaction>;
+      transactions: ConnectionResponse<IndexerTransaction>;
     }>(query, params);
     return response.transactions;
   }
@@ -105,17 +113,14 @@ export class SuiIndexerClient {
   async getSchemas(params?: {
     first?: number;
     after?: string;
-    last?: number;
-    before?: string;
     name?: string;
     key1?: string;
     key2?: string;
-    orderBy?: OrderBy;
-    distinct?: boolean;
-  }): Promise<ConnectionResponse<Schema>> {
+    orderBy?: string[];
+  }): Promise<ConnectionResponse<IndexerSchema>> {
     const query = `
-      query GetSchemas($first: Int, $after: String, $last: Int, $before: String, $name: String, $key1: String, $key2: String, $orderBy: SchemaOrderBy, $distinct: Boolean) {
-        schemas(first: $first, after: $after, last: $last, before: $before, name: $name, key1: $key1, key2: $key2, orderBy: $orderBy, distinct: $distinct) {
+      query GetSchemas($first: Int, $after: String, $name: String, $key1: String, $key2: String, $orderBy: [SchemaOrderField!]) {
+        schemas(first: $first, after: $after, name: $name, key1: $key1, key2: $key2, orderBy: $orderBy) {
           edges {
             cursor
             node {
@@ -133,16 +138,15 @@ export class SuiIndexerClient {
           }
           pageInfo {
             hasNextPage
-            hasPreviousPage
-            startCursor
             endCursor
           }
+          totalCount
         }
       }
     `;
 
     const response = await this.fetchGraphql<{
-      schemas: ConnectionResponse<Schema>;
+      schemas: ConnectionResponse<IndexerSchema>;
     }>(query, params);
     return response.schemas;
   }
@@ -150,16 +154,13 @@ export class SuiIndexerClient {
   async getEvents(params?: {
     first?: number;
     after?: string;
-    last?: number;
-    before?: string;
     name?: string;
     checkpoint?: string;
-    orderBy?: OrderBy;
-    distinct?: boolean;
-  }) {
+    orderBy?: string[];
+  }): Promise<ConnectionResponse<IndexerEvent>> {
     const query = `
-      query GetEvents($first: Int, $after: String, $last: Int, $before: String, $name: String, $checkpoint: String, $orderBy: EventOrderBy, $distinct: Boolean) {
-        events(first: $first, after: $after, last: $last, before: $before, name: $name, checkpoint: $checkpoint, orderBy: $orderBy, distinct: $distinct) {
+      query GetEvents($first: Int, $after: String, $name: String, $checkpoint: String, $orderBy: [EventOrderField!]) {
+        events(first: $first, after: $after, name: $name, checkpoint: $checkpoint, orderBy: $orderBy) {
           edges {
             cursor
             node {
@@ -173,16 +174,15 @@ export class SuiIndexerClient {
           }
           pageInfo {
             hasNextPage
-            hasPreviousPage
-            startCursor
             endCursor
           }
+          totalCount
         }
       }
     `;
 
     const response = await this.fetchGraphql<{
-      events: ConnectionResponse<Event>;
+      events: ConnectionResponse<IndexerEvent>;
     }>(query, params);
     return response.events;
   }
@@ -193,34 +193,57 @@ export class SuiIndexerClient {
     key2,
     first,
     after,
-    last,
-    before,
     orderBy,
-    distinct,
   }: {
-    name: string;
+    name?: string;
     key1?: string;
     key2?: string;
     first?: number;
     after?: string;
-    last?: number;
-    before?: string;
-    orderBy?: OrderBy;
-    distinct?: boolean;
-  }): Promise<ConnectionResponse<Schema>> {
+    orderBy?: string[];
+  }): Promise<StorageResponse<IndexerSchema>> {
     const schemas = await this.getSchemas({
       name,
       key1,
       key2,
       first,
       after,
-      last,
-      before,
       orderBy,
-      distinct,
     });
+    const data = schemas.edges.map((edge) => edge.node);
+    const value = data.map((item) => parseValue(item.value));
+    return {
+      data,
+      value,
+      pageInfo: schemas.pageInfo,
+      totalCount: schemas.totalCount,
+    };
+  }
 
-    return schemas;
+  async getStorageItem({
+    name,
+    key1,
+    key2,
+  }: {
+    name: string;
+    key1?: string;
+    key2?: string;
+  }): Promise<StorageItemResponse<IndexerSchema> | undefined> {
+    const schemas = await this.getSchemas({
+      name,
+      key1,
+      key2,
+      first: 1,
+    });
+    const data = schemas.edges[0]?.node;
+    if (!data) {
+      return undefined;
+    }
+    const value = parseValue(data.value);
+    return {
+      data,
+      value,
+    };
   }
 
   async subscribe(

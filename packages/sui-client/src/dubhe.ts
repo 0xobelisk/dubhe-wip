@@ -50,9 +50,12 @@ import { bcs, fromHEX, toHEX } from '@mysten/bcs';
 import { ContractDataParsingError } from './errors';
 import {
   ConnectionResponse,
-  OrderBy,
-  Schema,
+  IndexerTransaction,
+  IndexerEvent,
+  IndexerSchema,
   SuiIndexerClient,
+  StorageResponse,
+  StorageItemResponse,
 } from './libs/suiIndexerClient';
 import { Http } from './libs/http';
 
@@ -1109,38 +1112,99 @@ export class Dubhe {
     });
   }
 
+  async getTransactions({
+    first,
+    after,
+    orderBy,
+  }: {
+    first?: number;
+    after?: string;
+    orderBy?: string[];
+  }): Promise<ConnectionResponse<IndexerTransaction>> {
+    return await this.suiIndexerClient.getTransactions({
+      first,
+      after,
+      orderBy,
+    });
+  }
+
+  async getEvents({
+    first,
+    after,
+    orderBy,
+  }: {
+    first?: number;
+    after?: string;
+    orderBy?: string[];
+  }): Promise<ConnectionResponse<IndexerEvent>> {
+    return await this.suiIndexerClient.getEvents({ first, after, orderBy });
+  }
+
+  async getSchemas({
+    name,
+    key1,
+    key2,
+    first,
+    after,
+    orderBy,
+  }: {
+    name?: string;
+    key1?: string;
+    key2?: string;
+    first?: number;
+    after?: string;
+    orderBy?: string[];
+  }): Promise<ConnectionResponse<IndexerSchema>> {
+    return await this.suiIndexerClient.getSchemas({
+      name,
+      key1,
+      key2,
+      first,
+      after,
+      orderBy,
+    });
+  }
+
   async getStorage({
     name,
     key1,
     key2,
     first,
     after,
-    last,
-    before,
     orderBy,
-    distinct,
   }: {
-    name: string;
+    name?: string;
     key1?: string;
     key2?: string;
     first?: number;
     after?: string;
-    last?: number;
-    before?: string;
-    orderBy?: OrderBy;
-    distinct?: boolean;
-  }): Promise<ConnectionResponse<Schema>> {
+    orderBy?: string[];
+  }): Promise<StorageResponse<IndexerSchema>> {
     return await this.suiIndexerClient.getStorage({
       name,
       key1,
       key2,
       first,
       after,
-      last,
-      before,
       orderBy,
-      distinct,
     });
+  }
+
+  async getStorageItem({
+    name,
+    key1,
+    key2,
+  }: {
+    name: string;
+    key1?: string;
+    key2?: string;
+  }): Promise<StorageItemResponse<IndexerSchema> | undefined> {
+    const response = await this.suiIndexerClient.getStorageItem({
+      name,
+      key1,
+      key2,
+    });
+    return response;
   }
 
   async subscribe(

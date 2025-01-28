@@ -1,6 +1,6 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
-import { and, eq, gt, lt, asc, desc } from 'drizzle-orm';
+import { and, eq, gt, lt, asc, desc, sql } from 'drizzle-orm';
 import {
 	dubheStoreEvents,
 	dubheStoreSchemas,
@@ -8,30 +8,35 @@ import {
 } from '../utils/tables';
 
 const typeDefs = `
-  enum OrderDirection {
-    ASC
-    DESC
+  enum SchemaOrderField {
+    ID_DESC
+	ID_ASC
+    CREATED_AT_DESC
+	CREATED_AT_ASC
+    UPDATED_AT_DESC
+	UPDATED_AT_ASC
   }
 
-  input TransactionOrderBy {
-    field: String!
-    direction: OrderDirection!
+  enum EventOrderField {
+    ID_DESC
+	ID_ASC
+    CREATED_AT_DESC
+	CREATED_AT_ASC
+    CHECKPOINT_DESC
+	CHECKPOINT_ASC
   }
 
-  input SchemaOrderBy {
-    field: String!
-    direction: OrderDirection!
-  }
-
-  input EventOrderBy {
-    field: String!
-    direction: OrderDirection!
+  enum TransactionOrderField {
+    ID_DESC
+	ID_ASC
+    CREATED_AT_DESC
+	CREATED_AT_ASC
+    CHECKPOINT_DESC
+	CHECKPOINT_ASC
   }
 
   type PageInfo {
     hasNextPage: Boolean!
-    hasPreviousPage: Boolean!
-    startCursor: String
     endCursor: String
   }
 
@@ -43,6 +48,7 @@ const typeDefs = `
   type TransactionConnection {
     edges: [TransactionEdge!]!
     pageInfo: PageInfo!
+    totalCount: Int!
   }
 
   type SchemaEdge {
@@ -53,6 +59,7 @@ const typeDefs = `
   type SchemaConnection {
     edges: [SchemaEdge!]!
     pageInfo: PageInfo!
+    totalCount: Int!
   }
 
   type EventEdge {
@@ -63,41 +70,33 @@ const typeDefs = `
   type EventConnection {
     edges: [EventEdge!]!
     pageInfo: PageInfo!
+    totalCount: Int!
   }
 
   type Query {
-    transactions(
-      first: Int
-      after: String
-      last: Int
-      before: String
-      checkpoint: Int
-      orderBy: TransactionOrderBy
-      distinct: Boolean
-    ): TransactionConnection!
-
     schemas(
       first: Int
       after: String
-      last: Int
-      before: String
       name: String
       key1: String
       key2: String
-      orderBy: SchemaOrderBy
-      distinct: Boolean
+      orderBy: [SchemaOrderField!]
     ): SchemaConnection!
 
     events(
       first: Int
       after: String
-      last: Int
-      before: String
       name: String
       checkpoint: String
-      orderBy: EventOrderBy
-      distinct: Boolean
+      orderBy: [EventOrderField!]
     ): EventConnection!
+
+    transactions(
+      first: Int
+      after: String
+      checkpoint: Int
+      orderBy: [TransactionOrderField!]
+    ): TransactionConnection!
   }
 
   type Transaction {
@@ -150,17 +149,65 @@ export function createResolvers(
 	const decodeCursor = (cursor: string) =>
 		parseInt(Buffer.from(cursor, 'base64').toString());
 
-	const applyOrderBy = (
-		query: any,
-		table: any,
-		orderBy?: { field: string; direction: 'ASC' | 'DESC' }
-	) => {
-		if (!orderBy) return query.orderBy(asc(table.id));
+	const applyOrderBy = (query: any, table: any, orderBy?: string[]) => {
+		if (!orderBy || orderBy.length === 0) {
+			return query.orderBy(desc(table.created_at));
+		}
 
-		const direction = orderBy.direction === 'ASC' ? asc : desc;
-		return query.orderBy(
-			direction(table[orderBy.field as keyof typeof table])
-		);
+		try {
+			orderBy.forEach(order => {
+				const isDesc = order.endsWith('_DESC');
+				const isAsc = order.endsWith('_ASC');
+
+				if (!isDesc && !isAsc) {
+					console.warn('Invalid order format:', order);
+					return query;
+				}
+
+				const direction = isDesc ? 'DESC' : 'ASC';
+				const field = order.slice(0, -1 * (direction.length + 1));
+				const orderFn = isDesc ? desc : asc;
+
+				switch (field) {
+					case 'ID':
+						query = query.orderBy(orderFn(table.id));
+						break;
+					case 'CREATED_AT':
+						query = query.orderBy(orderFn(table.created_at));
+						break;
+					case 'UPDATED_AT':
+						query = query.orderBy(orderFn(table.updated_at));
+						break;
+					case 'CHECKPOINT':
+						query = query.orderBy(orderFn(table.checkpoint));
+						break;
+					default:
+						console.warn('Unknown orderBy field:', field);
+				}
+			});
+
+			return query;
+		} catch (error) {
+			console.warn('Error applying orderBy:', orderBy, error);
+			return query.orderBy(desc(table.created_at));
+		}
+	};
+
+	const getTotalCount = (
+		database: any,
+		table: any,
+		conditions: any[] = []
+	) => {
+		let query = database
+			.select({ count: sql<number>`count(*)` })
+			.from(table);
+
+		if (conditions.length > 0) {
+			query = query.where(and(...conditions));
+		}
+
+		const result = query.get();
+		return result?.count ?? 0;
 	};
 
 	return {
@@ -170,82 +217,90 @@ export function createResolvers(
 				{
 					first = DEFAULT_PAGE_SIZE,
 					after,
-					last,
 					before,
 					checkpoint,
 					orderBy,
-					distinct,
 				}: {
 					first?: number;
 					after?: string;
-					last?: number;
 					before?: string;
 					checkpoint?: number;
-					orderBy?: { field: string; direction: 'ASC' | 'DESC' };
-					distinct?: boolean;
+					orderBy?: string[];
 				}
 			) => {
-				const limit = Math.min(
-					first || last || DEFAULT_PAGE_SIZE,
-					PAGINATION_LIMIT
-				);
-				let query;
+				try {
+					const limit = Math.min(first, PAGINATION_LIMIT);
+					let query = database.select().from(dubheStoreTransactions);
 
-				if (distinct) {
-					query = database.selectDistinct();
-				} else {
-					query = database.select();
-				}
+					// Collect filter conditions
+					const conditions = [];
+					if (checkpoint) {
+						conditions.push(
+							eq(
+								dubheStoreTransactions.checkpoint,
+								checkpoint.toString()
+							)
+						);
+					}
 
-				query = query.from(dubheStoreTransactions);
-
-				if (checkpoint) {
-					query = query.where(
-						eq(
-							dubheStoreTransactions.checkpoint,
-							checkpoint.toString()
-						)
-					);
-				}
-
-				if (after) {
-					const afterId = decodeCursor(after);
-					query = query.where(gt(dubheStoreTransactions.id, afterId));
-				}
-
-				if (before) {
-					const beforeId = decodeCursor(before);
-					query = query.where(
-						lt(dubheStoreTransactions.id, beforeId)
-					);
-				}
-
-				query = applyOrderBy(query, dubheStoreTransactions, orderBy);
-
-				const records = query.limit(limit + 1).all();
-				const hasNextPage = records.length > limit;
-				const edges = records
-					.slice(0, limit)
-					.map(
-						(record: {
-							id: number;
-							checkpoint: string;
-							digest: string;
-						}) => ({
-							cursor: encodeCursor(record.id),
-							node: record,
-						})
+					// Get total count (apply filter conditions)
+					const totalCount = getTotalCount(
+						database,
+						dubheStoreTransactions,
+						conditions
 					);
 
-				return {
-					edges,
-					pageInfo: {
-						hasNextPage,
-						hasPreviousPage: !!after,
-						startCursor: edges[0]?.cursor,
-						endCursor: edges[edges.length - 1]?.cursor,
-					},
-				};
+					// Handle cursor (need to use with filter conditions AND)
+					if (after) {
+						const afterId = decodeCursor(after);
+						if (!afterId) {
+							throw new Error('Invalid cursor');
+						}
+						conditions.push(gt(dubheStoreTransactions.id, afterId));
+					}
+
+					if (before) {
+						const beforeId = decodeCursor(before);
+						if (!beforeId) {
+							throw new Error('Invalid cursor');
+						}
+						conditions.push(
+							lt(dubheStoreTransactions.id, beforeId)
+						);
+					}
+
+					// Apply all conditions at once
+					if (conditions.length > 0) {
+						query = query.where(and(...conditions));
+					}
+
+					// Apply sorting
+					query = applyOrderBy(
+						query,
+						dubheStoreTransactions,
+						orderBy
+					);
+
+					// Get paginated data
+					const records = query.limit(limit + 1).all();
+					const hasNextPage = records.length > limit;
+					const edges = records.slice(0, limit).map(record => ({
+						cursor: encodeCursor(record.id),
+						node: record,
+					}));
+
+					return {
+						edges,
+						pageInfo: {
+							hasNextPage,
+							endCursor: edges[edges.length - 1]?.cursor,
+						},
+						totalCount,
+					};
+				} catch (error) {
+					console.error('Error in transactions resolver:', error);
+					throw error;
+				}
 			},
 
 			schemas: async (
@@ -253,102 +308,80 @@ export function createResolvers(
 				{
 					first = DEFAULT_PAGE_SIZE,
 					after,
-					last,
-					before,
 					name,
 					key1,
 					key2,
 					orderBy,
-					distinct,
 				}: {
 					first?: number;
 					after?: string;
-					last?: number;
-					before?: string;
 					name?: string;
 					key1?: string;
 					key2?: string;
-					orderBy?: { field: string; direction: 'ASC' | 'DESC' };
-					distinct?: boolean;
+					orderBy?: string[];
 				}
 			) => {
-				const limit = Math.min(
-					first || last || DEFAULT_PAGE_SIZE,
-					PAGINATION_LIMIT
-				);
-				let query;
+				try {
+					const limit = Math.min(first, PAGINATION_LIMIT);
+					let query = database.select().from(dubheStoreSchemas);
 
-				if (distinct) {
-					query = database.selectDistinct();
-				} else {
-					query = database.select();
-				}
+					// Collect all filter conditions
+					const conditions = [];
 
-				query = query.from(dubheStoreSchemas);
+					// First apply name, key1, key2 filters
+					if (name) conditions.push(eq(dubheStoreSchemas.name, name));
+					if (key1) conditions.push(eq(dubheStoreSchemas.key1, key1));
+					if (key2) conditions.push(eq(dubheStoreSchemas.key2, key2));
 
-				const conditions = [];
-
-				if (name) {
-					conditions.push(eq(dubheStoreSchemas.name, name));
-				}
-				if (key1) {
-					conditions.push(eq(dubheStoreSchemas.key1, key1));
-				}
-				if (key2) {
-					conditions.push(eq(dubheStoreSchemas.key2, key2));
-				}
-
-				if (conditions.length > 0) {
-					query = query.where(and(...conditions));
-				}
-
-				if (after) {
-					const afterId = decodeCursor(after);
-					query = query.where(gt(dubheStoreSchemas.id, afterId));
-				}
-
-				if (before) {
-					const beforeId = decodeCursor(before);
-					query = query.where(lt(dubheStoreSchemas.id, beforeId));
-				}
-
-				query = applyOrderBy(query, dubheStoreSchemas, orderBy);
-
-				const records = query.limit(limit + 1).all();
-
-				const hasNextPage = records.length > limit;
-				const edges = records
-					.slice(0, limit)
-					.map(
-						(record: {
-							id: number;
-							name: string;
-							key1: string;
-							key2: string;
-							value: string;
-							last_update_checkpoint: string;
-							last_update_digest: string;
-							is_removed: boolean;
-						}) => ({
-							cursor: encodeCursor(record.id),
-							node: {
-								...record,
-								value: JSON.stringify(record.value),
-								key1: JSON.stringify(record.key1),
-								key2: JSON.stringify(record.key2),
-							},
-						})
+					// Get filtered total count
+					const totalCount = getTotalCount(
+						database,
+						dubheStoreSchemas,
+						conditions
 					);
 
-				return {
-					edges,
-					pageInfo: {
-						hasNextPage,
-						hasPreviousPage: !!after,
-						startCursor: edges[0]?.cursor,
-						endCursor: edges[edges.length - 1]?.cursor,
-					},
-				};
+					// Handle cursor pagination (need to use with filter conditions AND)
+					if (after) {
+						const afterId = decodeCursor(after);
+						if (!afterId) {
+							throw new Error('Invalid cursor');
+						}
+						conditions.push(gt(dubheStoreSchemas.id, afterId));
+					}
+
+					// Apply all conditions
+					if (conditions.length > 0) {
+						query = query.where(and(...conditions));
+					}
+
+					// Apply sorting
+					query = applyOrderBy(query, dubheStoreSchemas, orderBy);
+
+					// Get paginated data
+					const records = query.limit(limit + 1).all();
+					const hasNextPage = records.length > limit;
+					const edges = records.slice(0, limit).map(record => ({
+						cursor: encodeCursor(record.id),
+						node: {
+							...record,
+							value: record.value
+								? JSON.stringify(record.value)
+								: '',
+						},
+					}));
+
+					return {
+						edges,
+						pageInfo: {
+							hasNextPage,
+							endCursor: edges[edges.length - 1]?.cursor,
+						},
+						totalCount,
+					};
+				} catch (error) {
+					console.error('Error in schemas resolver:', error);
+					throw error;
+				}
 			},
 
 			events: async (
@@ -356,180 +389,95 @@ export function createResolvers(
 				{
 					first = DEFAULT_PAGE_SIZE,
 					after,
-					last,
-					before,
 					name,
 					checkpoint,
 					orderBy,
-					distinct,
 				}: {
 					first?: number;
 					after?: string;
-					last?: number;
-					before?: string;
 					name?: string;
 					checkpoint?: string;
-					orderBy?: { field: string; direction: 'ASC' | 'DESC' };
-					distinct?: boolean;
+					orderBy?: string[];
 				}
 			) => {
-				const limit = Math.min(
-					first || last || DEFAULT_PAGE_SIZE,
-					PAGINATION_LIMIT
-				);
-				let query;
+				try {
+					const limit = Math.min(first, PAGINATION_LIMIT);
+					let query = database.select().from(dubheStoreEvents);
 
-				if (distinct) {
-					query = database.selectDistinct();
-				} else {
-					query = database.select();
-				}
-
-				query = query.from(dubheStoreEvents);
-
-				if (name && checkpoint) {
-					query = query.where(
-						and(
-							eq(dubheStoreEvents.name, name),
+					// Collect filter conditions
+					const conditions = [];
+					if (name && checkpoint) {
+						conditions.push(
+							and(
+								eq(dubheStoreEvents.name, name),
+								eq(
+									dubheStoreEvents.checkpoint,
+									checkpoint.toString()
+								)
+							)
+						);
+					} else if (name) {
+						conditions.push(eq(dubheStoreEvents.name, name));
+					} else if (checkpoint) {
+						conditions.push(
 							eq(
 								dubheStoreEvents.checkpoint,
 								checkpoint.toString()
 							)
-						)
-					);
-				} else if (name) {
-					query = query.where(eq(dubheStoreEvents.name, name));
-				} else if (checkpoint) {
-					query = query.where(
-						eq(dubheStoreEvents.checkpoint, checkpoint.toString())
-					);
-				}
+						);
+					}
 
-				if (after) {
-					const afterId = decodeCursor(after);
-					query = query.where(gt(dubheStoreEvents.id, afterId));
-				}
-
-				if (before) {
-					const beforeId = decodeCursor(before);
-					query = query.where(lt(dubheStoreEvents.id, beforeId));
-				}
-
-				query = applyOrderBy(query, dubheStoreEvents, orderBy);
-
-				const records = query.limit(limit + 1).all();
-
-				const hasNextPage = records.length > limit;
-				const edges = records
-					.slice(0, limit)
-					.map(
-						(record: {
-							id: number;
-							checkpoint: string;
-							digest: string;
-							name: string;
-							value: string;
-						}) => ({
-							cursor: encodeCursor(record.id),
-							node: {
-								...record,
-								value: JSON.stringify(record.value),
-							},
-						})
+					// Get total count (apply filter conditions)
+					const totalCount = getTotalCount(
+						database,
+						dubheStoreEvents,
+						conditions
 					);
 
-				return {
-					edges,
-					pageInfo: {
-						hasNextPage,
-						hasPreviousPage: !!after,
-						startCursor: edges[0]?.cursor,
-						endCursor: edges[edges.length - 1]?.cursor,
-					},
-				};
+					// Handle cursor (need to use with filter conditions AND)
+					if (after) {
+						const afterId = decodeCursor(after);
+						if (!afterId) {
+							throw new Error('Invalid cursor');
+						}
+						conditions.push(gt(dubheStoreEvents.id, afterId));
+					}
+
+					// Apply all conditions at once
+					if (conditions.length > 0) {
+						query = query.where(and(...conditions));
+					}
+
+					// Apply sorting
+					query = applyOrderBy(query, dubheStoreEvents, orderBy);
+
+					// Get paginated data
+					const records = query.limit(limit + 1).all();
+					const hasNextPage = records.length > limit;
+					const edges = records.slice(0, limit).map(record => ({
+						cursor: encodeCursor(record.id),
+						node: {
+							...record,
+							value: record.value
+								? JSON.stringify(record.value)
+								: '',
+						},
+					}));
+
+					return {
+						edges,
+						pageInfo: {
+							hasNextPage,
+							endCursor: edges[edges.length - 1]?.cursor,
+						},
+						totalCount,
+					};
+				} catch (error) {
+					console.error('Error in events resolver:', error);
+					throw error;
+				}
 			},
 		},
-
-		// Subscription: {
-		// 	onNewTransaction: {
-		// 		subscribe: async function* () {
-		// 			let lastId = 0;
-		//
-		// 			while (true) {
-		// 				const latestTransactions = database
-		// 					.select()
-		// 					.from(dubheStoreTransactions)
-		// 					.where(gt(dubheStoreTransactions.id, lastId))
-		// 					.orderBy(desc(dubheStoreTransactions.id))
-		// 					.limit(1)
-		// 					.all();
-		//
-		// 				if (latestTransactions.length > 0) {
-		// 					lastId =
-		// 						latestTransactions[
-		// 							latestTransactions.length - 1
-		// 						].id;
-		//
-		// 					for (const tx of latestTransactions) {
-		// 						yield { onNewTransaction: tx };
-		// 					}
-		// 				}
-		//
-		// 				await new Promise(resolve => setTimeout(resolve, 1000));
-		// 			}
-		// 		},
-		// 	},
-		//
-		// 	onNewSchema: {
-		// 		subscribe: async function* () {
-		// 			while (true) {
-		// 				const latestSchema = database
-		// 					.select()
-		// 					.from(dubheStoreSchemas)
-		// 					.orderBy(desc(dubheStoreSchemas.id))
-		// 					.limit(1)
-		// 					.all()[0];
-		//
-		// 				if (latestSchema) {
-		// 					yield {
-		// 						onNewSchema: {
-		// 							...latestSchema,
-		// 							value: JSON.stringify(latestSchema.value),
-		// 							key1: JSON.stringify(latestSchema.key1),
-		// 							key2: JSON.stringify(latestSchema.key2),
-		// 						},
-		// 					};
-		// 				}
-		//
-		// 				await new Promise(resolve => setTimeout(resolve, 1000));
-		// 			}
-		// 		},
-		// 	},
-		//
-		// 	onNewEvent: {
-		// 		subscribe: async function* () {
-		// 			while (true) {
-		// 				const latestEvent = database
-		// 					.select()
-		// 					.from(dubheStoreEvents)
-		// 					.orderBy(desc(dubheStoreEvents.id))
-		// 					.limit(1)
-		// 					.all()[0];
-		//
-		// 				if (latestEvent) {
-		// 					yield {
-		// 						onNewEvent: {
-		// 							...latestEvent,
-		// 							value: JSON.stringify(latestEvent.value),
-		// 						},
-		// 					};
-		// 				}
-		//
-		// 				await new Promise(resolve => setTimeout(resolve, 1000));
-		// 			}
-		// 		},
-		// 	},
-		// },
 	};
 }
 
