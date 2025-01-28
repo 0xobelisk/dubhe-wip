@@ -277,9 +277,15 @@ while (true) {
 							// @ts-ignore
 							const value = event.parsedJson['value'];
 							if (typeof value === 'object') {
-								client.send(JSON.stringify(value['fields']));
+								client.send(JSON.stringify({
+									name: name,
+									value: value['fields']
+								}));
 							} else {
-								client.send(JSON.stringify(value));
+								client.send(JSON.stringify({
+									name: name,
+									value: value
+								}));
 							}
 						}
 					});
