@@ -1,4 +1,4 @@
-import {and, eq, getTableName, isNull, or } from "drizzle-orm";
+import {and, eq, getTableName, isNull, or, sql} from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
@@ -13,6 +13,40 @@ type EventData = {
     key1: string | object,
     key2: string | object,
     value: string | object
+}
+
+export const setupDatabase = (database: ReturnType<typeof drizzle>) => {
+    database.run(
+        sql`CREATE TABLE IF NOT EXISTS __dubheStoreTransactions (id INTEGER PRIMARY KEY AUTOINCREMENT, checkpoint INTEGER, digest TEXT, created_at TEXT)`
+    );
+    database.run(sql`
+        CREATE TABLE IF NOT EXISTS __dubheStoreSchemas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            last_update_checkpoint TEXT,
+            last_update_digest TEXT,
+            name TEXT,
+            key1 TEXT,
+            key2 TEXT,
+            value TEXT,
+            is_removed BOOLEAN DEFAULT FALSE,
+			created_at TEXT,
+			updated_at TEXT
+        )`);
+    database.run(sql`
+        CREATE TABLE IF NOT EXISTS __dubheStoreEvents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            checkpoint TEXT,
+            digest TEXT,
+            name TEXT,
+            value TEXT,
+			created_at TEXT
+        )`);
+}
+
+export const clearDatabase = (database: ReturnType<typeof drizzle>) => {
+    database.run(sql`DROP TABLE IF EXISTS __dubheStoreTransactions`);
+    database.run(sql`DROP TABLE IF EXISTS __dubheStoreSchemas`);
+    database.run(sql`DROP TABLE IF EXISTS __dubheStoreEvents`);
 }
 
 export const dubheStoreTransactions = sqliteTable("__dubheStoreTransactions", {

@@ -20,13 +20,14 @@ import { sentry } from '../koa-middleware/sentry';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {
+	clearDatabase,
 	dubheStoreEvents,
 	dubheStoreTransactions,
 	insertTx,
-	OperationType,
+	OperationType, setupDatabase,
 	syncToSqlite,
 } from '../utils/tables';
-import { desc, sql } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 import { metrics } from '../koa-middleware/metrics';
 import { createAppRouter } from '../sqlite/createAppRouter';
 import { createServer } from 'http';
@@ -47,6 +48,11 @@ const argv = await yargs(hideBin(process.argv))
 		type: 'string',
 		default: 'dubhe.config.ts',
 		desc: 'Configuration file path',
+	})
+	.option('force-regenesis', {
+		type: 'boolean',
+		default: false,
+		desc: 'Force regenesis',
 	})
 	.option('schema-id', {
 		type: 'string',
@@ -87,7 +93,9 @@ const argv = await yargs(hideBin(process.argv))
 		type: 'string',
 		description: 'Sentry DSN for error tracking',
 	})
-	.help().argv;
+	.help('help')
+	.alias('help', 'h')
+	.argv;
 
 // console.log(argv);
 
@@ -102,35 +110,11 @@ const publicClient = new SuiClient({
 	url: getFullnodeUrl(argv.network as any),
 });
 
-const chainId = await publicClient.getChainIdentifier();
-console.log('chainId', chainId);
 const database = drizzle(new Database(argv.sqliteFilename));
-
-database.run(
-	sql`CREATE TABLE IF NOT EXISTS __dubheStoreTransactions (id INTEGER PRIMARY KEY AUTOINCREMENT, checkpoint INTEGER, digest TEXT, created_at TEXT)`
-);
-database.run(sql`
-        CREATE TABLE IF NOT EXISTS __dubheStoreSchemas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            last_update_checkpoint TEXT,
-            last_update_digest TEXT,
-            name TEXT,
-            key1 TEXT,
-            key2 TEXT,
-            value TEXT,
-            is_removed BOOLEAN DEFAULT FALSE,
-			created_at TEXT,
-			updated_at TEXT
-        )`);
-database.run(sql`
-        CREATE TABLE IF NOT EXISTS __dubheStoreEvents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            checkpoint TEXT,
-            digest TEXT,
-            name TEXT,
-            value TEXT,
-			created_at TEXT
-        )`);
+if (argv.forceRegenesis) {
+	clearDatabase(database);
+}
+setupDatabase(database);
 
 async function getLastTxRecord(
 	sqliteDB: BetterSQLite3Database
