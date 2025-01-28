@@ -34,7 +34,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { getSchemaId } from '../utils/read-history';
-import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
+import { loadConfig, DubheConfig, parseData } from '@0xobelisk/sui-common';
 
 const argv = await yargs(hideBin(process.argv))
 	.option('network', {
@@ -274,19 +274,12 @@ while (true) {
 							client.readyState === client.OPEN &&
 							subscriptions.get(client)?.includes(name)
 						) {
-							// @ts-ignore
-							const value = event.parsedJson['value'];
-							if (typeof value === 'object') {
-								client.send(JSON.stringify({
-									name: name,
-									value: value['fields']
-								}));
-							} else {
-								client.send(JSON.stringify({
-									name: name,
-									value: value
-								}));
-							}
+
+							client.send(JSON.stringify(parseData({
+								name: name,
+								// @ts-ignore
+								value: event.parsedJson['value']
+							})));
 						}
 					});
 					// @ts-ignore
@@ -305,7 +298,7 @@ while (true) {
 							client.readyState === client.OPEN &&
 							subscriptions.get(client)?.includes(name)
 						) {
-							client.send(JSON.stringify(event.parsedJson));
+							client.send(JSON.stringify(parseData(event.parsedJson)));
 						}
 					});
 				} else {
@@ -323,7 +316,11 @@ while (true) {
 							client.readyState === client.OPEN &&
 							subscriptions.get(client)?.includes(name)
 						) {
-							client.send(JSON.stringify(event.parsedJson));
+							client.send(JSON.stringify({
+								// @ts-ignore
+								...event.parsedJson,
+								value: null
+							}));
 						}
 					});
 				}
