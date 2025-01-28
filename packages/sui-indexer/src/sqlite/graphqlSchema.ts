@@ -364,9 +364,7 @@ export function createResolvers(
 						cursor: encodeCursor(record.id),
 						node: {
 							...record,
-							value: record.value
-								? JSON.stringify(record.value)
-								: '',
+							value: record.value,
 						},
 					}));
 
@@ -458,9 +456,7 @@ export function createResolvers(
 						cursor: encodeCursor(record.id),
 						node: {
 							...record,
-							value: record.value
-								? JSON.stringify(record.value)
-								: '',
+							value: record.value,
 						},
 					}));
 

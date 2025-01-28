@@ -16,7 +16,7 @@ let sub: WebSocket;
 async function init() {
   const network = 'localnet';
   const packageId =
-    '0x0d21e31f877741f4134538fe06ac291edee16bbd9d859adf6a6b7198d8542a1d';
+    '0x61e2d24cc0b7e0cfd92787041aa462137add2d63c416f27e7fc0b99483b3bfa5';
 
   const schemaId =
     '0xea7a58fc55d8e767eabe0501245dc17f3587a2ff85d007584ed7fde97d06e211';
@@ -57,7 +57,7 @@ async function init() {
       after: middlePage.pageInfo.endCursor,
       orderBy,
     });
-    console.log('\nNext Page Data:', nextPage.value);
+    console.log('\nNext Page Data:', nextPage);
     // console.log('Page Info:', nextPage.pageInfo);
     // console.log('Total Count:', nextPage.totalCount);
     middlePage = nextPage;
@@ -76,7 +76,7 @@ async function init() {
 
   const response = await dubhe.getStorageItem({
     name: 'position',
-    key1: '0x0100000000000000000000000000000000000000000000000000000000000000',
+    key1: '0x379aa1cc401f024e2fee2ea25bdb85e48355491bd6fcaf685e39a7fcc84b2101',
   });
   console.log(response);
 }
