@@ -779,9 +779,6 @@ importers:
 
   packages/sui-client:
     dependencies:
-      '@0xobelisk/sui-common':
-        specifier: workspace:*
-        version: link:../sui-common
       '@graphql-typed-document-node/core':
         specifier: ^3.2.0
         version: 3.2.0(graphql@16.9.0)
