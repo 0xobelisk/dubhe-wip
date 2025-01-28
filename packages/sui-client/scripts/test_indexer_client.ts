@@ -16,7 +16,7 @@ let sub: WebSocket;
 async function init() {
   const network = 'localnet';
   const packageId =
-    '0x61e2d24cc0b7e0cfd92787041aa462137add2d63c416f27e7fc0b99483b3bfa5';
+    '0x17fa63bd45f460b5ce9e0d90d86c7aac614ed75a74cfead317ad152c1b74e91a';
 
   const schemaId =
     '0xea7a58fc55d8e767eabe0501245dc17f3587a2ff85d007584ed7fde97d06e211';
@@ -39,7 +39,7 @@ async function init() {
   const pageSize = 1;
   // Get middle page data
   let middlePage = await dubhe.getStorage({
-    // name: 'position',
+    name: 'position',
     first: pageSize,
     // after: undefined,
     orderBy,
@@ -52,12 +52,12 @@ async function init() {
   // Get next page
   while (middlePage.pageInfo.hasNextPage) {
     const nextPage = await dubhe.getStorage({
-      // name: 'position',
+      name: 'position',
       first: pageSize,
       after: middlePage.pageInfo.endCursor,
       orderBy,
     });
-    console.log('\nNext Page Data:', nextPage);
+    console.log('\nNext Page Data:', JSON.stringify(nextPage, null, 2));
     // console.log('Page Info:', nextPage.pageInfo);
     // console.log('Total Count:', nextPage.totalCount);
     middlePage = nextPage;

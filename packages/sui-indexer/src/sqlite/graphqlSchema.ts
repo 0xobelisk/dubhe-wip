@@ -111,7 +111,7 @@ const typeDefs = `
     name: String!
     key1: String
     key2: String
-    value: String!
+    value: JSON!
     last_update_checkpoint: String!
     last_update_digest: String!
     is_removed: Boolean!
@@ -124,7 +124,7 @@ const typeDefs = `
     checkpoint: String!
     digest: String!
     name: String!
-    value: String!
+    value: JSON!
     created_at: String!
   }
 
@@ -133,6 +133,8 @@ const typeDefs = `
     onNewSchema: Schema
     onNewEvent: Event
   }
+
+  scalar JSON
 `;
 
 export function createResolvers(
@@ -210,7 +212,12 @@ export function createResolvers(
 		return result?.count ?? 0;
 	};
 
-	return {
+	const resolvers = {
+		JSON: {
+			serialize: (value: any) => value,
+			parseValue: (value: any) => value,
+			parseLiteral: (ast: any) => ast.value,
+		},
 		Query: {
 			transactions: async (
 				_: unknown,
@@ -475,6 +482,8 @@ export function createResolvers(
 			},
 		},
 	};
+
+	return resolvers;
 }
 
 export function createSchema(

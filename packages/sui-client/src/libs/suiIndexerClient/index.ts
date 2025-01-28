@@ -28,7 +28,7 @@ export interface IndexerSchema {
   name: string;
   key1?: string;
   key2?: string;
-  value: string;
+  value: any;
   last_update_checkpoint: string;
   last_update_digest: string;
   is_removed: boolean;
@@ -41,7 +41,7 @@ export interface IndexerEvent {
   checkpoint: string;
   digest: string;
   name: string;
-  value: string;
+  value: any;
   created_at: string;
 }
 
