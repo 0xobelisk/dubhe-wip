@@ -40,6 +40,7 @@ In early development, Dubhe aims to reduce project setup time from days to hours
 | [@0xobelisk/sui-cli](./packages/sui-cli) | Sui CLI for testing, deployment & more | [![npm](https://img.shields.io/npm/v/@0xobelisk/sui-cli.svg)](https://www.npmjs.com/package/@0xobelisk/sui-cli) |
 | [@0xobelisk/sui-client](./packages/sui-client) | Sui TypeScript Client | [![npm](https://img.shields.io/npm/v/@0xobelisk/sui-client.svg)](https://www.npmjs.com/package/@0xobelisk/sui-client) |
 | [@0xobelisk/sui-common](./packages/sui-common) | Sui Core Utilities | [![npm](https://img.shields.io/npm/v/@0xobelisk/sui-common.svg)](https://www.npmjs.com/package/@0xobelisk/sui-common) |
+| [@0xobelisk/sui-indexer](./packages/sui-indexer) | Sui Indexer | [![npm](https://img.shields.io/npm/v/@0xobelisk/sui-indexer.svg)](https://www.npmjs.com/package/@0xobelisk/sui-indexer) |
 | [@0xobelisk/aptos-cli](./packages/aptos-cli) | Aptos/Movement CLI Tools | [![npm](https://img.shields.io/npm/v/@0xobelisk/aptos-cli.svg)](https://www.npmjs.com/package/@0xobelisk/aptos-cli) |
 | [@0xobelisk/aptos-client](./packages/aptos-client) | Aptos/Movement TypeScript Client | [![npm](https://img.shields.io/npm/v/@0xobelisk/aptos-client.svg)](https://www.npmjs.com/package/@0xobelisk/aptos-client) |
 | [@0xobelisk/aptos-common](./packages/aptos-common) | Aptos/Movement Core Utilities | [![npm](https://img.shields.io/npm/v/@0xobelisk/aptos-common.svg)](https://www.npmjs.com/package/@0xobelisk/aptos-common) |
