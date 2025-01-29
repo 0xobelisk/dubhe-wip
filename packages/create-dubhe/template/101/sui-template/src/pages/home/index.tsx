@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '../../jotai';
 import { useRouter } from 'next/router';
-import { Counter_Object_Id, NETWORK, PACKAGE_ID } from '../../chain/config';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '../../chain/config';
 import { PRIVATEKEY } from '../../chain/key';
 import { toast } from 'sonner';
 
@@ -40,9 +40,9 @@ const Home = () => {
       metadata: metadata,
     });
     const tx = new Transaction();
-    const query_value = (await dubhe.query.counter_schema.get_value({
+    const query_value = (await dubhe.query.schema.get_value({
       tx,
-      params: [tx.object(Counter_Object_Id)],
+      params: [tx.object(SCHEMA_ID)],
     })) as DevInspectResults;
     console.log('Counter value:', dubhe.view(query_value)[0]);
     setValue(dubhe.view(query_value)[0]);
@@ -61,7 +61,7 @@ const Home = () => {
       const tx = new Transaction();
       (await dubhe.tx.counter_system.inc({
         tx,
-        params: [tx.object(Counter_Object_Id), tx.pure.u32(1)],
+        params: [tx.object(SCHEMA_ID), tx.pure.u32(1)],
         isRaw: true,
       })) as TransactionResult;
       const response = await dubhe.signAndSendTxn(tx);
