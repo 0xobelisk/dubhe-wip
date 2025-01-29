@@ -86,27 +86,27 @@ async function generateDappSchemaMetadata(config: DubheConfig, srcPrefix: string
         self.partners = partners;
     }
 
-    public fun get_name(self: DappMetadata): String {
+    public fun get_name(self: &DappMetadata): String {
         self.name
     }
 
-    public fun get_description(self: DappMetadata): String {
+    public fun get_description(self: &DappMetadata): String {
         self.description
     }
 
-    public fun get_icon_url(self: DappMetadata): String {
+    public fun get_icon_url(self: &DappMetadata): String {
         self.icon_url
     }
 
-    public fun get_website_url(self: DappMetadata): String {
+    public fun get_website_url(self: &DappMetadata): String {
         self.website_url
     }
 
-    public fun get_created_at(self: DappMetadata): u64 {
+    public fun get_created_at(self: &DappMetadata): u64 {
         self.created_at
     }
 
-    public fun get_partners(self: DappMetadata): vector<String> {
+    public fun get_partners(self: &DappMetadata): vector<String> {
         self.partners
     }
 
@@ -284,7 +284,7 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
   ) {
       let admin = dapp.admin().try_get();
       assert!(admin == option::some(ctx.sender()), 0);
-    let created_at = dapp.metadata().remove().get_created_at();
+    let created_at = dapp.metadata().get().get_created_at();
     dapp.metadata().set(
             dapp_metadata::new(
                 name,

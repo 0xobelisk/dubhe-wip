@@ -22,7 +22,7 @@ export async function generateInit(
         let mut scenario = test_scenario::begin(sender);
         let ctx = test_scenario::ctx(&mut scenario);
         let clock = clock::create_for_testing(ctx);
-        ${config.name}::init::run(&clock, ctx);
+        ${config.name}::genesis::run(&clock, ctx);
         clock::destroy_for_testing(clock);
         test_scenario::next_tx(&mut scenario,sender);
         let dapp = test_scenario::take_shared<Dapp>(&scenario);
