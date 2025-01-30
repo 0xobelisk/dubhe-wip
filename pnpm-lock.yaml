@@ -1024,6 +1024,9 @@ importers:
       '@latticexyz/store-sync':
         specifier: ^2.2.16
         version: 2.2.16(@types/better-sqlite3@7.6.12)(better-sqlite3@8.7.0)(react@18.3.1)(typescript@5.7.2)(viem@2.21.19)
+      '@mysten/graphql-transport':
+        specifier: ^0.2.40
+        version: 0.2.40(typescript@5.7.2)
       '@mysten/sui':
         specifier: ^1.19.0
         version: 1.19.0(typescript@5.7.2)
@@ -4553,6 +4556,19 @@ packages:
       bs58: 6.0.0
     dev: false
 
+  /@mysten/graphql-transport@0.2.40(typescript@5.7.2):
+    resolution: {integrity: sha512-GL8SIrWOfWBazx77fB09D2Txih4Bulfyza737vxMHuf4A4d96OUU/6LAcfiCOc25dpfkxmSSb1vmi2gu2Ha3DA==}
+    dependencies:
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.10.0)
+      '@mysten/bcs': 1.2.1
+      '@mysten/sui': 1.21.0(typescript@5.7.2)
+      graphql: 16.10.0
+    transitivePeerDependencies:
+      - '@gql.tada/svelte-support'
+      - '@gql.tada/vue-support'
+      - typescript
+    dev: false
+
   /@mysten/sui@1.15.1(typescript@5.7.2):
     resolution: {integrity: sha512-q8m+xtuh//rHEwEmk6pr7Dguw6/2ySNye2Oy1w6ivbkeRFgqoEE64+fYuMK+lX/SEPhOTEZtN7fp/Trno0KMnw==}
     engines: {node: '>=18'}
@@ -4634,6 +4650,29 @@ packages:
       '@scure/bip32': 1.6.0
       '@scure/bip39': 1.5.0
       '@simplewebauthn/typescript-types': 7.4.0
+      '@suchipi/femver': 1.0.0
+      bech32: 2.0.0
+      gql.tada: 1.8.10(graphql@16.10.0)(typescript@5.7.2)
+      graphql: 16.10.0
+      jose: 5.9.6
+      poseidon-lite: 0.2.1
+      valibot: 0.36.0
+    transitivePeerDependencies:
+      - '@gql.tada/svelte-support'
+      - '@gql.tada/vue-support'
+      - typescript
+    dev: false
+
+  /@mysten/sui@1.21.0(typescript@5.7.2):
+    resolution: {integrity: sha512-A+UXOo2ODhmktV6J6lOIqelRtVvQ0V252T2qaoJ0E92HYjIi3xMNEQrqu4K8TcN3gZCjqK8jQZwmbYZku8rIpw==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.10.0)
+      '@mysten/bcs': 1.2.1
+      '@noble/curves': 1.7.0
+      '@noble/hashes': 1.6.1
+      '@scure/bip32': 1.6.0
+      '@scure/bip39': 1.5.0
       '@suchipi/femver': 1.0.0
       bech32: 2.0.0
       gql.tada: 1.8.10(graphql@16.10.0)(typescript@5.7.2)

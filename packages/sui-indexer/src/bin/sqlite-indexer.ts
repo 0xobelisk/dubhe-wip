@@ -24,7 +24,8 @@ import {
 	dubheStoreEvents,
 	dubheStoreTransactions,
 	insertTx,
-	OperationType, setupDatabase,
+	OperationType,
+	setupDatabase,
 	syncToSqlite,
 } from '../utils/tables';
 import { desc } from 'drizzle-orm';
@@ -36,6 +37,7 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { getSchemaId } from '../utils/read-history';
 import { loadConfig, DubheConfig, parseData } from '@0xobelisk/sui-common';
+import { fetchTransactionBlocks } from '../utils/graphql-query';
 
 const argv = await yargs(hideBin(process.argv))
 	.option('network', {
@@ -94,8 +96,7 @@ const argv = await yargs(hideBin(process.argv))
 		description: 'Sentry DSN for error tracking',
 	})
 	.help('help')
-	.alias('help', 'h')
-	.argv;
+	.alias('help', 'h').argv;
 
 // console.log(argv);
 
@@ -110,6 +111,13 @@ const publicClient = new SuiClient({
 	url: getFullnodeUrl(argv.network as any),
 });
 
+let graphqlEndpoint;
+if (argv.network === 'mainnet') {
+	graphqlEndpoint = 'https://sui-mainnet.mystenlabs.com/graphql';
+} else if (argv.network === 'testnet') {
+	graphqlEndpoint = 'https://sui-testnet.mystenlabs.com/graphql';
+}
+
 const database = drizzle(new Database(argv.sqliteFilename));
 if (argv.forceRegenesis) {
 	clearDatabase(database);
@@ -118,7 +126,7 @@ setupDatabase(database);
 
 async function getLastTxRecord(
 	sqliteDB: BetterSQLite3Database
-): Promise<string | undefined> {
+): Promise<{ cursor: string | undefined; checkpoint: string | undefined }> {
 	const txRecord = await sqliteDB
 		.select()
 		.from(dubheStoreTransactions)
@@ -126,9 +134,12 @@ async function getLastTxRecord(
 		.limit(1)
 		.execute();
 	if (txRecord.length === 0) {
-		return undefined;
+		return { cursor: undefined, checkpoint: undefined };
 	} else {
-		return txRecord[0].digest;
+		return {
+			cursor: txRecord[0].cursor,
+			checkpoint: txRecord[0].checkpoint,
+		};
 	}
 }
 
@@ -217,28 +228,68 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 while (true) {
 	await delay(2000);
 	const lastTxRecord = await getLastTxRecord(database);
-	const response = await publicClient.queryTransactionBlocks({
-		filter: {
-			ChangedObject: schemaId,
-		},
-		order: 'ascending',
-		cursor: lastTxRecord,
-		limit: argv.syncLimit,
-		options: {
-			showEvents: true,
-		},
-	});
-	const txs = response.data;
+	let txs;
+	if (argv.network === 'mainnet' || argv.network === 'testnet') {
+		try {
+			const graphqlResponse = await fetchTransactionBlocks({
+				graphqlEndpoint: graphqlEndpoint as string,
+				changedObject: schemaId,
+				first: argv.syncLimit,
+				afterCheckpoint: lastTxRecord.checkpoint
+					? parseInt(lastTxRecord.checkpoint)
+					: undefined,
+			});
+
+			txs = graphqlResponse.transactionBlocks.edges.map(edge => {
+				const cursor = edge.cursor;
+				const tx = edge.node;
+				return {
+					cursor,
+					digest: tx.digest,
+					checkpoint: tx.effects.checkpoint.sequenceNumber.toString(),
+					timestampMs: new Date(tx.effects.timestamp)
+						.getTime()
+						.toString(),
+					events: tx.effects.events.nodes.map(node => ({
+						parsedJson: node.contents.json,
+					})),
+				};
+			});
+		} catch (error) {
+			console.error('Error fetching GraphQL data:', error);
+			await delay(5000);
+			continue;
+		}
+	} else {
+		let response = await publicClient.queryTransactionBlocks({
+			filter: {
+				ChangedObject: schemaId,
+			},
+			order: 'ascending',
+			cursor: lastTxRecord.cursor,
+			limit: argv.syncLimit,
+			options: {
+				showEvents: true,
+			},
+		});
+
+		txs = response.data.map(tx => ({
+			...tx,
+			cursor: tx.digest,
+		}));
+	}
+
 	for (const tx of txs) {
 		await insertTx(
 			database,
 			tx.checkpoint?.toString() as string,
 			tx.digest,
+			tx.cursor,
 			tx.timestampMs?.toString() as string
 		);
+
 		if (tx.events) {
 			for (const event of tx.events) {
-				// console.log("EventData: ", event);
 				console.log('EventData: ', event.parsedJson);
 
 				// @ts-ignore
@@ -258,12 +309,15 @@ while (true) {
 							client.readyState === client.OPEN &&
 							subscriptions.get(client)?.includes(name)
 						) {
-
-							client.send(JSON.stringify(parseData({
-								name: name,
-								// @ts-ignore
-								value: event.parsedJson['value']
-							})));
+							client.send(
+								JSON.stringify(
+									parseData({
+										name: name,
+										// @ts-ignore
+										value: event.parsedJson['value'],
+									})
+								)
+							);
 						}
 					});
 					// @ts-ignore
@@ -282,7 +336,9 @@ while (true) {
 							client.readyState === client.OPEN &&
 							subscriptions.get(client)?.includes(name)
 						) {
-							client.send(JSON.stringify(parseData(event.parsedJson)));
+							client.send(
+								JSON.stringify(parseData(event.parsedJson))
+							);
 						}
 					});
 				} else {
@@ -300,11 +356,13 @@ while (true) {
 							client.readyState === client.OPEN &&
 							subscriptions.get(client)?.includes(name)
 						) {
-							client.send(JSON.stringify({
-								// @ts-ignore
-								...event.parsedJson,
-								value: null
-							}));
+							client.send(
+								JSON.stringify({
+									// @ts-ignore
+									...event.parsedJson,
+									value: null,
+								})
+							);
 						}
 					});
 				}
