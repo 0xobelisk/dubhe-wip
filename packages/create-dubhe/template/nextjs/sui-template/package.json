@@ -10,6 +10,7 @@
     "upgrade": "pnpm dubhe upgrade --network",
     "schema:gen": "pnpm dubhe schemagen",
     "account:gen": "pnpm dubhe generate-key",
+    "indexer:sqlite": "pnpm sqlite-indexer --force-regenesis --network",
     "check-balance": "pnpm dubhe check-balance --network",
     "config:store": "pnpm dubhe config-store --output-ts-path ./src/chain/config.ts --network",
     "// Development Environment": "----------------",
@@ -28,9 +29,10 @@
     "prod:mainnet": "pnpm config:store mainnet && pnpm next"
   },
   "dependencies": {
-    "@0xobelisk/sui-cli": "^1.0.8",
-    "@0xobelisk/sui-client": "^1.0.3",
-    "@0xobelisk/sui-common": "^1.0.3",
+    "@0xobelisk/sui-cli": "^1.1.0",
+    "@0xobelisk/sui-client": "^1.1.0",
+    "@0xobelisk/sui-common": "^1.1.0",
+    "@0xobelisk/sui-indexer": "^1.1.1",
     "@mysten/dapp-kit": "0.14.9",
     "@mysten/sui": "1.7.0",
     "dotenv": "^16.4.5",

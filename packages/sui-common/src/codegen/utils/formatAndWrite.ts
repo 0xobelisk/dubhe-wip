@@ -22,13 +22,13 @@ export async function formatAndWriteMove(
 
   let code = schemaPrefix + formattedOutput
 
-  let deployHookPrefix = `#[allow(lint(share_owned), unused_let_mut)]`
+  let deployHookPrefix = `#[allow(lint(share_owned))]`
 
   if (fullOutputPath.includes(".toml") || fullOutputPath.includes("system") || fullOutputPath.includes("migrate")) {
     code = formattedOutput
   } else if (fullOutputPath.includes("init")) {
     code = initPrefix + formattedOutput
-  } else if (fullOutputPath.includes("deploy_hook")) {
+  } else if (fullOutputPath.includes("genesis")) {
     code = deployHookPrefix + formattedOutput
   }
 

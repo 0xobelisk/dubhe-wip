@@ -4,9 +4,7 @@ export const dubheConfig = {
 	name: 'counter',
 	description: 'counter contract',
 	schemas: {
-		counter: {
-			value: 'StorageValue<u32>',
-		},
+		value: 'StorageValue<u32>',
 	},
 	events: {
 		Increment: { value: 'u32' },
