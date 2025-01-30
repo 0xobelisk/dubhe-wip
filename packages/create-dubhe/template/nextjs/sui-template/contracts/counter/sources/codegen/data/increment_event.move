@@ -19,10 +19,4 @@
                                    value
                                }
   }
-
-  public fun emit(value: u32) {
-    event::emit(IncrementEvent {
-                                   value
-                               });
-  }
 }
