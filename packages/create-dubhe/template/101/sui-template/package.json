@@ -33,7 +33,7 @@
     "@0xobelisk/sui-client": "^1.1.0",
     "@0xobelisk/sui-common": "^1.1.0",
     "@0xobelisk/sui-indexer": "^1.1.1",
-    "@mysten/sui": "1.7.0",
+    "@mysten/sui": "1.19.0",
     "clsx": "^1.2.1",
     "dotenv": "^16.4.5",
     "framer-motion": "^10.12.16",
