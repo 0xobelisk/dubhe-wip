@@ -1,6 +1,7 @@
 import { and, eq, getTableName, isNull, or, sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
+import {parseData} from "@0xobelisk/sui-common";
 
 export enum OperationType {
 	Set = 'Set',
@@ -153,13 +154,13 @@ export async function syncToSqlite(
 			const id = existingRecord[0].id;
 			await sqliteDB
 				.update(dubheStoreSchemas)
-				.set({
+				.set(parseData({
 					last_update_checkpoint: checkpoint,
 					last_update_digest: digest,
 					value: res.value,
 					is_removed: false,
 					updated_at: created_at,
-				})
+				}))
 				.where(eq(dubheStoreSchemas.id, id))
 				.execute();
 			console.log(
@@ -171,7 +172,7 @@ export async function syncToSqlite(
 		} else {
 			await sqliteDB
 				.insert(dubheStoreSchemas)
-				.values({
+				.values(parseData({
 					last_update_checkpoint: checkpoint,
 					last_update_digest: digest,
 					name: res.name,
@@ -181,7 +182,7 @@ export async function syncToSqlite(
 					is_removed: false,
 					created_at,
 					updated_at: created_at,
-				})
+				}))
 				.execute();
 			console.log(
 				'Data inserted successfully:',

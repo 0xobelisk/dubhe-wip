@@ -34,6 +34,13 @@ interface TransactionBlocksResponse {
 	};
 }
 
+interface EventResponse {
+	events: {
+		nodes: TransactionBlockEvent[];
+		pageInfo: PageInfo;
+	};
+}
+
 const queryTransactionBlocks = `
 query TransactionBlocks($first: Int!, $after: String, $filter: TransactionBlockFilter) {
 	transactionBlocks(
@@ -60,6 +67,26 @@ query TransactionBlocks($first: Int!, $after: String, $filter: TransactionBlockF
 				}
 			}
 		}
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
+	}
+}
+`;
+
+const queryEvents = `
+query Events($first: Int!, $after: String, $filter: EventFilter) {
+	events(
+		first: $first,
+		after: $after,
+		filter: $filter
+	) {
+        nodes {
+            contents {
+                json
+            }
+        }
 		pageInfo {
 			hasNextPage
 			endCursor
@@ -176,4 +203,59 @@ export async function fetchTransactionBlocks({
 		console.error('Failed to fetch transaction blocks:', error);
 		throw error;
 	}
+}
+
+export async function fetchEvents({
+	graphqlEndpoint,
+	transactionDigest,
+	first = 50,
+	after,
+}: {
+	graphqlEndpoint: string;
+	transactionDigest: string;
+	first?: number;
+	after?: string;
+}): Promise<EventResponse> {
+	const variables = {
+		first,
+		after,
+		filter: {
+			transactionDigest,
+		},
+	};
+
+	return fetchGraphql<EventResponse>({
+		graphqlEndpoint,
+		query: queryEvents,
+		variables,
+	});
+}
+
+export async function fetchAllEvents({
+	graphqlEndpoint,
+	transactionDigest,
+	batchSize = 50,
+}: {
+	graphqlEndpoint: string;
+	transactionDigest: string;
+	batchSize?: number;
+}): Promise<TransactionBlockEvent[]> {
+	let allEvents: TransactionBlockEvent[] = [];
+	let hasNextPage = true;
+	let cursor: string | undefined;
+
+	while (hasNextPage) {
+		const response = await fetchEvents({
+			graphqlEndpoint,
+			transactionDigest,
+			first: batchSize,
+			after: cursor,
+		});
+
+		allEvents = allEvents.concat(response.events.nodes);
+		hasNextPage = response.events.pageInfo.hasNextPage;
+		cursor = response.events.pageInfo.endCursor;
+	}
+
+	return allEvents;
 }
