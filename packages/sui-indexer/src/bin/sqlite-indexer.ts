@@ -295,14 +295,14 @@ while (true) {
 				// @ts-ignore
 				const name: string = event.parsedJson['name'];
 				if (name.endsWith('_event')) {
-					await database.insert(dubheStoreEvents).values({
+					await database.insert(dubheStoreEvents).values(parseData({
 						checkpoint: tx.checkpoint?.toString() as string,
 						digest: tx.digest,
 						created_at: tx.timestampMs?.toString() as string,
 						name: name,
 						// @ts-ignore
 						value: event.parsedJson['value'],
-					});
+					}));
 					// Broadcast the event to subscribed WebSocket clients
 					wss.clients.forEach(client => {
 						if (
