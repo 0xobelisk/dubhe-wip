@@ -18,7 +18,7 @@
 		"@0xobelisk/sui-cli": "^1.1.0",
 		"@0xobelisk/sui-client": "^1.1.0",
 		"@0xobelisk/sui-common": "^1.1.0",
-		"@0xobelisk/sui-indexer": "^1.1.1",
+		"@0xobelisk/sui-indexer": "^1.1.2",
 		"dotenv": "^16.4.5",
 		"chalk": "^4.1.2"
 	},
