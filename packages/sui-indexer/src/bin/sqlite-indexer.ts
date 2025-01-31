@@ -37,7 +37,7 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { getSchemaId } from '../utils/read-history';
 import { loadConfig, DubheConfig, parseData } from '@0xobelisk/sui-common';
-import { fetchTransactionBlocks } from '../utils/graphql-query';
+import { fetchAllEvents, fetchTransactionBlocks } from '../utils/graphql-query';
 
 const argv = await yargs(hideBin(process.argv))
 	.option('network', {
@@ -111,12 +111,10 @@ const publicClient = new SuiClient({
 	url: getFullnodeUrl(argv.network as any),
 });
 
-let graphqlEndpoint;
-if (argv.network === 'mainnet') {
-	graphqlEndpoint = 'https://sui-mainnet.mystenlabs.com/graphql';
-} else if (argv.network === 'testnet') {
-	graphqlEndpoint = 'https://sui-testnet.mystenlabs.com/graphql';
-}
+const graphqlEndpoint =
+	argv.network === 'mainnet'
+		? 'https://sui-mainnet.mystenlabs.com/graphql'
+		: 'https://sui-testnet.mystenlabs.com/graphql';
 
 const database = drizzle(new Database(argv.sqliteFilename));
 if (argv.forceRegenesis) {
@@ -232,7 +230,7 @@ while (true) {
 	if (argv.network === 'mainnet' || argv.network === 'testnet') {
 		try {
 			const graphqlResponse = await fetchTransactionBlocks({
-				graphqlEndpoint: graphqlEndpoint as string,
+				graphqlEndpoint,
 				changedObject: schemaId,
 				first: argv.syncLimit,
 				afterCheckpoint: lastTxRecord.checkpoint
@@ -240,21 +238,32 @@ while (true) {
 					: undefined,
 			});
 
-			txs = graphqlResponse.transactionBlocks.edges.map(edge => {
-				const cursor = edge.cursor;
-				const tx = edge.node;
-				return {
-					cursor,
-					digest: tx.digest,
-					checkpoint: tx.effects.checkpoint.sequenceNumber.toString(),
-					timestampMs: new Date(tx.effects.timestamp)
-						.getTime()
-						.toString(),
-					events: tx.effects.events.nodes.map(node => ({
-						parsedJson: node.contents.json,
-					})),
-				};
-			});
+			txs = await Promise.all(
+				graphqlResponse.transactionBlocks.edges.map(async edge => {
+					const cursor = edge.cursor;
+					const tx = edge.node;
+
+					const allEvents = await fetchAllEvents({
+						graphqlEndpoint,
+						transactionDigest: tx.digest,
+					});
+					return {
+						cursor,
+						digest: tx.digest,
+						checkpoint:
+							tx.effects.checkpoint.sequenceNumber.toString(),
+						timestampMs: new Date(tx.effects.timestamp)
+							.getTime()
+							.toString(),
+						events: allEvents.map(event => ({
+							parsedJson: event.contents.json,
+						})),
+						// events: tx.effects.events.nodes.map(node => ({
+						// 	parsedJson: node.contents.json,
+						// })),
+					};
+				})
+			);
 		} catch (error) {
 			console.error('Error fetching GraphQL data:', error);
 			await delay(5000);
@@ -290,7 +299,10 @@ while (true) {
 
 		if (tx.events) {
 			for (const event of tx.events) {
-				console.log('EventData: ', event.parsedJson);
+				console.log(
+					'EventData: ',
+					JSON.stringify(event.parsedJson, null, 2)
+				);
 
 				// @ts-ignore
 				const name: string = event.parsedJson['name'];

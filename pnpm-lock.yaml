@@ -998,7 +998,7 @@ importers:
   packages/sui-indexer:
     dependencies:
       '@0xobelisk/sui-common':
-        specifier: workspace:*
+        specifier: ^v1.1.0
         version: link:../sui-common
       '@graphql-tools/schema':
         specifier: ^10.0.16
