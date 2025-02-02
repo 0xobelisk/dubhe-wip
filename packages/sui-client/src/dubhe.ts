@@ -1144,6 +1144,10 @@ export class Dubhe {
     name,
     key1,
     key2,
+    is_removed,
+    last_update_checkpoint,
+    last_update_digest,
+    value,
     first,
     after,
     orderBy,
@@ -1151,6 +1155,10 @@ export class Dubhe {
     name?: string;
     key1?: string;
     key2?: string;
+    is_removed?: boolean;
+    last_update_checkpoint?: string;
+    last_update_digest?: string;
+    value?: any;
     first?: number;
     after?: string;
     orderBy?: string[];
@@ -1159,6 +1167,10 @@ export class Dubhe {
       name,
       key1,
       key2,
+      is_removed,
+      last_update_checkpoint,
+      last_update_digest,
+      value,
       first,
       after,
       orderBy,
@@ -1169,6 +1181,10 @@ export class Dubhe {
     name,
     key1,
     key2,
+    is_removed,
+    last_update_checkpoint,
+    last_update_digest,
+    value,
     first,
     after,
     orderBy,
@@ -1176,6 +1192,10 @@ export class Dubhe {
     name?: string;
     key1?: string;
     key2?: string;
+    is_removed?: boolean;
+    last_update_checkpoint?: string;
+    last_update_digest?: string;
+    value?: any;
     first?: number;
     after?: string;
     orderBy?: string[];
@@ -1184,6 +1204,10 @@ export class Dubhe {
       name,
       key1,
       key2,
+      is_removed,
+      last_update_checkpoint,
+      last_update_digest,
+      value,
       first,
       after,
       orderBy,
@@ -1194,15 +1218,27 @@ export class Dubhe {
     name,
     key1,
     key2,
+    is_removed,
+    last_update_checkpoint,
+    last_update_digest,
+    value,
   }: {
     name: string;
     key1?: string;
     key2?: string;
+    is_removed?: boolean;
+    last_update_checkpoint?: string;
+    last_update_digest?: string;
+    value?: any;
   }): Promise<StorageItemResponse<IndexerSchema> | undefined> {
     const response = await this.suiIndexerClient.getStorageItem({
       name,
       key1,
       key2,
+      is_removed,
+      last_update_checkpoint,
+      last_update_digest,
+      value,
     });
     return response;
   }

@@ -116,11 +116,37 @@ export class SuiIndexerClient {
     name?: string;
     key1?: string;
     key2?: string;
+    is_removed?: boolean;
+    last_update_checkpoint?: string;
+    last_update_digest?: string;
+    value?: any;
     orderBy?: string[];
   }): Promise<ConnectionResponse<IndexerSchema>> {
     const query = `
-      query GetSchemas($first: Int, $after: String, $name: String, $key1: String, $key2: String, $orderBy: [SchemaOrderField!]) {
-        schemas(first: $first, after: $after, name: $name, key1: $key1, key2: $key2, orderBy: $orderBy) {
+      query GetSchemas(
+        $first: Int, 
+        $after: String, 
+        $name: String, 
+        $key1: String, 
+        $key2: String,
+        $is_removed: Boolean,
+        $last_update_checkpoint: String,
+        $last_update_digest: String,
+        $value: JSON,
+        $orderBy: [SchemaOrderField!]
+      ) {
+        schemas(
+          first: $first,
+          after: $after,
+          name: $name,
+          key1: $key1,
+          key2: $key2,
+          is_removed: $is_removed,
+          last_update_checkpoint: $last_update_checkpoint,
+          last_update_digest: $last_update_digest,
+          value: $value,
+          orderBy: $orderBy
+        ) {
           edges {
             cursor
             node {
@@ -191,6 +217,10 @@ export class SuiIndexerClient {
     name,
     key1,
     key2,
+    is_removed = false,
+    last_update_checkpoint,
+    last_update_digest,
+    value,
     first,
     after,
     orderBy,
@@ -198,6 +228,10 @@ export class SuiIndexerClient {
     name?: string;
     key1?: string;
     key2?: string;
+    is_removed?: boolean;
+    last_update_checkpoint?: string;
+    last_update_digest?: string;
+    value?: any;
     first?: number;
     after?: string;
     orderBy?: string[];
@@ -206,15 +240,19 @@ export class SuiIndexerClient {
       name,
       key1,
       key2,
+      is_removed,
+      last_update_checkpoint,
+      last_update_digest,
+      value,
       first,
       after,
       orderBy,
     });
     const data = schemas.edges.map((edge) => edge.node);
-    const value = data.map((item) => parseValue(item.value));
+    const result = data.map((item) => parseValue(item.value));
     return {
       data,
-      value,
+      value: result,
       pageInfo: schemas.pageInfo,
       totalCount: schemas.totalCount,
     };
@@ -224,25 +262,37 @@ export class SuiIndexerClient {
     name,
     key1,
     key2,
+    is_removed,
+    last_update_checkpoint,
+    last_update_digest,
+    value,
   }: {
     name: string;
     key1?: string;
     key2?: string;
+    is_removed?: boolean;
+    last_update_checkpoint?: string;
+    last_update_digest?: string;
+    value?: any;
   }): Promise<StorageItemResponse<IndexerSchema> | undefined> {
     const schemas = await this.getSchemas({
       name,
       key1,
       key2,
+      is_removed,
+      last_update_checkpoint,
+      last_update_digest,
+      value,
       first: 1,
     });
     const data = schemas.edges[0]?.node;
     if (!data) {
       return undefined;
     }
-    const value = parseValue(data.value);
+    const result = parseValue(data.value);
     return {
       data,
-      value,
+      value: result,
     };
   }
 
