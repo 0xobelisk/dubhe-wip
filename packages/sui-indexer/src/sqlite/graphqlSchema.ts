@@ -80,6 +80,10 @@ const typeDefs = `
       name: String
       key1: String
       key2: String
+      is_removed: Boolean
+      last_update_checkpoint: String
+      last_update_digest: String
+      value: JSON
       orderBy: [SchemaOrderField!]
     ): SchemaConnection!
 
@@ -214,9 +218,28 @@ export function createResolvers(
 
 	const resolvers = {
 		JSON: {
-			serialize: (value: any) => value,
-			parseValue: (value: any) => value,
-			parseLiteral: (ast: any) => ast.value,
+			serialize: (value: any) => {
+				if (value === null || value === undefined) {
+					return null;
+				}
+				if (typeof value === 'string') {
+					try {
+						return JSON.parse(value);
+					} catch {
+						return value;
+					}
+				}
+				return value;
+			},
+			parseValue: (value: any) => {
+				if (value === null || value === undefined) {
+					return null;
+				}
+				return value;
+			},
+			parseLiteral: (ast: any) => {
+				return parseLiteral(ast);
+			},
 		},
 		Query: {
 			transactions: async (
@@ -318,6 +341,10 @@ export function createResolvers(
 					name,
 					key1,
 					key2,
+					is_removed,
+					last_update_checkpoint,
+					last_update_digest,
+					value,
 					orderBy,
 				}: {
 					first?: number;
@@ -325,6 +352,10 @@ export function createResolvers(
 					name?: string;
 					key1?: string;
 					key2?: string;
+					is_removed?: boolean;
+					last_update_checkpoint?: string;
+					last_update_digest?: string;
+					value?: any;
 					orderBy?: string[];
 				}
 			) => {
@@ -335,10 +366,77 @@ export function createResolvers(
 					// Collect all filter conditions
 					const conditions = [];
 
-					// First apply name, key1, key2 filters
+					// Apply all filters
 					if (name) conditions.push(eq(dubheStoreSchemas.name, name));
 					if (key1) conditions.push(eq(dubheStoreSchemas.key1, key1));
 					if (key2) conditions.push(eq(dubheStoreSchemas.key2, key2));
+					if (typeof is_removed === 'boolean')
+						conditions.push(
+							eq(dubheStoreSchemas.is_removed, is_removed)
+						);
+					if (last_update_checkpoint)
+						conditions.push(
+							eq(
+								dubheStoreSchemas.last_update_checkpoint,
+								last_update_checkpoint
+							)
+						);
+					if (last_update_digest)
+						conditions.push(
+							eq(
+								dubheStoreSchemas.last_update_digest,
+								last_update_digest
+							)
+						);
+					if (value !== undefined) {
+						if (typeof value === 'boolean') {
+							conditions.push(
+								sql`${
+									dubheStoreSchemas.value
+								} = ${value.toString()}`
+							);
+						} else if (value === null) {
+							conditions.push(
+								sql`${dubheStoreSchemas.value} IS NULL`
+							);
+						} else if (Array.isArray(value)) {
+							const jsonValue = JSON.stringify(value);
+							conditions.push(sql`
+								CASE 
+									WHEN json_valid(${dubheStoreSchemas.value})
+									THEN (
+										CASE 
+											WHEN json_type(${dubheStoreSchemas.value}) = 'array'
+											THEN json(${dubheStoreSchemas.value}) = json(${jsonValue})
+											ELSE FALSE
+										END
+									)
+									ELSE FALSE 
+								END
+							`);
+						} else if (typeof value === 'string') {
+							conditions.push(
+								sql`${
+									dubheStoreSchemas.value
+								} = ${value.toString()}`
+							);
+						} else if (typeof value === 'number') {
+							conditions.push(
+								sql`${
+									dubheStoreSchemas.value
+								} = ${value.toString()}`
+							);
+						} else if (typeof value === 'object') {
+							const jsonValue = JSON.stringify(value);
+							conditions.push(sql`
+								CASE 
+									WHEN json_valid(${dubheStoreSchemas.value})
+									THEN json(${dubheStoreSchemas.value}) = json(${jsonValue})
+									ELSE FALSE 
+								END
+							`);
+						}
+					}
 
 					// Get filtered total count
 					const totalCount = getTotalCount(
@@ -495,4 +593,30 @@ export function createSchema(
 		typeDefs,
 		resolvers: createResolvers(database, defaultPageSize, paginationLimit),
 	});
+}
+
+// 辅助函数来解析各种类型的字面量
+function parseLiteral(ast: any): any {
+	switch (ast.kind) {
+		case 'ObjectValue':
+			const obj: Record<string, any> = {};
+			ast.fields.forEach((field: any) => {
+				obj[field.name.value] = parseLiteral(field.value);
+			});
+			return obj;
+		case 'ListValue':
+			return ast.values.map((value: any) => parseLiteral(value));
+		case 'IntValue':
+			return parseInt(ast.value, 10);
+		case 'FloatValue':
+			return parseFloat(ast.value);
+		case 'StringValue':
+			return ast.value;
+		case 'BooleanValue':
+			return ast.value;
+		case 'NullValue':
+			return null;
+		default:
+			return ast.value;
+	}
 }
