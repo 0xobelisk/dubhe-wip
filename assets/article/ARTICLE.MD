@@ -41,10 +41,9 @@ No more scattered resources or convoluted access patterns. Instead, Dubhe offers
 ________________________________________
 Building with Dubhe: Less Setup, More Shipping
 Getting started with Dubhe is remarkably straightforward compared to traditional Move development.
-1.	Install the CLI – cargo install dubhe
-2.	Bootstrap a new project – create-dubhe my-app
-3.	Define your data schema – No more manual resource juggling.
-4.	Deploy & Interact – Use the Dubhe Client to test and iterate.
+1.	Bootstrap a new project – `pnpm create dubhe`
+2.	Define your data schema – No more manual resource juggling.
+3.	Deploy & Interact – Use the Dubhe Client to test and iterate.
 It just works. If you’ve been bogged down by Move’s boilerplate code, Dubhe will feel like a breath of fresh air.
 ________________________________________
 What’s Next for Dubhe?
