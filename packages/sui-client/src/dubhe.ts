@@ -1,5 +1,4 @@
 import keccak256 from 'keccak256';
-import { getFullnodeUrl } from '@mysten/sui/client';
 import { Transaction, TransactionResult } from '@mysten/sui/transactions';
 import { BcsType, fromHex, SerializedBcs, toHex } from '@mysten/bcs';
 import type { TransactionArgument } from '@mysten/sui/transactions';
@@ -14,18 +13,9 @@ import type {
 import { SuiAccountManager } from './libs/suiAccountManager';
 import { SuiTx } from './libs/suiTxBuilder';
 import { SuiInteractor } from './libs/suiInteractor';
-import {
-  MapObjectStruct,
-  MoveStructType,
-  DubheObjectContent,
-  SuiDubheReturnType,
-  MoveEnumType,
-} from './types';
+import { MapObjectStruct, MoveStructType, MoveEnumType } from './types';
 import { SuiContractFactory } from './libs/suiContractFactory';
-import {
-  SuiMoveMoudleFuncType,
-  SuiMoveMoudleValueType,
-} from './libs/suiContractFactory/types';
+import { SuiMoveMoudleFuncType } from './libs/suiContractFactory/types';
 import { getDefaultURL, NetworkConfig } from './libs/suiInteractor';
 import {
   ContractQuery,
@@ -36,7 +26,6 @@ import {
   MapMoudleFuncTx,
   DubheParams,
   SuiTxArg,
-  // SuiTxArgument,
   SuiObjectArg,
   SuiVecTxArg,
 } from './types';
@@ -106,7 +95,9 @@ function createTx(
     tx: Transaction,
     params?: (TransactionArgument | SerializedBcs<any>)[],
     typeArguments?: string[],
-    isRaw?: boolean
+    isRaw?: boolean,
+    onSuccess?: (result: SuiTransactionBlockResponse) => void | Promise<void>,
+    onError?: (error: Error) => void | Promise<void>
   ) => Promise<SuiTransactionBlockResponse | TransactionResult>
 ): ContractTx {
   return withMeta(
@@ -116,13 +107,17 @@ function createTx(
       params,
       typeArguments,
       isRaw,
+      onSuccess,
+      onError,
     }: {
       tx: Transaction;
       params?: (TransactionArgument | SerializedBcs<any>)[];
       typeArguments?: string[];
       isRaw?: boolean;
+      onSuccess?: (result: SuiTransactionBlockResponse) => void | Promise<void>;
+      onError?: (error: Error) => void | Promise<void>;
     }): Promise<SuiTransactionBlockResponse | TransactionResult> => {
-      return await fn(tx, params, typeArguments, isRaw);
+      return await fn(tx, params, typeArguments, isRaw, onSuccess, onError);
     }
   );
 }
@@ -357,8 +352,16 @@ export class Dubhe {
                 if (isUndefined(this.#tx[moduleName][funcName])) {
                   this.#tx[moduleName][funcName] = createTx(
                     meta,
-                    (tx, p, typeArguments, isRaw) =>
-                      this.#exec(meta, tx, p, typeArguments, isRaw)
+                    (tx, p, typeArguments, isRaw, onSuccess, onError) =>
+                      this.#exec(
+                        meta,
+                        tx,
+                        p,
+                        typeArguments,
+                        isRaw,
+                        onSuccess,
+                        onError
+                      )
                   );
                 }
               }
@@ -393,7 +396,9 @@ export class Dubhe {
     tx: Transaction,
     params?: (TransactionArgument | SerializedBcs<any>)[],
     typeArguments?: string[],
-    isRaw?: boolean
+    isRaw?: boolean,
+    onSuccess?: (result: SuiTransactionBlockResponse) => void | Promise<void>,
+    onError?: (error: Error) => void | Promise<void>
   ) => {
     if (isRaw === true) {
       return tx.moveCall({
@@ -408,7 +413,7 @@ export class Dubhe {
       arguments: params,
       typeArguments,
     });
-    return await this.signAndSendTxn(tx);
+    return await this.signAndSendTxn({ tx, onSuccess, onError });
   };
 
   #read = async (
@@ -1421,12 +1426,39 @@ export class Dubhe {
     return await keyPair.signTransaction(txBytes);
   }
 
-  async signAndSendTxn(
-    tx: Uint8Array | Transaction | SuiTx,
-    derivePathParams?: DerivePathParams
-  ): Promise<SuiTransactionBlockResponse> {
-    const { bytes, signature } = await this.signTxn(tx, derivePathParams);
-    return this.sendTx(bytes, signature);
+  async signAndSendTxn({
+    tx,
+    derivePathParams,
+    onSuccess,
+    onError,
+  }: {
+    tx: Uint8Array | Transaction | SuiTx;
+    derivePathParams?: DerivePathParams;
+    onSuccess?: (result: SuiTransactionBlockResponse) => void | Promise<void>;
+    onError?: (error: Error) => void | Promise<void>;
+  }): Promise<SuiTransactionBlockResponse> {
+    try {
+      const { bytes, signature } = await this.signTxn(tx, derivePathParams);
+      const result = await this.sendTx(bytes, signature);
+
+      if (result.effects?.status.status === 'success') {
+        if (onSuccess) {
+          await onSuccess(result);
+        }
+      } else {
+        if (onError) {
+          await onError(
+            new Error(`Transaction failed: ${result.effects?.status.error}`)
+          );
+        }
+      }
+      return result;
+    } catch (error) {
+      if (onError) {
+        await onError(error as Error);
+      }
+      throw error;
+    }
   }
 
   async sendTx(
@@ -1453,7 +1485,7 @@ export class Dubhe {
   ) {
     const tx = new SuiTx();
     tx.transferSui(recipient, amount);
-    return this.signAndSendTxn(tx, derivePathParams);
+    return this.signAndSendTxn({ tx, derivePathParams });
   }
 
   /**
@@ -1469,7 +1501,7 @@ export class Dubhe {
   ) {
     const tx = new SuiTx();
     tx.transferSuiToMany(recipients, amounts);
-    return this.signAndSendTxn(tx, derivePathParams);
+    return this.signAndSendTxn({ tx, derivePathParams });
   }
 
   /**
@@ -1499,7 +1531,7 @@ export class Dubhe {
       recipients,
       amounts
     );
-    return this.signAndSendTxn(tx, derivePathParams);
+    return this.signAndSendTxn({ tx, derivePathParams });
   }
 
   async transferCoin(
@@ -1523,7 +1555,7 @@ export class Dubhe {
   ) {
     const tx = new SuiTx();
     tx.transferObjects(objects, recipient);
-    return this.signAndSendTxn(tx, derivePathParams);
+    return this.signAndSendTxn({ tx, derivePathParams });
   }
 
   async moveCall(callParams: {
@@ -1540,7 +1572,7 @@ export class Dubhe {
     } = callParams;
     const tx = new SuiTx();
     tx.moveCall(target, args, typeArguments);
-    return this.signAndSendTxn(tx, derivePathParams);
+    return this.signAndSendTxn({ tx, derivePathParams });
   }
 
   /**
@@ -1578,7 +1610,7 @@ export class Dubhe {
   ) {
     const tx = new SuiTx();
     tx.stakeSui(amount, validatorAddr);
-    return this.signAndSendTxn(tx, derivePathParams);
+    return this.signAndSendTxn({ tx, derivePathParams });
   }
 
   /**
