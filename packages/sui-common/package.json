@@ -1,6 +1,6 @@
 {
 	"name": "@0xobelisk/sui-common",
-	"version": "1.1.1",
+	"version": "1.1.2",
 	"description": "Common low level logic shared between packages",
 	"keywords": [
 		"sui",

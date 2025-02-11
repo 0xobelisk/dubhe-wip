@@ -47,6 +47,8 @@ export const dubheConfig = {
 			asset2_id: 'u32',
 		},
 		PathElement: { asset_id: 'u32', balance: 'u256' },
+		Data: { asset_id: 'u32', balance: 'u256' },
+		TestData: { asset_id: 'u32', balance: "Data" },
 	},
 	schemas: {
 		next_asset_id: 'StorageValue<u32>',
@@ -55,6 +57,7 @@ export const dubheConfig = {
 		details1: 'StorageMap<u32, address>',
 		account: 'StorageDoubleMap<u32, address, Account>',
 		account1: 'StorageDoubleMap<u32, address, address>',
+		balance: 'StorageDoubleMap<Data, address, TestData>',
 	},
 	events: {
 		Created: {
