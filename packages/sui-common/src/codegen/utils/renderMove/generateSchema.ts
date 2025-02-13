@@ -4,7 +4,7 @@ import {
 	getStructAttrsWithType,
 	getStructAttrs,
 	getStructTypes,
-	getStructAttrsQuery,
+	getStructAttrsQuery, containsString,
 } from './common';
 
 function sortByFirstLetter(arr: string[]): string[] {
@@ -137,14 +137,18 @@ export async function generateSchemaData(
 						name,
 					)} {
                             use std::ascii::String;
-                            ${enumNames
-						.map(
-							name =>
-								`use ${projectName}::${convertToSnakeCase(
-									name,
-								)}::${name};`,
-						)
-						.join('\n')}
+    
+						${
+						Object.keys(data)
+							.map(name => {
+								if (containsString(fields, name)) {
+									return `use ${projectName}::${convertToSnakeCase(name)}::${name};`;
+								}
+								return undefined;
+							})
+							.filter(Boolean)
+							.join('\n')
+					}
 
                            public struct ${name} has copy, drop , store {
                                 ${getStructAttrsWithType(fields)}
