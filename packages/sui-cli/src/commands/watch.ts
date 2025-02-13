@@ -15,7 +15,7 @@ const commandModule: CommandModule = {
     const configFilePath = "dubhe.config.ts";
 
     const runSchemagen = () => {
-      exec("node dist/dubhe.js schemagen", (error, stdout, stderr) => {
+      exec("pnpm dubhe schemagen", (error, stdout, stderr) => {
         if (error) {
           console.error(`Error executing schemagen: ${error.message}`);
           return;
