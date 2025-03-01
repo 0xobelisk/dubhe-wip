@@ -263,6 +263,14 @@ export async function generateSchemaStructure(
                       Schema { id }
                     }
                     
+                    public(package) fun id(self: &mut Schema): &mut UID {
+					  &mut self.id
+					}
+				
+					public(package) fun borrow_id(self: &Schema): &UID {
+					  &self.id
+					}
+                    
                     public fun migrate(_schema: &mut Schema, _cap: &UpgradeCap, _ctx: &mut TxContext) {  }
 
               
