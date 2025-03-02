@@ -279,7 +279,7 @@ export class Dubhe {
           (moudlevalue) => {
             const data = moudlevalue as SuiMoveNormalizedModule;
             const moduleName = data.name;
-            const objMoudleId = `${packageId}::${moduleName}`;
+            const objMoudleId = `${this.packageId}::${moduleName}`;
 
             if (data.enums) {
               Object.entries(data.enums).forEach(([enumName, enumType]) => {
@@ -374,7 +374,7 @@ export class Dubhe {
       }
     }
     this.contractFactory = new SuiContractFactory({
-      packageId,
+      packageId: this.packageId,
       metadata,
     });
   }
