@@ -39,6 +39,8 @@ const handleArray = (data: any[]): any[] => {
             } else {
                 returnData.push(parseData(item));
             }
+        } else {
+            returnData.push(item);
         }
     });
     return returnData
