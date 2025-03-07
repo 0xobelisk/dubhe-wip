@@ -1158,8 +1158,8 @@ export class Dubhe {
     orderBy,
   }: {
     name?: string;
-    key1?: string;
-    key2?: string;
+    key1?: any;
+    key2?: any;
     is_removed?: boolean;
     last_update_checkpoint?: string;
     last_update_digest?: string;
@@ -1195,8 +1195,8 @@ export class Dubhe {
     orderBy,
   }: {
     name?: string;
-    key1?: string;
-    key2?: string;
+    key1?: any;
+    key2?: any;
     is_removed?: boolean;
     last_update_checkpoint?: string;
     last_update_digest?: string;
@@ -1229,8 +1229,8 @@ export class Dubhe {
     value,
   }: {
     name: string;
-    key1?: string;
-    key2?: string;
+    key1?: any;
+    key2?: any;
     is_removed?: boolean;
     last_update_checkpoint?: string;
     last_update_digest?: string;
