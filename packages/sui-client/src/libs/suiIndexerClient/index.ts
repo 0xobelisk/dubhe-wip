@@ -26,8 +26,8 @@ export interface IndexerTransaction {
 export interface IndexerSchema {
   id: number;
   name: string;
-  key1?: string;
-  key2?: string;
+  key1?: any;
+  key2?: any;
   value: any;
   last_update_checkpoint: string;
   last_update_digest: string;
@@ -114,8 +114,8 @@ export class SuiIndexerClient {
     first?: number;
     after?: string;
     name?: string;
-    key1?: string;
-    key2?: string;
+    key1?: any;
+    key2?: any;
     is_removed?: boolean;
     last_update_checkpoint?: string;
     last_update_digest?: string;
@@ -127,8 +127,8 @@ export class SuiIndexerClient {
         $first: Int, 
         $after: String, 
         $name: String, 
-        $key1: String, 
-        $key2: String,
+        $key1: JSON, 
+        $key2: JSON,
         $is_removed: Boolean,
         $last_update_checkpoint: String,
         $last_update_digest: String,
@@ -226,8 +226,8 @@ export class SuiIndexerClient {
     orderBy,
   }: {
     name?: string;
-    key1?: string;
-    key2?: string;
+    key1?: any;
+    key2?: any;
     is_removed?: boolean;
     last_update_checkpoint?: string;
     last_update_digest?: string;
@@ -268,8 +268,8 @@ export class SuiIndexerClient {
     value,
   }: {
     name: string;
-    key1?: string;
-    key2?: string;
+    key1?: any;
+    key2?: any;
     is_removed?: boolean;
     last_update_checkpoint?: string;
     last_update_digest?: string;
