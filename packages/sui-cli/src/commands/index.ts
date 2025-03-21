@@ -15,6 +15,7 @@ import query from './query';
 import call from './call';
 import indexer from './indexer';
 import watch from './watch';
+import install from "./install";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Each command has different options
 export const commands: CommandModule<any, any>[] = [
@@ -33,4 +34,5 @@ export const commands: CommandModule<any, any>[] = [
 	configStore,
 	indexer,
 	watch,
+	install
 ];
