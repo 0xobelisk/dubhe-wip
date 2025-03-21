@@ -52,6 +52,12 @@ export type SchemaData = Record<string, string> | string[]
 export type SchemaType = string
 export type EventData = Record<string, string>
 export type ErrorData = Record<string, string>
+export type DependencyType = {
+  name: string;
+  git: string;
+  subdir?: string;
+  rev: string;
+}
 
 export type DubheConfig = {
   name: string;
@@ -60,6 +66,7 @@ export type DubheConfig = {
   schemas: Record<string, SchemaType>;
   events?: Record<string, EventData>;
   errors?: ErrorData;
+  dependencies: DependencyType[];
 };
 
 export type MoveType =

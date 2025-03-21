@@ -1,18 +1,33 @@
 import type { CommandModule } from 'yargs';
 import { startLocalNode } from '../utils/startNode';
+import {DubheConfig, loadConfig} from "@0xobelisk/sui-common";
+import {dubheInstall} from "./install";
 
-const commandModule: CommandModule = {
+type Options = {
+	'config-path': string;
+};
+
+const commandModule: CommandModule<Options, Options> = {
 	command: 'node',
 
 	describe: 'Manage local Sui node',
 
 	builder(yargs) {
 		return yargs
+			.options({
+				'config-path': {
+					type: 'string',
+					default: 'dubhe.config.ts',
+					description: 'Path to the configuration file',
+				},
+			})
 	},
 
-	async handler() {
+	async handler({ 'config-path': configPath }) {
 		try {
-			await startLocalNode();
+			const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
+			await dubheInstall(dubheConfig, 'localnet');
+			await startLocalNode(dubheConfig);
 		} catch (error) {
 			console.error('Error executing command:', error);
 			process.exit(1);

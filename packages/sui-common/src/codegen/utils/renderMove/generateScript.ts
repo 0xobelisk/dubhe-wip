@@ -16,8 +16,8 @@ export async function generateDeployHook(
 
 	const path = `${srcPrefix}/contracts/${config.name}/sources/scripts/deploy_hook.move`;
 	if (!existsSync(path)) {
-		const code = `module ${config.name}::deploy_hook {
-			  use ${config.name}::schema::Schema;
+		const code = `module ${config.name}::${config.name}_deploy_hook {
+			  use ${config.name}::${config.name}_schema::Schema;
 
   public(package) fun run(_schema: &mut Schema, _ctx: &mut TxContext) {
 
@@ -38,7 +38,7 @@ export async function generateMigrate(config: DubheConfig, srcPrefix: string) {
 			`${srcPrefix}/contracts/${config.name}/sources/scripts/migrate.move`
 		)
 	) {
-		let code = `module ${config.name}::migrate {
+		let code = `module ${config.name}::${config.name}_migrate {
     const ON_CHAIN_VERSION: u32 = 1;
 
     public fun on_chain_version(): u32 {

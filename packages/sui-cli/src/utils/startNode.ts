@@ -1,8 +1,9 @@
 import { execSync, spawn } from 'child_process';
 import chalk from 'chalk';
 import { printDubhe } from './printDubhe';
-import { delay, DubheCliError, validatePrivateKey } from '../utils';
+import {delay, DubheCliError, publishDubheFramework, validatePrivateKey} from '../utils';
 import { Dubhe } from '@0xobelisk/sui-client';
+import {DubheConfig} from "@0xobelisk/sui-common";
 
 function isSuiStartRunning(): boolean {
 	try {
@@ -70,7 +71,7 @@ async function printAccounts() {
 		)
 	);
 }
-export async function startLocalNode() {
+export async function startLocalNode(dubheConfig: DubheConfig) {
 	if (isSuiStartRunning()) {
 		console.log(chalk.yellow('\n⚠️  Warning: Local Node Already Running'));
 		console.log(chalk.yellow('  ├─ Cannot start a new instance'));
@@ -102,7 +103,6 @@ export async function startLocalNode() {
 		console.log('  └─ Force Regenesis: Yes');
 		console.log('  └─ HTTP server: http://127.0.0.1:9000/');
 		console.log('  └─ Faucet server: http://127.0.0.1:9123/');
-
 		await printAccounts();
 
 		await delay(2000);
@@ -114,7 +114,13 @@ export async function startLocalNode() {
 			throw new DubheCliError(`Please check your privateKey.`);
 		}
 
-		console.log(chalk.green('🎉 Local environment is ready!'));
+		console.log(chalk.green('🎉 Local environment is ready!'))
+		const dubhe = new Dubhe({
+			secretKey: privateKeyFormat,
+			networkType: "localnet",
+		});
+
+		await publishDubheFramework(dubheConfig, dubhe, 'localnet');
 
 		process.on('SIGINT', () => {
 			console.log(chalk.yellow('\n🔔 Stopping Local Node...'));

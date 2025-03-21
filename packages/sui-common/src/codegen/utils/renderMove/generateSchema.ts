@@ -116,7 +116,7 @@ export async function generateSchemaData(
 
 				if (Array.isArray(fields)) {
 					const sortByFirstLetterFields = sortByFirstLetter(fields);
-					code = `module ${projectName}::${convertToSnakeCase(
+					code = `module ${projectName}::${projectName}_${convertToSnakeCase(
 						name,
 					)} {
                         public enum ${name} has copy, drop , store {
@@ -133,7 +133,7 @@ export async function generateSchemaData(
 						})
 						.join('')}`;
 				} else {
-					code = `module ${projectName}::${convertToSnakeCase(
+					code = `module ${projectName}::${projectName}_${convertToSnakeCase(
 						name,
 					)} {
                             use std::ascii::String;
@@ -142,7 +142,7 @@ export async function generateSchemaData(
 						Object.keys(data)
 							.map(name => {
 								if (containsString(fields, name)) {
-									return `use ${projectName}::${convertToSnakeCase(name)}::${name};`;
+									return `use ${projectName}::${projectName}_${convertToSnakeCase(name)}::${name};`;
 								}
 								return undefined;
 							})
@@ -188,7 +188,7 @@ function generateImport(
 		const names = Object.keys(data);
 		return names
 			.map(name => {
-				return `use ${projectName}::${convertToSnakeCase(
+				return `use ${projectName}::${projectName}_${convertToSnakeCase(
 					name,
 				)}::${name};`;
 			})
@@ -213,7 +213,7 @@ export async function generateSchemaStructure(
 				Object.values(schemas).length
 			}`,
 		);
-		const schemaMoudle = `module ${projectName}::schema {
+		const schemaMoudle = `module ${projectName}::${projectName}_schema {
                     use std::ascii::String;
                     use std::ascii::string;
                     use sui::package::UpgradeCap;
