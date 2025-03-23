@@ -5,15 +5,13 @@ import { DubheCliError } from './errors';
 import {
 	saveContractData,
 	validatePrivateKey,
+	updateDubheDependency,
 	switchEnv,
 	delay,
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
-import {homedir} from "node:os";
-import {generateCargoToml, getRepoNameFromUrl} from "../commands/install";
-import {writeFileSync} from "fs";
 
 async function removeEnvContent(
 	filePath: string,
@@ -289,88 +287,116 @@ async function publishContract(
 	}
 }
 
+async function checkDubheFramework(projectPath: string): Promise<boolean> {
+	if (!fs.existsSync(projectPath)) {
+		console.log(chalk.yellow('\nℹ️ Dubhe Framework Files Not Found'));
+		console.log(chalk.yellow('  ├─ Expected Path:'), projectPath);
+		console.log(chalk.yellow('  ├─ To set up Dubhe Framework:'));
+		console.log(
+			chalk.yellow(
+				'  │  1. Create directory: mkdir -p contracts/dubhe-framework'
+			)
+		);
+		console.log(
+			chalk.yellow(
+				'  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe-framework contracts/dubhe-framework'
+			)
+		);
+		console.log(
+			chalk.yellow(
+				'  │  3. Or download from: https://github.com/0xobelisk/dubhe-framework'
+			)
+		);
+		console.log(chalk.yellow('  └─ After setup, restart the local node'));
+		return false;
+	}
+	return true;
+}
+
 export async function publishDubheFramework(
-	dubheConfig: DubheConfig,
 	dubhe: Dubhe,
 	network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
+	const path = process.cwd();
+	const projectPath = `${path}/contracts/dubhe-framework`;
+
+	if (!(await checkDubheFramework(projectPath))) {
+		console.log(chalk.yellow('\n❗ Framework Deployment Skipped'));
+		return;
+	}
+
+	// const chainId = await client.getChainIdentifier();
 	const chainId =
 		await dubhe.suiInteractor.currentClient.getChainIdentifier();
-	for (const dependency of dubheConfig.dependencies) {
-		const projectName = getRepoNameFromUrl(dependency.git);
-		let projectPath = `${homedir()}/.dubhe/dependencies/${projectName}`
-		if (dependency.subdir) {
-			projectPath += `/${dependency.subdir}`;
-		}
-		console.log(`\n🚀 Initialize dependencies...`);
-		console.log(`  ├─ Project: ${projectPath}`);
-		if (!fs.existsSync(projectPath)) {
-			console.log(chalk.yellow('\nℹ️ Please install Dubhe Framework'));
-			console.log(chalk.yellow('\nℹ️ Execute the following command:'));
-			console.log(chalk.yellow(`pnpm dubhe install`));
-			continue;
-		}
+	await removeEnvContent(`${projectPath}/Move.lock`, network);
+	console.log('\n🚀 Starting Contract Publication...');
+	console.log(`  ├─ Project: ${projectPath}`);
+	console.log(`  ├─ Network: ${network}`);
 
-		await removeEnvContent(`${projectPath}/Move.lock`, network);
-		const [modules, dependencies] = buildContract(projectPath);
+	console.log(`  └─ Account: ${dubhe.getAddress()}`);
 
-		const tx = new Transaction();
-		const [upgradeCap] = tx.publish({ modules, dependencies });
-		tx.transferObjects([upgradeCap], dubhe.getAddress());
+	console.log('\n📦 Building Contract...');
+	const [modules, dependencies] = buildContract(projectPath);
 
-		let result;
-		try {
-			result = await dubhe.signAndSendTxn({ tx });
-		} catch (error: any) {
-			console.error(chalk.red('  └─ Publication failed'));
-			console.error(error.message);
-			process.exit(1);
-		}
+	console.log('\n🔄 Publishing Contract...');
+	const tx = new Transaction();
+	const [upgradeCap] = tx.publish({ modules, dependencies });
+	tx.transferObjects([upgradeCap], dubhe.getAddress());
 
-		if (result.effects?.status.status === 'failure') {
-			console.log(chalk.red('  └─ Publication failed'));
-			process.exit(1);
-		}
-
-		result.objectChanges!.map(async object => {
-			if (object.type === 'published') {
-				console.log(`  ├─ Package ID: ${object.packageId}`);
-				updateEnvFile(
-					`${projectPath}/Move.lock`,
-					network,
-					'publish',
-					chainId,
-					object.packageId
-				);
-
-				if (dependency.name === 'merak') {
-					await delay(2000);
-					const deployHookTx = new Transaction();
-					deployHookTx.moveCall({
-						target: `${object.packageId}::genesis::run`,
-						arguments: [deployHookTx.object('0x6')],
-					});
-
-					let deployHookResult;
-					try {
-						deployHookResult = await dubhe.signAndSendTxn({tx: deployHookTx});
-					} catch (error: any) {
-						console.error(chalk.red('  └─ Deploy hook execution failed'));
-						console.error(error.message);
-						process.exit(1);
-					}
-
-					if (deployHookResult.effects?.status.status === 'success') {
-						deployHookResult.objectChanges?.map(object => {
-							if (object.type === 'created' && object.objectType.includes('schema::Schema')) {
-								console.log(`  ├─ Schema ID: ${object.objectId}`);
-							}
-						});
-					}
-				}
-			}
-		});
+	let result;
+	try {
+		result = await dubhe.signAndSendTxn({ tx });
+	} catch (error: any) {
+		console.error(chalk.red('  └─ Publication failed'));
+		console.error(error.message);
+		process.exit(1);
 	}
+
+	if (result.effects?.status.status === 'failure') {
+		console.log(chalk.red('  └─ Publication failed'));
+		process.exit(1);
+	}
+
+	let version = 1;
+	let packageId = '';
+	let schemas: Record<string, string> = {};
+	let upgradeCapId = '';
+
+	result.objectChanges!.map(object => {
+		if (object.type === 'published') {
+			console.log(`  ├─ Package ID: ${object.packageId}`);
+			packageId = object.packageId;
+		}
+		if (
+			object.type === 'created' &&
+			object.objectType === '0x2::package::UpgradeCap'
+		) {
+			console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
+			upgradeCapId = object.objectId;
+		}
+	});
+
+	console.log(`  └─ Transaction: ${result.digest}`);
+
+	updateEnvFile(
+		`${projectPath}/Move.lock`,
+		network,
+		'publish',
+		chainId,
+		packageId
+	);
+
+	saveContractData(
+		'dubhe-framework',
+		network,
+		packageId,
+		'',
+		upgradeCapId,
+		version,
+		schemas
+	);
+	await delay(1000);
+	console.log(chalk.green('\n✅ Dubhe Framework deployed successfully'));
 }
 
 export async function publishHandler(
@@ -398,10 +424,12 @@ in your contracts directory to use the default sui private key.`
 		networkType: network,
 	});
 
+	if (network === 'localnet') {
+		await publishDubheFramework(dubhe, network);
+	}
+
 	const path = process.cwd();
 	const projectPath = `${path}/contracts/${dubheConfig.name}`;
-	const cargoTomlContent = generateCargoToml(dubheConfig.dependencies, dubheConfig.name, network);
-	writeFileSync(`${projectPath}/Move.toml`, cargoTomlContent, { encoding: 'utf-8' });
-
+	await updateDubheDependency(`${projectPath}/Move.toml`, network);
 	await publishContract(dubhe, dubheConfig, network, projectPath, gasBudget);
 }

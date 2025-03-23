@@ -2,9 +2,7 @@ import type { CommandModule } from 'yargs';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 import { DubheConfig, loadConfig } from '@0xobelisk/sui-common';
-import { switchEnv } from '../utils';
-import {generateCargoToml} from "./install";
-import {writeFileSync} from "fs";
+import { switchEnv, updateDubheDependency } from '../utils';
 
 type Options = {
 	'config-path': string;
@@ -48,8 +46,7 @@ const commandModule: CommandModule<Options, Options> = {
 			const path = process.cwd();
 			const projectPath = `${path}/contracts/${dubheConfig.name}`;
 			await switchEnv(network);
-			const cargoTomlContent = generateCargoToml(dubheConfig.dependencies, dubheConfig.name, network);
-			writeFileSync(`${projectPath}/Move.toml`, cargoTomlContent, { encoding: 'utf-8' });
+			await updateDubheDependency(projectPath + '/Move.toml', network);
 			const command = `sui move build --path ${projectPath} ${
 				dumpBytecodeAsBase64 ? ` --dump-bytecode-as-base64` : ''
 			}`;
