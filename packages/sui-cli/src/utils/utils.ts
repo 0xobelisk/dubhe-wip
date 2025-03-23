@@ -201,6 +201,10 @@ export async function switchEnv(
 				}
 			);
 
+			suiProcess.stdout.on('data', data => {
+				console.log(chalk.green(`${data.toString()}`));
+			});
+
 			suiProcess.on('error', error => {
 				console.error(chalk.red('\n❌ Failed to Switch Env'));
 				console.error(chalk.red(`  Error: ${error.message}`));

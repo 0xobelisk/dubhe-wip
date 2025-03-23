@@ -21,7 +21,7 @@ export async function generateSchemaError(
 ) {
 	console.log('\n📦 Starting Schema Error Generation...');
 
-	let	code = `module ${projectName}::${projectName}_errors {
+	let	code = `module ${projectName}::errors {
 		${Object.entries(errors).map(([name, message]) => {
 			console.log(`  ├─ Generating Error: ${name}`);
 		console.log(`  │  └─ Message: ${message}`);
