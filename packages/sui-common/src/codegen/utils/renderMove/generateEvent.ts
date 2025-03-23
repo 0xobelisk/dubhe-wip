@@ -33,7 +33,7 @@ function generateImport(
 		const names = Object.keys(data);
 		return names
 			.map(name => {
-				return `use ${projectName}::${projectName}_${convertToSnakeCase(
+				return `use ${projectName}::${convertToSnakeCase(
 					name,
 				)}::${name};`;
 			})
@@ -57,7 +57,7 @@ export async function generateSchemaEvent(
 					`     └─ Generating ${name} event: ${fields}`
 				);
 
-				let	code = `module ${projectName}::${projectName}_${convertToSnakeCase(name)}_event {
+				let	code = `module ${projectName}::${convertToSnakeCase(name)}_event {
 						use sui::event;
 						use std::ascii::String;
 						${generateImport(projectName, data)}
@@ -81,19 +81,19 @@ export async function generateSchemaEvent(
 				);
 			}
 
-	let	code = `module ${projectName}::${projectName}_events {
+	let	code = `module ${projectName}::events {
 	 	use std::ascii::{String, string};
 	 	${generateImport(projectName, data)}
 		${Object.entries(events).map(([name, fields]) => {
 		return `
-use ${projectName}::${projectName}_${convertToSnakeCase(name)}_event::${name}Event;
-use ${projectName}::${projectName}_${convertToSnakeCase(name)}_event;
+use ${projectName}::${convertToSnakeCase(name)}_event::${name}Event;
+use ${projectName}::${convertToSnakeCase(name)}_event;
 			public fun ${convertToSnakeCase(name)}_event(${getStructAttrsWithType(fields as Record<string, string>)}) {
 			 dubhe::storage_event::emit_set_record<${name}Event, ${name}Event, ${name}Event>(
 				string(b"${convertToSnakeCase(name)}_event"),
 				option::none(),
 			  	option::none(),
-			  option::some(${projectName}_${convertToSnakeCase(name)}_event::new(${getStructAttrs(fields as Record<string, string>)}))
+			  option::some(${convertToSnakeCase(name)}_event::new(${getStructAttrs(fields as Record<string, string>)}))
 			  )
 			}
 		`

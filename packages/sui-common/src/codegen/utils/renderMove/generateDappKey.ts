@@ -10,7 +10,7 @@ export async function generateDappKey(
 		`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/codegen/dapp_key.move`
 	);
 
-	let code = `module ${config.name}::${config.name}_dapp_key {
+	let code = `module ${config.name}::dapp_key {
 \t/// Authorization token for the app.
 \tpublic struct DappKey has drop {}
 

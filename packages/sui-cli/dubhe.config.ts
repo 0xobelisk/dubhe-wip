@@ -161,17 +161,4 @@ export const dubheConfig = {
 		AccountNotFound: 'This account not found',
 		AssetNotFound: 'This asset not found',
 	},
-	dependencies: [
-		{
-			name: "Dubhe",
-			git: "https://github.com/0xobelisk/dubhe-framework",
-			rev: "dubhe-testnet-v1.1.0"
-		},
-		{
-			name: "merak",
-			git: "https://github.com/0xobelisk/merak",
-			subdir: "contracts/merak",
-			rev: "main"
-		}
-	]
 } as DubheConfig;

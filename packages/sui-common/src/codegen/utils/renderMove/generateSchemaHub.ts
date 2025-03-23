@@ -10,7 +10,7 @@ export async function generateSchemaHub(
 		`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/codegen/schema_hub.move`
 	);
 
-	let code = `module ${config.name}::${config.name}_schema_hub {
+	let code = `module ${config.name}::schema_hub {
     use sui::transfer::public_share_object;
     use sui::dynamic_field as df;
 

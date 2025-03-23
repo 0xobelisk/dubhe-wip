@@ -15,7 +15,7 @@ export async function generateDefaultSchema(
 async function generateDappSchemaMetadata(config: DubheConfig, srcPrefix: string) {
 	const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/metadata.move`
 	if (!existsSync(path)) {
-		let code = `module ${config.name}::${config.name}_dapp_metadata {
+		let code = `module ${config.name}::dapp_metadata {
     use std::ascii::String;
 
     public struct DappMetadata has drop, copy, store {
@@ -124,8 +124,8 @@ async function generateDappSchemaMetadata(config: DubheConfig, srcPrefix: string
 async function generateDappSchema(config: DubheConfig, srcPrefix: string) {
 	const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/schema.move`
 	if (!existsSync(path)) {
-		let code = `module ${config.name}::${config.name}_dapp_schema {
-  use ${config.name}::${config.name}_dapp_metadata::DappMetadata;
+		let code = `module ${config.name}::dapp_schema {
+  use ${config.name}::dapp_metadata::DappMetadata;
   use dubhe::storage_value;
   use dubhe::storage_value::StorageValue;
   use dubhe::storage;
@@ -237,14 +237,14 @@ async function generateDappSchema(config: DubheConfig, srcPrefix: string) {
 async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
 	const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/system.move`
 	if (!existsSync(path)) {
-		let code = `module ${config.name}::${config.name}_dapp_system {
+		let code = `module ${config.name}::dapp_system {
   use std::ascii::String;
   use std::ascii;
   use dubhe::type_info;
   use sui::clock::Clock;
-  use ${config.name}::${config.name}_dapp_schema;
-  use ${config.name}::${config.name}_dapp_metadata;
-  use ${config.name}::${config.name}_dapp_schema::Dapp;
+  use ${config.name}::dapp_schema;
+  use ${config.name}::dapp_metadata;
+  use ${config.name}::dapp_schema::Dapp;
   
   public struct DappKey has drop {}
   public(package) fun new(): DappKey {
@@ -252,10 +252,10 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
   }
 
   public(package) fun create(name: String, description: String, clock: &Clock, ctx: &mut TxContext): Dapp {
-    let mut dapp = ${config.name}_dapp_schema::create(ctx);
+    let mut dapp = dapp_schema::create(ctx);
     assert!(!dapp.borrow_metadata().contains(), 0);
     dapp.metadata().set(
-            ${config.name}_dapp_metadata::new(
+            dapp_metadata::new(
                 name,
                 description,
                 ascii::string(b""),
@@ -286,7 +286,7 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
       assert!(admin == option::some(ctx.sender()), 0);
     let created_at = dapp.metadata().get().get_created_at();
     dapp.metadata().set(
-            ${config.name}_dapp_metadata::new(
+            dapp_metadata::new(
                 name,
                 description,
                 icon_url,
