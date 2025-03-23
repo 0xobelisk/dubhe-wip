@@ -15,6 +15,12 @@ const typeDefs = `
 	CREATED_AT_ASC
     UPDATED_AT_DESC
 	UPDATED_AT_ASC
+	KEY1_ASC
+	KEY2_ASC
+	KEY1_DESC
+	KEY2_DESC
+	VALUE_ASC
+	VALUE_DESC
   }
 
   enum EventOrderField {
@@ -186,6 +192,15 @@ export function createResolvers(
 						break;
 					case 'CHECKPOINT':
 						query = query.orderBy(orderFn(table.checkpoint));
+						break;
+					case 'KEY1':
+						query = query.orderBy(orderFn(table.key1));
+						break;
+					case 'KEY2':
+						query = query.orderBy(orderFn(table.key2));
+						break;
+					case 'VALUE':
+						query = query.orderBy(orderFn(table.value));
 						break;
 					default:
 						console.warn('Unknown orderBy field:', field);
