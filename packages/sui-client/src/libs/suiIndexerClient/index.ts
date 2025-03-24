@@ -20,6 +20,7 @@ export interface IndexerTransaction {
   id: number;
   checkpoint: number;
   digest: string;
+  sender: string;
   created_at: string;
 }
 
@@ -41,6 +42,7 @@ export interface IndexerEvent {
   checkpoint: string;
   digest: string;
   name: string;
+  sender: string;
   value: any;
   created_at: string;
 }
@@ -80,18 +82,21 @@ export class SuiIndexerClient {
   async getTransactions(params?: {
     first?: number;
     after?: string;
+    sender?: string;
+    digest?: string;
     checkpoint?: number;
     orderBy?: string[];
-  }) {
+  }): Promise<ConnectionResponse<IndexerTransaction>> {
     const query = `
-      query GetTransactions($first: Int, $after: String, $checkpoint: Int, $orderBy: [TransactionOrderField!]) {
-        transactions(first: $first, after: $after, checkpoint: $checkpoint, orderBy: $orderBy) {
+      query GetTransactions($first: Int, $after: String, $sender: String, $digest: String, $checkpoint: Int, $orderBy: [TransactionOrderField!]) {
+        transactions(first: $first, after: $after, sender: $sender, digest: $digest, checkpoint: $checkpoint, orderBy: $orderBy) {
           edges {
             cursor
             node {
               id
               checkpoint
               digest
+              sender
               created_at
             }
           }
@@ -181,12 +186,14 @@ export class SuiIndexerClient {
     first?: number;
     after?: string;
     name?: string;
+    sender?: string;
+    digest?: string;
     checkpoint?: string;
     orderBy?: string[];
   }): Promise<ConnectionResponse<IndexerEvent>> {
     const query = `
-      query GetEvents($first: Int, $after: String, $name: String, $checkpoint: String, $orderBy: [EventOrderField!]) {
-        events(first: $first, after: $after, name: $name, checkpoint: $checkpoint, orderBy: $orderBy) {
+      query GetEvents($first: Int, $after: String, $name: String, $sender: String, $digest: String, $checkpoint: String, $orderBy: [EventOrderField!]) {
+        events(first: $first, after: $after, name: $name, sender: $sender, digest: $digest, checkpoint: $checkpoint, orderBy: $orderBy) {
           edges {
             cursor
             node {
@@ -194,6 +201,7 @@ export class SuiIndexerClient {
               checkpoint
               digest
               name
+              sender
               value
               created_at
             }

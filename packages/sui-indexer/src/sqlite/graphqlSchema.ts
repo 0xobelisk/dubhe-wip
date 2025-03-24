@@ -97,6 +97,8 @@ const typeDefs = `
       first: Int
       after: String
       name: String
+      sender: String
+      digest: String
       checkpoint: String
       orderBy: [EventOrderField!]
     ): EventConnection!
@@ -104,6 +106,8 @@ const typeDefs = `
     transactions(
       first: Int
       after: String
+      sender: String
+      digest: String
       checkpoint: Int
       orderBy: [TransactionOrderField!]
     ): TransactionConnection!
@@ -111,6 +115,7 @@ const typeDefs = `
 
   type Transaction {
     id: Int!
+    sender: String!
     checkpoint: Int!
     digest: String!
     created_at: String!
@@ -131,6 +136,7 @@ const typeDefs = `
 
   type Event {
     id: Int!
+    sender: String!
     checkpoint: String!
     digest: String!
     name: String!
@@ -263,12 +269,16 @@ export function createResolvers(
 					first = DEFAULT_PAGE_SIZE,
 					after,
 					before,
+					sender,
+					digest,
 					checkpoint,
 					orderBy,
 				}: {
 					first?: number;
 					after?: string;
 					before?: string;
+					sender?: string;
+					digest?: string;
 					checkpoint?: number;
 					orderBy?: string[];
 				}
@@ -285,6 +295,16 @@ export function createResolvers(
 								dubheStoreTransactions.checkpoint,
 								checkpoint.toString()
 							)
+						);
+					}
+					if (sender) {
+						conditions.push(
+							eq(dubheStoreTransactions.sender, sender)
+						);
+					}
+					if (digest) {
+						conditions.push(
+							eq(dubheStoreTransactions.digest, digest)
 						);
 					}
 
@@ -554,12 +574,16 @@ export function createResolvers(
 					first = DEFAULT_PAGE_SIZE,
 					after,
 					name,
+					sender,
+					digest,
 					checkpoint,
 					orderBy,
 				}: {
 					first?: number;
 					after?: string;
 					name?: string;
+					sender?: string;
+					digest?: string;
 					checkpoint?: string;
 					orderBy?: string[];
 				}
@@ -589,6 +613,12 @@ export function createResolvers(
 								checkpoint.toString()
 							)
 						);
+					}
+					if (sender) {
+						conditions.push(eq(dubheStoreEvents.sender, sender));
+					}
+					if (digest) {
+						conditions.push(eq(dubheStoreEvents.digest, digest));
 					}
 
 					// Get total count (apply filter conditions)
