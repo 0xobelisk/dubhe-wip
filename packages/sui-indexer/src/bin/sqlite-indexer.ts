@@ -56,6 +56,11 @@ const argv = await yargs(hideBin(process.argv))
 		default: false,
 		desc: 'Force regenesis',
 	})
+	.option('url', {
+		type: 'string',
+		description: 'Node URL',
+		// demandOption: true,
+	})
 	.option('schema-id', {
 		type: 'string',
 		description: 'Schema ID to filter transactions',
@@ -108,7 +113,7 @@ const argv = await yargs(hideBin(process.argv))
 // ].filter(isDefined);
 
 const publicClient = new SuiClient({
-	url: getFullnodeUrl(argv.network as any),
+	url: argv.url ? argv.url : getFullnodeUrl(argv.network as any),
 });
 
 const graphqlEndpoint =
@@ -258,6 +263,7 @@ while (true) {
 						events: allEvents.map(event => ({
 							parsedJson: event.contents.json,
 						})),
+						sender: ""
 						// events: tx.effects.events.nodes.map(node => ({
 						// 	parsedJson: node.contents.json,
 						// })),
@@ -270,7 +276,7 @@ while (true) {
 			continue;
 		}
 	} else {
-		await delay(500);
+		await delay(2000);
 		let response = await publicClient.queryTransactionBlocks({
 			filter: {
 				ChangedObject: schemaId,
@@ -280,18 +286,22 @@ while (true) {
 			limit: argv.syncLimit,
 			options: {
 				showEvents: true,
+				showInput: true,
 			},
 		});
 
 		txs = response.data.map(tx => ({
 			...tx,
 			cursor: tx.digest,
+			sender: tx.transaction?.data?.sender
 		}));
 	}
 
 	for (const tx of txs) {
 		await insertTx(
 			database,
+			// @ts-ignore
+			tx.sender,
 			tx.checkpoint?.toString() as string,
 			tx.digest,
 			tx.cursor,
@@ -309,6 +319,7 @@ while (true) {
 				const name: string = event.parsedJson['name'];
 				if (name.endsWith('_event')) {
 					await database.insert(dubheStoreEvents).values(parseData({
+						sender: tx.sender,
 						checkpoint: tx.checkpoint?.toString() as string,
 						digest: tx.digest,
 						created_at: tx.timestampMs?.toString() as string,

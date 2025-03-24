@@ -17,7 +17,13 @@ type EventData = {
 
 export const setupDatabase = (database: ReturnType<typeof drizzle>) => {
 	database.run(
-		sql`CREATE TABLE IF NOT EXISTS __dubheStoreTransactions (id INTEGER PRIMARY KEY AUTOINCREMENT, checkpoint INTEGER, digest TEXT, cursor TEXT, created_at TEXT)`
+		sql`CREATE TABLE IF NOT EXISTS __dubheStoreTransactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+	sender TEXT, 
+	checkpoint INTEGER, 
+	digest TEXT, 
+	cursor TEXT, 
+	created_at TEXT)`
 	);
 	database.run(sql`
         CREATE TABLE IF NOT EXISTS __dubheStoreSchemas (
@@ -35,6 +41,7 @@ export const setupDatabase = (database: ReturnType<typeof drizzle>) => {
 	database.run(sql`
         CREATE TABLE IF NOT EXISTS __dubheStoreEvents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+			sender TEXT,
             checkpoint TEXT,
             digest TEXT,
             name TEXT,
@@ -51,6 +58,7 @@ export const clearDatabase = (database: ReturnType<typeof drizzle>) => {
 
 export const dubheStoreTransactions = sqliteTable('__dubheStoreTransactions', {
 	id: integer('id').notNull().primaryKey().unique(),
+	sender: text('sender').notNull(),
 	checkpoint: text('checkpoint').notNull(),
 	digest: text('digest').notNull(),
 	cursor: text('cursor').notNull(),
@@ -74,6 +82,7 @@ export const dubheStoreSchemas = sqliteTable('__dubheStoreSchemas', {
 
 export const dubheStoreEvents = sqliteTable('__dubheStoreEvents', {
 	id: integer('id').notNull().primaryKey().unique(),
+	sender: text('sender').notNull(),
 	name: text('name').notNull(),
 	value: text('value', { mode: 'json' }).notNull(),
 	checkpoint: text('checkpoint').notNull(),
@@ -83,12 +92,14 @@ export const dubheStoreEvents = sqliteTable('__dubheStoreEvents', {
 
 export async function insertTx(
 	sqliteDB: ReturnType<typeof drizzle>,
+	sender: string,
 	checkpoint: string,
 	digest: string,
 	cursor: string,
 	created_at: string
 ) {
 	await sqliteDB.insert(dubheStoreTransactions).values({
+		sender,
 		checkpoint,
 		digest,
 		cursor,
