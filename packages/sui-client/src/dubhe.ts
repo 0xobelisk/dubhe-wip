@@ -1136,13 +1136,23 @@ export class Dubhe {
   async getEvents({
     first,
     after,
+    name,
+    checkpoint,
     orderBy,
   }: {
     first?: number;
     after?: string;
+    name?: string;
+    checkpoint?: string;
     orderBy?: string[];
   }): Promise<ConnectionResponse<IndexerEvent>> {
-    return await this.suiIndexerClient.getEvents({ first, after, orderBy });
+    return await this.suiIndexerClient.getEvents({
+      first,
+      after,
+      name,
+      checkpoint,
+      orderBy,
+    });
   }
 
   async getSchemas({
