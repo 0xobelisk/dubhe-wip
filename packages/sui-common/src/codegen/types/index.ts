@@ -53,6 +53,26 @@ export type SchemaType = string
 export type EventData = Record<string, string>
 export type ErrorData = Record<string, string>
 
+type DataType =  any;
+
+export function storage<T extends DataType>(value: T): SchemaType;
+export function storage<K extends DataType, V extends DataType>(key: K, value: V): SchemaType;
+export function storage<K1 extends DataType, K2 extends DataType, V extends DataType>(
+    key1: K1,
+    key2: K2,
+    value: V
+): SchemaType;
+export function storage(...args: DataType[]): SchemaType {
+  if (args.length === 1) {
+    return `StorageValue<${args[0]}>`;
+  } else if (args.length === 2) {
+    return `StorageMap<${args[0]}, ${args[1]}>`;
+  } else if (args.length === 3) {
+    return `StorageDoubleMap<${args[0]}, ${args[1]}, ${args[2]}>`;
+  }
+  throw new Error('Invalid number of arguments for storage()');
+}
+
 export type DubheConfig = {
   name: string;
   description: string;

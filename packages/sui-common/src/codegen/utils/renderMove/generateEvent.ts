@@ -7,14 +7,12 @@ import {
 	getStructAttrsQuery,
 } from './common';
 
-function capitalizeAndRemoveUnderscores(input: string): string {
-	return input
+
+// account_not_found => AccountNotFound,
+function toPascalCase(str: string): string {
+	return str
 		.split('_')
-		.map((word, index) => {
-			return index === 0
-				? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-				: word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-		})
+		.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 		.join('');
 }
 
@@ -57,26 +55,24 @@ export async function generateSchemaEvent(
 					`     └─ Generating ${name} event: ${fields}`
 				);
 
-				let	code = `module ${projectName}::${projectName}_${convertToSnakeCase(name)}_event {
+				let	code = `module ${projectName}::${projectName}_${name}_event {
 						use sui::event;
 						use std::ascii::String;
 						${generateImport(projectName, data)}
 
-                        public struct ${name}Event has copy, drop {
+                        public struct ${toPascalCase(name)}Event has copy, drop {
                                 ${getStructAttrsWithType(fields as Record<string, string>)}
                         }
 
-                        public fun new(${getStructAttrsWithType(fields as Record<string, string>)}): ${name}Event {
-                               ${name}Event {
+                        public fun new(${getStructAttrsWithType(fields as Record<string, string>)}): ${toPascalCase(name)}Event {
+                               ${toPascalCase(name)}Event {
                                    ${getStructAttrs(fields as Record<string, string>)}
                                }
                         }
                         }`;
 				await formatAndWriteMove(
 					code,
-					`${path}/contracts/${projectName}/sources/codegen/data/${convertToSnakeCase(
-						name
-					)}_event.move`,
+					`${path}/contracts/${projectName}/sources/codegen/data/${name}_event.move`,
 					'formatAndWriteMove'
 				);
 			}
@@ -86,14 +82,14 @@ export async function generateSchemaEvent(
 	 	${generateImport(projectName, data)}
 		${Object.entries(events).map(([name, fields]) => {
 		return `
-use ${projectName}::${projectName}_${convertToSnakeCase(name)}_event::${name}Event;
-use ${projectName}::${projectName}_${convertToSnakeCase(name)}_event;
-			public fun ${convertToSnakeCase(name)}_event(${getStructAttrsWithType(fields as Record<string, string>)}) {
-			 dubhe::storage_event::emit_set_record<${name}Event, ${name}Event, ${name}Event>(
-				string(b"${convertToSnakeCase(name)}_event"),
+use ${projectName}::${projectName}_${name}_event::${toPascalCase(name)}Event;
+use ${projectName}::${projectName}_${name}_event;
+			public fun ${name}_event(${getStructAttrsWithType(fields as Record<string, string>)}) {
+			 dubhe::storage_event::emit_set_record<${toPascalCase(name)}Event, ${toPascalCase(name)}Event, ${toPascalCase(name)}Event>(
+				string(b"${name}_event"),
 				option::none(),
 			  	option::none(),
-			  option::some(${projectName}_${convertToSnakeCase(name)}_event::new(${getStructAttrs(fields as Record<string, string>)}))
+			  option::some(${projectName}_${name}_event::new(${getStructAttrs(fields as Record<string, string>)}))
 			  )
 			}
 		`

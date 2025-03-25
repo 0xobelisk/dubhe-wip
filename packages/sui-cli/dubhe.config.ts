@@ -1,4 +1,4 @@
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig, storage } from '@0xobelisk/sui-common';
 
 export const dubheConfig = {
 	name: 'counter',
@@ -51,114 +51,32 @@ export const dubheConfig = {
 		TestData: { asset_id: 'u32', balance: "Data" },
 	},
 	schemas: {
-		next_asset_id: 'StorageValue<u32>',
-		metadata: 'StorageMap<u32, Metadata>',
-		details: 'StorageMap<u32, Details>',
-		details1: 'StorageMap<u32, address>',
-		account: 'StorageDoubleMap<u32, address, Account>',
-		account1: 'StorageDoubleMap<u32, address, address>',
-		balance: 'StorageDoubleMap<Data, address, TestData>',
+		next_asset_id: storage('u32'),
+		metadata: storage('u32', 'Metadata'),
+		details: storage('u32', 'Details'),
+		account: storage('address', 'u32', 'Account'),
 	},
 	events: {
-		Created: {
+		created: {
 			asset_id: 'u32',
 			name: 'String',
-			symbol: 'String',
+			symbol: 'Metadata',
 			owner: 'address',
 			is_mintable: 'bool',
 			is_burnable: 'bool',
 			is_freezable: 'bool',
 		},
-		Minted: {
+		address_frozen: {
 			asset_id: 'u32',
-			to: 'address',
-			amount: 'u256',
+			owner: 'AccountStatus',
 		},
-		Burned: {
-			asset_id: 'u32',
-			from: 'address',
-			amount: 'u256',
-		},
-		Transferred: {
-			asset_id: 'u32',
-			from: 'address',
-			to: 'address',
-			amount: 'u256',
-		},
-		FrozenAddress: {
+		address_blocked: {
 			asset_id: 'u32',
 			owner: 'address',
-		},
-		BlockedAddress: {
-			asset_id: 'u32',
-			owner: 'address',
-		},
-		ThawedAddress: {
-			asset_id: 'u32',
-			owner: 'address',
-		},
-		FrozenAsset: {
-			asset_id: 'u32',
-		},
-		ThawedAsset: {
-			asset_id: 'u32',
-		},
-		OwnershipTransferred: {
-			asset_id: 'u32',
-			from: 'address',
-			to: 'address',
-		},
-		PoolCreated: {
-			creator: 'address',
-			pool_id: 'u32',
-			pool_address: 'address',
-			asset1_id: 'u32',
-			asset2_id: 'u32',
-			lp_asset_id: 'u32',
-			lp_asset_symbol: 'String',
-		},
-		LiquidityAdded: {
-			who: 'address',
-			pool_id: 'u32',
-			asset1_amount: 'u256',
-			asset2_amount: 'u256',
-			lp_asset_id: 'u32',
-			lp_asset_minted: 'u256',
-		},
-		LiquidityRemoved: {
-			who: 'address',
-			pool_id: 'u32',
-			asset1_amount: 'u256',
-			asset2_amount: 'u256',
-			lp_asset_id: 'u32',
-			lp_asset_burned: 'u256',
-		},
-		SwapExecuted: {
-			who: 'address',
-			send_to: 'address',
-			amount_in: 'u256',
-			amount_out: 'u256',
-			path: 'vector<u32>',
-		},
-		Registered: {
-			who: 'address',
-			asset_id: 'u32',
-		},
-		Wrapped: {
-			from: 'address',
-			asset_id: 'u32',
-			amount: 'u256',
-			beneficiary: 'address',
-		},
-		Unwrapped: {
-			from: 'address',
-			asset_id: 'u32',
-			amount: 'u256',
-			beneficiary: 'address',
 		},
 	},
 	errors: {
-		AccountNotFound: 'This account not found',
-		AssetNotFound: 'This asset not found',
+		account_not_found: 'This account not found',
+		asset_not_found: 'This asset not found',
 	},
 } as DubheConfig;

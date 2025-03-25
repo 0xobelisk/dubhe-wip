@@ -26,8 +26,8 @@ export async function generateSchemaError(
 			console.log(`  ├─ Generating Error: ${name}`);
 		console.log(`  │  └─ Message: ${message}`);
 		return `#[error]
-				const ${name}: vector<u8> = b"${message}";
-				public fun ${convertToSnakeCase(name)}_error(condition: bool) { assert!(condition, ${name})  }
+				const ${name.toUpperCase()}: vector<u8> = b"${message}";
+				public fun ${name}_error(condition: bool) { assert!(condition, ${name.toUpperCase()})  }
 		`
 	}).join('\n')}		
             }`
