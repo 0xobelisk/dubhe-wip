@@ -1120,15 +1120,24 @@ export class Dubhe {
   async getTransactions({
     first,
     after,
+    sender,
+    digest,
+    checkpoint,
     orderBy,
   }: {
     first?: number;
     after?: string;
+    sender?: string;
+    digest?: string;
+    checkpoint?: number;
     orderBy?: string[];
   }): Promise<ConnectionResponse<IndexerTransaction>> {
     return await this.suiIndexerClient.getTransactions({
       first,
       after,
+      sender,
+      digest,
+      checkpoint,
       orderBy,
     });
   }
@@ -1137,12 +1146,16 @@ export class Dubhe {
     first,
     after,
     name,
+    sender,
+    digest,
     checkpoint,
     orderBy,
   }: {
     first?: number;
     after?: string;
     name?: string;
+    sender?: string;
+    digest?: string;
     checkpoint?: string;
     orderBy?: string[];
   }): Promise<ConnectionResponse<IndexerEvent>> {
@@ -1150,6 +1163,8 @@ export class Dubhe {
       first,
       after,
       name,
+      sender,
+      digest,
       checkpoint,
       orderBy,
     });

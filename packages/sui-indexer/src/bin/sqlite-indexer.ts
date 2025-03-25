@@ -38,6 +38,8 @@ import { hideBin } from 'yargs/helpers';
 import { getSchemaId } from '../utils/read-history';
 import { loadConfig, DubheConfig, parseData } from '@0xobelisk/sui-common';
 import { fetchAllEvents, fetchTransactionBlocks } from '../utils/graphql-query';
+import fs from 'fs';
+import pathModule from 'path';
 
 const argv = await yargs(hideBin(process.argv))
 	.option('network', {
@@ -55,6 +57,11 @@ const argv = await yargs(hideBin(process.argv))
 		type: 'boolean',
 		default: false,
 		desc: 'Force regenesis',
+	})
+	.option('url', {
+		type: 'string',
+		description: 'Node URL',
+		// demandOption: true,
 	})
 	.option('schema-id', {
 		type: 'string',
@@ -74,7 +81,7 @@ const argv = await yargs(hideBin(process.argv))
 	.option('sqlite-filename', {
 		type: 'string',
 		description: 'SQLite database filename',
-		default: './indexer.db',
+		default: '.data/indexer.db',
 	})
 	.option('sync-limit', {
 		type: 'number',
@@ -108,7 +115,7 @@ const argv = await yargs(hideBin(process.argv))
 // ].filter(isDefined);
 
 const publicClient = new SuiClient({
-	url: getFullnodeUrl(argv.network as any),
+	url: argv.url ? argv.url : getFullnodeUrl(argv.network as any),
 });
 
 const graphqlEndpoint =
@@ -116,6 +123,14 @@ const graphqlEndpoint =
 		? 'https://sui-mainnet.mystenlabs.com/graphql'
 		: 'https://sui-testnet.mystenlabs.com/graphql';
 
+const ensureDirectoryExists =  function (filePath: string) {
+	const dir = pathModule.dirname(filePath);
+	if (!fs.existsSync(dir)) {
+		fs.mkdirSync(dir, { recursive: true });
+	}
+}
+
+ensureDirectoryExists(argv.sqliteFilename);
 const database = drizzle(new Database(argv.sqliteFilename));
 if (argv.forceRegenesis) {
 	clearDatabase(database);
@@ -258,6 +273,7 @@ while (true) {
 						events: allEvents.map(event => ({
 							parsedJson: event.contents.json,
 						})),
+						sender: ""
 						// events: tx.effects.events.nodes.map(node => ({
 						// 	parsedJson: node.contents.json,
 						// })),
@@ -270,7 +286,7 @@ while (true) {
 			continue;
 		}
 	} else {
-		await delay(500);
+		await delay(2000);
 		let response = await publicClient.queryTransactionBlocks({
 			filter: {
 				ChangedObject: schemaId,
@@ -280,18 +296,22 @@ while (true) {
 			limit: argv.syncLimit,
 			options: {
 				showEvents: true,
+				showInput: true,
 			},
 		});
 
 		txs = response.data.map(tx => ({
 			...tx,
 			cursor: tx.digest,
+			sender: tx.transaction?.data?.sender
 		}));
 	}
 
 	for (const tx of txs) {
 		await insertTx(
 			database,
+			// @ts-ignore
+			tx.sender,
 			tx.checkpoint?.toString() as string,
 			tx.digest,
 			tx.cursor,
@@ -309,6 +329,7 @@ while (true) {
 				const name: string = event.parsedJson['name'];
 				if (name.endsWith('_event')) {
 					await database.insert(dubheStoreEvents).values(parseData({
+						sender: tx.sender,
 						checkpoint: tx.checkpoint?.toString() as string,
 						digest: tx.digest,
 						created_at: tx.timestampMs?.toString() as string,
