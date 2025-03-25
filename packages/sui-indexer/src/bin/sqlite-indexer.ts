@@ -224,10 +224,10 @@ const schemaId =
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 while (true) {
-	await delay(2000);
 	const lastTxRecord = await getLastTxRecord(database);
 	let txs;
 	if (argv.network === 'mainnet' || argv.network === 'testnet') {
+		await delay(2000);
 		try {
 			const graphqlResponse = await fetchTransactionBlocks({
 				graphqlEndpoint,
@@ -270,6 +270,7 @@ while (true) {
 			continue;
 		}
 	} else {
+		await delay(500);
 		let response = await publicClient.queryTransactionBlocks({
 			filter: {
 				ChangedObject: schemaId,

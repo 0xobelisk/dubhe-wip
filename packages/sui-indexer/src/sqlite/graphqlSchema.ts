@@ -15,6 +15,12 @@ const typeDefs = `
 	CREATED_AT_ASC
     UPDATED_AT_DESC
 	UPDATED_AT_ASC
+	KEY1_ASC
+	KEY2_ASC
+	KEY1_DESC
+	KEY2_DESC
+	VALUE_ASC
+	VALUE_DESC
   }
 
   enum EventOrderField {
@@ -78,8 +84,8 @@ const typeDefs = `
       first: Int
       after: String
       name: String
-      key1: String
-      key2: String
+      key1: JSON
+      key2: JSON
       is_removed: Boolean
       last_update_checkpoint: String
       last_update_digest: String
@@ -113,8 +119,8 @@ const typeDefs = `
   type Schema {
     id: Int!
     name: String!
-    key1: String
-    key2: String
+    key1: JSON
+    key2: JSON
     value: JSON!
     last_update_checkpoint: String!
     last_update_digest: String!
@@ -186,6 +192,15 @@ export function createResolvers(
 						break;
 					case 'CHECKPOINT':
 						query = query.orderBy(orderFn(table.checkpoint));
+						break;
+					case 'KEY1':
+						query = query.orderBy(orderFn(table.key1));
+						break;
+					case 'KEY2':
+						query = query.orderBy(orderFn(table.key2));
+						break;
+					case 'VALUE':
+						query = query.orderBy(orderFn(table.value));
 						break;
 					default:
 						console.warn('Unknown orderBy field:', field);
@@ -350,8 +365,8 @@ export function createResolvers(
 					first?: number;
 					after?: string;
 					name?: string;
-					key1?: string;
-					key2?: string;
+					key1?: any;
+					key2?: any;
 					is_removed?: boolean;
 					last_update_checkpoint?: string;
 					last_update_digest?: string;
@@ -368,8 +383,50 @@ export function createResolvers(
 
 					// Apply all filters
 					if (name) conditions.push(eq(dubheStoreSchemas.name, name));
-					if (key1) conditions.push(eq(dubheStoreSchemas.key1, key1));
-					if (key2) conditions.push(eq(dubheStoreSchemas.key2, key2));
+					if (key1 !== undefined) {
+						if (typeof key1 === 'string') {
+							conditions.push(
+								sql`(${dubheStoreSchemas.key1} = ${key1} OR 
+									(json_valid(${dubheStoreSchemas.key1}) AND 
+									 json_extract(${dubheStoreSchemas.key1}, '$') = ${key1}))`
+							);
+						} else if (key1 === null) {
+							conditions.push(
+								sql`${dubheStoreSchemas.key1} IS NULL`
+							);
+						} else if (typeof key1 === 'object') {
+							const jsonKey1 = JSON.stringify(key1);
+							conditions.push(sql`
+								CASE 
+									WHEN json_valid(${dubheStoreSchemas.key1})
+									THEN json(${dubheStoreSchemas.key1}) = json(${jsonKey1})
+									ELSE ${dubheStoreSchemas.key1} = ${jsonKey1}
+								END
+							`);
+						}
+					}
+					if (key2 !== undefined) {
+						if (typeof key2 === 'string') {
+							conditions.push(
+								sql`(${dubheStoreSchemas.key2} = ${key2} OR 
+									(json_valid(${dubheStoreSchemas.key2}) AND 
+									 json_extract(${dubheStoreSchemas.key2}, '$') = ${key2}))`
+							);
+						} else if (key2 === null) {
+							conditions.push(
+								sql`${dubheStoreSchemas.key2} IS NULL`
+							);
+						} else if (typeof key2 === 'object') {
+							const jsonKey2 = JSON.stringify(key2);
+							conditions.push(sql`
+								CASE 
+									WHEN json_valid(${dubheStoreSchemas.key2})
+									THEN json(${dubheStoreSchemas.key2}) = json(${jsonKey2})
+									ELSE ${dubheStoreSchemas.key2} = ${jsonKey2}
+								END
+							`);
+						}
+					}
 					if (typeof is_removed === 'boolean')
 						conditions.push(
 							eq(dubheStoreSchemas.is_removed, is_removed)
@@ -416,15 +473,17 @@ export function createResolvers(
 							`);
 						} else if (typeof value === 'string') {
 							conditions.push(
-								sql`${
-									dubheStoreSchemas.value
-								} = ${value.toString()}`
+								sql`(${dubheStoreSchemas.value} = ${value} OR 
+									(json_valid(${dubheStoreSchemas.value}) AND 
+									 json_extract(${dubheStoreSchemas.value}, '$') = ${value}))`
 							);
 						} else if (typeof value === 'number') {
 							conditions.push(
-								sql`${
+								sql`(${
 									dubheStoreSchemas.value
-								} = ${value.toString()}`
+								} = ${value.toString()} OR 
+									(json_valid(${dubheStoreSchemas.value}) AND 
+									 CAST(json_extract(${dubheStoreSchemas.value}, '$') AS NUMERIC) = ${value}))`
 							);
 						} else if (typeof value === 'object') {
 							const jsonValue = JSON.stringify(value);
@@ -469,6 +528,8 @@ export function createResolvers(
 						cursor: encodeCursor(record.id),
 						node: {
 							...record,
+							key1: record.key1,
+							key2: record.key2,
 							value: record.value,
 						},
 					}));

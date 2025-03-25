@@ -70,3 +70,15 @@ export function getStructAttrsQuery(
 ): string[] {
 	return Object.entries(values).map(([key, _]) => `self.${key}`);
 }
+
+export function containsString(obj: Record<string, any>, searchString: string): boolean {
+	for (const key in obj) {
+		if (obj.hasOwnProperty(key)) {
+			const value = obj[key];
+			if (typeof value === 'string' && value === searchString) {
+				return true;
+			}
+		}
+	}
+	return false;
+}

@@ -111,11 +111,15 @@ export interface ContractTx extends MessageMeta {
     params,
     typeArguments,
     isRaw,
+    onSuccess,
+    onError,
   }: {
     tx: Transaction;
     params?: (TransactionArgument | SerializedBcs<any>)[];
     typeArguments?: string[];
     isRaw?: boolean;
+    onSuccess?: (result: SuiTransactionBlockResponse) => void | Promise<void>;
+    onError?: (error: Error) => void | Promise<void>;
   }): Promise<SuiTransactionBlockResponse | TransactionResult>;
 }
 

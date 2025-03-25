@@ -185,7 +185,7 @@ async function publishContract(
 
 	let result;
 	try {
-		result = await dubhe.signAndSendTxn(tx);
+		result = await dubhe.signAndSendTxn({tx});
 	} catch (error: any) {
 		console.error(chalk.red('  └─ Publication failed'));
 		console.error(error.message);
@@ -239,7 +239,7 @@ async function publishContract(
 
 	let deployHookResult;
 	try {
-		deployHookResult = await dubhe.signAndSendTxn(deployHookTx);
+		deployHookResult = await dubhe.signAndSendTxn({tx: deployHookTx});
 	} catch (error: any) {
 		console.error(chalk.red('  └─ Deploy hook execution failed'));
 		console.error(error.message);
@@ -346,7 +346,7 @@ export async function publishDubheFramework(
 
 	let result;
 	try {
-		result = await dubhe.signAndSendTxn(tx);
+		result = await dubhe.signAndSendTxn({ tx });
 	} catch (error: any) {
 		console.error(chalk.red('  └─ Publication failed'));
 		console.error(error.message);

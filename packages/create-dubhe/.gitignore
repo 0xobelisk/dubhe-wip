@@ -10,3 +10,5 @@ node_modules/
 *.env
 .next/
 *Move.lock
+**/chain/key.ts
+**/indexer.db
