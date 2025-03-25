@@ -47,6 +47,7 @@ import {
   StorageItemResponse,
 } from './libs/suiIndexerClient';
 import { Http } from './libs/http';
+import {SubscribableType} from "@0xobelisk/sui-common";
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
@@ -1274,10 +1275,10 @@ export class Dubhe {
   }
 
   async subscribe(
-    names: string[],
+    types: SubscribableType[],
     handleData: (data: any) => void
   ): Promise<WebSocket> {
-    return this.suiIndexerClient.subscribe(names, handleData);
+    return this.suiIndexerClient.subscribe(types, handleData);
   }
 
   #processKeyParameter(tx: Transaction, keyType: string, value: any) {

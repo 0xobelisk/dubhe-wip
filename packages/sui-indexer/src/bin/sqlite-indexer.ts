@@ -2,7 +2,7 @@
 import 'dotenv/config';
 // import fs from "node:fs";
 // import { eq } from "drizzle-orm";
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import {BetterSQLite3Database, drizzle} from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 // import { webSocket, http, Transport } from "viem";
 import Koa from 'koa';
@@ -18,7 +18,6 @@ import { helloWorld } from '../koa-middleware/helloWorld';
 import { apiRoutes } from '../sqlite/apiRoutes';
 import { sentry } from '../koa-middleware/sentry';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
-import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {
 	clearDatabase,
 	dubheStoreEvents,
@@ -36,7 +35,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { getSchemaId } from '../utils/read-history';
-import { loadConfig, DubheConfig, parseData } from '@0xobelisk/sui-common';
+import { DubheConfig, loadConfig, parseData, SubscribableType, SubscriptionKind } from '@0xobelisk/sui-common';
 import { fetchAllEvents, fetchTransactionBlocks } from '../utils/graphql-query';
 import fs from 'fs';
 import pathModule from 'path';
@@ -204,16 +203,16 @@ app.use(
 	})
 );
 
-const subscriptions = new Map<WebSocket, string[]>();
+const subscriptions = new Map<WebSocket, SubscribableType[]>();
 
 wss.on('connection', ws => {
 	console.log('New client connected');
 
 	ws.on('message', message => {
-		const parsedMessage = JSON.parse(message.toString());
-		if (parsedMessage.type === 'subscribe' && parsedMessage.names) {
-			subscriptions.set(ws, parsedMessage.names);
-			console.log(`Client subscribed to event: ${parsedMessage.names}`);
+		const subs: SubscribableType[] = JSON.parse(message.toString());
+		if (subs) {
+			subscriptions.set(ws, subs);
+			console.log(`Client subscribed to event: ${subs}`);
 		}
 	});
 
@@ -328,6 +327,27 @@ while (true) {
 				// @ts-ignore
 				const name: string = event.parsedJson['name'];
 				if (name.endsWith('_event')) {
+					const eventData = parseData({
+						sender: tx.sender,
+						name,
+						// @ts-ignore
+						value: event.parsedJson['value'],
+					});
+					// Broadcast the event to subscribed WebSocket clients
+					wss.clients.forEach(client => {
+						if (client.readyState !== client.OPEN) return;
+						const clientSubs = subscriptions.get(client);
+						if (!clientSubs) return;
+						clientSubs.forEach(sub => {
+							if (
+								sub.kind === SubscriptionKind.Event &&
+								sub.name === (name + '_event') &&
+								(!sub.sender || sub.sender === tx.sender)
+							) {
+								client.send(JSON.stringify(eventData));
+							}
+						});
+					});
 					await database.insert(dubheStoreEvents).values(parseData({
 						sender: tx.sender,
 						checkpoint: tx.checkpoint?.toString() as string,
@@ -337,25 +357,24 @@ while (true) {
 						// @ts-ignore
 						value: event.parsedJson['value'],
 					}));
-					// Broadcast the event to subscribed WebSocket clients
-					wss.clients.forEach(client => {
-						if (
-							client.readyState === client.OPEN &&
-							subscriptions.get(client)?.includes(name)
-						) {
-							client.send(
-								JSON.stringify(
-									parseData({
-										name: name,
-										// @ts-ignore
-										value: event.parsedJson['value'],
-									})
-								)
-							);
-						}
-					});
+					// Handle schema set events
 					// @ts-ignore
 				} else if (event.parsedJson.hasOwnProperty('value')) {
+					const schemaData = parseData(event.parsedJson);
+					wss.clients.forEach(client => {
+						if (client.readyState !== client.OPEN) return;
+
+						const clientSubs = subscriptions.get(client);
+						if (!clientSubs) return;
+						clientSubs.forEach(sub => {
+							if (
+								sub.kind === SubscriptionKind.Schema &&
+								sub.name === name
+							) {
+								client.send(JSON.stringify(schemaData));
+							}
+						});
+					});
 					await syncToSqlite(
 						database,
 						tx.checkpoint?.toString() as string,
@@ -364,18 +383,28 @@ while (true) {
 						event.parsedJson,
 						OperationType.Set
 					);
-					// Broadcast the event to subscribed WebSocket clients
-					wss.clients.forEach(client => {
-						if (
-							client.readyState === client.OPEN &&
-							subscriptions.get(client)?.includes(name)
-						) {
-							client.send(
-								JSON.stringify(parseData(event.parsedJson))
-							);
-						}
-					});
 				} else {
+					const schemaData = {
+						// @ts-ignore
+						...event.parsedJson,
+						value: null
+					};
+					wss.clients.forEach(client => {
+						if (client.readyState !== client.OPEN) return;
+
+						const clientSubs = subscriptions.get(client);
+						if (!clientSubs) return;
+
+						clientSubs.forEach(sub => {
+							if (
+								sub.kind === SubscriptionKind.Schema &&
+								sub.name.includes(name)
+							) {
+								client.send(JSON.stringify(schemaData));
+							}
+						});
+					});
+
 					await syncToSqlite(
 						database,
 						tx.checkpoint?.toString() as string,
@@ -384,21 +413,6 @@ while (true) {
 						event.parsedJson,
 						OperationType.Remove
 					);
-					// Broadcast the event to subscribed WebSocket clients
-					wss.clients.forEach(client => {
-						if (
-							client.readyState === client.OPEN &&
-							subscriptions.get(client)?.includes(name)
-						) {
-							client.send(
-								JSON.stringify({
-									// @ts-ignore
-									...event.parsedJson,
-									value: null,
-								})
-							);
-						}
-					});
 				}
 			}
 		}

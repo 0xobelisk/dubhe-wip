@@ -1,5 +1,6 @@
 import { Http } from '../http';
 import { parseValue } from './utils';
+import {SubscribableType} from "@0xobelisk/sui-common";
 
 export interface OrderDirection {
   ASC: 'ASC';
@@ -305,9 +306,9 @@ export class SuiIndexerClient {
   }
 
   async subscribe(
-    names: string[],
+    types: SubscribableType[],
     handleData: (data: any) => void
   ): Promise<WebSocket> {
-    return this.http.subscribe(names, handleData);
+    return this.http.subscribe(types, handleData);
   }
 }

@@ -1,5 +1,6 @@
 import { BaseError, HttpError, GraphQLError, ParseError } from './errors';
 import { createWebSocketClient, WebSocketInstance } from './ws-adapter';
+import { SubscribableType } from "@0xobelisk/sui-common";
 
 export type FetchOptions = RequestInit & {
   next?: {
@@ -122,17 +123,14 @@ export class Http {
   }
 
   async subscribe(
-    names: string[],
+    types: SubscribableType[],
     handleData: (data: any) => void
   ): Promise<WebSocketInstance> {
     const ws = createWebSocketClient(this.wsEndpoint);
 
     ws.onopen = () => {
       console.log('Connected to the WebSocket server');
-      const subscribeMessage = JSON.stringify({
-        type: 'subscribe',
-        names: names,
-      });
+      const subscribeMessage = JSON.stringify(types);
       ws.send(subscribeMessage);
     };
 
