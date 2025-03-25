@@ -15,7 +15,7 @@
 
     public entry fun run(clock: &Clock, ctx: &mut TxContext) {
         // Create a dapp.
-        let mut dapp = dapp_system::create(string(b"constantinople"),string(b"constantinople contract"), clock , ctx);
+        let mut dapp = dapp_system::create("constantinople", "constantinople contract", clock , ctx);
         // Create schemas
         let mut entity = constantinople::entity_schema::create(ctx);
         let mut map = constantinople::map_schema::create(ctx);
