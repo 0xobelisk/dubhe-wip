@@ -3,16 +3,11 @@ import { formatAndWriteMove } from '../formatAndWrite';
 import { existsSync } from 'fs';
 import { capitalizeAndRemoveUnderscores } from './generateSchema';
 
-export async function generateInit(
-	config: DubheConfig,
-	srcPrefix: string
-) {
-	console.log('\n📝 Starting Init Generation...');
-	console.log(
-		`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/tests/init.move`
-	);
+export async function generateInit(config: DubheConfig, srcPrefix: string) {
+  console.log('\n📝 Starting Init Generation...');
+  console.log(`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/tests/init.move`);
 
-		let init_test_code = `module ${config.name}::${config.name}_init_test {
+  let init_test_code = `module ${config.name}::${config.name}_init_test {
     use ${config.name}::${config.name}_dapp_schema::Dapp;
     use sui::clock;
     use sui::test_scenario;
@@ -30,13 +25,13 @@ export async function generateInit(
     }
 }
 `;
-		await formatAndWriteMove(
-			init_test_code,
-			`${srcPrefix}/contracts/${config.name}/sources/tests/init.move`,
-			'formatAndWriteMove'
-		);
+  await formatAndWriteMove(
+    init_test_code,
+    `${srcPrefix}/contracts/${config.name}/sources/tests/init.move`,
+    'formatAndWriteMove'
+  );
 
-	let init_code = `module ${config.name}::${config.name}_genesis {
+  let init_code = `module ${config.name}::${config.name}_genesis {
       use std::ascii::string;
 
   use sui::clock::Clock;
@@ -56,11 +51,11 @@ export async function generateInit(
   }
 }
 `;
-	await formatAndWriteMove(
-		init_code,
-		`${srcPrefix}/contracts/${config.name}/sources/codegen/genesis.move`,
-		'formatAndWriteMove'
-	);
+  await formatAndWriteMove(
+    init_code,
+    `${srcPrefix}/contracts/${config.name}/sources/codegen/genesis.move`,
+    'formatAndWriteMove'
+  );
 
-	console.log('✅ Init Generation Complete\n');
+  console.log('✅ Init Generation Complete\n');
 }

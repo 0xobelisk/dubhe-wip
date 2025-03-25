@@ -45,17 +45,17 @@ There are two ways to initialize the Dubhe client:
 1. Using dynamic metadata loading:
 
 ```typescript
-import { loadMetadata, Dubhe, NetworkType } from "@0xobelisk/sui-client";
+import { loadMetadata, Dubhe, NetworkType } from '@0xobelisk/sui-client';
 
-const network = "devnet" as NetworkType;
-const packageId = "YOUR_PACKAGE_ID";
+const network = 'devnet' as NetworkType;
+const packageId = 'YOUR_PACKAGE_ID';
 
 const metadata = await loadMetadata(network, packageId);
 const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+  networkType: network,
+  packageId: packageId,
+  metadata: metadata,
+  secretKey: privkey,
 });
 ```
 
@@ -65,10 +65,10 @@ const dubhe = new Dubhe({
 import metadata from './metadata.json';
 
 const dubhe = new Dubhe({
-    networkType: network,
-    packageId: packageId,
-    metadata: metadata,
-    secretKey: privkey
+  networkType: network,
+  packageId: packageId,
+  metadata: metadata,
+  secretKey: privkey,
 });
 ```
 
@@ -77,11 +77,13 @@ const dubhe = new Dubhe({
 To call contract methods:
 
 ```typescript
-import { Transaction } from "@0xobelisk/sui-client";
+import { Transaction } from '@0xobelisk/sui-client';
 
 // Create transaction
 const tx = new Transaction();
-const params = [/* your parameters */];
+const params = [
+  /* your parameters */
+];
 
 // Execute transaction
 const response = await dubhe.tx.counter_system.inc(tx, params);
@@ -97,7 +99,9 @@ To query contract state:
 
 ```typescript
 const tx = new Transaction();
-const params = [/* your parameters */];
+const params = [
+  /* your parameters */
+];
 const result = await dubhe.query.counter_system.get(tx, params);
 
 // For BCS encoded results
@@ -162,7 +166,8 @@ const numberKey = await dubhe.entity_key_from_u256(123);
 To query objects owned by a specific address:
 
 ```typescript
-const owner = "0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e";
+const owner =
+  '0xfa99b5b0463fcfb7d0203c701a76da5eda21a96190eb1368ab36a437cc89195e';
 const ownedObjects = await dubhe.getOwnedObjects(owner);
 ```
 

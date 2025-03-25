@@ -1,6 +1,6 @@
 export enum SubscriptionKind {
-  Event = "event",
-  Schema = "schema",
+  Event = 'event',
+  Schema = 'schema'
 }
 
 export type SubscribableType =
