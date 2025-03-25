@@ -1,6 +1,6 @@
 import { Http } from '../http';
 import { parseValue } from './utils';
-import {SubscribableType} from "@0xobelisk/sui-common";
+import { SubscribableType } from '../../types';
 
 export interface OrderDirection {
   ASC: 'ASC';

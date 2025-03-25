@@ -1,6 +1,6 @@
 import { BaseError, HttpError, GraphQLError, ParseError } from './errors';
 import { createWebSocketClient, WebSocketInstance } from './ws-adapter';
-import { SubscribableType } from "@0xobelisk/sui-common";
+import { SubscribableType } from '../../types';
 
 export type FetchOptions = RequestInit & {
   next?: {

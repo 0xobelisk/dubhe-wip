@@ -28,6 +28,7 @@ import {
   SuiTxArg,
   SuiObjectArg,
   SuiVecTxArg,
+  SubscribableType,
 } from './types';
 import {
   convertHttpToWebSocket,
@@ -47,7 +48,6 @@ import {
   StorageItemResponse,
 } from './libs/suiIndexerClient';
 import { Http } from './libs/http';
-import {SubscribableType} from "@0xobelisk/sui-common";
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
