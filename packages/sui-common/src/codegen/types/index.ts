@@ -16,14 +16,9 @@ export type BaseType =
   | 'vector<u128>'
   | string;
 
-export type StorageDataType =
-  | 'Struct'
-  | 'Enum';
+export type StorageDataType = 'Struct' | 'Enum';
 
-export type StorageMapType =
-  | 'Map'
-  | 'Bag'
-  | 'Table';
+export type StorageMapType = 'Map' | 'Bag' | 'Table';
 
 type Address = string;
 type Bool = boolean;
@@ -48,10 +43,10 @@ export type BaseValueType =
   | Vector<U64>
   | Vector<U128>;
 
-export type SchemaData = Record<string, string> | string[]
-export type SchemaType = string
-export type EventData = Record<string, string>
-export type ErrorData = Record<string, string>
+export type SchemaData = Record<string, string> | string[];
+export type SchemaType = string;
+export type EventData = Record<string, string>;
+export type ErrorData = Record<string, string>;
 
 type DataType =  any;
 

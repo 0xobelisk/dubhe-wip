@@ -1,16 +1,13 @@
 import { DubheConfig } from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
 
-export async function generateSchemaHub(
-	config: DubheConfig,
-	srcPrefix: string
-) {
-	console.log('\n🔑 Starting DappKey Generation...');
-	console.log(
-		`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/codegen/schema_hub.move`
-	);
+export async function generateSchemaHub(config: DubheConfig, srcPrefix: string) {
+  console.log('\n🔑 Starting DappKey Generation...');
+  console.log(
+    `  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/codegen/schema_hub.move`
+  );
 
-	let code = `module ${config.name}::${config.name}_schema_hub {
+  let code = `module ${config.name}::${config.name}_schema_hub {
     use sui::transfer::public_share_object;
     use sui::dynamic_field as df;
 
@@ -56,10 +53,10 @@ export async function generateSchemaHub(
     }
 }
 `;
-	await formatAndWriteMove(
-		code,
-		`${srcPrefix}/contracts/${config.name}/sources/codegen/schema_hub.move`,
-		'formatAndWriteMove'
-	);
-	console.log('✅ DappKey Generation Complete\n');
+  await formatAndWriteMove(
+    code,
+    `${srcPrefix}/contracts/${config.name}/sources/codegen/schema_hub.move`,
+    'formatAndWriteMove'
+  );
+  console.log('✅ DappKey Generation Complete\n');
 }

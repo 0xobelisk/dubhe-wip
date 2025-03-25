@@ -1,11 +1,5 @@
-import {
-  DubheConfig,
-  BaseValueType,
-  BaseType,
-  RenderSchemaOptions,
-  MoveType,
-} from "../../types";
-import { formatAndWriteMove } from "../formatAndWrite";
+import { DubheConfig, BaseValueType, BaseType, RenderSchemaOptions, MoveType } from '../../types';
+import { formatAndWriteMove } from '../formatAndWrite';
 import {
   getFriendSystem,
   renderKeyName,
@@ -25,8 +19,10 @@ import {
   renderSingleSetFunc,
   renderSingleSetAttrsFunc,
   renderSingleGetAllFunc,
-  renderSingleGetAttrsFunc, renderStructEvent, renderSingleStruct,
-} from "./common";
+  renderSingleGetAttrsFunc,
+  renderStructEvent,
+  renderSingleStruct
+} from './common';
 
 export function getRenderSchemaOptions(config: DubheConfig) {
   const options: RenderSchemaOptions[] = [];
@@ -38,14 +34,14 @@ export function getRenderSchemaOptions(config: DubheConfig) {
     let ephemeral = false;
     let singleton = false;
     let needImportString = false;
-    if (typeof schemaData === "string") {
+    if (typeof schemaData === 'string') {
       realType = schemaData;
 
-      if (schemaData === "string") {
-        valueType = "String";
+      if (schemaData === 'string') {
+        valueType = 'String';
         needImportString = true;
-      } else if (schemaData === "vector<string>") {
-        valueType = "vector<String>";
+      } else if (schemaData === 'vector<string>') {
+        valueType = 'vector<String>';
         needImportString = true;
       } else {
         valueType = schemaData;
@@ -53,12 +49,12 @@ export function getRenderSchemaOptions(config: DubheConfig) {
     } else {
       realType = schemaData.valueType;
 
-      if (typeof schemaData.valueType === "string") {
-        if (schemaData.valueType === "string") {
-          valueType = "String";
+      if (typeof schemaData.valueType === 'string') {
+        if (schemaData.valueType === 'string') {
+          valueType = 'String';
           needImportString = true;
-        } else if (schemaData.valueType === "vector<string>") {
-          valueType = "vector<String>";
+        } else if (schemaData.valueType === 'vector<string>') {
+          valueType = 'vector<String>';
           needImportString = true;
         } else {
           valueType = schemaData.valueType;
@@ -67,11 +63,11 @@ export function getRenderSchemaOptions(config: DubheConfig) {
         valueType = { ...schemaData.valueType };
         for (const key in valueType) {
           if (valueType.hasOwnProperty(key)) {
-            if (valueType[key] === "string") {
-              valueType[key] = "String";
+            if (valueType[key] === 'string') {
+              valueType[key] = 'String';
               needImportString = true;
-            } else if (valueType[key] === "vector<string>") {
-              valueType[key] = "vector<String>";
+            } else if (valueType[key] === 'vector<string>') {
+              valueType[key] = 'vector<String>';
               needImportString = true;
 
               // needImport = "\tuse std::ascii::{String, string};";
@@ -80,8 +76,7 @@ export function getRenderSchemaOptions(config: DubheConfig) {
         }
       }
       defaultValue = schemaData.defaultValue;
-      ephemeral =
-        schemaData.ephemeral !== undefined ? schemaData.ephemeral : false;
+      ephemeral = schemaData.ephemeral !== undefined ? schemaData.ephemeral : false;
       singleton = schemaData.defaultValue !== undefined ? true : false;
     }
 
@@ -97,7 +92,7 @@ export function getRenderSchemaOptions(config: DubheConfig) {
       // structAttrs: [renderKeyName(valueType)],
       // structTypes: [renderStruct(convertToCamelCase(schemaName), valueType)],
       defaultValue,
-      needImportString,
+      needImportString
     });
   }
   return options;
@@ -117,26 +112,24 @@ export function generateSchema(config: DubheConfig, srcPrefix: string) {
     formatAndWriteMove(
       code,
       `${srcPrefix}/contracts/${option.projectName}/sources/codegen/schemas/${option.schemaName}.move`,
-      "formatAndWriteMove"
+      'formatAndWriteMove'
     );
   }
 }
 
 function renderEphemeralSchema(option: RenderSchemaOptions): string {
   return `module ${option.projectName}::${option.schemaName}_schema {
-${
-      option.needImportString ? "\tuse std::string::String;\n\t" : "\t"
-  }use std::option::none;
+${option.needImportString ? '\tuse std::string::String;\n\t' : '\t'}use std::option::none;
     use ${option.projectName}::events;
     
 ${renderKeyName(option.valueType)}
 ${renderStruct(option.structName, option.valueType, option.ephemeral)} 
 ${renderNewStructFunc(option.structName, option.valueType)} 
-\tpublic fun emit_${option.schemaName}(${getStructAttrsWithType(
+\tpublic fun emit_${option.schemaName}(${getStructAttrsWithType(option.valueType, ' ')}) {
+\t\tevents::emit_set(schema_id(), schema_type(), none(), new(${getStructAttrs(
     option.valueType,
-    " "
-  )}) {
-\t\tevents::emit_set(schema_id(), schema_type(), none(), new(${getStructAttrs(option.valueType, " ")}))
+    ' '
+  )}))
 \t}
 
 \t#[view]
@@ -153,9 +146,7 @@ ${renderNewStructFunc(option.structName, option.valueType)}
 
 function renderSingleSchema(option: RenderSchemaOptions): string {
   return `module ${option.projectName}::${option.schemaName}_schema {
-${
-  option.needImportString ? "\tuse std::string::{Self, String};\n\t" : "\t"
-}use std::option::none;
+${option.needImportString ? '\tuse std::string::{Self, String};\n\t' : '\t'}use std::option::none;
     use std::signer::address_of;
     use ${option.projectName}::events;
     use ${option.projectName}::world;
@@ -167,21 +158,17 @@ ${renderKeyName(option.valueType)}
 ${renderSingleStruct(option.structName, option.valueType)}
 ${renderStructEvent(option.structName, option.valueType)}
 ${renderNewStructFunc(option.structName, option.valueType)}
-${renderRegisterFuncWithInit(
-  option.structName,
-  option.realType,
-  option.defaultValue!
-)}
+${renderRegisterFuncWithInit(option.structName, option.realType, option.defaultValue!)}
 
-${renderSingleSetFunc(
-  option.structName,
-  option.valueType
-)}${renderSingleSetAttrsFunc(option.structName, option.valueType)}
+${renderSingleSetFunc(option.structName, option.valueType)}${renderSingleSetAttrsFunc(
+    option.structName,
+    option.valueType
+  )}
 
-${renderSingleGetAllFunc(
-  option.structName,
-  option.valueType
-)}${renderSingleGetAttrsFunc(option.structName, option.valueType)}
+${renderSingleGetAllFunc(option.structName, option.valueType)}${renderSingleGetAttrsFunc(
+    option.structName,
+    option.valueType
+  )}
 
 \t#[view]
 \tpublic fun schema_id(): vector<u8> {
@@ -199,9 +186,7 @@ ${renderSingleGetAllFunc(
 
 function renderSchema(option: RenderSchemaOptions) {
   return `module ${option.projectName}::${option.schemaName}_schema {
-${
-  option.needImportString ? "\tuse std::string::String;\n\t" : "\t"
-}use std::option::some;
+${option.needImportString ? '\tuse std::string::String;\n\t' : '\t'}use std::option::some;
     use std::signer::address_of;
     use aptos_std::table::{Self, Table};
     use ${option.projectName}::events;

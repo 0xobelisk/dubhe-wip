@@ -1,4 +1,4 @@
-import {Hex} from "viem";
+import { Hex } from 'viem';
 
 // only two keys for now, to reduce complexity of creating indexes on SQL tables
 // TODO: make tableId optional to enable filtering just on keys (any table)

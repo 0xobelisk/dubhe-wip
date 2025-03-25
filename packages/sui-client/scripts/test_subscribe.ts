@@ -1,97 +1,52 @@
-// import { WebSocket } from 'ws';
-import { createClient } from 'graphql-ws';
-import { createWebSocketClient } from '../src/libs/http/ws-adapter';
+import {
+  Dubhe,
+  NetworkType,
+  TransactionArgument,
+  loadMetadata,
+  Transaction,
+  DevInspectResults,
+  bcs,
+  SubscriptionKind,
+} from '../src/index';
+import * as process from 'process';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-async function testSubscription() {
-  const PORT = process.env.PORT || 3001;
+let sub: WebSocket;
 
-  const client = createClient({
-    url: `ws://localhost:${PORT}/graphql`,
-    webSocketImpl: WebSocket,
-    retryAttempts: 3,
-    connectionParams: {},
+async function init() {
+  const network = 'localnet';
+
+  const privateKey = process.env.PRIVATE_KEY;
+
+  const dubhe = new Dubhe({
+    networkType: network as NetworkType,
+    secretKey: privateKey,
   });
 
-  console.log(`Connecting to ws://localhost:${PORT}/graphql`);
+  console.log('Current Address:', dubhe.getAddress());
 
-  try {
-    const unsubscribe = client.subscribe(
+  const sender =
+    '0x1fe342c436eff7ed90988fbe3a85aea7d922517ab6d9bc86e800025f8afcba7a';
+  const myAddress =
+    '0x95a99e27a30c993dc82c78cc8285643ab81a12a73a46882afb35bd2d5d5c47ed';
+
+  sub = await dubhe.subscribe(
+    [
       {
-        query: `
-            subscription {
-              onNewTransaction {
-                id
-                checkpoint
-                digest
-              }
-            }
-          `,
+        kind: SubscriptionKind.Event,
+        sender:
+          '0x1fe342c436eff7ed90988fbe3a85aea7d922517ab6d9bc86e800025f8afcba7a',
       },
       {
-        next: (data) => {
-          console.log('Received new transaction:', data);
-        },
-        error: (error) => {
-          console.error('Subscription error:', error);
-        },
-        complete: () => {
-          console.log('Subscription completed');
-        },
-      }
-    );
-
-    // 60秒后取消订阅
-    setTimeout(() => {
-      unsubscribe();
-      console.log('Subscription canceled');
-      process.exit(0); // 正常退出程序
-    }, 60000);
-  } catch (error) {
-    console.error('Connection error:', error);
-    process.exit(1); // 错误退出
-  }
+        kind: SubscriptionKind.Schema,
+        name: 'account',
+      },
+    ],
+    (data) => {
+      console.log('Received message: ', data);
+    }
+  );
 }
 
-// testSubscription().catch((error) => {
-//   console.error('Program error:', error);
-//   process.exit(1);
-// });
-
-function testSubscription1(
-  url: string,
-  names: string[],
-  handleData: (data: any) => void
-) {
-  const ws = createWebSocketClient(url);
-
-  ws.onopen = () => {
-    console.log('Connected to the WebSocket server');
-    // Subscribe to specific event names
-    const subscribeMessage = JSON.stringify({
-      type: 'subscribe',
-      names: names,
-    });
-    ws.send(subscribeMessage);
-  };
-
-  ws.onmessage = (event) => {
-    handleData(event.data);
-  };
-
-  ws.onclose = () => {
-    console.log('Disconnected from the WebSocket server');
-  };
-
-  ws.onerror = (error) => {
-    console.error(`WebSocket error: ${error}`);
-  };
-}
-
-// Example usage:
-testSubscription1(
-  'ws://127.0.0.1:3001',
-  ['monster_catch_attempt_event', 'position'],
-  (data) => {
-    console.log(`Received message: ${data}`);
-  }
-);
+init().catch(console.error);
