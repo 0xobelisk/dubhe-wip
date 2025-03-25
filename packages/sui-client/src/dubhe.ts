@@ -28,6 +28,7 @@ import {
   SuiTxArg,
   SuiObjectArg,
   SuiVecTxArg,
+  SubscribableType,
 } from './types';
 import {
   convertHttpToWebSocket,
@@ -1274,10 +1275,10 @@ export class Dubhe {
   }
 
   async subscribe(
-    names: string[],
+    types: SubscribableType[],
     handleData: (data: any) => void
   ): Promise<WebSocket> {
-    return this.suiIndexerClient.subscribe(names, handleData);
+    return this.suiIndexerClient.subscribe(types, handleData);
   }
 
   #processKeyParameter(tx: Transaction, keyType: string, value: any) {

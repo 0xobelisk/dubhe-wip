@@ -1,12 +1,12 @@
-import { isNotNull } from "@latticexyz/common/utils";
-import { PendingQuery, Row, Sql } from "postgres";
-import { hexToBytes } from "viem";
-import { z } from "zod";
-import { input } from "@latticexyz/store-sync/indexer-client";
-import { transformSchemaName } from "@latticexyz/store-sync/postgres";
-import { Record } from "./common";
+import { isNotNull } from '@latticexyz/common/utils';
+import { PendingQuery, Row, Sql } from 'postgres';
+import { hexToBytes } from 'viem';
+import { z } from 'zod';
+import { input } from '@latticexyz/store-sync/indexer-client';
+import { transformSchemaName } from '@latticexyz/store-sync/postgres';
+import { Record } from './common';
 
-const schemaName = transformSchemaName("mud");
+const schemaName = transformSchemaName('mud');
 
 function and(sql: Sql, conditions: PendingQuery<Row[]>[]): PendingQuery<Row[]> {
   return sql`(${conditions.reduce((query, condition) => sql`${query} AND ${condition}`)})`;
@@ -25,9 +25,9 @@ export function queryLogs(sql: Sql, opts: z.infer<typeof input>): PendingQuery<R
             opts.address != null ? sql`address = ${hexToBytes(opts.address)}` : null,
             sql`table_id = ${hexToBytes(filter.tableId)}`,
             filter.key0 != null ? sql`key0 = ${hexToBytes(filter.key0)}` : null,
-            filter.key1 != null ? sql`key1 = ${hexToBytes(filter.key1)}` : null,
-          ].filter(isNotNull),
-        ),
+            filter.key1 != null ? sql`key1 = ${hexToBytes(filter.key1)}` : null
+          ].filter(isNotNull)
+        )
       )
     : opts.address != null
       ? [sql`address = ${hexToBytes(opts.address)}`]
@@ -35,7 +35,7 @@ export function queryLogs(sql: Sql, opts: z.infer<typeof input>): PendingQuery<R
 
   const where = sql`WHERE ${and(
     sql,
-    [sql`is_deleted != true`, conditions.length ? or(sql, conditions) : null].filter(isNotNull),
+    [sql`is_deleted != true`, conditions.length ? or(sql, conditions) : null].filter(isNotNull)
   )}`;
 
   // TODO: implement bytea <> hex columns via custom types: https://github.com/porsager/postgres#custom-types

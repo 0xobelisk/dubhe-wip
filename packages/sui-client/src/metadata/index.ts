@@ -13,9 +13,8 @@ export async function loadMetadata(
   fullnodeUrls = fullnodeUrls || [getFullnodeUrl(networkType)];
   const suiInteractor = new SuiInteractor(fullnodeUrls);
   if (packageId !== undefined) {
-    const jsonData = await suiInteractor.getNormalizedMoveModulesByPackage(
-      packageId
-    );
+    const jsonData =
+      await suiInteractor.getNormalizedMoveModulesByPackage(packageId);
 
     return jsonData as SuiMoveNormalizedModules;
   } else {

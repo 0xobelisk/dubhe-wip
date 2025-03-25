@@ -1,11 +1,11 @@
-import { PgDatabase } from "drizzle-orm/pg-core";
-import { Hex } from "viem";
-import { StorageAdapterLog, SyncFilter } from "@latticexyz/store-sync";
-import { tables } from "@latticexyz/store-sync/postgres";
-import { and, asc, eq, or } from "drizzle-orm";
-import { bigIntMax } from "@latticexyz/common/utils";
-import { recordToLog } from "../recordToLog";
-import { createBenchmark } from "@latticexyz/common";
+import { PgDatabase } from 'drizzle-orm/pg-core';
+import { Hex } from 'viem';
+import { StorageAdapterLog, SyncFilter } from '@latticexyz/store-sync';
+import { tables } from '@latticexyz/store-sync/postgres';
+import { and, asc, eq, or } from 'drizzle-orm';
+import { bigIntMax } from '@latticexyz/common/utils';
+import { recordToLog } from '../recordToLog';
+import { createBenchmark } from '@latticexyz/common';
 
 /**
  * @deprecated
@@ -16,14 +16,17 @@ export async function getLogs(
   {
     chainId,
     address,
-    filters = [],
+    filters = []
   }: {
     readonly chainId: number;
     readonly address?: Hex;
     readonly filters?: readonly SyncFilter[];
-  },
-): Promise<{ blockNumber: bigint; logs: Extract<StorageAdapterLog, { eventName: "Store_SetRecord" }>[] }> {
-  const benchmark = createBenchmark("drizzleGetLogs");
+  }
+): Promise<{
+  blockNumber: bigint;
+  logs: Extract<StorageAdapterLog, { eventName: 'Store_SetRecord' }>[];
+}> {
+  const benchmark = createBenchmark('drizzleGetLogs');
 
   const conditions = filters.length
     ? filters.map((filter) =>
@@ -31,13 +34,13 @@ export async function getLogs(
           address != null ? eq(tables.recordsTable.address, address) : undefined,
           eq(tables.recordsTable.tableId, filter.tableId),
           filter.key0 != null ? eq(tables.recordsTable.key0, filter.key0) : undefined,
-          filter.key1 != null ? eq(tables.recordsTable.key1, filter.key1) : undefined,
-        ),
+          filter.key1 != null ? eq(tables.recordsTable.key1, filter.key1) : undefined
+        )
       )
     : address != null
       ? [eq(tables.recordsTable.address, address)]
       : [];
-  benchmark("parse config");
+  benchmark('parse config');
 
   // Query for the block number that the indexer (i.e. chain) is at, in case the
   // indexer is further along in the chain than a given store/table's last updated
@@ -57,26 +60,29 @@ export async function getLogs(
     // TODO: move this to `.findFirst` after upgrading drizzle or `rows[0]` after enabling `noUncheckedIndexedAccess: true`
     .then((rows) => rows.find(() => true));
   const indexerBlockNumber = chainState?.blockNumber ?? 0n;
-  benchmark("query chainState");
+  benchmark('query chainState');
 
   const records = await database
     .select()
     .from(tables.recordsTable)
     .where(or(...conditions))
     .orderBy(
-      asc(tables.recordsTable.blockNumber),
+      asc(tables.recordsTable.blockNumber)
       // TODO: add logIndex (https://github.com/latticexyz/mud/issues/1979)
     );
-  benchmark("query records");
+  benchmark('query records');
 
-  const blockNumber = records.reduce((max, record) => bigIntMax(max, record.blockNumber ?? 0n), indexerBlockNumber);
-  benchmark("find block number");
+  const blockNumber = records.reduce(
+    (max, record) => bigIntMax(max, record.blockNumber ?? 0n),
+    indexerBlockNumber
+  );
+  benchmark('find block number');
 
   const logs = records
     // TODO: add this to the query, assuming we can optimize with an index
     .filter((record) => !record.isDeleted)
     .map(recordToLog);
-  benchmark("map records to logs");
+  benchmark('map records to logs');
 
   return { blockNumber, logs };
 }

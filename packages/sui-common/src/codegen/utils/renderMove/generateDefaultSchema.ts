@@ -3,19 +3,16 @@ import { formatAndWriteMove } from '../formatAndWrite';
 import { existsSync } from 'fs';
 import { capitalizeAndRemoveUnderscores } from './generateSchema';
 
-export async function generateDefaultSchema(
-	config: DubheConfig,
-	srcPrefix: string
-) {
-	await generateDappSchemaMetadata(config, srcPrefix);
-	await generateDappSchema(config, srcPrefix);
-	await generateDappSystem(config, srcPrefix);
+export async function generateDefaultSchema(config: DubheConfig, srcPrefix: string) {
+  await generateDappSchemaMetadata(config, srcPrefix);
+  await generateDappSchema(config, srcPrefix);
+  await generateDappSystem(config, srcPrefix);
 }
 
 async function generateDappSchemaMetadata(config: DubheConfig, srcPrefix: string) {
-	const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/metadata.move`
-	if (!existsSync(path)) {
-		let code = `module ${config.name}::${config.name}_dapp_metadata {
+  const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/metadata.move`;
+  if (!existsSync(path)) {
+    let code = `module ${config.name}::${config.name}_dapp_metadata {
     use std::ascii::String;
 
     public struct DappMetadata has drop, copy, store {
@@ -112,19 +109,14 @@ async function generateDappSchemaMetadata(config: DubheConfig, srcPrefix: string
 
 }
 `;
-		await formatAndWriteMove(
-			code,
-			path,
-			'formatAndWriteMove'
-		);
-	}
+    await formatAndWriteMove(code, path, 'formatAndWriteMove');
+  }
 }
 
-
 async function generateDappSchema(config: DubheConfig, srcPrefix: string) {
-	const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/schema.move`
-	if (!existsSync(path)) {
-		let code = `module ${config.name}::${config.name}_dapp_schema {
+  const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/schema.move`;
+  if (!existsSync(path)) {
+    let code = `module ${config.name}::${config.name}_dapp_schema {
   use ${config.name}::${config.name}_dapp_metadata::DappMetadata;
   use dubhe::storage_value;
   use dubhe::storage_value::StorageValue;
@@ -226,18 +218,14 @@ async function generateDappSchema(config: DubheConfig, srcPrefix: string) {
   }
 }
 `;
-		await formatAndWriteMove(
-			code,
-			path,
-			'formatAndWriteMove'
-		);
-	}
+    await formatAndWriteMove(code, path, 'formatAndWriteMove');
+  }
 }
 
 async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
-	const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/system.move`
-	if (!existsSync(path)) {
-		let code = `module ${config.name}::${config.name}_dapp_system {
+  const path = `${srcPrefix}/contracts/${config.name}/sources/codegen/dapp/system.move`;
+  if (!existsSync(path)) {
+    let code = `module ${config.name}::${config.name}_dapp_system {
   use std::ascii::String;
   use std::ascii;
   use dubhe::type_info;
@@ -325,10 +313,6 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
 
 
 `;
-		await formatAndWriteMove(
-			code,
-			path,
-			'formatAndWriteMove'
-		);
-	}
+    await formatAndWriteMove(code, path, 'formatAndWriteMove');
+  }
 }

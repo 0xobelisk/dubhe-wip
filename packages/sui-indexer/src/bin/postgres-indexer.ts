@@ -1,15 +1,19 @@
 #!/usr/bin/env node
-import "dotenv/config";
-import { z } from "zod";
-import { eq } from "drizzle-orm";
-import { createPublicClient, fallback, webSocket, http, Transport } from "viem";
-import { isDefined } from "@latticexyz/common/utils";
-import { combineLatest, filter, first } from "rxjs";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { cleanDatabase, createStorageAdapter, shouldCleanDatabase } from "@latticexyz/store-sync/postgres";
-import { createStoreSync } from "@latticexyz/store-sync";
-import { indexerEnvSchema, parseEnv } from "./parseEnv";
+import 'dotenv/config';
+import { z } from 'zod';
+import { eq } from 'drizzle-orm';
+import { createPublicClient, fallback, webSocket, http, Transport } from 'viem';
+import { isDefined } from '@latticexyz/common/utils';
+import { combineLatest, filter, first } from 'rxjs';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import {
+  cleanDatabase,
+  createStorageAdapter,
+  shouldCleanDatabase
+} from '@latticexyz/store-sync/postgres';
+import { createStoreSync } from '@latticexyz/store-sync';
+import { indexerEnvSchema, parseEnv } from './parseEnv';
 
 const env = parseEnv(
   z.intersection(
@@ -17,28 +21,28 @@ const env = parseEnv(
     z.object({
       DATABASE_URL: z.string(),
       HEALTHCHECK_HOST: z.string().optional(),
-      HEALTHCHECK_PORT: z.coerce.number().optional(),
-    }),
-  ),
+      HEALTHCHECK_PORT: z.coerce.number().optional()
+    })
+  )
 );
 
 const transports: Transport[] = [
   // prefer WS when specified
   env.RPC_WS_URL ? webSocket(env.RPC_WS_URL) : undefined,
   // otherwise use or fallback to HTTP
-  env.RPC_HTTP_URL ? http(env.RPC_HTTP_URL) : undefined,
+  env.RPC_HTTP_URL ? http(env.RPC_HTTP_URL) : undefined
 ].filter(isDefined);
 
 const publicClient = createPublicClient({
   transport: fallback(transports),
-  pollingInterval: env.POLLING_INTERVAL,
+  pollingInterval: env.POLLING_INTERVAL
 });
 
 const chainId = await publicClient.getChainId();
 const database = drizzle(postgres(env.DATABASE_URL, { prepare: false }));
 
 if (await shouldCleanDatabase(database, chainId)) {
-  console.log("outdated database detected, clearing data to start fresh");
+  console.log('outdated database detected, clearing data to start fresh');
   await cleanDatabase(database);
 }
 
@@ -70,7 +74,7 @@ async function getLatestStoredBlockNumber(): Promise<bigint | undefined> {
 async function getDistanceFromFollowBlock(): Promise<bigint> {
   const [latestStoredBlockNumber, latestFollowBlock] = await Promise.all([
     getLatestStoredBlockNumber(),
-    publicClient.getBlock({ blockTag: env.FOLLOW_BLOCK_TAG }),
+    publicClient.getBlock({ blockTag: env.FOLLOW_BLOCK_TAG })
   ]);
   return latestFollowBlock.number - (latestStoredBlockNumber ?? -1n);
 }
@@ -78,7 +82,7 @@ async function getDistanceFromFollowBlock(): Promise<bigint> {
 const latestStoredBlockNumber = await getLatestStoredBlockNumber();
 if (latestStoredBlockNumber != null) {
   startBlock = latestStoredBlockNumber + 1n;
-  console.log("resuming from block number", startBlock);
+  console.log('resuming from block number', startBlock);
 }
 
 const { latestBlockNumber$, storedBlockLogs$ } = await createStoreSync({
@@ -87,7 +91,7 @@ const { latestBlockNumber$, storedBlockLogs$ } = await createStoreSync({
   followBlockTag: env.FOLLOW_BLOCK_TAG,
   startBlock,
   maxBlockRange: env.MAX_BLOCK_RANGE,
-  address: env.STORE_ADDRESS,
+  address: env.STORE_ADDRESS
 });
 
 storedBlockLogs$.subscribe();
@@ -97,29 +101,29 @@ combineLatest([latestBlockNumber$, storedBlockLogs$])
   .pipe(
     filter(
       ([latestBlockNumber, { blockNumber: lastBlockNumberProcessed }]) =>
-        latestBlockNumber === lastBlockNumberProcessed,
+        latestBlockNumber === lastBlockNumberProcessed
     ),
-    first(),
+    first()
   )
   .subscribe(() => {
     isCaughtUp = true;
-    console.log("all caught up");
+    console.log('all caught up');
   });
 
 if (env.HEALTHCHECK_HOST != null || env.HEALTHCHECK_PORT != null) {
-  const { default: Koa } = await import("koa");
-  const { default: cors } = await import("@koa/cors");
-  const { healthcheck } = await import("../koa-middleware/healthcheck");
-  const { metrics } = await import("../koa-middleware/metrics");
-  const { helloWorld } = await import("../koa-middleware/helloWorld");
+  const { default: Koa } = await import('koa');
+  const { default: cors } = await import('@koa/cors');
+  const { healthcheck } = await import('../koa-middleware/healthcheck');
+  const { metrics } = await import('../koa-middleware/metrics');
+  const { helloWorld } = await import('../koa-middleware/helloWorld');
 
   const server = new Koa();
 
   server.use(cors());
   server.use(
     healthcheck({
-      isReady: () => isCaughtUp,
-    }),
+      isReady: () => isCaughtUp
+    })
   );
   server.use(
     metrics({
@@ -127,13 +131,13 @@ if (env.HEALTHCHECK_HOST != null || env.HEALTHCHECK_PORT != null) {
       isReady: () => isCaughtUp,
       getLatestStoredBlockNumber,
       getDistanceFromFollowBlock,
-      followBlockTag: env.FOLLOW_BLOCK_TAG,
-    }),
+      followBlockTag: env.FOLLOW_BLOCK_TAG
+    })
   );
   server.use(helloWorld());
 
   server.listen({ host: env.HEALTHCHECK_HOST, port: env.HEALTHCHECK_PORT });
   console.log(
-    `postgres indexer healthcheck server listening on http://${env.HEALTHCHECK_HOST}:${env.HEALTHCHECK_PORT}`,
+    `postgres indexer healthcheck server listening on http://${env.HEALTHCHECK_HOST}:${env.HEALTHCHECK_PORT}`
   );
 }

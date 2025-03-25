@@ -24,6 +24,7 @@ import { SuiTx } from '../libs/suiTxBuilder';
 
 import { SuiMoveMoudleFuncType } from '../libs/suiContractFactory/types';
 import { FetchOptions } from '../libs/http';
+import { SubscriptionKind } from '../libs/suiIndexerClient';
 
 export const ObjectContentFields = record(string(), any());
 export type ObjectContentFields = Infer<typeof ObjectContentFields>;
@@ -306,3 +307,7 @@ export type ObjectContent = {
 export type SuiDubheReturnType<T extends boolean> = T extends true
   ? SuiTransactionBlockResponse
   : SuiTx;
+
+export type SubscribableType =
+  | { kind: SubscriptionKind.Event; name?: string; sender?: string }
+  | { kind: SubscriptionKind.Schema; name?: string };
