@@ -145,7 +145,6 @@ function buildContract(projectPath: string): string[][] {
 		);
 		modules = buildResult.modules;
 		dependencies = buildResult.dependencies;
-		console.log('  └─ Build successful');
 	} catch (error: any) {
 		console.error(chalk.red('  └─ Build failed'));
 		console.error(error.stdout);
@@ -233,7 +232,7 @@ async function publishContract(
 
 	const deployHookTx = new Transaction();
 	deployHookTx.moveCall({
-		target: `${packageId}::genesis::run`,
+		target: `${packageId}::${dubheConfig.name}_genesis::run`,
 		arguments: [deployHookTx.object('0x6')],
 	});
 

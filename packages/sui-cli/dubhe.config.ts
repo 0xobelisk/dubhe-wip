@@ -1,7 +1,7 @@
 import { DubheConfig } from '@0xobelisk/sui-common';
 
 export const dubheConfig = {
-	name: 'merak',
+	name: 'counter',
 	description: 'Merak Protocol',
 	data: {
 		AccountStatus: ['Liquid', 'Frozen', 'Blocked'],

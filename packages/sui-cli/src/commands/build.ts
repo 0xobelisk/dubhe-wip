@@ -22,6 +22,7 @@ const commandModule: CommandModule<Options, Options> = {
 			},
 			network: {
 				type: 'string',
+				default: 'localnet',
 				choices: ['mainnet', 'testnet', 'devnet', 'localnet'],
 				desc: 'Node network (mainnet/testnet/devnet/localnet)',
 			},
