@@ -9,7 +9,7 @@
  <a href="https://twitter.com/0xObeliskLabs">
     <img src="https://img.shields.io/twitter/follow/0xObeliskLabs?style=social"/>
   </a>
-  <a href="https://github.com/0xobelisk/dubhe">
+  <a href="https://github.com/0xobelisk/dubhe/stargazers">
     <img src="https://img.shields.io/github/stars/0xobelisk/dubhe?style=social"/>
   </a>
 </div>
