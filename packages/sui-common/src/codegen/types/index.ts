@@ -48,14 +48,14 @@ export type SchemaType = string;
 export type EventData = Record<string, string>;
 export type ErrorData = Record<string, string>;
 
-type DataType =  any;
+type DataType = any;
 
 export function storage<T extends DataType>(value: T): SchemaType;
 export function storage<K extends DataType, V extends DataType>(key: K, value: V): SchemaType;
 export function storage<K1 extends DataType, K2 extends DataType, V extends DataType>(
-    key1: K1,
-    key2: K2,
-    value: V
+  key1: K1,
+  key2: K2,
+  value: V
 ): SchemaType;
 export function storage(...args: DataType[]): SchemaType {
   if (args.length === 1) {
