@@ -309,5 +309,5 @@ export type SuiDubheReturnType<T extends boolean> = T extends true
   : SuiTx;
 
 export type SubscribableType =
-  | { kind: SubscriptionKind.Event; name: string; sender?: string }
-  | { kind: SubscriptionKind.Schema; name: string };
+  | { kind: SubscriptionKind.Event; name?: string; sender?: string }
+  | { kind: SubscriptionKind.Schema; name?: string };

@@ -35,7 +35,12 @@ async function init() {
     [
       {
         kind: SubscriptionKind.Event,
-        name: 'asset_transferred',
+        sender:
+          '0x1fe342c436eff7ed90988fbe3a85aea7d922517ab6d9bc86e800025f8afcba7a',
+      },
+      {
+        kind: SubscriptionKind.Schema,
+        name: 'account',
       },
     ],
     (data) => {

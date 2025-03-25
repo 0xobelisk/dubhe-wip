@@ -338,10 +338,10 @@ while (true) {
             clientSubs.forEach((sub) => {
               if (
                 sub.kind === SubscriptionKind.Event &&
-                sub.name + '_event' === name &&
+                (!sub.name || sub.name === name.replace('_event', '')) &&
                 (!sub.sender || sub.sender === tx.sender)
               ) {
-                eventData.name = sub.name;
+                eventData.name = sub.name || name.replace('_event', '');
                 client.send(JSON.stringify(eventData));
               }
             });
@@ -367,7 +367,7 @@ while (true) {
             const clientSubs = subscriptions.get(client);
             if (!clientSubs) return;
             clientSubs.forEach((sub) => {
-              if (sub.kind === SubscriptionKind.Schema && sub.name === name) {
+              if (sub.kind === SubscriptionKind.Schema && (!sub.name || sub.name === name)) {
                 client.send(JSON.stringify(schemaData));
               }
             });
@@ -393,7 +393,7 @@ while (true) {
             if (!clientSubs) return;
 
             clientSubs.forEach((sub) => {
-              if (sub.kind === SubscriptionKind.Schema && sub.name.includes(name)) {
+              if (sub.kind === SubscriptionKind.Schema && (!sub.name || sub.name === name)) {
                 client.send(JSON.stringify(schemaData));
               }
             });
