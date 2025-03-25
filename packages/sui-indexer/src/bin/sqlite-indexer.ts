@@ -338,9 +338,10 @@ while (true) {
             clientSubs.forEach((sub) => {
               if (
                 sub.kind === SubscriptionKind.Event &&
-                sub.name === name + '_event' &&
+                sub.name + '_event' === name &&
                 (!sub.sender || sub.sender === tx.sender)
               ) {
+                eventData.name = sub.name;
                 client.send(JSON.stringify(eventData));
               }
             });
