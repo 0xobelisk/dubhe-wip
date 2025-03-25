@@ -1,17 +1,17 @@
 export type BaseType =
-  | "string"
-  | "vector<string>"
-  | "address"
-  | "bool"
-  | "u8"
-  | "u64"
-  | "u128"
-  | "vector<address>"
-  | "vector<bool>"
-  | "vector<u8>"
-  | "vector<vector<u8>>"
-  | "vector<u64>"
-  | "vector<u128>";
+  | 'string'
+  | 'vector<string>'
+  | 'address'
+  | 'bool'
+  | 'u8'
+  | 'u64'
+  | 'u128'
+  | 'vector<address>'
+  | 'vector<bool>'
+  | 'vector<u8>'
+  | 'vector<vector<u8>>'
+  | 'vector<u64>'
+  | 'vector<u128>';
 
 type Address = string;
 type Bool = boolean;
@@ -50,21 +50,21 @@ export type DubheConfig = {
 };
 
 export type MoveType =
-  | "string"
-  | "vector<string>"
-  | "String"
-  | "vector<String>"
-  | "address"
-  | "bool"
-  | "u8"
-  | "u64"
-  | "u128"
-  | "vector<address>"
-  | "vector<bool>"
-  | "vector<u8>"
-  | "vector<vector<u8>>"
-  | "vector<u64>"
-  | "vector<u128>";
+  | 'string'
+  | 'vector<string>'
+  | 'String'
+  | 'vector<String>'
+  | 'address'
+  | 'bool'
+  | 'u8'
+  | 'u64'
+  | 'u128'
+  | 'vector<address>'
+  | 'vector<bool>'
+  | 'vector<u8>'
+  | 'vector<vector<u8>>'
+  | 'vector<u64>'
+  | 'vector<u128>';
 
 export interface RenderSchemaOptions {
   projectName: string;

@@ -1,5 +1,5 @@
-import { DubheConfig } from "../../types";
-import { formatAndWriteMove } from "../formatAndWrite";
+import { DubheConfig } from '../../types';
+import { formatAndWriteMove } from '../formatAndWrite';
 
 export function generateToml(config: DubheConfig, srcPrefix: string) {
   let code = `[package]
@@ -20,9 +20,5 @@ subdir = "aptos-move/framework/aptos-framework"
 
 [dev-dependencies]
 `;
-  formatAndWriteMove(
-    code,
-    `${srcPrefix}/contracts/${config.name}/Move.toml`,
-    "formatAndWriteMove"
-  );
+  formatAndWriteMove(code, `${srcPrefix}/contracts/${config.name}/Move.toml`, 'formatAndWriteMove');
 }

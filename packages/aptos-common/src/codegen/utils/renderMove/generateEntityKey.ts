@@ -1,5 +1,5 @@
-import { DubheConfig } from "../../types";
-import { formatAndWriteMove } from "../formatAndWrite";
+import { DubheConfig } from '../../types';
+import { formatAndWriteMove } from '../formatAndWrite';
 
 export function generateEntityKey(config: DubheConfig, srcPrefix: string) {
   let code = `module ${config.name}::entity_key {
@@ -37,6 +37,6 @@ export function generateEntityKey(config: DubheConfig, srcPrefix: string) {
   formatAndWriteMove(
     code,
     `${srcPrefix}/contracts/${config.name}/sources/entity_key.move`,
-    "formatAndWriteMove"
+    'formatAndWriteMove'
   );
 }
