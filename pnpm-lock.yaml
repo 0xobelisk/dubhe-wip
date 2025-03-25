@@ -66,8 +66,8 @@ importers:
         specifier: workspace:*
         version: link:../aptos-client
       '@0xobelisk/aptos-common':
-        specifier: ^0.0.7
-        version: 0.0.7
+        specifier: workspace:*
+        version: link:../aptos-common
       '@aptos-labs/ts-sdk':
         specifier: ^1.33.1
         version: 1.33.1
@@ -150,6 +150,12 @@ importers:
       '@types/yargs':
         specifier: ^17.0.10
         version: 17.0.33
+      eslint:
+        specifier: ^8.56.0
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.0(eslint@8.57.1)
       ts-node:
         specifier: ^10.9.1
         version: 10.9.2(@types/node@18.19.67)(typescript@5.1.6)
@@ -314,6 +320,12 @@ importers:
       '@types/yargs':
         specifier: ^17.0.10
         version: 17.0.33
+      eslint:
+        specifier: ^8.56.0
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.0(eslint@8.57.1)
       tsup:
         specifier: ^6.7.0
         version: 6.7.0(postcss@8.4.49)(ts-node@10.9.2(@types/node@18.19.67)(typescript@5.1.6))(typescript@5.1.6)
@@ -1185,10 +1197,6 @@ packages:
     peerDependencies:
       graphql: ^15.5.0 || ^16.0.0 || ^17.0.0
       typescript: ^5.0.0
-
-  '@0xobelisk/aptos-common@0.0.7':
-    resolution: {integrity: sha512-pEZlihDNewlBIE9x3RkUxPgamp0IeBJ37UWUxSQArWSnkuZmOF3F/piJG6uxct0bFKyjnNXiuhY0HFuiMHsqwA==}
-    engines: {node: '>=18'}
 
   '@0xobelisk/rooch-client@0.0.3':
     resolution: {integrity: sha512-LzalSTbSNRy7/mzdL5RBGa4wWQy2fKrFQ01Y2vmfoF+jqxQnITAraopTw4Kb1tTRh5sbgsjGBqtbr2p8hSUIxA==}
@@ -8568,24 +8576,6 @@ snapshots:
       '@gql.tada/internal': 1.0.8(graphql@16.9.0)(typescript@5.7.2)
       graphql: 16.9.0
       typescript: 5.7.2
-
-  '@0xobelisk/aptos-common@0.0.7':
-    dependencies:
-      chalk: 5.3.0
-      dotenv: 16.4.5
-      ejs: 3.1.10
-      esbuild: 0.17.19
-      execa: 7.2.0
-      find-up: 6.3.0
-      glob: 8.1.0
-      path: 0.12.7
-      prettier: 2.8.8
-      prettier-plugin-rust: 0.1.9
-      prettier-plugin-solidity: 1.4.1(prettier@2.8.8)
-      typescript: 5.1.6
-      yargs: 17.7.2
-      zod: 3.23.8
-      zod-validation-error: 1.5.0(zod@3.23.8)
 
   '@0xobelisk/rooch-client@0.0.3(typescript@5.1.6)':
     dependencies:

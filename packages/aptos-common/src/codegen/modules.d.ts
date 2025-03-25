@@ -1,1 +1,1 @@
-declare module "prettier-plugin-rust";
+declare module 'prettier-plugin-rust';

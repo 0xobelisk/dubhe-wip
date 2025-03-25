@@ -1,6 +1,6 @@
-import { mkdirSync, writeFileSync } from "fs";
-import { dirname } from "path";
-import { formatMove, formatTypescript } from "./format";
+import { mkdirSync, writeFileSync } from 'fs';
+import { dirname } from 'path';
+import { formatMove, formatTypescript } from './format';
 
 export async function formatAndWriteMove(
   output: string,

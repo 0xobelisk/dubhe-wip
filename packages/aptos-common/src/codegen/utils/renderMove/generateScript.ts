@@ -1,14 +1,10 @@
-import { DubheConfig } from "../../types";
-import { formatAndWriteMove } from "../formatAndWrite";
-import { existsSync } from "fs";
+import { DubheConfig } from '../../types';
+import { formatAndWriteMove } from '../formatAndWrite';
+import { existsSync } from 'fs';
 
 export function generateScript(config: DubheConfig, srcPrefix: string) {
-    if (
-        !existsSync(
-            `${srcPrefix}/contracts/${config.name}/sources/script/deploy_hook.move`
-        )
-    ) {
-        let code = `module ${config.name}::deploy_hook {
+  if (!existsSync(`${srcPrefix}/contracts/${config.name}/sources/script/deploy_hook.move`)) {
+    let code = `module ${config.name}::deploy_hook {
     use ${config.name}::world;
     use std::signer::address_of;
 
@@ -28,10 +24,10 @@ export function generateScript(config: DubheConfig, srcPrefix: string) {
     }
 }
 `;
-        formatAndWriteMove(
-            code,
-            `${srcPrefix}/contracts/${config.name}/sources/script/deploy_hook.move`,
-            "formatAndWriteMove"
-        );
-    }
+    formatAndWriteMove(
+      code,
+      `${srcPrefix}/contracts/${config.name}/sources/script/deploy_hook.move`,
+      'formatAndWriteMove'
+    );
+  }
 }

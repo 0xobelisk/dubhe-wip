@@ -1,16 +1,16 @@
-import { SchemaMapType, DubheConfig } from "../../types";
-import { rmdirSync, existsSync } from "fs";
-import { deleteFolderRecursive } from "./common";
-import { generateSystem } from "./generateSystem";
-import { generateToml } from "./generateToml";
-import { generateEntityKey } from "./generateEntityKey";
-import { generateInit } from "./generateInit";
-import { generateEps } from "./generateEps";
-import { generateSchema } from "./generateSchema";
-import {generateScript} from "./generateScript";
+import { SchemaMapType, DubheConfig } from '../../types';
+import { rmdirSync, existsSync } from 'fs';
+import { deleteFolderRecursive } from './common';
+import { generateSystem } from './generateSystem';
+import { generateToml } from './generateToml';
+import { generateEntityKey } from './generateEntityKey';
+import { generateInit } from './generateInit';
+import { generateEps } from './generateEps';
+import { generateSchema } from './generateSchema';
+import { generateScript } from './generateScript';
 
 export function worldgen(config: DubheConfig, srcPrefix?: string) {
-  let path = "";
+  let path = '';
   if (srcPrefix === undefined) {
     path = process.cwd();
   } else {

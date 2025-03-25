@@ -1,8 +1,8 @@
-import chalk from "chalk";
+import chalk from 'chalk';
 
 export function printDubhe() {
   console.log(
-      chalk.yellow(`
+    chalk.yellow(`
 Welcome to Dubhe
 \t\t\t --from team@obelisk
    ________  ___  ___  ________  ___  ___  _______      

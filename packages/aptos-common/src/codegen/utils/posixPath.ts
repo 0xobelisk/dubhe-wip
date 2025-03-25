@@ -4,5 +4,5 @@
  * because solc expects `/` as path separator, but path.join produces `\` if the user is on windows.
  */
 export function posixPath(path: string): string {
-  return path.replace(/\\/g, "/");
+  return path.replace(/\\/g, '/');
 }
