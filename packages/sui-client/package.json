@@ -55,7 +55,6 @@
     "prettier-plugin-rust": "^0.1.9"
   },
   "dependencies": {
-    "@0xobelisk/sui-common": "workspace:*",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@mysten/bcs": "^1.2.1",
     "@mysten/sui": "^1.19.0",
@@ -80,7 +79,6 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@0xobelisk/sui-common": "workspace:*",
     "@commitlint/cli": "^18.0.0",
     "@commitlint/config-conventional": "^18.0.0",
     "@commitlint/prompt-cli": "^18.0.0",

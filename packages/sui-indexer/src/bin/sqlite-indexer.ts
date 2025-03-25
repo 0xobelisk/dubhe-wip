@@ -2,7 +2,7 @@
 import 'dotenv/config';
 // import fs from "node:fs";
 // import { eq } from "drizzle-orm";
-import {BetterSQLite3Database, drizzle} from 'drizzle-orm/better-sqlite3';
+import { BetterSQLite3Database, drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 // import { webSocket, http, Transport } from "viem";
 import Koa from 'koa';
@@ -35,7 +35,13 @@ import { WebSocketServer, WebSocket } from 'ws';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { getSchemaId } from '../utils/read-history';
-import { DubheConfig, loadConfig, parseData, SubscribableType, SubscriptionKind } from '@0xobelisk/sui-common';
+import {
+	DubheConfig,
+	loadConfig,
+	parseData,
+	SubscribableType,
+	SubscriptionKind,
+} from '@0xobelisk/sui-common';
 import { fetchAllEvents, fetchTransactionBlocks } from '../utils/graphql-query';
 import fs from 'fs';
 import pathModule from 'path';
@@ -122,12 +128,12 @@ const graphqlEndpoint =
 		? 'https://sui-mainnet.mystenlabs.com/graphql'
 		: 'https://sui-testnet.mystenlabs.com/graphql';
 
-const ensureDirectoryExists =  function (filePath: string) {
+const ensureDirectoryExists = function (filePath: string) {
 	const dir = pathModule.dirname(filePath);
 	if (!fs.existsSync(dir)) {
 		fs.mkdirSync(dir, { recursive: true });
 	}
-}
+};
 
 ensureDirectoryExists(argv.sqliteFilename);
 const database = drizzle(new Database(argv.sqliteFilename));
@@ -272,7 +278,7 @@ while (true) {
 						events: allEvents.map(event => ({
 							parsedJson: event.contents.json,
 						})),
-						sender: ""
+						sender: '',
 						// events: tx.effects.events.nodes.map(node => ({
 						// 	parsedJson: node.contents.json,
 						// })),
@@ -302,7 +308,7 @@ while (true) {
 		txs = response.data.map(tx => ({
 			...tx,
 			cursor: tx.digest,
-			sender: tx.transaction?.data?.sender
+			sender: tx.transaction?.data?.sender,
 		}));
 	}
 
@@ -341,22 +347,24 @@ while (true) {
 						clientSubs.forEach(sub => {
 							if (
 								sub.kind === SubscriptionKind.Event &&
-								sub.name === (name + '_event') &&
+								sub.name === name + '_event' &&
 								(!sub.sender || sub.sender === tx.sender)
 							) {
 								client.send(JSON.stringify(eventData));
 							}
 						});
 					});
-					await database.insert(dubheStoreEvents).values(parseData({
-						sender: tx.sender,
-						checkpoint: tx.checkpoint?.toString() as string,
-						digest: tx.digest,
-						created_at: tx.timestampMs?.toString() as string,
-						name: name,
-						// @ts-ignore
-						value: event.parsedJson['value'],
-					}));
+					await database.insert(dubheStoreEvents).values(
+						parseData({
+							sender: tx.sender,
+							checkpoint: tx.checkpoint?.toString() as string,
+							digest: tx.digest,
+							created_at: tx.timestampMs?.toString() as string,
+							name: name,
+							// @ts-ignore
+							value: event.parsedJson['value'],
+						})
+					);
 					// Handle schema set events
 					// @ts-ignore
 				} else if (event.parsedJson.hasOwnProperty('value')) {
@@ -387,7 +395,7 @@ while (true) {
 					const schemaData = {
 						// @ts-ignore
 						...event.parsedJson,
-						value: null
+						value: null,
 					};
 					wss.clients.forEach(client => {
 						if (client.readyState !== client.OPEN) return;

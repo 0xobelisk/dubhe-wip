@@ -7,6 +7,11 @@ export interface OrderDirection {
   DESC: 'DESC';
 }
 
+export enum SubscriptionKind {
+  Event = 'event',
+  Schema = 'schema',
+}
+
 // export interface OrderBy {
 //   field: string;
 //   direction: OrderDirection['ASC'] | OrderDirection['DESC'];
