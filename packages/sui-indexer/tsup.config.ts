@@ -1,15 +1,15 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup';
 
 export default defineConfig((opts) => ({
   entry: [
-    "src/index.ts",
-    "src/bin/postgres-frontend.ts",
-    "src/bin/postgres-indexer.ts",
-    "src/bin/postgres-decoded-indexer.ts",
-    "src/bin/sqlite-indexer.ts",
+    'src/index.ts',
+    'src/bin/postgres-frontend.ts',
+    'src/bin/postgres-indexer.ts',
+    'src/bin/postgres-decoded-indexer.ts',
+    'src/bin/sqlite-indexer.ts'
   ],
-  target: "esnext",
-  format: ["esm"],
+  target: 'esnext',
+  format: ['esm'],
   sourcemap: true,
   minify: true,
   // don't generate DTS during watch mode because it's slow
@@ -18,5 +18,5 @@ export default defineConfig((opts) => ({
   // don't clean during watch mode to avoid removing
   // previously-built DTS files, which other build tasks
   // depend on
-  clean: !opts.watch,
+  clean: !opts.watch
 }));

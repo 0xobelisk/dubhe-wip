@@ -1,11 +1,16 @@
-import { getAddress } from "viem";
-import { PgDatabase } from "drizzle-orm/pg-core";
-import { TableWithRecords, isTableRegistrationLog, logToTable, schemasTable } from "@latticexyz/store-sync";
-import { KeySchema, decodeKey, decodeValueArgs } from "@latticexyz/protocol-parser/internal";
-import { QueryAdapter } from "@latticexyz/store-sync/trpc-indexer";
-import { debug } from "../../debug";
-import { getLogs } from "./getLogs";
-import { groupBy } from "@latticexyz/common/utils";
+import { getAddress } from 'viem';
+import { PgDatabase } from 'drizzle-orm/pg-core';
+import {
+  TableWithRecords,
+  isTableRegistrationLog,
+  logToTable,
+  schemasTable
+} from '@latticexyz/store-sync';
+import { KeySchema, decodeKey, decodeValueArgs } from '@latticexyz/protocol-parser/internal';
+import { QueryAdapter } from '@latticexyz/store-sync/trpc-indexer';
+import { debug } from '../../debug';
+import { getLogs } from './getLogs';
+import { groupBy } from '@latticexyz/common/utils';
 
 /**
  * Creates a query adapter for the tRPC server/client to query data from Postgres.
@@ -25,7 +30,7 @@ export async function createQueryAdapter(database: PgDatabase<any>): Promise<Que
       const { blockNumber, logs } = await getLogs(database, {
         ...opts,
         // make sure we're always retrieving `store.Tables` table, so we can decode table values
-        filters: filters.length > 0 ? [...filters, { tableId: schemasTable.tableId }] : [],
+        filters: filters.length > 0 ? [...filters, { tableId: schemasTable.tableId }] : []
       });
 
       const tables = logs.filter(isTableRegistrationLog).map(logToTable);
@@ -42,17 +47,17 @@ export async function createQueryAdapter(database: PgDatabase<any>): Promise<Que
 
         return {
           ...table,
-          records,
+          records
         };
       });
 
-      debug("findAll: decoded %d logs across %d tables", logs.length, tables.length);
+      debug('findAll: decoded %d logs across %d tables', logs.length, tables.length);
 
       return {
         blockNumber,
-        tables: tablesWithRecords,
+        tables: tablesWithRecords
       };
-    },
+    }
   };
   return adapter;
 }

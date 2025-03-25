@@ -11,20 +11,17 @@ import { tablesWithRecordsToLogs } from '@latticexyz/store-sync';
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createQueryAdapter(
-	database: BaseSQLiteDatabase<'sync', any>
+  database: BaseSQLiteDatabase<'sync', any>
 ): Promise<QueryAdapter> {
-	const adapter: QueryAdapter = {
-		async getLogs(opts) {
-			const { blockNumber, tables } = getTablesWithRecords(
-				database,
-				opts
-			);
-			const logs = tablesWithRecordsToLogs(tables);
-			return { blockNumber: blockNumber ?? 0n, logs };
-		},
-		async findAll(opts) {
-			return getTablesWithRecords(database, opts);
-		},
-	};
-	return adapter;
+  const adapter: QueryAdapter = {
+    async getLogs(opts) {
+      const { blockNumber, tables } = getTablesWithRecords(database, opts);
+      const logs = tablesWithRecordsToLogs(tables);
+      return { blockNumber: blockNumber ?? 0n, logs };
+    },
+    async findAll(opts) {
+      return getTablesWithRecords(database, opts);
+    }
+  };
+  return adapter;
 }

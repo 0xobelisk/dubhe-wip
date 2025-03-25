@@ -1,38 +1,39 @@
-import { Sql } from "postgres";
-import { Middleware } from "koa";
-import Router from "@koa/router";
-import compose from "koa-compose";
-import { input } from "@latticexyz/store-sync/indexer-client";
-import { schemasTable } from "@latticexyz/store-sync";
-import { queryLogs } from "./queryLogs";
-import { recordToLog } from "./recordToLog";
-import { debug, error } from "../debug";
-import { createBenchmark } from "@latticexyz/common";
-import { compress } from "../koa-middleware/compress";
+import { Sql } from 'postgres';
+import { Middleware } from 'koa';
+import Router from '@koa/router';
+import compose from 'koa-compose';
+import { input } from '@latticexyz/store-sync/indexer-client';
+import { schemasTable } from '@latticexyz/store-sync';
+import { queryLogs } from './queryLogs';
+import { recordToLog } from './recordToLog';
+import { debug, error } from '../debug';
+import { createBenchmark } from '@latticexyz/common';
+import { compress } from '../koa-middleware/compress';
 
 export function apiRoutes(database: Sql): Middleware {
   const router = new Router();
 
-  router.get("/api/logs", compress(), async (ctx) => {
-    const benchmark = createBenchmark("postgres:logs");
+  router.get('/api/logs', compress(), async (ctx) => {
+    const benchmark = createBenchmark('postgres:logs');
     let options: ReturnType<typeof input.parse>;
 
     try {
-      options = input.parse(typeof ctx.query.input === "string" ? JSON.parse(ctx.query.input) : {});
+      options = input.parse(typeof ctx.query.input === 'string' ? JSON.parse(ctx.query.input) : {});
     } catch (e) {
       ctx.status = 400;
-      ctx.set("Content-Type", "application/json");
+      ctx.set('Content-Type', 'application/json');
       ctx.body = JSON.stringify(e);
       debug(e);
       return;
     }
 
     try {
-      options.filters = options.filters.length > 0 ? [...options.filters, { tableId: schemasTable.tableId }] : [];
+      options.filters =
+        options.filters.length > 0 ? [...options.filters, { tableId: schemasTable.tableId }] : [];
       const records = await queryLogs(database, options ?? {}).execute();
-      benchmark("query records");
+      benchmark('query records');
       const logs = records.map(recordToLog);
-      benchmark("map records to logs");
+      benchmark('map records to logs');
 
       // Ideally we would immediately return an error if the request is for a Store that the indexer
       // is not configured to index. Since we don't have easy access to this information here,
@@ -41,11 +42,11 @@ export function apiRoutes(database: Sql): Middleware {
       // Tables table with tables created during Store initialization).
       if (records.length === 0) {
         ctx.status = 404;
-        ctx.body = "no logs found";
+        ctx.body = 'no logs found';
         error(
           `no logs found for chainId ${options.chainId}, address ${options.address}, filters ${JSON.stringify(
-            options.filters,
-          )}`,
+            options.filters
+          )}`
         );
         return;
       }
@@ -63,15 +64,15 @@ export function apiRoutes(database: Sql): Middleware {
       const staleWhileRevalidateSeconds = 4000 * 2;
 
       ctx.set(
-        "Cache-Control",
-        `public, max-age=${maxAgeSeconds}, stale-while-revalidate=${staleWhileRevalidateSeconds}`,
+        'Cache-Control',
+        `public, max-age=${maxAgeSeconds}, stale-while-revalidate=${staleWhileRevalidateSeconds}`
       );
 
-      ctx.set("Content-Type", "application/json");
+      ctx.set('Content-Type', 'application/json');
       ctx.body = JSON.stringify({ blockNumber, logs });
     } catch (e) {
       ctx.status = 500;
-      ctx.set("Content-Type", "application/json");
+      ctx.set('Content-Type', 'application/json');
       ctx.body = JSON.stringify(e);
       error(e);
     }

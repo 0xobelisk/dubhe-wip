@@ -1,18 +1,18 @@
 #!/usr/bin/env node
-import "dotenv/config";
-import { z } from "zod";
-import { eq } from "drizzle-orm";
-import { createPublicClient, fallback, webSocket, http, Transport } from "viem";
-import { isDefined } from "@latticexyz/common/utils";
-import { combineLatest, filter, first } from "rxjs";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { createStorageAdapter } from "@latticexyz/store-sync/postgres-decoded";
-import { createStoreSync } from "@latticexyz/store-sync";
-import { indexerEnvSchema, parseEnv } from "./parseEnv";
-import { sentry } from "../koa-middleware/sentry";
-import { healthcheck } from "../koa-middleware/healthcheck";
-import { helloWorld } from "../koa-middleware/helloWorld";
+import 'dotenv/config';
+import { z } from 'zod';
+import { eq } from 'drizzle-orm';
+import { createPublicClient, fallback, webSocket, http, Transport } from 'viem';
+import { isDefined } from '@latticexyz/common/utils';
+import { combineLatest, filter, first } from 'rxjs';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { createStorageAdapter } from '@latticexyz/store-sync/postgres-decoded';
+import { createStoreSync } from '@latticexyz/store-sync';
+import { indexerEnvSchema, parseEnv } from './parseEnv';
+import { sentry } from '../koa-middleware/sentry';
+import { healthcheck } from '../koa-middleware/healthcheck';
+import { helloWorld } from '../koa-middleware/helloWorld';
 
 const env = parseEnv(
   z.intersection(
@@ -21,21 +21,21 @@ const env = parseEnv(
       DATABASE_URL: z.string(),
       HEALTHCHECK_HOST: z.string().optional(),
       HEALTHCHECK_PORT: z.coerce.number().optional(),
-      SENTRY_DSN: z.string().optional(),
-    }),
-  ),
+      SENTRY_DSN: z.string().optional()
+    })
+  )
 );
 
 const transports: Transport[] = [
   // prefer WS when specified
   env.RPC_WS_URL ? webSocket(env.RPC_WS_URL) : undefined,
   // otherwise use or fallback to HTTP
-  env.RPC_HTTP_URL ? http(env.RPC_HTTP_URL) : undefined,
+  env.RPC_HTTP_URL ? http(env.RPC_HTTP_URL) : undefined
 ].filter(isDefined);
 
 const publicClient = createPublicClient({
   transport: fallback(transports),
-  pollingInterval: env.POLLING_INTERVAL,
+  pollingInterval: env.POLLING_INTERVAL
 });
 
 const chainId = await publicClient.getChainId();
@@ -60,7 +60,7 @@ try {
 
   if (chainState?.blockNumber != null) {
     startBlock = chainState.blockNumber + 1n;
-    console.log("resuming from block number", startBlock);
+    console.log('resuming from block number', startBlock);
   }
 } catch (error) {
   // ignore errors for now
@@ -72,7 +72,7 @@ const { latestBlockNumber$, storedBlockLogs$ } = await createStoreSync({
   followBlockTag: env.FOLLOW_BLOCK_TAG,
   startBlock,
   maxBlockRange: env.MAX_BLOCK_RANGE,
-  address: env.STORE_ADDRESS,
+  address: env.STORE_ADDRESS
 });
 
 storedBlockLogs$.subscribe();
@@ -82,18 +82,18 @@ combineLatest([latestBlockNumber$, storedBlockLogs$])
   .pipe(
     filter(
       ([latestBlockNumber, { blockNumber: lastBlockNumberProcessed }]) =>
-        latestBlockNumber === lastBlockNumberProcessed,
+        latestBlockNumber === lastBlockNumberProcessed
     ),
-    first(),
+    first()
   )
   .subscribe(() => {
     isCaughtUp = true;
-    console.log("all caught up");
+    console.log('all caught up');
   });
 
 if (env.HEALTHCHECK_HOST != null || env.HEALTHCHECK_PORT != null) {
-  const { default: Koa } = await import("koa");
-  const { default: cors } = await import("@koa/cors");
+  const { default: Koa } = await import('koa');
+  const { default: cors } = await import('@koa/cors');
 
   const server = new Koa();
 
@@ -104,13 +104,13 @@ if (env.HEALTHCHECK_HOST != null || env.HEALTHCHECK_PORT != null) {
   server.use(cors());
   server.use(
     healthcheck({
-      isReady: () => isCaughtUp,
-    }),
+      isReady: () => isCaughtUp
+    })
   );
   server.use(helloWorld());
 
   server.listen({ host: env.HEALTHCHECK_HOST, port: env.HEALTHCHECK_PORT });
   console.log(
-    `postgres indexer healthcheck server listening on http://${env.HEALTHCHECK_HOST}:${env.HEALTHCHECK_PORT}`,
+    `postgres indexer healthcheck server listening on http://${env.HEALTHCHECK_HOST}:${env.HEALTHCHECK_PORT}`
   );
 }
