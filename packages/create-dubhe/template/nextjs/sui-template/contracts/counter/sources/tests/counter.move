@@ -2,12 +2,12 @@
 module counter::counter_test {
     use sui::test_scenario;
     use counter::counter_system;
-    use counter::init_test;
-    use counter::schema::Schema;
+    use counter::counter_init_test;
+    use counter::counter_schema::Schema;
 
     #[test]
     public fun inc() {
-        let (scenario, dapp)  = init_test::deploy_dapp_for_testing(@0xA);
+        let (scenario, dapp)  = counter_init_test::deploy_dapp_for_testing(@0xA);
 
         let mut schema = test_scenario::take_shared<Schema>(&scenario);
 

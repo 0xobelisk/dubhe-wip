@@ -1,4 +1,4 @@
-module counter::dapp_system {
+module counter::counter_dapp_system {
 
   use std::ascii::String;
 
@@ -8,11 +8,11 @@ module counter::dapp_system {
 
   use sui::clock::Clock;
 
-  use counter::dapp_schema;
+  use counter::counter_dapp_schema;
 
-  use counter::dapp_metadata;
+  use counter::counter_dapp_metadata;
 
-  use counter::dapp_schema::Dapp;
+  use counter::counter_dapp_schema::Dapp;
 
   public struct DappKey has drop {}
 
@@ -21,10 +21,10 @@ module counter::dapp_system {
   }
 
   public(package) fun create(name: String, description: String, clock: &Clock, ctx: &mut TxContext): Dapp {
-    let mut dapp = dapp_schema::create(ctx);
+    let mut dapp = counter_dapp_schema::create(ctx);
     assert!(!dapp.borrow_metadata().contains(), 0);
     dapp.metadata().set(
-            dapp_metadata::new(
+            counter_dapp_metadata::new(
                 name,
                 description,
                 ascii::string(b""),
@@ -55,7 +55,7 @@ module counter::dapp_system {
     assert!(admin == option::some(ctx.sender()), 0);
     let created_at = dapp.metadata().get().get_created_at();
     dapp.metadata().set(
-            dapp_metadata::new(
+            counter_dapp_metadata::new(
                 name,
                 description,
                 icon_url,

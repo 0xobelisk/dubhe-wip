@@ -1,15 +1,15 @@
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig, storage } from '@0xobelisk/sui-common';
 
 export const dubheConfig = {
   name: 'counter',
   description: 'counter contract',
   schemas: {
-    value: 'StorageValue<u32>',
+    value: storage('u32'),
   },
   events: {
-    Increment: { value: 'u32' },
+    increment: { value: 'u32' },
   },
   errors: {
-    InvalidIncrement: "Number can't be incremented, must be more than 0",
+    invalid_increment: "Number can't be incremented, must be more than 0",
   },
 } as DubheConfig;
