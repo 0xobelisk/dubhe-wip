@@ -92,6 +92,11 @@ const argv = await yargs(hideBin(process.argv))
     description: 'Number of transactions to sync per time',
     default: 50
   })
+  .option('sync-interval', {
+    type: 'number',
+    description: 'Number of milliseconds to wait between syncs',
+    default: 2000
+  })
   .option('default-page-size', {
     type: 'number',
     description: 'Default page size for pagination',
@@ -251,7 +256,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 while (true) {
   const lastTxRecord = await getLastTxRecord(database);
-  await delay(2000);
+  await delay(argv.syncInterval);
   let response = await publicClient.queryTransactionBlocks({
     filter: {
       ChangedObject: schemaId
