@@ -44,6 +44,7 @@ import {
 } from '@0xobelisk/sui-common';
 import fs from 'fs';
 import pathModule from 'path';
+import pino, { Logger } from 'pino';
 
 const argv = await yargs(hideBin(process.argv))
   .option('network', {
@@ -114,14 +115,17 @@ const argv = await yargs(hideBin(process.argv))
   .help('help')
   .alias('help', 'h').argv;
 
-// console.log(argv);
-
-// const transports: Transport[] = [
-//   // prefer WS when specified
-//   env.RPC_WS_URL ? webSocket(env.RPC_WS_URL) : undefined,
-//   // otherwise use or fallback to HTTP
-//   env.RPC_HTTP_URL ? http(env.RPC_HTTP_URL) : undefined,
-// ].filter(isDefined);
+const logger: Logger = pino({
+  level: 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'yyyy-mm-dd HH:MM:ss'
+      // ignore: 'pid,hostname',
+    }
+  }
+});
 
 function getFullnodeUrl(network: 'mainnet' | 'testnet' | 'localnet'): string {
   switch (network) {
@@ -230,21 +234,21 @@ wss.on('connection', (ws) => {
     const subs: SubscribableType[] = JSON.parse(message.toString());
     if (subs) {
       subscriptions.set(ws, subs);
-      console.log(`Client subscribed to event: ${subs}`);
+      logger.info(`Client subscribed to event: ${subs}`);
     }
   });
 
   ws.on('close', () => {
     subscriptions.delete(ws);
-    console.log('Client disconnected');
+    logger.info('Client disconnected');
   });
 });
 
 server.listen({ host: argv.host, port: argv.port });
-console.log(`sqlite indexer frontend exposed on port ${argv.port}`);
-console.log(`  - HTTP:   http://${argv.host}:${argv.port}`);
-console.log(`  - WS:     ws://${argv.host}:${argv.port}`);
-console.log(`  - GraphQL:   http://${argv.host}:${argv.port}/graphql`);
+logger.info(`sqlite indexer frontend exposed on port ${argv.port}`);
+logger.info(`  - HTTP:   http://${argv.host}:${argv.port}`);
+logger.info(`  - WS:     ws://${argv.host}:${argv.port}`);
+logger.info(`  - GraphQL:   http://${argv.host}:${argv.port}/graphql`);
 const dubheConfig = (await loadConfig(argv.configPath)) as DubheConfig;
 
 const path = process.cwd();
@@ -257,6 +261,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 while (true) {
   const lastTxRecord = await getLastTxRecord(database);
   await delay(argv.syncInterval);
+  logger.info('Syncing transactions...');
   let response = await publicClient.queryTransactionBlocks({
     filter: {
       ChangedObject: schemaId
@@ -289,7 +294,7 @@ while (true) {
 
     if (tx.events) {
       for (const event of tx.events) {
-        console.log('EventData: ', JSON.stringify(event.parsedJson, null, 2));
+        logger.info(`${JSON.stringify(event.parsedJson)}`);
 
         // @ts-ignore
         const name: string = event.parsedJson['name'];
