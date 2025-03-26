@@ -112,6 +112,11 @@ const argv = await yargs(hideBin(process.argv))
     type: 'string',
     description: 'Sentry DSN for error tracking'
   })
+  .option('debug', {
+    type: 'boolean',
+    description: 'Debug mode',
+    default: false
+  })
   .help('help')
   .alias('help', 'h').argv;
 
@@ -261,7 +266,9 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 while (true) {
   const lastTxRecord = await getLastTxRecord(database);
   await delay(argv.syncInterval);
-  logger.info('Syncing transactions...');
+  if (argv.debug) {
+    logger.info('Syncing transactions...');
+  }
   let response = await publicClient.queryTransactionBlocks({
     filter: {
       ChangedObject: schemaId
