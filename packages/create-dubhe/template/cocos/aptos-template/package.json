@@ -25,9 +25,9 @@
 		"generateAccount": "ts-node scripts/generateAccount.ts"
 	},
 	"dependencies": {
-		"@0xobelisk/aptos-common": "^0.0.7",
-		"@0xobelisk/aptos-client": "^0.0.13",
-		"@0xobelisk/aptos-cli": "^0.0.10",
+		"@0xobelisk/aptos-common": "^0.0.8",
+		"@0xobelisk/aptos-client": "^0.0.19",
+		"@0xobelisk/aptos-cli": "^0.0.16",
 		"aptos": "^1.20.0",
 		"dotenv": "^16.0.3"
 	},
