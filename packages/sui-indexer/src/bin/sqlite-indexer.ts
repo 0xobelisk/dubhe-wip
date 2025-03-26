@@ -233,7 +233,7 @@ app.use(
 const subscriptions = new Map<WebSocket, SubscribableType[]>();
 
 wss.on('connection', (ws) => {
-  console.log('New client connected');
+  logger.info('New client connected');
 
   ws.on('message', (message) => {
     const subs: SubscribableType[] = JSON.parse(message.toString());
