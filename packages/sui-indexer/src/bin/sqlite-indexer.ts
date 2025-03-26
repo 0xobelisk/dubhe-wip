@@ -239,7 +239,7 @@ wss.on('connection', (ws) => {
     const subs: SubscribableType[] = JSON.parse(message.toString());
     if (subs) {
       subscriptions.set(ws, subs);
-      logger.info(`Client subscribed to event: ${subs}`);
+      logger.info(`Client subscribed to event: ${message.toString()}`);
     }
   });
 
