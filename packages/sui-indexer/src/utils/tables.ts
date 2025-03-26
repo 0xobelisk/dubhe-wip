@@ -154,7 +154,6 @@ export async function syncToSqlite(
         )
         .where(eq(dubheStoreSchemas.id, id))
         .execute();
-      console.log('Data updated successfully:', checkpoint, digest, res.name);
     } else {
       await sqliteDB
         .insert(dubheStoreSchemas)
@@ -172,7 +171,6 @@ export async function syncToSqlite(
           })
         )
         .execute();
-      console.log('Data inserted successfully:', checkpoint, digest, res.name);
     }
   }
 }
