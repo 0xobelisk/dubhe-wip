@@ -17,7 +17,7 @@ import { healthcheck } from '../koa-middleware/healthcheck';
 import { helloWorld } from '../koa-middleware/helloWorld';
 import { apiRoutes } from '../sqlite/apiRoutes';
 import { sentry } from '../koa-middleware/sentry';
-import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
+import { SuiClient } from '@mysten/sui/client';
 import {
   clearDatabase,
   dubheStoreEvents,
@@ -42,14 +42,13 @@ import {
   SubscribableType,
   SubscriptionKind
 } from '@0xobelisk/sui-common';
-import { fetchAllEvents, fetchTransactionBlocks } from '../utils/graphql-query';
 import fs from 'fs';
 import pathModule from 'path';
 
 const argv = await yargs(hideBin(process.argv))
   .option('network', {
     type: 'string',
-    choices: ['mainnet', 'testnet', 'localnet'],
+    choices: ['localnet', 'testnet', 'mainnet'],
     default: 'localnet',
     desc: 'Node network (mainnet/testnet/localnet)'
   })
@@ -63,7 +62,7 @@ const argv = await yargs(hideBin(process.argv))
     default: false,
     desc: 'Force regenesis'
   })
-  .option('url', {
+  .option('rpc-url', {
     type: 'string',
     description: 'Node URL'
     // demandOption: true,
@@ -119,14 +118,22 @@ const argv = await yargs(hideBin(process.argv))
 //   env.RPC_HTTP_URL ? http(env.RPC_HTTP_URL) : undefined,
 // ].filter(isDefined);
 
-const publicClient = new SuiClient({
-  url: argv.url ? argv.url : getFullnodeUrl(argv.network as any)
-});
+function getFullnodeUrl(network: 'mainnet' | 'testnet' | 'localnet'): string {
+  switch (network) {
+    case 'mainnet':
+      return 'https://rpc-mainnet.suiscan.xyz/';
+    case 'testnet':
+      return 'https://rpc-testnet.suiscan.xyz/';
+    case 'localnet':
+      return 'http://127.0.0.1:9000/';
+    default:
+      throw new Error('Invalid network type');
+  }
+}
 
-const graphqlEndpoint =
-  argv.network === 'mainnet'
-    ? 'https://sui-mainnet.mystenlabs.com/graphql'
-    : 'https://sui-testnet.mystenlabs.com/graphql';
+const publicClient = new SuiClient({
+  url: argv.rpcUrl || getFullnodeUrl(argv.network as 'mainnet' | 'testnet' | 'localnet')
+});
 
 const ensureDirectoryExists = function (filePath: string) {
   const dir = pathModule.dirname(filePath);
@@ -244,67 +251,25 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 while (true) {
   const lastTxRecord = await getLastTxRecord(database);
-  let txs;
-  if (argv.network === 'mainnet' || argv.network === 'testnet') {
-    await delay(2000);
-    try {
-      const graphqlResponse = await fetchTransactionBlocks({
-        graphqlEndpoint,
-        changedObject: schemaId,
-        first: argv.syncLimit,
-        afterCheckpoint: lastTxRecord.checkpoint ? parseInt(lastTxRecord.checkpoint) : undefined
-      });
-
-      txs = await Promise.all(
-        graphqlResponse.transactionBlocks.edges.map(async (edge) => {
-          const cursor = edge.cursor;
-          const tx = edge.node;
-
-          const allEvents = await fetchAllEvents({
-            graphqlEndpoint,
-            transactionDigest: tx.digest
-          });
-          return {
-            cursor,
-            digest: tx.digest,
-            checkpoint: tx.effects.checkpoint.sequenceNumber.toString(),
-            timestampMs: new Date(tx.effects.timestamp).getTime().toString(),
-            events: allEvents.map((event) => ({
-              parsedJson: event.contents.json
-            })),
-            sender: ''
-            // events: tx.effects.events.nodes.map(node => ({
-            // 	parsedJson: node.contents.json,
-            // })),
-          };
-        })
-      );
-    } catch (error) {
-      console.error('Error fetching GraphQL data:', error);
-      await delay(5000);
-      continue;
+  await delay(2000);
+  let response = await publicClient.queryTransactionBlocks({
+    filter: {
+      ChangedObject: schemaId
+    },
+    order: 'ascending',
+    cursor: lastTxRecord.cursor,
+    limit: argv.syncLimit,
+    options: {
+      showEvents: true,
+      showInput: true
     }
-  } else {
-    await delay(2000);
-    let response = await publicClient.queryTransactionBlocks({
-      filter: {
-        ChangedObject: schemaId
-      },
-      order: 'ascending',
-      cursor: lastTxRecord.cursor,
-      limit: argv.syncLimit,
-      options: {
-        showEvents: true,
-        showInput: true
-      }
-    });
+  });
 
-    txs = response.data.map((tx) => ({
-      ...tx,
-      cursor: tx.digest,
-      sender: tx.transaction?.data?.sender
-    }));
-  }
+  const txs = response.data.map((tx) => ({
+    ...tx,
+    cursor: tx.digest,
+    sender: tx.transaction?.data?.sender
+  }));
 
   for (const tx of txs) {
     await insertTx(
