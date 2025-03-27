@@ -21,14 +21,13 @@ async function init() {
   const schemaId =
     '0xd6c1017d617907664174f4e4a323d8a4413c692a89881e0c8564277907317001';
 
-  const metadata = await loadMetadata(network as NetworkType, packageId);
+  // const metadata = await loadMetadata(network as NetworkType, packageId);
 
   const privateKey = process.env.PRIVATE_KEY;
 
   const dubhe = new Dubhe({
     networkType: network as NetworkType,
-    packageId: packageId,
-    metadata: metadata,
+    // metadata: metadata,
     secretKey: privateKey,
   });
 
@@ -37,9 +36,9 @@ async function init() {
   console.log('\n=== Cursor Pagination Example ===');
   const pageSize = 1;
   // Get middle page data
-  let middlePage = await dubhe.getStorage({
-    name: 'monster',
-  });
+  let middlePage = await dubhe.getTransaction(
+    'FAST1LVMUyJnFGd33vF2jdXgCFGQN4WxZHLVCeK34JQ8'
+  );
 
   // console.log('Current Page Data:', );
   console.log(JSON.stringify(middlePage, null, 2));

@@ -1143,6 +1143,55 @@ export class Dubhe {
     });
   }
 
+  async getTransaction(
+    digest: string
+  ): Promise<IndexerTransaction | undefined> {
+    return await this.suiIndexerClient.getTransaction(digest);
+  }
+
+  async awaitIndexerTransaction(
+    digest: string,
+    options?: {
+      checkInterval?: number;
+      timeout?: number;
+      maxRetries?: number;
+    }
+  ): Promise<IndexerTransaction | undefined> {
+    const {
+      checkInterval = 100,
+      timeout = 30000, // 30 seconds default timeout
+      maxRetries = 300, // 300 times default max retries
+    } = options ?? {};
+
+    const startTime = Date.now();
+    let retryCount = 0;
+
+    while (retryCount < maxRetries) {
+      try {
+        if (Date.now() - startTime > timeout) {
+          throw new Error(`Timeout waiting for transaction ${digest}`);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
+
+        const transaction = await this.getTransaction(digest);
+        if (transaction) {
+          return transaction;
+        }
+
+        retryCount++;
+      } catch (error) {
+        throw new Error(
+          `Error while waiting for transaction ${digest}: ${error}`
+        );
+      }
+    }
+
+    throw new Error(
+      `Max retries (${maxRetries}) reached while waiting for transaction ${digest}`
+    );
+  }
+
   async getEvents({
     first,
     after,
