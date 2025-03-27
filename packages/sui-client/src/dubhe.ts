@@ -135,6 +135,7 @@ export class Dubhe {
   public contractFactory: SuiContractFactory;
   public packageId: string | undefined;
   public metadata: SuiMoveNormalizedModules | undefined;
+  public projectName: string | undefined;
 
   readonly #query: MapMoudleFuncQuery = {};
   readonly #tx: MapMoudleFuncTx = {};
@@ -280,6 +281,12 @@ export class Dubhe {
           (moudlevalue) => {
             const data = moudlevalue as SuiMoveNormalizedModule;
             const moduleName = data.name;
+
+            const itemModuleName = moduleName;
+            if (itemModuleName.endsWith('_genesis')) {
+              this.projectName = itemModuleName.replace('_genesis', '');
+            }
+
             const objMoudleId = `${this.packageId}::${moduleName}`;
 
             if (data.enums) {
@@ -1035,12 +1042,18 @@ export class Dubhe {
     tx,
     schema,
     params,
+    customModuleName,
   }: {
     tx: Transaction;
     schema: string;
     params: any[];
+    customModuleName?: string;
   }): Promise<any[] | undefined> {
-    const moduleName = `schema`;
+    if (!this.metadata) {
+      throw new Error('Metadata is not loaded');
+    }
+
+    const moduleName = `${customModuleName ?? this.projectName}_schema`;
     const functionName = `get_${schema}`;
 
     let queryResponse = undefined;
@@ -1064,11 +1077,13 @@ export class Dubhe {
     objectId,
     storageType,
     params,
+    customModuleName,
   }: {
     schema: string;
     objectId: string;
     storageType: string; // 'StorageValue<V>' | 'StorageMap<K, V>' | 'StorageDoubleMap<K1, K2, V>'
     params: any[];
+    customModuleName?: string;
   }): Promise<any[] | undefined> {
     const tx = new Transaction();
     const schemaObject = tx.object(objectId);
@@ -1115,6 +1130,7 @@ export class Dubhe {
       tx,
       schema,
       params: processedParams,
+      customModuleName,
     });
   }
 

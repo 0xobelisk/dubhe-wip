@@ -5,6 +5,10 @@
   "author": "team@0xobelisk.com",
   "license": "MIT",
   "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit",
+    "validate": "pnpm format:check && pnpm type-check",
     "dev": "pnpm dubhe hello && pnpm run start-template",
     "start-template": "pnpm run localnode && sleep 15 && ts-node scripts/generateAccount.ts && pnpm dubhe faucet --network local && pnpm dubhe publish --network local && ts-node scripts/storeConfig.ts local && next",
     "dev:movement": "pnpm dubhe hello && pnpm run start-movement-template",
@@ -12,9 +16,7 @@
     "next": "next",
     "build": "next build",
     "start": "next start",
-    "type-check": "tsc",
     "test": "jest",
-    "format": "prettier --write 'src/**/*ts'",
     "lint": "next lint",
     "faucet-localnet": "pnpm dubhe faucet --network local",
     "faucet-devnet": "pnpm dubhe faucet --network devnet",
@@ -66,17 +68,18 @@
     "@types/react": "18.2.8",
     "@types/react-dom": "18.2.4",
     "autoprefixer": "^10.4.14",
-    "eslint": "^8.41.0",
     "eslint-config-next": "13.4.4",
     "jest": "^29.5.0",
     "jest-css-modules-transform": "^4.4.2",
     "postcss": "^8.4.24",
-    "prettier": "^2.8.8",
     "prop-types": "^15.8.1",
     "tailwind-scrollbar": "^2.1.0",
     "tailwindcss": "^3.2.4",
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.1",
-    "typescript": "5.1.6"
+    "typescript": "5.1.6",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "3.3.3"
   }
 }
