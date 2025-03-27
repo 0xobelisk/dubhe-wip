@@ -1149,7 +1149,7 @@ export class Dubhe {
     return await this.suiIndexerClient.getTransaction(digest);
   }
 
-  async awaitIndexerTransaction(
+  async waitForIndexerTransaction(
     digest: string,
     options?: {
       checkInterval?: number;
