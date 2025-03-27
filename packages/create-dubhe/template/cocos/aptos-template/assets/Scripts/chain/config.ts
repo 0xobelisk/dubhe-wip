@@ -1,9 +1,9 @@
 enum Network {
-    MAINNET = "mainnet",
-    TESTNET = "testnet",
-    DEVNET = "devnet",
-    LOCAL = "local"
-};
+  MAINNET = 'mainnet',
+  TESTNET = 'testnet',
+  DEVNET = 'devnet',
+  LOCAL = 'local'
+}
 
 const NETWORK: Network = Network.LOCAL;
 

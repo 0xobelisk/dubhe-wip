@@ -1,7 +1,8 @@
 ## How to use
+
 ```bash
 1 install aptos <https://aptos.dev>
-2 cd dubhe-nextjs-template folder 
+2 cd dubhe-nextjs-template folder
 3 pnpm install
 4 open new window && npm run localnode
 4 open new window && npm run start-template

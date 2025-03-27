@@ -1,5 +1,5 @@
-import { AptosAccount } from "aptos";
-import * as fs from "fs";
+import { AptosAccount } from 'aptos';
+import * as fs from 'fs';
 
 function generateAccount() {
   const keypair = new AptosAccount();
