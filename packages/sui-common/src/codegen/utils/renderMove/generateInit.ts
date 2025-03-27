@@ -4,9 +4,6 @@ import { existsSync } from 'fs';
 import { capitalizeAndRemoveUnderscores } from './generateSchema';
 
 export async function generateInit(config: DubheConfig, srcPrefix: string) {
-  console.log('\n📝 Starting Init Generation...');
-  console.log(`  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/tests/init.move`);
-
   let init_test_code = `module ${config.name}::${config.name}_init_test {
     use ${config.name}::${config.name}_dapp_schema::Dapp;
     use sui::clock;
@@ -56,6 +53,4 @@ export async function generateInit(config: DubheConfig, srcPrefix: string) {
     `${srcPrefix}/contracts/${config.name}/sources/codegen/genesis.move`,
     'formatAndWriteMove'
   );
-
-  console.log('✅ Init Generation Complete\n');
 }

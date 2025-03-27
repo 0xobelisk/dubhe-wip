@@ -19,9 +19,9 @@ export async function schemaGen(
 ) {
   console.log('\n🚀 Starting Schema Generation Process...');
   console.log('📋 Project Configuration:');
-  console.log(`  ├─ Name: ${config.name}`);
-  console.log(`  ├─ Description: ${config.description || 'No description provided'}`);
-  console.log(`  ├─ Network: ${network || 'testnet'}`);
+  console.log(`     └─ Name: ${config.name}`);
+  console.log(`     └─ Description: ${config.description || 'No description provided'}`);
+  console.log(`     └─ Network: ${network || 'testnet'}`);
 
   const path = srcPrefix ?? process.cwd();
 
@@ -61,5 +61,5 @@ export async function schemaGen(
   await generateSystem(config, path);
   await generateMigrate(config, path);
 
-  console.log('✅ Schema Generation Process Complete!\n');
+  console.log('\n✅  Schema Generation Process Complete!\n');
 }

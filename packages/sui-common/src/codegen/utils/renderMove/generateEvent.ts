@@ -45,7 +45,7 @@ export async function generateSchemaEvent(
   for (const key of Object.keys(events)) {
     const name = key;
     const fields = events[key];
-    console.log(`     └─ Generating ${name} event: ${fields}`);
+    console.log(`     └─ ${name} event: ${JSON.stringify(fields)}`);
 
     let code = `module ${projectName}::${projectName}_${name}_event {
 						use sui::event;
@@ -95,5 +95,4 @@ use ${projectName}::${projectName}_${name}_event;
     `${path}/contracts/${projectName}/sources/codegen/events.move`,
     'formatAndWriteMove'
   );
-  console.log('✅ Schema Event Generation Complete\n');
 }

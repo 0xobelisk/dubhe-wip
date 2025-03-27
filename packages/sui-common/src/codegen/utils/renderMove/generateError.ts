@@ -20,8 +20,7 @@ export async function generateSchemaError(projectName: string, errors: ErrorData
   let code = `module ${projectName}::${projectName}_errors {
 		${Object.entries(errors)
       .map(([name, message]) => {
-        console.log(`  ├─ Generating Error: ${name}`);
-        console.log(`  │  └─ Message: ${message}`);
+        console.log(`     └─ ${name}: ${message}`);
         return `#[error]
 				const ${name.toUpperCase()}: vector<u8> = b"${message}";
 				public fun ${name}_error(condition: bool) { assert!(condition, ${name.toUpperCase()})  }
@@ -35,5 +34,4 @@ export async function generateSchemaError(projectName: string, errors: ErrorData
     `${path}/contracts/${projectName}/sources/codegen/errors.move`,
     'formatAndWriteMove'
   );
-  console.log('✅ Schema Error Generation Complete\n');
 }

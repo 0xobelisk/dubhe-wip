@@ -6,11 +6,6 @@ import { capitalizeAndRemoveUnderscores } from './generateSchema';
 import { readFileSync } from 'fs';
 
 export async function generateDeployHook(config: DubheConfig, srcPrefix: string) {
-  console.log('\n📝 Starting Deploy Hook Generation...');
-  console.log(
-    `  └─ Output path: ${srcPrefix}/contracts/${config.name}/sources/scripts/deploy_hook.move`
-  );
-
   const path = `${srcPrefix}/contracts/${config.name}/sources/scripts/deploy_hook.move`;
   if (!existsSync(path)) {
     const code = `module ${config.name}::${config.name}_deploy_hook {
@@ -22,7 +17,6 @@ export async function generateDeployHook(config: DubheConfig, srcPrefix: string)
 }`;
     await formatAndWriteMove(code, path, 'formatAndWriteMove');
   }
-  console.log('✅ Deploy Hook Generation Complete\n');
 }
 
 export async function generateMigrate(config: DubheConfig, srcPrefix: string) {

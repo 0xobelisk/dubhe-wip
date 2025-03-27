@@ -91,14 +91,14 @@ export async function generateSchemaData(
   for (const key of Object.keys(data)) {
     const name = key;
     const fields = data[key];
-    console.log(`     └─ Generating ${name} ${Array.isArray(fields) ? '(enum)' : '(struct)'}`);
+    console.log(
+      `     └─ ${name} ${Array.isArray(fields) ? '(enum)' : '(struct)'}: ${JSON.stringify(fields)}`
+    );
     let code = '';
 
     const enumNames = Object.keys(data)
       .filter((item) => Array.isArray(data[item]))
       .map((item) => item);
-
-    console.log(enumNames);
 
     if (Array.isArray(fields)) {
       const sortByFirstLetterFields = sortByFirstLetter(fields);
@@ -151,7 +151,6 @@ export async function generateSchemaData(
       'formatAndWriteMove'
     );
   }
-  console.log('✅ Schema Data Generation Complete\n');
 }
 
 function generateImport(projectName: string, data: Record<string, SchemaData> | null) {
@@ -174,8 +173,9 @@ export async function generateSchemaStructure(
   path: string
 ) {
   console.log('\n🔨 Starting Schema Structure Generation...');
-  console.log(`     ├─ Output path: ${path}/contracts/${projectName}/sources/codegen/schema.move`);
-  console.log(`     └─ Structure fields: ${Object.values(schemas).length}`);
+  Object.entries(schemas).forEach(([key, value]) => {
+    console.log(`     └─ ${key}: ${value}`);
+  });
   const schemaMoudle = `module ${projectName}::${projectName}_schema {
                     use std::ascii::String;
                     use std::ascii::string;
@@ -271,5 +271,4 @@ export async function generateSchemaStructure(
     `${path}/contracts/${projectName}/sources/codegen/schema.move`,
     'formatAndWriteMove'
   );
-  console.log('✅ Schema Structure Generation Complete\n');
 }

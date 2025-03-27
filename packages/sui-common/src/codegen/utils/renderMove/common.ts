@@ -67,7 +67,10 @@ export function containsString(obj: Record<string, any>, searchString: string): 
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
       const value = obj[key];
-      if (typeof value === 'string' && value === searchString) {
+      if (
+        (typeof value === 'string' && value === searchString) ||
+        (typeof value === 'string' && value.includes(searchString) && value.includes('>'))
+      ) {
         return true;
       }
     }
