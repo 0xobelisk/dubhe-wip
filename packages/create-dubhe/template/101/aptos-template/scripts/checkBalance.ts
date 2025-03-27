@@ -26,7 +26,7 @@ async function checkBalance(network: string) {
       process.exit(1);
     }
 
-    console.log(chalk.green(`Current account balance: ${(Number(balance) / 100_000_000).toFixed(4)} INIT`));
+    console.log(chalk.green(`Current account balance: ${(Number(balance) / 100_000_000).toFixed(4)} APT`));
     process.exit(0);
   } catch (error) {
     console.error(chalk.red('Failed to check balance:', error));

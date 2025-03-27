@@ -1,6 +1,6 @@
-#[test_only]module counter::init_test {
+#[test_only]module counter::counter_init_test {
 
-  use counter::dapp_schema::Dapp;
+  use counter::counter_dapp_schema::Dapp;
 
   use sui::clock;
 
@@ -12,7 +12,7 @@
     let mut scenario = test_scenario::begin(sender);
     let ctx = test_scenario::ctx(&mut scenario);
     let clock = clock::create_for_testing(ctx);
-    counter::genesis::run(&clock, ctx);
+    counter::counter_genesis::run(&clock, ctx);
     clock::destroy_for_testing(clock);
     test_scenario::next_tx(&mut scenario,sender);
     let dapp = test_scenario::take_shared<Dapp>(&scenario);

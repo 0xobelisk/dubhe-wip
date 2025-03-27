@@ -14,7 +14,7 @@ dotenv.config();
 async function init() {
   const network = 'localnet';
   const packageId =
-    '0xc9d149ec1db334d024f05de3558d2d6fe1bf7d931297ddcac3d7a2db0484108e';
+    '0x4e7e4db01f5a5f59ee65cc6cf8e11679891b7885924af9fed9cbd2d4a4af1b79';
 
   const metadata = await loadMetadata(network as NetworkType, packageId);
 
@@ -33,9 +33,10 @@ async function init() {
   console.log('balance', balance);
 
   const currencyObjectId =
-    '0xeb2f3c1821bdb0aa5a6656a7b69c6dd820fe1aead9bc246f1f5c0b48ae78a1bb';
+    '0xecc1758aa9ac31d2ba0cf58ee63c328156855879e3804e6c568a427255efe363';
 
   const tx = new Transaction();
+
   const query = (await dubhe.query.counter_system.get({
     tx,
     params: [tx.object(currencyObjectId)],
@@ -53,7 +54,13 @@ async function init() {
   const schemaRes = dubhe.view(schemaQuery);
   console.log(JSON.stringify(schemaRes));
 
-  // const databcs =
+  const stateTx = new Transaction();
+  const value = await dubhe.state({
+    tx: stateTx,
+    schema: 'value',
+    params: [stateTx.object(currencyObjectId)],
+  });
+  console.log(value);
 }
 
 init();

@@ -121,6 +121,16 @@ export class SuiIndexerClient {
     return response.transactions;
   }
 
+  async getTransaction(
+    digest: string
+  ): Promise<IndexerTransaction | undefined> {
+    const response = await this.getTransactions({
+      first: 1,
+      digest,
+    });
+    return response.edges[0]?.node;
+  }
+
   async getSchemas(params?: {
     first?: number;
     after?: string;

@@ -1,4 +1,4 @@
-module counter::migrate {
+module counter::counter_migrate {
 
   const ON_CHAIN_VERSION: u32 = 1;
 

@@ -135,6 +135,7 @@ export class Dubhe {
   public contractFactory: SuiContractFactory;
   public packageId: string | undefined;
   public metadata: SuiMoveNormalizedModules | undefined;
+  public projectName: string | undefined;
 
   readonly #query: MapMoudleFuncQuery = {};
   readonly #tx: MapMoudleFuncTx = {};
@@ -280,6 +281,12 @@ export class Dubhe {
           (moudlevalue) => {
             const data = moudlevalue as SuiMoveNormalizedModule;
             const moduleName = data.name;
+
+            const itemModuleName = moduleName;
+            if (itemModuleName.endsWith('_genesis')) {
+              this.projectName = itemModuleName.replace('_genesis', '');
+            }
+
             const objMoudleId = `${this.packageId}::${moduleName}`;
 
             if (data.enums) {
@@ -1035,12 +1042,18 @@ export class Dubhe {
     tx,
     schema,
     params,
+    customModuleName,
   }: {
     tx: Transaction;
     schema: string;
     params: any[];
+    customModuleName?: string;
   }): Promise<any[] | undefined> {
-    const moduleName = `schema`;
+    if (!this.metadata) {
+      throw new Error('Metadata is not loaded');
+    }
+
+    const moduleName = `${customModuleName ?? this.projectName}_schema`;
     const functionName = `get_${schema}`;
 
     let queryResponse = undefined;
@@ -1064,11 +1077,13 @@ export class Dubhe {
     objectId,
     storageType,
     params,
+    customModuleName,
   }: {
     schema: string;
     objectId: string;
     storageType: string; // 'StorageValue<V>' | 'StorageMap<K, V>' | 'StorageDoubleMap<K1, K2, V>'
     params: any[];
+    customModuleName?: string;
   }): Promise<any[] | undefined> {
     const tx = new Transaction();
     const schemaObject = tx.object(objectId);
@@ -1115,6 +1130,7 @@ export class Dubhe {
       tx,
       schema,
       params: processedParams,
+      customModuleName,
     });
   }
 
@@ -1141,6 +1157,55 @@ export class Dubhe {
       checkpoint,
       orderBy,
     });
+  }
+
+  async getTransaction(
+    digest: string
+  ): Promise<IndexerTransaction | undefined> {
+    return await this.suiIndexerClient.getTransaction(digest);
+  }
+
+  async waitForIndexerTransaction(
+    digest: string,
+    options?: {
+      checkInterval?: number;
+      timeout?: number;
+      maxRetries?: number;
+    }
+  ): Promise<IndexerTransaction | undefined> {
+    const {
+      checkInterval = 100,
+      timeout = 30000, // 30 seconds default timeout
+      maxRetries = 300, // 300 times default max retries
+    } = options ?? {};
+
+    const startTime = Date.now();
+    let retryCount = 0;
+
+    while (retryCount < maxRetries) {
+      try {
+        if (Date.now() - startTime > timeout) {
+          throw new Error(`Timeout waiting for transaction ${digest}`);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
+
+        const transaction = await this.getTransaction(digest);
+        if (transaction) {
+          return transaction;
+        }
+
+        retryCount++;
+      } catch (error) {
+        throw new Error(
+          `Error while waiting for transaction ${digest}: ${error}`
+        );
+      }
+    }
+
+    throw new Error(
+      `Max retries (${maxRetries}) reached while waiting for transaction ${digest}`
+    );
   }
 
   async getEvents({
