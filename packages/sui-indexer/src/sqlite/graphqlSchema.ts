@@ -6,35 +6,35 @@ import { dubheStoreEvents, dubheStoreSchemas, dubheStoreTransactions } from '../
 const typeDefs = `
   enum SchemaOrderField {
     ID_DESC
-	ID_ASC
+	  ID_ASC
     CREATED_AT_DESC
-	CREATED_AT_ASC
+	  CREATED_AT_ASC
     UPDATED_AT_DESC
-	UPDATED_AT_ASC
-	KEY1_ASC
-	KEY2_ASC
-	KEY1_DESC
-	KEY2_DESC
-	VALUE_ASC
-	VALUE_DESC
+    UPDATED_AT_ASC
+    KEY1_ASC
+    KEY2_ASC
+    KEY1_DESC
+    KEY2_DESC
+    VALUE_ASC
+    VALUE_DESC
   }
 
   enum EventOrderField {
     ID_DESC
-	ID_ASC
+	  ID_ASC
     CREATED_AT_DESC
-	CREATED_AT_ASC
+	  CREATED_AT_ASC
     CHECKPOINT_DESC
-	CHECKPOINT_ASC
+	  CHECKPOINT_ASC
   }
 
   enum TransactionOrderField {
     ID_DESC
-	ID_ASC
+	  ID_ASC
     CREATED_AT_DESC
-	CREATED_AT_ASC
+	  CREATED_AT_ASC
     CHECKPOINT_DESC
-	CHECKPOINT_ASC
+	  CHECKPOINT_ASC
   }
 
   type PageInfo {
