@@ -29,6 +29,7 @@ import {
   SuiObjectArg,
   SuiVecTxArg,
   SubscribableType,
+  IndexerTransactionResult,
 } from './types';
 import {
   convertHttpToWebSocket,
@@ -1165,18 +1166,26 @@ export class Dubhe {
     return await this.suiIndexerClient.getTransaction(digest);
   }
 
+  /**
+   * Wait for the transaction to be processed by the indexer and return all transaction-related data
+   * @param digest transaction digest
+   * @param options option parameters
+   * @returns result object containing transaction, events and schema data
+   */
   async waitForIndexerTransaction(
     digest: string,
     options?: {
       checkInterval?: number;
       timeout?: number;
       maxRetries?: number;
+      pageSize?: number;
     }
-  ): Promise<IndexerTransaction | undefined> {
+  ): Promise<IndexerTransactionResult> {
     const {
       checkInterval = 100,
-      timeout = 30000, // 30 seconds default timeout
-      maxRetries = 300, // 300 times default max retries
+      timeout = 30000,
+      maxRetries = 300,
+      pageSize = 100,
     } = options ?? {};
 
     const startTime = Date.now();
@@ -1185,14 +1194,53 @@ export class Dubhe {
     while (retryCount < maxRetries) {
       try {
         if (Date.now() - startTime > timeout) {
-          throw new Error(`Timeout waiting for transaction ${digest}`);
+          throw new Error(`Waiting for transaction ${digest} timed out`);
         }
 
         await new Promise((resolve) => setTimeout(resolve, checkInterval));
 
-        const transaction = await this.getTransaction(digest);
-        if (transaction) {
-          return transaction;
+        const tx = await this.getTransaction(digest);
+        if (tx) {
+          const events: IndexerEvent[] = [];
+          const schemaChanges: IndexerSchema[] = [];
+
+          let hasNextEventsPage = true;
+          let eventsCursor: string | undefined;
+
+          while (hasNextEventsPage) {
+            const eventsResponse = await this.getEvents({
+              digest,
+              first: pageSize,
+              after: eventsCursor,
+            });
+
+            events.push(...eventsResponse.edges.map((edge) => edge.node));
+
+            hasNextEventsPage = eventsResponse.pageInfo.hasNextPage;
+            eventsCursor = eventsResponse.pageInfo.endCursor;
+          }
+
+          let hasNextSchemasPage = true;
+          let schemasCursor: string | undefined;
+
+          while (hasNextSchemasPage) {
+            const schemasResponse = await this.getStorage({
+              last_update_digest: digest,
+              first: pageSize,
+              after: schemasCursor,
+            });
+
+            schemaChanges.push(...schemasResponse.data);
+
+            hasNextSchemasPage = schemasResponse.pageInfo.hasNextPage;
+            schemasCursor = schemasResponse.pageInfo.endCursor;
+          }
+
+          return {
+            tx,
+            events,
+            schemaChanges,
+          };
         }
 
         retryCount++;
@@ -1204,7 +1252,7 @@ export class Dubhe {
     }
 
     throw new Error(
-      `Max retries (${maxRetries}) reached while waiting for transaction ${digest}`
+      `Reached maximum retries (${maxRetries}), failed to wait for transaction ${digest}`
     );
   }
 
