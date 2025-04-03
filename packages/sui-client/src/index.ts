@@ -14,3 +14,12 @@ export { SuiContractFactory } from './libs/suiContractFactory';
 export { SubscriptionKind } from './libs/suiIndexerClient';
 export { loadMetadata } from './metadata';
 export type * from './types';
+export type {
+  IndexerEvent,
+  IndexerSchema,
+  IndexerTransaction,
+  ConnectionResponse,
+  StorageResponse,
+  StorageItemResponse,
+  PageInfo,
+} from './libs/suiIndexerClient';

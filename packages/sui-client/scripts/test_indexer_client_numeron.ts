@@ -37,11 +37,16 @@ async function init() {
   const pageSize = 1;
   // Get middle page data
   let middlePage = await dubhe.getTransaction(
-    'FAST1LVMUyJnFGd33vF2jdXgCFGQN4WxZHLVCeK34JQ8'
+    '8HjbYydPqaoVvxCXTKCwnrRy9jyZBzSKHeGqupmzF9Gy'
   );
 
   // console.log('Current Page Data:', );
   console.log(JSON.stringify(middlePage, null, 2));
+
+  let waitResult = await dubhe.waitForIndexerTransaction(
+    '8HjbYydPqaoVvxCXTKCwnrRy9jyZBzSKHeGqupmzF9Gy'
+  );
+  console.log(JSON.stringify(waitResult, null, 2));
 }
 
 init().catch(console.error);

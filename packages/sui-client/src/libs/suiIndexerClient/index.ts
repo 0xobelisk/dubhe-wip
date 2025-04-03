@@ -2,20 +2,10 @@ import { Http } from '../http';
 import { parseValue } from './utils';
 import { SubscribableType } from '../../types';
 
-export interface OrderDirection {
-  ASC: 'ASC';
-  DESC: 'DESC';
-}
-
 export enum SubscriptionKind {
   Event = 'event',
   Schema = 'schema',
 }
-
-// export interface OrderBy {
-//   field: string;
-//   direction: OrderDirection['ASC'] | OrderDirection['DESC'];
-// }
 
 export interface PageInfo {
   hasNextPage: boolean;
