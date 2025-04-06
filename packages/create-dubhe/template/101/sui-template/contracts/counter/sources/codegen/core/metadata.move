@@ -11,7 +11,7 @@
   public struct DappMetadata has drop, copy, store {
     name: String,
     description: String,
-    icon_url: String,
+    cover_url: vector<String>,
     website_url: String,
     created_at: u64,
     partners: vector<String>,
@@ -20,7 +20,7 @@
   public fun new(
     name: String,
     description: String,
-    icon_url: String,
+    cover_url: vector<String>,
     website_url: String,
     created_at: u64,
     partners: vector<String>,
@@ -28,7 +28,7 @@
     DappMetadata {
             name,
             description,
-            icon_url,
+            cover_url,
             website_url,
             created_at,
             partners,
@@ -39,14 +39,14 @@
     self: &mut DappMetadata,
     name: String,
     description: String,
-    icon_url: String,
+    cover_url: vector<String>,
     website_url: String,
     created_at: u64,
     partners: vector<String>,
   ) {
     self.name = name;
     self.description = description;
-    self.icon_url = icon_url;
+    self.cover_url = cover_url;
     self.website_url = website_url;
     self.created_at = created_at;
     self.partners = partners;
@@ -60,8 +60,8 @@
     self.description = description;
   }
 
-  public fun set_icon_url(self: &mut DappMetadata, icon_url: String) {
-    self.icon_url = icon_url;
+  public fun set_cover_url(self: &mut DappMetadata, cover_url: vector<String>) {
+    self.cover_url = cover_url;
   }
 
   public fun set_website_url(self: &mut DappMetadata, website_url: String) {
@@ -84,8 +84,8 @@
     self.description
   }
 
-  public fun get_icon_url(self: &DappMetadata): String {
-    self.icon_url
+  public fun get_cover_url(self: &DappMetadata): vector<String> {
+    self.cover_url
   }
 
   public fun get_website_url(self: &DappMetadata): String {

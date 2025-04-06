@@ -15,8 +15,8 @@
     "indexer:sqlite": "pnpm sqlite-indexer --force-regenesis --network"
   },
   "dependencies": {
-    "@0xobelisk/sui-cli": "^1.1.7",
-    "@0xobelisk/sui-client": "^1.1.10",
+    "@0xobelisk/sui-cli": "^1.1.8",
+    "@0xobelisk/sui-client": "^1.1.11",
     "@0xobelisk/sui-common": "^1.1.8",
     "@0xobelisk/sui-indexer": "^1.1.13",
     "dotenv": "^16.4.5",

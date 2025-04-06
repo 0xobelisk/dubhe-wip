@@ -7,7 +7,7 @@ module counter::counter_test {
 
     #[test]
     public fun inc() {
-        let (scenario, dapp)  = counter_init_test::deploy_dapp_for_testing(@0xA);
+        let scenario  = counter_init_test::deploy_dapp_for_testing(@0xA);
 
         let mut schema = test_scenario::take_shared<Schema>(&scenario);
 
@@ -20,7 +20,6 @@ module counter::counter_test {
         assert!(schema.value().get() == 20);
 
         test_scenario::return_shared(schema);
-        dapp.distroy_dapp_for_testing();
         scenario.end();
     }
 }
