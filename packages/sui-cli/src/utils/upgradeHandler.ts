@@ -24,13 +24,13 @@ type Migration = {
 };
 
 function updateMigrateMethod(projectPath: string, migrations: Migration[]): void {
-  let filePath = `${projectPath}/sources/codegen/schema.move`;
+  let filePath = `${projectPath}/sources/codegen/core/schema.move`;
   const fileContent = fs.readFileSync(filePath, 'utf-8');
   const migrateMethodRegex = new RegExp(
-    `public fun migrate\\(_schema: &mut Schema, _cap: &UpgradeCap, _ctx: &mut TxContext\\) {[^}]*}`
+    `public fun migrate\\(_schema: &mut Schema, _ctx: &mut TxContext\\) {[^}]*}`
   );
   const newMigrateMethod = `
-public fun migrate(_schema: &mut Schema, _cap: &UpgradeCap, _ctx: &mut TxContext) {
+public fun migrate(_schema: &mut Schema, _ctx: &mut TxContext) {
 ${migrations
   .map((migration) => {
     let storage_type = '';
@@ -112,6 +112,7 @@ in your contracts directory to use the default sui private key.`
     throw new DubheCliError(`Please check your privateKey.`);
   }
   const dubhe = new Dubhe({
+    networkType: network,
     secretKey: privateKeyFormat
   });
   const keypair = dubhe.getSigner();
@@ -138,11 +139,6 @@ in your contracts directory to use the default sui private key.`
     if (!schemas.hasOwnProperty(key)) {
       pendingMigration.push({ schemaName: key, fields: value });
     }
-  });
-
-  pendingMigration.forEach((migration) => {
-    console.log(`\n🚀 Starting Migration for ${migration.schemaName}...`);
-    console.log('📋 Migration Fields:', migration.fields);
   });
   updateMigrateMethod(projectPath, pendingMigration);
 
@@ -230,6 +226,34 @@ in your contracts directory to use the default sui private key.`
       oldVersion + 1,
       config.schemas
     );
+
+    console.log(`\n🚀 Starting Migration Process...`);
+    pendingMigration.forEach((migration) => {
+      console.log('📋 Added Fields:', JSON.stringify(migration, null, 2));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    const migrateTx = new Transaction();
+    let target = `${newPackageId}::${name}_migrate::migrate_to_v${oldVersion + 1}`;
+    console.log("target:", target);
+    migrateTx.moveCall({
+      target,
+      arguments: [
+        tx.object(schemaId),
+        tx.pure.address(newPackageId),
+        tx.pure.u32(oldVersion + 1),
+      ]
+    });
+    const migrateResult = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: migrateTx,
+      options: {
+        showObjectChanges: true
+      }
+    });
+  
+    console.log(chalk.green(`Migration Transaction Digest: ${migrateResult.digest}`));
+
   } catch (error: any) {
     console.log(chalk.red('Upgrade failed!'));
     console.error(error.message);
