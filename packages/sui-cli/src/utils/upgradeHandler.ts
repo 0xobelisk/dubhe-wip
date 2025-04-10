@@ -244,7 +244,7 @@ in your contracts directory to use the default sui private key.`
         console.log(chalk.green(`Migration Transaction Digest: ${result.digest}`));
       },
       onError: (error) => {
-        console.log(chalk.red('Migration Transaction failed!'));
+        console.log(chalk.red('Migration Transaction failed!, Please execute the migration manually.'));
         console.error(error);
       }
     });
