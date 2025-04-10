@@ -126,11 +126,6 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
   use dubhe::storage::add_field;
   use dubhe::storage_value;
   use dubhe::storage_value::StorageValue;
-  
-  public struct DappKey has drop {}
-  public(package) fun new(): DappKey {
-    DappKey {  }
-  }
 
   public entry fun set_metadata(
     schema: &mut Schema,
@@ -199,21 +194,12 @@ async function generateDappSystem(config: DubheConfig, srcPrefix: string) {
                 vector[]
             )
         );
-    let package_id = type_info::current_package_id<DappKey>();
+    let package_id = type_info::current_package_id<Schema>();
     schema.dapp__package_id().set(package_id);
     schema.dapp__admin().set(ctx.sender());
     schema.dapp__version().set(1);
     schema.dapp__safe_mode().set(false);
     schema.dapp__authorised_schemas().set(vector[]);
-    }
-
-    public(package) fun upgrade<DappKey: drop>(schema: &mut Schema, ctx: &TxContext) {
-    assert!(schema.dapp__metadata().contains(), 0);
-    assert!(schema.dapp__admin().get() == ctx.sender(), 0);
-    let new_package_id = type_info::current_package_id<DappKey>();
-    schema.dapp__package_id().set(new_package_id);
-    let current_version = schema.dapp__version()[];
-    schema.dapp__version().set(current_version + 1);
     }
 
     public(package) fun add_schema<S: key + store>(schema: &mut Schema, new_schema: S) {

@@ -1,6 +1,4 @@
-import { Dubhe } from '@0xobelisk/sui-client';
-import { Transaction, UpgradePolicy } from '@mysten/sui/transactions';
-import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
+import { Dubhe, Transaction, UpgradePolicy } from '@0xobelisk/sui-client';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 import { DubheCliError, UpgradeError } from './errors';
@@ -24,13 +22,13 @@ type Migration = {
 };
 
 function updateMigrateMethod(projectPath: string, migrations: Migration[]): void {
-  let filePath = `${projectPath}/sources/codegen/schema.move`;
+  let filePath = `${projectPath}/sources/codegen/core/schema.move`;
   const fileContent = fs.readFileSync(filePath, 'utf-8');
   const migrateMethodRegex = new RegExp(
-    `public fun migrate\\(_schema: &mut Schema, _cap: &UpgradeCap, _ctx: &mut TxContext\\) {[^}]*}`
+    `public fun migrate\\(_schema: &mut Schema, _ctx: &mut TxContext\\) {[^}]*}`
   );
   const newMigrateMethod = `
-public fun migrate(_schema: &mut Schema, _cap: &UpgradeCap, _ctx: &mut TxContext) {
+public fun migrate(_schema: &mut Schema, _ctx: &mut TxContext) {
 ${migrations
   .map((migration) => {
     let storage_type = '';
@@ -112,12 +110,8 @@ in your contracts directory to use the default sui private key.`
     throw new DubheCliError(`Please check your privateKey.`);
   }
   const dubhe = new Dubhe({
+    networkType: network,
     secretKey: privateKeyFormat
-  });
-  const keypair = dubhe.getSigner();
-
-  const client = new SuiClient({
-    url: getFullnodeUrl(network)
   });
 
   let oldVersion = Number(await getVersion(projectPath, network));
@@ -138,11 +132,6 @@ in your contracts directory to use the default sui private key.`
     if (!schemas.hasOwnProperty(key)) {
       pendingMigration.push({ schemaName: key, fields: value });
     }
-  });
-
-  pendingMigration.forEach((migration) => {
-    console.log(`\n🚀 Starting Migration for ${migration.schemaName}...`);
-    console.log('📋 Migration Fields:', migration.fields);
   });
   updateMigrateMethod(projectPath, pendingMigration);
 
@@ -193,19 +182,22 @@ in your contracts directory to use the default sui private key.`
       arguments: [tx.object(upgradeCap), receipt]
     });
 
-    const result = await client.signAndExecuteTransaction({
-      signer: keypair,
-      transaction: tx,
-      options: {
-        showObjectChanges: true
+    const result = await dubhe.signAndSendTxn({
+      tx,
+      onSuccess: (result) => {
+        console.log(chalk.green(`Upgrade Transaction Digest: ${result.digest}`));
+      },
+      onError: (error) => {
+        console.log(chalk.red('Upgrade Transaction failed!'));
+        console.error(error);
       }
     });
 
     let newPackageId = '';
     result.objectChanges!.map((object) => {
       if (object.type === 'published') {
-        console.log(chalk.blue(`${name} PackageId: ${object.packageId}`));
-        console.log(chalk.blue(`${name} Version: ${oldVersion + 1}`));
+        console.log(chalk.blue(`${name} new PackageId: ${object.packageId}`));
+        console.log(chalk.blue(`${name} new Version: ${oldVersion + 1}`));
         newPackageId = object.packageId;
       }
     });
@@ -219,8 +211,6 @@ in your contracts directory to use the default sui private key.`
     replaceEnvField(`${projectPath}/Move.lock`, network, 'latest-published-id', newPackageId);
     replaceEnvField(`${projectPath}/Move.lock`, network, 'published-version', oldVersion + 1 + '');
 
-    console.log(chalk.green(`Upgrade Transaction Digest: ${result.digest}`));
-
     saveContractData(
       name,
       network,
@@ -230,8 +220,36 @@ in your contracts directory to use the default sui private key.`
       oldVersion + 1,
       config.schemas
     );
+
+    console.log(`\n🚀 Starting Migration Process...`);
+    pendingMigration.forEach((migration) => {
+      console.log('📋 Added Fields:', JSON.stringify(migration, null, 2));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    const migrateTx = new Transaction();
+    const newVersion = oldVersion + 1;
+    migrateTx.moveCall({
+      target: `${newPackageId}::${name}_migrate::migrate_to_v${newVersion}`,
+      arguments: [
+        migrateTx.object(schemaId),
+        migrateTx.pure.address(newPackageId),
+        migrateTx.pure.u32(newVersion)
+      ]
+    });
+
+    await dubhe.signAndSendTxn({
+      tx: migrateTx,
+      onSuccess: (result) => {
+        console.log(chalk.green(`Migration Transaction Digest: ${result.digest}`));
+      },
+      onError: (error) => {
+        console.log(chalk.red('Migration Transaction failed!, Please execute the migration manually.'));
+        console.error(error);
+      }
+    });
   } catch (error: any) {
-    console.log(chalk.red('Upgrade failed!'));
+    console.log(chalk.red('upgrade handler execution failed!'));
     console.error(error.message);
   }
 }
