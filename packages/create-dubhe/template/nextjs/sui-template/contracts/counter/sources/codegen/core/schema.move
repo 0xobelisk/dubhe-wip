@@ -106,7 +106,17 @@
     &self.id
   }
 
-  public fun migrate(_schema: &mut Schema, _cap: &UpgradeCap, _ctx: &mut TxContext) {}
+  public fun migrate(_schema: &mut Schema, _ctx: &mut TxContext) {}
+
+  public(package) fun upgrade(schema: &mut Schema, new_package_id: address, new_version: u32, ctx: &mut TxContext) {
+    assert!(schema.dapp__metadata().contains(), 0);
+    assert!(schema.dapp__admin().get() == ctx.sender(), 0);
+    schema.dapp__package_id().set(new_package_id);
+    let current_version = schema.dapp__version()[];
+    assert!(current_version < new_version, 0);
+    schema.dapp__version().set(new_version);
+    schema.migrate(ctx);
+  }
 
   // ======================================== View Functions ========================================
 
