@@ -22,4 +22,6 @@ export type {
   StorageResponse,
   StorageItemResponse,
   PageInfo,
+  JsonPathOrder,
+  JsonValueType,
 } from './libs/suiIndexerClient';

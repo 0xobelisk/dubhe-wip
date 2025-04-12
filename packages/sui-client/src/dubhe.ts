@@ -47,6 +47,7 @@ import {
   SuiIndexerClient,
   StorageResponse,
   StorageItemResponse,
+  JsonPathOrder,
 } from './libs/suiIndexerClient';
 import { Http } from './libs/http';
 
@@ -1295,6 +1296,7 @@ export class Dubhe {
     first,
     after,
     orderBy,
+    jsonOrderBy,
   }: {
     name?: string;
     key1?: any;
@@ -1306,6 +1308,7 @@ export class Dubhe {
     first?: number;
     after?: string;
     orderBy?: string[];
+    jsonOrderBy?: JsonPathOrder[];
   }): Promise<ConnectionResponse<IndexerSchema>> {
     return await this.suiIndexerClient.getSchemas({
       name,
@@ -1318,6 +1321,7 @@ export class Dubhe {
       first,
       after,
       orderBy,
+      jsonOrderBy,
     });
   }
 
@@ -1332,6 +1336,7 @@ export class Dubhe {
     first,
     after,
     orderBy,
+    jsonOrderBy,
   }: {
     name?: string;
     key1?: any;
@@ -1343,6 +1348,7 @@ export class Dubhe {
     first?: number;
     after?: string;
     orderBy?: string[];
+    jsonOrderBy?: JsonPathOrder[];
   }): Promise<StorageResponse<IndexerSchema>> {
     return await this.suiIndexerClient.getStorage({
       name,
@@ -1355,6 +1361,7 @@ export class Dubhe {
       first,
       after,
       orderBy,
+      jsonOrderBy,
     });
   }
 
