@@ -1,12 +1,4 @@
-import {
-  Dubhe,
-  NetworkType,
-  TransactionArgument,
-  loadMetadata,
-  Transaction,
-  DevInspectResults,
-  bcs,
-} from '../src/index';
+import { Dubhe, NetworkType, JsonPathOrder } from '../src';
 import * as process from 'process';
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -34,19 +26,21 @@ async function init() {
   console.log('Current Address:', dubhe.getAddress());
   // Cursor pagination example (forward and backward)
   console.log('\n=== Cursor Pagination Example ===');
-  const pageSize = 1;
-  // Get middle page data
-  let middlePage = await dubhe.getTransaction(
-    '8HjbYydPqaoVvxCXTKCwnrRy9jyZBzSKHeGqupmzF9Gy'
-  );
-
-  // console.log('Current Page Data:', );
-  console.log(JSON.stringify(middlePage, null, 2));
-
-  let waitResult = await dubhe.waitForIndexerTransaction(
-    '8HjbYydPqaoVvxCXTKCwnrRy9jyZBzSKHeGqupmzF9Gy'
-  );
-  console.log(JSON.stringify(waitResult, null, 2));
+  const pathOrder: JsonPathOrder = {
+    path: 'move_count',
+    direction: 'DESC',
+  };
+  const result = await dubhe.getStorage({
+    name: 'stats',
+    jsonOrderBy: [
+      {
+        path: 'move_count',
+        direction: 'DESC',
+      },
+    ],
+    first: 2,
+  });
+  console.log(JSON.stringify(result, null, 2));
 }
 
 init().catch(console.error);

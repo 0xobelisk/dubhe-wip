@@ -44,10 +44,7 @@
     "format:fix": "prettier --ignore-path 'dist/* docs/*' --write '**/*.{ts,json,md}'",
     "lint:fix": "eslint . --ignore-pattern dist --ext .ts --fix",
     "commit": "commit",
-    "doc": "typedoc --out docs src/index.ts",
-    "chalk": "^5.0.1",
-    "prettier": "^2.8.4",
-    "prettier-plugin-rust": "^0.1.9"
+    "doc": "typedoc --out docs src/index.ts"
   },
   "dependencies": {
     "@roochnetwork/rooch-sdk": "^0.2.8",

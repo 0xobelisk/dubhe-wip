@@ -4,11 +4,29 @@ import { and, eq, gt, lt, asc, desc, sql } from 'drizzle-orm';
 import { dubheStoreEvents, dubheStoreSchemas, dubheStoreTransactions } from '../utils/tables';
 
 const typeDefs = `
+  enum OrderDirection {
+    ASC
+    DESC
+  }
+
+  enum JsonValueType {
+    STRING
+    INTEGER
+    FLOAT
+    BOOLEAN
+  }
+
+  input JsonPathOrder {
+    path: String!
+    direction: OrderDirection!
+    type: JsonValueType = STRING
+  }
+
   enum SchemaOrderField {
     ID_DESC
-	  ID_ASC
+    ID_ASC
     CREATED_AT_DESC
-	  CREATED_AT_ASC
+    CREATED_AT_ASC
     UPDATED_AT_DESC
     UPDATED_AT_ASC
     KEY1_ASC
@@ -21,20 +39,20 @@ const typeDefs = `
 
   enum EventOrderField {
     ID_DESC
-	  ID_ASC
+    ID_ASC
     CREATED_AT_DESC
-	  CREATED_AT_ASC
+    CREATED_AT_ASC
     CHECKPOINT_DESC
-	  CHECKPOINT_ASC
+    CHECKPOINT_ASC
   }
 
   enum TransactionOrderField {
     ID_DESC
-	  ID_ASC
+    ID_ASC
     CREATED_AT_DESC
-	  CREATED_AT_ASC
+    CREATED_AT_ASC
     CHECKPOINT_DESC
-	  CHECKPOINT_ASC
+    CHECKPOINT_ASC
   }
 
   type PageInfo {
@@ -87,6 +105,7 @@ const typeDefs = `
       last_update_digest: String
       value: JSON
       orderBy: [SchemaOrderField!]
+      jsonOrderBy: [JsonPathOrder!]
     ): SchemaConnection!
 
     events(
@@ -161,55 +180,81 @@ export function createResolvers(
 
   const decodeCursor = (cursor: string) => parseInt(Buffer.from(cursor, 'base64').toString());
 
-  const applyOrderBy = (query: any, table: any, orderBy?: string[]) => {
-    if (!orderBy || orderBy.length === 0) {
+  const applyOrderBy = (query: any, table: any, orderBy?: string[], jsonOrderBy?: any[]) => {
+    if (!orderBy && (!jsonOrderBy || jsonOrderBy.length === 0)) {
       return query.orderBy(desc(table.created_at));
     }
 
     try {
-      orderBy.forEach((order) => {
-        const isDesc = order.endsWith('_DESC');
-        const isAsc = order.endsWith('_ASC');
+      if (orderBy) {
+        orderBy.forEach((order) => {
+          const isDesc = order.endsWith('_DESC');
+          const isAsc = order.endsWith('_ASC');
 
-        if (!isDesc && !isAsc) {
-          console.warn('Invalid order format:', order);
-          return query;
-        }
+          if (!isDesc && !isAsc) {
+            console.warn('Invalid order format:', order);
+            return query;
+          }
 
-        const direction = isDesc ? 'DESC' : 'ASC';
-        const field = order.slice(0, -1 * (direction.length + 1));
-        const orderFn = isDesc ? desc : asc;
+          const direction = isDesc ? 'DESC' : 'ASC';
+          const field = order.slice(0, -1 * (direction.length + 1));
+          const orderFn = isDesc ? desc : asc;
 
-        switch (field) {
-          case 'ID':
-            query = query.orderBy(orderFn(table.id));
-            break;
-          case 'CREATED_AT':
-            query = query.orderBy(orderFn(table.created_at));
-            break;
-          case 'UPDATED_AT':
-            query = query.orderBy(orderFn(table.updated_at));
-            break;
-          case 'CHECKPOINT':
-            query = query.orderBy(orderFn(table.checkpoint));
-            break;
-          case 'KEY1':
-            query = query.orderBy(orderFn(table.key1));
-            break;
-          case 'KEY2':
-            query = query.orderBy(orderFn(table.key2));
-            break;
-          case 'VALUE':
-            query = query.orderBy(orderFn(table.value));
-            break;
-          default:
-            console.warn('Unknown orderBy field:', field);
-        }
-      });
+          switch (field) {
+            case 'ID':
+              query = query.orderBy(orderFn(table.id));
+              break;
+            case 'CREATED_AT':
+              query = query.orderBy(orderFn(table.created_at));
+              break;
+            case 'UPDATED_AT':
+              query = query.orderBy(orderFn(table.updated_at));
+              break;
+            case 'CHECKPOINT':
+              query = query.orderBy(orderFn(table.checkpoint));
+              break;
+            case 'KEY1':
+              query = query.orderBy(orderFn(table.key1));
+              break;
+            case 'KEY2':
+              query = query.orderBy(orderFn(table.key2));
+              break;
+            case 'VALUE':
+              query = query.orderBy(orderFn(table.value));
+              break;
+            default:
+              console.warn('Unknown orderBy field:', field);
+          }
+        });
+      }
+
+      if (jsonOrderBy && jsonOrderBy.length > 0) {
+        jsonOrderBy.forEach(({ path, direction, type = 'STRING' }) => {
+          const orderFn = direction === 'DESC' ? desc : asc;
+          const jsonPath = `$.${path}`;
+
+          let orderExpr;
+          switch (type) {
+            case 'INTEGER':
+              orderExpr = sql`CAST(COALESCE(json_extract(${table.value}, ${jsonPath}), '0') AS INTEGER)`;
+              break;
+            case 'FLOAT':
+              orderExpr = sql`CAST(COALESCE(json_extract(${table.value}, ${jsonPath}), '0') AS FLOAT)`;
+              break;
+            case 'BOOLEAN':
+              orderExpr = sql`CAST(COALESCE(json_extract(${table.value}, ${jsonPath}), '0') AS BOOLEAN)`;
+              break;
+            default: // STRING
+              orderExpr = sql`COALESCE(json_extract(${table.value}, ${jsonPath}), '')`;
+          }
+
+          query = query.orderBy(orderFn(orderExpr));
+        });
+      }
 
       return query;
     } catch (error) {
-      console.warn('Error applying orderBy:', orderBy, error);
+      console.warn('Error applying orderBy:', { orderBy, jsonOrderBy, error });
       return query.orderBy(desc(table.created_at));
     }
   };
@@ -349,7 +394,8 @@ export function createResolvers(
           last_update_checkpoint,
           last_update_digest,
           value,
-          orderBy
+          orderBy,
+          jsonOrderBy
         }: {
           first?: number;
           after?: string;
@@ -361,6 +407,7 @@ export function createResolvers(
           last_update_digest?: string;
           value?: any;
           orderBy?: string[];
+          jsonOrderBy?: any[];
         }
       ) => {
         try {
@@ -480,7 +527,7 @@ export function createResolvers(
           }
 
           // Apply sorting
-          query = applyOrderBy(query, dubheStoreSchemas, orderBy);
+          query = applyOrderBy(query, dubheStoreSchemas, orderBy, jsonOrderBy);
 
           // Get paginated data
           const records = query.limit(limit + 1).all();

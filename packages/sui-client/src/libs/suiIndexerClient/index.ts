@@ -7,6 +7,14 @@ export enum SubscriptionKind {
   Schema = 'schema',
 }
 
+export type JsonValueType = 'STRING' | 'INTEGER' | 'FLOAT' | 'BOOLEAN';
+
+export interface JsonPathOrder {
+  path: string;
+  direction: 'ASC' | 'DESC';
+  type?: JsonValueType;
+}
+
 export interface PageInfo {
   hasNextPage: boolean;
   endCursor?: string;
@@ -132,6 +140,7 @@ export class SuiIndexerClient {
     last_update_digest?: string;
     value?: any;
     orderBy?: string[];
+    jsonOrderBy?: JsonPathOrder[];
   }): Promise<ConnectionResponse<IndexerSchema>> {
     const query = `
       query GetSchemas(
@@ -144,7 +153,8 @@ export class SuiIndexerClient {
         $last_update_checkpoint: String,
         $last_update_digest: String,
         $value: JSON,
-        $orderBy: [SchemaOrderField!]
+        $orderBy: [SchemaOrderField!],
+        $jsonOrderBy: [JsonPathOrder!]
       ) {
         schemas(
           first: $first,
@@ -156,7 +166,8 @@ export class SuiIndexerClient {
           last_update_checkpoint: $last_update_checkpoint,
           last_update_digest: $last_update_digest,
           value: $value,
-          orderBy: $orderBy
+          orderBy: $orderBy,
+          jsonOrderBy: $jsonOrderBy
         ) {
           edges {
             cursor
@@ -238,6 +249,7 @@ export class SuiIndexerClient {
     first,
     after,
     orderBy,
+    jsonOrderBy,
   }: {
     name?: string;
     key1?: any;
@@ -249,6 +261,7 @@ export class SuiIndexerClient {
     first?: number;
     after?: string;
     orderBy?: string[];
+    jsonOrderBy?: JsonPathOrder[];
   }): Promise<StorageResponse<IndexerSchema>> {
     const schemas = await this.getSchemas({
       name,
@@ -261,6 +274,7 @@ export class SuiIndexerClient {
       first,
       after,
       orderBy,
+      jsonOrderBy,
     });
     const data = schemas.edges.map((edge) => edge.node);
     const result = data.map((item) => parseValue(item.value));
