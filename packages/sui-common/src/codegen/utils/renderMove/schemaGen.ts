@@ -60,6 +60,6 @@ export async function schemaGen(
   await generateInit(config, path);
   await generateSystem(config, path);
   await generateMigrate(config, path);
-
+  await generateDappKey(config, path);
   console.log('\n✅  Schema Generation Process Complete!\n');
 }

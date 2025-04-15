@@ -172,7 +172,7 @@ export async function generateSchemaStructure(
   schemas: Record<string, SchemaType>,
   path: string
 ) {
-  console.log('\n🔨 Starting Schema Structure Generation...');
+  console.log('\n📦 Starting Schema Structure Generation...');
   Object.entries(schemas).forEach(([key, value]) => {
     console.log(`     └─ ${key}: ${value}`);
   });
