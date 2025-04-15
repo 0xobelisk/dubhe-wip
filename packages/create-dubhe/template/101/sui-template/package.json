@@ -35,9 +35,9 @@
     "prod:mainnet": "pnpm config:store mainnet && pnpm next"
   },
   "dependencies": {
-    "@0xobelisk/sui-cli": "^1.1.9",
+    "@0xobelisk/sui-cli": "^1.1.10",
     "@0xobelisk/sui-client": "^1.1.12",
-    "@0xobelisk/sui-common": "^1.1.10",
+    "@0xobelisk/sui-common": "^1.1.11",
     "@0xobelisk/sui-indexer": "^1.1.14",
     "jotai": "^1.7.2",
     "dotenv": "^16.4.5",
