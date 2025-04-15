@@ -11,6 +11,9 @@
   </a>
   <a href="https://github.com/0xobelisk/dubhe/stargazers">
     <img src="https://img.shields.io/github/stars/0xobelisk/dubhe?style=social"/>
+   </a>
+  <a href="https://github.com/0xobelisk/dubhe/network/members">
+    <img src="https://img.shields.io/github/forks/0xobelisk/dubhe?style=social"/>  
   </a>
 </div>
 
