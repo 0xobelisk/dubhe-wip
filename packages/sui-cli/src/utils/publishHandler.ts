@@ -13,6 +13,10 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const PluginSchemaId = {
+  merak: '0x492e9c4c945d1b148d7e9958c0bc932219c02af3f994fd4073a4e7c3553e08d3'
+};
+
 async function removeEnvContent(
   filePath: string,
   networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
@@ -210,9 +214,15 @@ async function publishContract(
   await delay(5000);
 
   const deployHookTx = new Transaction();
+  let args = [deployHookTx.object('0x6')];
+  if (dubheConfig.plugins) {
+    dubheConfig.plugins.forEach((plugin) => {
+      args.push(deployHookTx.object(PluginSchemaId[plugin]));
+    });
+  }
   deployHookTx.moveCall({
     target: `${packageId}::${dubheConfig.name}_genesis::run`,
-    arguments: [deployHookTx.object('0x6')]
+    arguments: args
   });
 
   let deployHookResult;
