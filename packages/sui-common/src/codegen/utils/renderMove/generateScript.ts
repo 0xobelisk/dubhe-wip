@@ -14,9 +14,9 @@ export async function generateDeployHook(config: DubheConfig, srcPrefix: string)
   if (!existsSync(path)) {
     const code = `module ${config.name}::${config.name}_deploy_hook {
 			  use ${config.name}::${config.name}_schema::Schema;
-        ${config.plugins?.length ? config.plugins.map((plugin) => `use ${plugin}::${plugin}_schema::Schema as ${capitalizeFirstLetter(plugin)}Schema;`).join('\n') : '' }
+        ${config.name !== 'dubhe' ? `use dubhe::dubhe_schema::Schema as DubheSchema;` : '' }
 
-  public(package) fun run(_schema: &mut Schema, ${config.plugins?.length ? config.plugins.map((plugin) => `_${plugin}_schema: &mut ${capitalizeFirstLetter(plugin)}Schema`).join(', ') + ', ' : ''} _ctx: &mut TxContext) {
+  public(package) fun run(${config.name !== 'dubhe' ? `_dubhe_schema: &mut DubheSchema,` : ''}_schema: &mut Schema,  _ctx: &mut TxContext) {
 
   }
 }`;
