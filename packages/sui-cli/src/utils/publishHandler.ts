@@ -7,15 +7,12 @@ import {
   validatePrivateKey,
   updateDubheDependency,
   switchEnv,
-  delay
+  delay,
+  getSchemaId
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const PluginSchemaId = {
-  merak: '0x492e9c4c945d1b148d7e9958c0bc932219c02af3f994fd4073a4e7c3553e08d3'
-};
 
 async function removeEnvContent(
   filePath: string,
@@ -214,12 +211,12 @@ async function publishContract(
   await delay(5000);
 
   const deployHookTx = new Transaction();
-  let args = [deployHookTx.object('0x6')];
-  if (dubheConfig.plugins) {
-    dubheConfig.plugins.forEach((plugin) => {
-      args.push(deployHookTx.object(PluginSchemaId[plugin]));
-    });
+  let args = [];
+  if (dubheConfig.name !== 'dubhe') {
+      let dubheSchemaId = await getSchemaId(`${process.cwd()}/contracts/dubhe-framework`, network);
+      args.push(deployHookTx.object(dubheSchemaId));
   }
+  args.push(deployHookTx.object('0x6'));
   deployHookTx.moveCall({
     target: `${packageId}::${dubheConfig.name}_genesis::run`,
     arguments: args
@@ -324,13 +321,56 @@ export async function publishDubheFramework(
     console.log(chalk.red('  └─ Publication failed'));
     process.exit(1);
   }
+
+  let version = 1;
   let packageId = '';
+  let schemaId = '';
+  let schemas: Record<string, string> = {};
+  let upgradeCapId = '';
 
   result.objectChanges!.map((object) => {
     if (object.type === 'published') {
       packageId = object.packageId;
     }
+    if (object.type === 'created' && object.objectType === '0x2::package::UpgradeCap') {
+      upgradeCapId = object.objectId;
+    }
   });
+
+  await delay(3000);
+
+  const deployHookTx = new Transaction();
+  deployHookTx.moveCall({
+    target: `${packageId}::dubhe_genesis::run`,
+    arguments: [deployHookTx.object('0x6')]
+  });
+
+  let deployHookResult;
+  try {
+    deployHookResult = await dubhe.signAndSendTxn({ tx: deployHookTx });
+  } catch (error: any) {
+    console.error(chalk.red('  └─ Deploy hook execution failed'));
+    console.error(error.message);
+    process.exit(1);
+  }
+
+  if (deployHookResult.effects?.status.status === 'success') {
+    deployHookResult.objectChanges?.map((object) => {
+      if (object.type === 'created' && object.objectType.includes('dubhe_schema::Schema')) {
+        schemaId = object.objectId;
+      }
+    });
+  }
+
+  saveContractData(
+    'dubhe-framework',
+    network,
+    packageId,
+    schemaId,
+    upgradeCapId,
+    version,
+    schemas
+  );
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
   await delay(1000);
