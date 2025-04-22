@@ -213,7 +213,7 @@ async function publishContract(
   const deployHookTx = new Transaction();
   let args = [];
   if (dubheConfig.name !== 'dubhe') {
-      let dubheSchemaId = await getSchemaId(`${process.cwd()}/contracts/dubhe-framework`, network);
+      let dubheSchemaId = network === 'localnet' ? await getSchemaId(`${process.cwd()}/contracts/dubhe-framework`, network) : "0xa565cbb3641fff8f7e8ef384b215808db5f1837aa72c1cca1803b5d973699aac";
       args.push(deployHookTx.object(dubheSchemaId));
   }
   args.push(deployHookTx.object('0x6'));
