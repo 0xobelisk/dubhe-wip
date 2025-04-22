@@ -13,11 +13,10 @@ edition = "2024"
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.46.3" }
 Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", rev = "dubhe-mainnet-v1.1.0" }
-${config.plugins?.length ? config.plugins.map((plugin) => `${plugin} = { git = "https://github.com/0xobelisk/merak.git", rev = "main", subdir = "contracts/${plugin}" }`).join('\n') : '' }
 
 [addresses]
 sui = "0x2"
-${config.name} = "0x1024"
+${config.name} = "0x0"
 `;
   await formatAndWriteMove(
     code,
