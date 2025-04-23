@@ -14,6 +14,10 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const MAX_RETRIES = 60; // 60s timeout
+const RETRY_INTERVAL = 1000; // 1s retry interval
+const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
 async function removeEnvContent(
   filePath: string,
   networkType: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
@@ -143,6 +147,130 @@ function buildContract(projectPath: string): string[][] {
   return [modules, dependencies];
 }
 
+interface ObjectChange {
+  type: string;
+  objectType?: string;
+  packageId?: string;
+  objectId?: string;
+}
+
+async function waitForNode(dubhe: Dubhe): Promise<string> {
+  let retryCount = 0;
+  let spinnerIndex = 0;
+  const startTime = Date.now();
+  let isInterrupted = false;
+  let chainId = '';
+  let hasShownBalanceWarning = false;
+
+  const handleInterrupt = () => {
+    isInterrupted = true;
+    process.stdout.write('\r' + ' '.repeat(50) + '\r');
+    console.log('\n  └─ Operation cancelled by user');
+    process.exit(0);
+  };
+  process.on('SIGINT', handleInterrupt);
+
+  try {
+    // 第一阶段：等待获取 chainId
+    while (retryCount < MAX_RETRIES && !isInterrupted && !chainId) {
+      try {
+        chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
+      } catch (error) {
+        // 忽略错误，继续重试
+      }
+      
+      if (isInterrupted) break;
+      
+      if (!chainId) {
+        retryCount++;
+        if (retryCount === MAX_RETRIES) {
+          console.log(chalk.red(`  └─ Failed to connect to node after ${MAX_RETRIES} attempts`));
+          console.log(chalk.red('  └─ Please check if the Sui node is running.'));
+          process.exit(1);
+        }
+        
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        const spinner = SPINNER[spinnerIndex % SPINNER.length];
+        spinnerIndex++;
+        
+        process.stdout.write(`\r  ├─ ${spinner} Waiting for node... (${elapsedTime}s)`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+      }
+    }
+
+    // 显示 chainId
+    process.stdout.write('\r' + ' '.repeat(50) + '\r');
+    console.log(`  ├─ ChainId: ${chainId}`);
+
+    // 第二阶段：检查部署账户余额
+    retryCount = 0;
+    while (retryCount < MAX_RETRIES && !isInterrupted) {
+      try {
+        const address = dubhe.getAddress();
+        const coins = await dubhe.suiInteractor.currentClient.getCoins({
+          owner: address,
+          coinType: '0x2::sui::SUI'
+        });
+        
+        if (coins.data.length > 0) {
+          const balance = coins.data.reduce((sum, coin) => sum + Number(coin.balance), 0);
+          if (balance > 0) {
+            process.stdout.write('\r' + ' '.repeat(50) + '\r');
+            console.log(`  ├─ Deployer balance: ${balance} SUI`);
+            return chainId;
+          } else if (!hasShownBalanceWarning) {
+            process.stdout.write('\r' + ' '.repeat(50) + '\r');
+            console.log(chalk.yellow(`  ├─ Deployer balance: 0 SUI, please ensure your account has sufficient SUI balance`));
+            hasShownBalanceWarning = true;
+          }
+        } else if (!hasShownBalanceWarning) {
+          process.stdout.write('\r' + ' '.repeat(50) + '\r');
+          console.log(chalk.yellow(`  ├─ No SUI coins found in deployer account, please ensure your account has sufficient SUI balance`));
+          hasShownBalanceWarning = true;
+        }
+        
+        retryCount++;
+        if (retryCount === MAX_RETRIES) {
+          console.log(chalk.red(`  └─ Deployer account has no SUI balance after ${MAX_RETRIES} attempts`));
+          console.log(chalk.red('  └─ Please ensure your account has sufficient SUI balance.'));
+          process.exit(1);
+        }
+        
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        const spinner = SPINNER[spinnerIndex % SPINNER.length];
+        spinnerIndex++;
+        
+        process.stdout.write(`\r  ├─ ${spinner} Checking deployer balance... (${elapsedTime}s)`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+      } catch (error) {
+        if (isInterrupted) break;
+        
+        retryCount++;
+        if (retryCount === MAX_RETRIES) {
+          console.log(chalk.red(`  └─ Failed to check deployer balance after ${MAX_RETRIES} attempts`));
+          console.log(chalk.red('  └─ Please check your account and network connection.'));
+          process.exit(1);
+        }
+        
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        const spinner = SPINNER[spinnerIndex % SPINNER.length];
+        spinnerIndex++;
+        
+        process.stdout.write(`\r  ├─ ${spinner} Checking deployer balance... (${elapsedTime}s)`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+      }
+    }
+  } finally {
+    process.removeListener('SIGINT', handleInterrupt);
+  }
+
+  if (isInterrupted) {
+    process.exit(0);
+  }
+
+  throw new Error('Failed to connect to node');
+}
+
 async function publishContract(
   dubhe: Dubhe,
   dubheConfig: DubheConfig,
@@ -150,14 +278,16 @@ async function publishContract(
   projectPath: string,
   gasBudget?: number
 ) {
-  const chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
-  await removeEnvContent(`${projectPath}/Move.lock`, network);
   console.log('\n🚀 Starting Contract Publication...');
   console.log(`  ├─ Project: ${projectPath}`);
   console.log(`  ├─ Network: ${network}`);
+  console.log('  ├─ Waiting for node...');
+
+  const chainId = await waitForNode(dubhe);
   console.log(`  ├─ ChainId: ${chainId}`);
   console.log('  ├─ Validating Environment...');
 
+  await removeEnvContent(`${projectPath}/Move.lock`, network);
   console.log(`  └─ Account: ${dubhe.getAddress()}`);
 
   console.log('\n📦 Building Contract...');
@@ -171,16 +301,53 @@ async function publishContract(
   const [upgradeCap] = tx.publish({ modules, dependencies });
   tx.transferObjects([upgradeCap], dubhe.getAddress());
 
-  let result;
+  let result: any = null;
+  let retryCount = 0;
+  let spinnerIndex = 0;
+  const startTime = Date.now();
+  let isInterrupted = false;
+
+  const handleInterrupt = () => {
+    isInterrupted = true;
+    process.stdout.write('\r' + ' '.repeat(50) + '\r');
+    console.log('\n  └─ Operation cancelled by user');
+    process.exit(0);
+  };
+  process.on('SIGINT', handleInterrupt);
+
   try {
-    result = await dubhe.signAndSendTxn({ tx });
-  } catch (error: any) {
-    console.error(chalk.red('  └─ Publication failed'));
-    console.error(error.message);
-    process.exit(1);
+    while (retryCount < MAX_RETRIES && !result && !isInterrupted) {
+      try {
+        result = await dubhe.signAndSendTxn({ tx });
+      } catch (error) {
+        if (isInterrupted) break;
+        
+        retryCount++;
+        if (retryCount === MAX_RETRIES) {
+          console.log(chalk.red(`  └─ Publication failed after ${MAX_RETRIES} attempts`));
+          console.log(chalk.red('  └─ Please check your network connection and try again later.'));
+          process.exit(1);
+        }
+        
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        const spinner = SPINNER[spinnerIndex % SPINNER.length];
+        spinnerIndex++;
+        
+        process.stdout.write(`\r  ├─ ${spinner} Retrying... (${elapsedTime}s)`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+      }
+    }
+  } finally {
+    process.removeListener('SIGINT', handleInterrupt);
   }
 
-  if (result.effects?.status.status === 'failure') {
+  if (isInterrupted) {
+    process.exit(0);
+  }
+
+  process.stdout.write('\r' + ' '.repeat(50) + '\r');
+
+  if (!result || result.effects?.status.status === 'failure') {
     console.log(chalk.red('  └─ Publication failed'));
     process.exit(1);
   }
@@ -192,14 +359,14 @@ async function publishContract(
   let schemas = dubheConfig.schemas;
   let upgradeCapId = '';
 
-  result.objectChanges!.map((object) => {
+  result.objectChanges!.map((object: ObjectChange) => {
     if (object.type === 'published') {
       console.log(`  ├─ Package ID: ${object.packageId}`);
-      packageId = object.packageId;
+      packageId = object.packageId || '';
     }
-    if (object.type === 'created' && object.objectType === '0x2::package::UpgradeCap') {
+    if (object.type === 'created' && object.objectType && object.objectType === '0x2::package::UpgradeCap') {
       console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
-      upgradeCapId = object.objectId;
+      upgradeCapId = object.objectId || '';
     }
   });
 
@@ -236,12 +403,13 @@ async function publishContract(
     console.log(`  ├─ Transaction: ${deployHookResult.digest}`);
 
     console.log('\n📋 Created Schemas:');
-    deployHookResult.objectChanges?.map((object) => {
-      if (object.type === 'created' && object.objectType.includes('schema::Schema')) {
-        schemaId = object.objectId;
+    deployHookResult.objectChanges?.map((object: ObjectChange) => {
+      if (object.type === 'created' && object.objectType && object.objectType.includes('schema::Schema')) {
+        schemaId = object.objectId || '';
       }
       if (
         object.type === 'created' &&
+        object.objectType &&
         object.objectType.includes('schema') &&
         !object.objectType.includes('dynamic_field')
       ) {
@@ -300,24 +468,65 @@ export async function publishDubheFramework(
     return;
   }
 
-  // const chainId = await client.getChainIdentifier();
-  const chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
+  console.log('\n🚀 Starting Dubhe Framework Publication...');
+  console.log('  ├─ Waiting for node...');
+
+  const chainId = await waitForNode(dubhe);
+  console.log(`  ├─ ChainId: ${chainId}`);
+
   await removeEnvContent(`${projectPath}/Move.lock`, network);
   const [modules, dependencies] = buildContract(projectPath);
   const tx = new Transaction();
   const [upgradeCap] = tx.publish({ modules, dependencies });
   tx.transferObjects([upgradeCap], dubhe.getAddress());
 
-  let result;
+  let result: any = null;
+  let retryCount = 0;
+  let spinnerIndex = 0;
+  const startTime = Date.now();
+  let isInterrupted = false;
+
+  const handleInterrupt = () => {
+    isInterrupted = true;
+    process.stdout.write('\r' + ' '.repeat(50) + '\r');
+    console.log('\n  └─ Operation cancelled by user');
+    process.exit(0);
+  };
+  process.on('SIGINT', handleInterrupt);
+
   try {
-    result = await dubhe.signAndSendTxn({ tx });
-  } catch (error: any) {
-    console.error(chalk.red('  └─ Publication failed'));
-    console.error(error.message);
-    process.exit(1);
+    while (retryCount < MAX_RETRIES && !result && !isInterrupted) {
+      try {
+        result = await dubhe.signAndSendTxn({ tx });
+      } catch (error) {
+        if (isInterrupted) break;
+        
+        retryCount++;
+        if (retryCount === MAX_RETRIES) {
+          console.log(chalk.red(`  └─ Publication failed after ${MAX_RETRIES} attempts`));
+          console.log(chalk.red('  └─ Please check your network connection and try again later.'));
+          process.exit(1);
+        }
+        
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        const spinner = SPINNER[spinnerIndex % SPINNER.length];
+        spinnerIndex++;
+        
+        process.stdout.write(`\r  ├─ ${spinner} Retrying... (${elapsedTime}s)`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+      }
+    }
+  } finally {
+    process.removeListener('SIGINT', handleInterrupt);
   }
 
-  if (result.effects?.status.status === 'failure') {
+  if (isInterrupted) {
+    process.exit(0);
+  }
+
+  process.stdout.write('\r' + ' '.repeat(50) + '\r');
+
+  if (!result || result.effects?.status.status === 'failure') {
     console.log(chalk.red('  └─ Publication failed'));
     process.exit(1);
   }
@@ -328,12 +537,12 @@ export async function publishDubheFramework(
   let schemas: Record<string, string> = {};
   let upgradeCapId = '';
 
-  result.objectChanges!.map((object) => {
+  result.objectChanges!.map((object: ObjectChange) => {
     if (object.type === 'published') {
-      packageId = object.packageId;
+      packageId = object.packageId || '';
     }
-    if (object.type === 'created' && object.objectType === '0x2::package::UpgradeCap') {
-      upgradeCapId = object.objectId;
+    if (object.type === 'created' && object.objectType && object.objectType === '0x2::package::UpgradeCap') {
+      upgradeCapId = object.objectId || '';
     }
   });
 
@@ -355,9 +564,9 @@ export async function publishDubheFramework(
   }
 
   if (deployHookResult.effects?.status.status === 'success') {
-    deployHookResult.objectChanges?.map((object) => {
-      if (object.type === 'created' && object.objectType.includes('dubhe_schema::Schema')) {
-        schemaId = object.objectId;
+    deployHookResult.objectChanges?.map((object: ObjectChange) => {
+      if (object.type === 'created' && object.objectType && object.objectType.includes('dubhe_schema::Schema')) {
+        schemaId = object.objectId || '';
       }
     });
   }

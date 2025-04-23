@@ -7,12 +7,18 @@ const commandModule: CommandModule = {
   describe: 'Manage local Sui node',
 
   builder(yargs) {
-    return yargs;
+    return yargs
+      .option('force-regenesis', {
+        alias: 'f',
+        type: 'boolean',
+        description: 'Force regenesis the local node',
+        default: true
+      });
   },
 
-  async handler() {
+  async handler(argv) {
     try {
-      await startLocalNode();
+      await startLocalNode({ forceRegenesis: argv['force-regenesis'] as boolean });
     } catch (error) {
       console.error('Error executing command:', error);
       process.exit(1);
