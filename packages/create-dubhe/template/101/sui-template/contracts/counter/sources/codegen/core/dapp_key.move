@@ -8,7 +8,7 @@
 
   /// Authorization token for the app.
 
-  public struct DappKey has drop {}
+  public struct DappKey has copy, drop {}
 
   public(package) fun new(): DappKey {
     DappKey {  }

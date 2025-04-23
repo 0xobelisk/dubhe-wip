@@ -46,3 +46,6 @@ contracts/dubhe-framework/Move.lock
 **/build/
 src/chain/key.ts
 indexer.db
+node_logs
+mprocs.log
+.data/
