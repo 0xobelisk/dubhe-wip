@@ -1,6 +1,6 @@
 'use client';
 
-import { loadMetadata, Dubhe, Transaction, TransactionResult } from '@0xobelisk/sui-client';
+import { loadMetadata, Dubhe, Transaction, TransactionResult, SubscriptionKind } from '@0xobelisk/sui-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '@/app/state';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 export default function Home() {
   const [value, setValue] = useAtom(Value);
   const [loading, setLoading] = useState(false);
+  const [subscription, setSubscription] = useState<WebSocket | null>(null);
 
   /**
    * Fetches the current value of the counter contract
@@ -22,14 +23,11 @@ export default function Home() {
       packageId: PACKAGE_ID,
       metadata: metadata,
     });
-    const tx = new Transaction();
-    const counterValue = await dubhe.state({
-      tx,
-      schema: 'value', // schema name in dubhe.config.ts
-      params: [tx.object(SCHEMA_ID)],
+    const counterStorage = await dubhe.getStorageItem({
+      name: 'value',
     });
-    console.log('Counter value:', counterValue);
-    setValue(counterValue[0]);
+    console.log('counter Storage ', counterStorage);
+    setValue(counterStorage.value);
   };
 
   /**
@@ -54,7 +52,6 @@ export default function Home() {
       tx,
       onSuccess: async result => {
         setTimeout(async () => {
-          await queryCounterValue();
           toast('Transaction Successful', {
             description: new Date().toUTCString(),
             action: {
@@ -75,8 +72,50 @@ export default function Home() {
     setLoading(false);
   };
 
+  const subscribeToCounter = async (dubhe: Dubhe) => {
+    try {
+      const sub = await dubhe.subscribe(
+        [
+          {
+            kind: SubscriptionKind.Schema,
+            name: 'value',
+          },
+        ],
+        data => {
+          console.log('Received increment event:', data);
+
+          // Update counter value after receiving event
+          setValue(data.value);
+          toast('Counter Updated', {
+            description: `New value has been updated`,
+          });
+        },
+      );
+      setSubscription(sub);
+    } catch (error) {
+      console.error('Failed to subscribe to events:', error);
+    }
+  };
+
   useEffect(() => {
-    queryCounterValue();
+    const initSubscription = async () => {
+      const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
+      const dubhe = new Dubhe({
+        networkType: NETWORK,
+        packageId: PACKAGE_ID,
+        metadata: metadata,
+      });
+      await subscribeToCounter(dubhe);
+      await queryCounterValue();
+    };
+
+    initSubscription();
+
+    return () => {
+      if (subscription) {
+        subscription.close();
+      }
+    };
   }, []);
 
   return (
