@@ -103,17 +103,6 @@ export async function startLocalNode(options: { forceRegenesis?: boolean } = {})
       stdio: 'ignore'  // 使用 ignore 隐藏日志输出
     });
 
-    // 处理进程退出
-    suiProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.error(chalk.red('\n❌ Local Node Stopped Unexpectedly'));
-        console.error(chalk.red(`  └─ Exit Code: ${code}`));
-      } else {
-        console.log(chalk.green('\n✅ Local Node Stopped Gracefully'));
-      }
-      process.exit(code || 0);
-    });
-
     // 处理中断信号
     const handleSigInt = () => {
       console.log(chalk.yellow('\n🔔 Stopping Local Node...'));
