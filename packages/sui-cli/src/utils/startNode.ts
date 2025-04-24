@@ -1,7 +1,7 @@
 import { execSync, spawn } from 'child_process';
 import chalk from 'chalk';
 import { printDubhe } from './printDubhe';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, appendFileSync } from 'fs';
 import { join } from 'path';
 
 function isSuiStartRunning(): boolean {
@@ -63,6 +63,64 @@ async function printAccounts() {
   );
 }
 
+async function setupDirectories() {
+  const nodeLogsDir = join(process.cwd(), 'node_logs');
+  const logsDir = join(nodeLogsDir, 'logs');
+  
+  if (!existsSync(nodeLogsDir)) {
+    mkdirSync(nodeLogsDir, { recursive: true });
+  }
+  
+  if (!existsSync(logsDir)) {
+    mkdirSync(logsDir, { recursive: true });
+  }
+  
+  return { nodeLogsDir, logsDir };
+}
+
+async function generateGenesisConfig(nodeLogsDir: string, logsDir: string) {
+  console.log('  ├─ Generating genesis configuration...');
+  execSync(`sui genesis --write-config ${join(nodeLogsDir, 'sui.yaml')}`);
+  
+  const additionalConfig = `
+  - address: "0xe7f93ad7493035bcd674f287f78526091e195a6df9d64f23def61a7ce3adada9"
+    gas_amounts:
+      - 100000000000000
+  - address: "0x492404a537c32b46610bd6ae9f7f16ba16ff5a607d272543fe86cada69d8cf44"
+    gas_amounts:
+      - 100000000000000
+  - address: "0xd27e203483700d837a462d159ced6104619d8e36f737bf2a20c251153bf39f24"
+    gas_amounts:
+      - 100000000000000
+  - address: "0x018f1f175c9b6739a14bc9c81e7984c134ebf9031015cf796fefcef04b8c4990"
+    gas_amounts:
+      - 100000000000000
+  - address: "0x932f6aab2bc636a25374f99794dc8451c4e27c91e87083e301816ed08bc98ed0"
+    gas_amounts:
+      - 100000000000000
+  - address: "0x9a66b2da3036badd22529e3de8a00b0cd7dbbfe589873aa03d5f885f5f8c6501"
+    gas_amounts:
+      - 100000000000000
+`;
+  appendFileSync(join(nodeLogsDir, 'sui.yaml'), additionalConfig);
+  
+  console.log('  ├─ Initializing genesis...');
+  execSync(`sui genesis --working-dir ${logsDir} -f --from-config ${join(nodeLogsDir, 'sui.yaml')}`);
+}
+
+function handleProcessSignals(suiProcess: ReturnType<typeof spawn> | null) {
+  const cleanup = () => {
+    console.log(chalk.yellow('\n🔔 Stopping Local Node...'));
+    if (suiProcess) {
+      suiProcess.kill('SIGINT');
+    }
+    process.exit(0);
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+}
+
 export async function startLocalNode(options: { forceRegenesis?: boolean } = {}) {
   if (isSuiStartRunning()) {
     console.log(chalk.yellow('\n⚠️  Warning: Local Node Already Running'));
@@ -71,22 +129,17 @@ export async function startLocalNode(options: { forceRegenesis?: boolean } = {})
     return;
   }
 
-  // 确保 node_logs 目录存在
-  const nodeLogsDir = join(process.cwd(), 'node_logs');
-  if (!existsSync(nodeLogsDir)) {
-    console.log(chalk.yellow('  ├─ Creating node_logs directory...'));
-    mkdirSync(nodeLogsDir, { recursive: true });
-  }
-
   printDubhe();
   console.log('🚀 Starting Local Node...');
+  
   let suiProcess: ReturnType<typeof spawn> | null = null;
 
   try {
+    const { nodeLogsDir, logsDir } = await setupDirectories();
+
     if (options.forceRegenesis) {
       console.log('  ├─ Force Regenesis: Yes');
-      // 执行 genesis 命令
-      execSync(`sui genesis --working-dir node_logs -f --from-config sui.yaml`);
+      await generateGenesisConfig(nodeLogsDir, logsDir);
     } else {
       console.log('  ├─ Force Regenesis: No');
     }
@@ -94,28 +147,21 @@ export async function startLocalNode(options: { forceRegenesis?: boolean } = {})
     console.log('  ├─ Faucet: Enabled');
     console.log('  └─ HTTP server: http://127.0.0.1:9000/');
     console.log('  └─ Faucet server: http://127.0.0.1:9123/');
-    printAccounts();
+    await printAccounts();
     console.log(chalk.green('🎉 Local environment is ready!'));
 
-    // 在前台启动 sui 节点，但不显示日志
-    suiProcess = spawn('sui', ['start', '--with-faucet', '--network.config', 'node_logs/network.yaml'], {
+    suiProcess = spawn('sui', [
+      'start',
+      '--with-faucet',
+      '--network.config',
+      join(logsDir, 'network.yaml')
+    ], {
       env: { ...process.env, RUST_LOG: 'off,sui_node=info' },
-      stdio: 'ignore'  // 使用 ignore 隐藏日志输出
+      stdio: 'ignore'
     });
 
-    // 处理中断信号
-    const handleSigInt = () => {
-      console.log(chalk.yellow('\n🔔 Stopping Local Node...'));
-      if (suiProcess) {
-        suiProcess.kill('SIGINT');
-      }
-      process.exit(0);
-    };
+    handleProcessSignals(suiProcess);
 
-    process.on('SIGINT', handleSigInt);
-    process.on('SIGTERM', handleSigInt);
-
-    // 等待进程结束
     await new Promise<void>((resolve) => {
       suiProcess?.on('exit', () => resolve());
     });
