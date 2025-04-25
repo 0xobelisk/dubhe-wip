@@ -56,7 +56,7 @@ In early development, Dubhe aims to reduce project setup time from days to hours
 | [@0xobelisk/initia-client](./packages/initia-client) | Initia TypeScript Client | [![npm](https://img.shields.io/npm/v/@0xobelisk/initia-client.svg)](https://www.npmjs.com/package/@0xobelisk/initia-client) |
 
 ## 🗒 Quick Links
-- 📚 [Documentation](https://obelisk.build/docs)
+- 📚 [Documentation](https://dubhe-docs.obelisk.build/)
 - 🚀 [Quick Start Guide](https://dubhe-docs.obelisk.build/dubhe/sui/quick-start)
 - 💬 [Join our Telegram](https://t.me/+0_98p03Fbv1hNzY1)
 - 🐛 [Report Issues](https://github.com/0xobelisk/dubhe/issues)
