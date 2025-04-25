@@ -57,7 +57,7 @@ In early development, Dubhe aims to reduce project setup time from days to hours
 
 ## 🗒 Quick Links
 - 📚 [Documentation](https://obelisk.build/docs)
-- 🚀 [Quick Start Guide](https://dubhe.obelisk.build/dubhe/sui/quick-start)
+- 🚀 [Quick Start Guide](https://dubhe-docs.obelisk.build/dubhe/sui/quick-start)
 - 💬 [Join our Telegram](https://t.me/+0_98p03Fbv1hNzY1)
 - 🐛 [Report Issues](https://github.com/0xobelisk/dubhe/issues)
 
