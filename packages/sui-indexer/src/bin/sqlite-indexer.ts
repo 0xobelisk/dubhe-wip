@@ -263,9 +263,11 @@ const schemaId = argv.schemaId || (await getSchemaId(projectPath, argv.network))
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const syncInterval = argv.network === 'localnet' ? 500 : argv.syncInterval;
+
 while (true) {
   const lastTxRecord = await getLastTxRecord(database);
-  await delay(argv.syncInterval);
+  await delay(syncInterval);
   if (argv.debug) {
     logger.info('Syncing transactions...');
   }

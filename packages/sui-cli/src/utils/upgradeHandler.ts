@@ -229,13 +229,17 @@ in your contracts directory to use the default sui private key.`
 
     const migrateTx = new Transaction();
     const newVersion = oldVersion + 1;
+    let args = [];
+    if (name !== 'dubhe') {
+      let dubheSchemaId = await getSchemaId(`${process.cwd()}/contracts/dubhe-framework`, network);
+      args.push(migrateTx.object(dubheSchemaId));
+    }
+    args.push(migrateTx.object(schemaId));
+    args.push(migrateTx.pure.address(newPackageId));
+    args.push(migrateTx.pure.u32(newVersion));
     migrateTx.moveCall({
       target: `${newPackageId}::${name}_migrate::migrate_to_v${newVersion}`,
-      arguments: [
-        migrateTx.object(schemaId),
-        migrateTx.pure.address(newPackageId),
-        migrateTx.pure.u32(newVersion)
-      ]
+      arguments: args
     });
 
     await dubhe.signAndSendTxn({

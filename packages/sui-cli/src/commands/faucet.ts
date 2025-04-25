@@ -9,6 +9,10 @@ type Options = {
   recipient?: string;
 };
 
+const MAX_RETRIES = 60; // 60s timeout
+const RETRY_INTERVAL = 1000; // 1s retry interval
+const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
 const commandModule: CommandModule<Options, Options> = {
   command: 'faucet',
 
@@ -63,10 +67,56 @@ const commandModule: CommandModule<Options, Options> = {
     }
 
     console.log('  ├─ Requesting funds from faucet...');
-    await requestSuiFromFaucetV0({
-      host: getFaucetHost(network),
-      recipient: faucet_address
-    });
+    
+    let retryCount = 0;
+    let success = false;
+    let spinnerIndex = 0;
+    const startTime = Date.now();
+    let isInterrupted = false;
+
+    // 设置 SIGINT 处理
+    const handleInterrupt = () => {
+      isInterrupted = true;
+      process.stdout.write('\r' + ' '.repeat(50) + '\r');
+      console.log('\n  └─ Operation cancelled by user');
+      process.exit(0);
+    };
+    process.on('SIGINT', handleInterrupt);
+    
+    try {
+      while (retryCount < MAX_RETRIES && !success && !isInterrupted) {
+        try {
+          await requestSuiFromFaucetV0({
+            host: getFaucetHost(network),
+            recipient: faucet_address
+          });
+          success = true;
+        } catch (error) {
+          if (isInterrupted) break;
+          
+          retryCount++;
+          if (retryCount === MAX_RETRIES) {
+            console.log(`  └─ Failed to request funds after ${MAX_RETRIES} attempts.`);
+            console.log('  └─ Please check your network connection and try again later.');
+            process.exit(1);
+          }
+          
+          const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+          const spinner = SPINNER[spinnerIndex % SPINNER.length];
+          spinnerIndex++;
+          
+          process.stdout.write(`\r  ├─ ${spinner} Retrying... (${elapsedTime}s)`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+        }
+      }
+    } finally {
+      process.removeListener('SIGINT', handleInterrupt);
+    }
+    
+    if (isInterrupted) {
+      process.exit(0);
+    }
+    process.stdout.write('\r' + ' '.repeat(50) + '\r');
 
     console.log('  └─ Checking balance...');
     const client = new SuiClient({ url: getFullnodeUrl(network) });

@@ -7,8 +7,15 @@
   module counter::counter_deploy_hook {
 
   use counter::counter_schema::Schema;
+  use counter::counter_dapp_key;
+  use dubhe::dubhe_schema::Schema as DubheSchema;
 
-  public(package) fun run(_schema: &mut Schema, _ctx: &mut TxContext) {
-    _schema.value().set(0);
+  public(package) fun run(_dubhe_schema: &mut DubheSchema, _schema: &mut Schema, _ctx: &mut TxContext) {
+    let dapp_key = counter_dapp_key::new();
+    _schema.value().set(
+      _dubhe_schema,
+      dapp_key,
+      0,
+    );
   }
 }

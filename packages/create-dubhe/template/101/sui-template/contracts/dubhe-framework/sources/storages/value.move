@@ -3,8 +3,7 @@ module dubhe::storage_value;
 use std::ascii::{String, string};
 use sui::dynamic_field as field;
 use dubhe::storage_event;
-use std::option::some;
-use std::option::none;
+use dubhe::dubhe_schema::Schema;
 
 public struct StorageValue<phantom V: copy + drop + store> has key, store {
     /// the ID of this Storage
@@ -25,12 +24,13 @@ public fun new<V: copy + drop + store>(name: vector<u8>, ctx: &mut TxContext): S
 }
 
 /// Adds a key-value pair to the table `table: &mut Table<K, V>`
-public fun set<V: copy + drop + store>(table: &mut StorageValue<V>, v: V) {
+public fun set<V: copy + drop + store, DappKey: copy + drop>(table: &mut StorageValue<V>, dubhe_schema: &mut Schema, _: DappKey, v: V) {
+    dubhe::dubhe_assets_functions::charge_set_fee<DappKey>(dubhe_schema);
     if (table.contains()) {
         field::remove<u8, V>(&mut table.id, 0);
     };
     field::add<u8, V>(&mut table.id, 0, v);
-    storage_event::emit_set_record<u8, u8, V>(table.name, none(), none(), some(v));
+    storage_event::storage_value_set(table.name, v);
 }
 
 /// Immutable borrows the value associated with the key in the table `table: &Table<K, V>`.
@@ -53,11 +53,10 @@ public fun get<V: copy + drop + store>(table: &StorageValue<V>): &V {
 /// Removes the key-value pair in the table `table: &mut Table<K, V>` and returns the value.
 /// Aborts with `sui::dynamic_field::EFieldDoesNotExist` if the table does not have an entry with
 /// that key `k: K`.
-public fun remove<V: copy + drop + store>(table: &mut StorageValue<V>) {
-    if (table.contains()) {
-        field::remove<u8, V>(&mut table.id, 0);
-        storage_event::emit_remove_record<u8, u8>(table.name, none(), none());
-    }
+public fun remove<V: copy + drop + store>(table: &mut StorageValue<V>): V {
+    let v = field::remove<u8, V>(&mut table.id, 0);
+    storage_event::storage_value_remove<V>(table.name);
+    v
 }
 
 /// Removes the key-value pair in the table `table: &mut Table<K, V>` and returns the value.
@@ -66,7 +65,7 @@ public fun remove<V: copy + drop + store>(table: &mut StorageValue<V>) {
 public fun try_remove<V: copy + drop + store>(table: &mut StorageValue<V>): Option<V> {
     if (table.contains()) {
         let v = field::remove<u8, V>(&mut table.id, 0);
-        storage_event::emit_remove_record<u8, u8>(table.name, none(), none());
+        storage_event::storage_value_remove<V>(table.name);
         option::some(v)
     } else {
         option::none()

@@ -4,8 +4,7 @@ use std::ascii::String;
 use std::ascii::string;
 use sui::dynamic_field as field;
 use dubhe::storage_event;
-use std::option::some;
-use std::option::none;
+use dubhe::dubhe_schema::Schema;
 
 public struct StorageMap<phantom K: copy + drop + store, phantom V: copy + drop + store> has key, store {
     /// the ID of this Storage
@@ -26,7 +25,8 @@ public fun new<K: copy + drop + store, V: copy + drop + store>(name: vector<u8>,
 }
 
 /// Adds a key-value pair to the table `table: &mut Table<K, V>`
-public fun set<K: copy + drop + store, V: copy + drop + store>(table: &mut StorageMap<K, V>, k: K, v: V) {
+public fun set<K: copy + drop + store, V: copy + drop + store, DappKey: copy + drop>(table: &mut StorageMap<K, V>, dubhe_schema: &mut Schema, _: DappKey, k: K, v: V) {
+    dubhe::dubhe_assets_functions::charge_set_fee<DappKey>(dubhe_schema);
     if (table.contains(k)) {
         field::remove<K, V>(&mut table.id, k);
         field::add(&mut table.id, k, v);
@@ -34,7 +34,7 @@ public fun set<K: copy + drop + store, V: copy + drop + store>(table: &mut Stora
         field::add(&mut table.id, k, v);
         table.size = table.size + 1;
     };
-    storage_event::emit_set_record<K, K, V>(table.name, some(k), none(), some(v));
+    storage_event::storage_map_set(table.name, k, v);
 }
 
 /// Immutable borrows the value associated with the key in the table `table: &Table<K, V>`.
@@ -61,7 +61,7 @@ public fun remove<K: copy + drop + store, V: copy + drop + store>(table: &mut St
     if (table.contains(k)) {
         field::remove<K, V>(&mut table.id, k);
         table.size = table.size - 1;
-        storage_event::emit_remove_record<K, K>(table.name, some(k), none());
+        storage_event::storage_map_remove(table.name, k);
     }
 }
 
@@ -72,7 +72,7 @@ public fun try_remove<K: copy + drop + store, V: copy + drop + store>(table: &mu
     if (table.contains(k)) {
         let v = field::remove(&mut table.id, k);
         table.size = table.size - 1;
-        storage_event::emit_remove_record<K, K>(table.name, some(k), none());
+        storage_event::storage_map_remove(table.name, k);
         option::some(v)
     } else {
         option::none()
