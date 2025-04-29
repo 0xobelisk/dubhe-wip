@@ -1,5 +1,5 @@
 import type { CommandModule } from 'yargs';
-import { requestSuiFromFaucetV2, getFaucetHost } from '@mysten/sui/faucet';
+import { requestSuiFromFaucetV0, getFaucetHost } from '@mysten/sui/faucet';
 import { SuiClient, getFullnodeUrl, GetBalanceParams } from '@mysten/sui/client';
 import { initializeDubhe } from '../utils';
 
@@ -70,7 +70,7 @@ const commandModule: CommandModule<Options, Options> = {
     try {
       while (retryCount < MAX_RETRIES && !success && !isInterrupted) {
         try {
-          await requestSuiFromFaucetV2({
+          await requestSuiFromFaucetV0({
             host: getFaucetHost(network),
             recipient: faucet_address
           });
