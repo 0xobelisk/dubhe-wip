@@ -6,6 +6,8 @@ import { FsIibError } from './errors';
 import * as fs from 'fs';
 import chalk from 'chalk';
 import { spawn } from 'child_process';
+import { Dubhe, NetworkType, SuiMoveNormalizedModules } from '@0xobelisk/sui-client';
+import { DubheCliError } from './errors';
 
 export type DeploymentJsonType = {
   projectName: string;
@@ -58,15 +60,49 @@ export async function updateVersionInFile(projectPath: string, newVersion: strin
   }
 }
 
-async function getDeploymentJson(projectPath: string, network: string) {
+export async function getDeploymentJson(
+  projectPath: string,
+  network: string
+): Promise<DeploymentJsonType> {
   try {
     const data = await fsAsync.readFile(
       `${projectPath}/.history/sui_${network}/latest.json`,
       'utf8'
     );
     return JSON.parse(data) as DeploymentJsonType;
-  } catch {
-    throw new FsIibError('Fs read deployment file failed.');
+  } catch (error) {
+    throw new Error(`read .history/sui_${network}/latest.json failed. ${error}`);
+  }
+}
+
+export async function getDeploymentSchemaId(projectPath: string, network: string): Promise<string> {
+  try {
+    const data = await fsAsync.readFile(
+      `${projectPath}/.history/sui_${network}/latest.json`,
+      'utf8'
+    );
+    const deployment = JSON.parse(data) as DeploymentJsonType;
+    return deployment.schemaId;
+  } catch (error) {
+    return '';
+  }
+}
+
+export async function getDubheSchemaId(network: string) {
+  const path = process.cwd();
+  const contractPath = `${path}/contracts/dubhe`;
+
+  switch (network) {
+    case 'mainnet':
+      return await getDeploymentSchemaId(contractPath, 'mainnet');
+    case 'testnet':
+      return '0xa565cbb3641fff8f7e8ef384b215808db5f1837aa72c1cca1803b5d973699aac';
+    case 'devnet':
+      return await getDeploymentSchemaId(contractPath, 'devnet');
+    case 'localnet':
+      return await getDeploymentSchemaId(contractPath, 'localnet');
+    default:
+      throw new Error(`Invalid network: ${network}`);
   }
 }
 
@@ -200,3 +236,38 @@ export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'loc
 }
 
 export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function loadKey(): string {
+  const privateKey = process.env.PRIVATE_KEY || process.env.NEXT_PUBLIC_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new DubheCliError(
+      `Missing private key environment variable.
+  Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
+  or 'echo "NEXT_PUBLIC_PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
+  in your contracts directory to use the default sui private key.`
+    );
+  }
+  const privateKeyFormat = validatePrivateKey(privateKey);
+  if (privateKeyFormat === false) {
+    throw new DubheCliError(`Please check your privateKey.`);
+  }
+  return privateKeyFormat;
+}
+
+export function initializeDubhe({
+  network,
+  packageId,
+  metadata
+}: {
+  network: NetworkType;
+  packageId?: string;
+  metadata?: SuiMoveNormalizedModules;
+}): Dubhe {
+  const privateKey = loadKey();
+  return new Dubhe({
+    networkType: network,
+    secretKey: privateKey,
+    packageId,
+    metadata
+  });
+}

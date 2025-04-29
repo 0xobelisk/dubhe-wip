@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '@/app/state';
 import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '@/chain/config';
-import { PRIVATEKEY } from '@/chain/key';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -40,7 +39,7 @@ export default function Home() {
       networkType: NETWORK,
       packageId: PACKAGE_ID,
       metadata: metadata,
-      secretKey: PRIVATEKEY,
+      secretKey: process.env.NEXT_PUBLIC_PRIVATE_KEY,
     });
     const tx = new Transaction();
     (await dubhe.tx.counter_system.inc({

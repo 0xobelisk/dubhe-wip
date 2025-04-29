@@ -1,36 +1,19 @@
-import * as fsAsync from 'fs/promises';
 import { mkdirSync, writeFileSync } from 'fs';
 import { dirname } from 'path';
-import { DeploymentJsonType } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
-
-async function getDeploymentJson(
-  projectPath: string,
-  network: string
-): Promise<DeploymentJsonType> {
-  try {
-    const data = await fsAsync.readFile(
-      `${projectPath}/.history/sui_${network}/latest.json`,
-      'utf8'
-    );
-    return JSON.parse(data) as DeploymentJsonType;
-  } catch (error) {
-    throw new Error(`read .history/sui_${network}/latest.json failed. ${error}`);
-  }
-}
+import { getDeploymentJson, getDubheSchemaId } from './utils';
 
 function storeConfig(network: string, packageId: string, schemaId: string, outputPath: string) {
+  const dubheSchemaId = getDubheSchemaId(network);
   let code = `type NetworkType = 'testnet' | 'mainnet' | 'devnet' | 'localnet';
 
 export const NETWORK: NetworkType = '${network}';
 export const PACKAGE_ID = '${packageId}'
 export const SCHEMA_ID = '${schemaId}'
+export const DUBHE_SCHEMA_ID = '${dubheSchemaId}'
 `;
 
-  // if (outputPath) {
   writeOutput(code, outputPath, 'storeConfig');
-  // writeOutput(code, `${path}/src/chain/config.ts`, 'storeConfig');
-  // }
 }
 
 async function writeOutput(

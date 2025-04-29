@@ -4,8 +4,6 @@ procs:
     shell: pnpm dubhe node -f
   deploy:
     shell: pnpm dubhe publish && pnpm dubhe config-store --output-ts-path ./src/chain/config.ts --network localnet
-    env:
-      PRIVATE_KEY: "suiprivkey1qq3ez3dje66l8pypgxynr7yymwps6uhn7vyczespj84974j3zya0wdpu76v"
   indexer:
     shell: sleep 25 && pnpm sqlite-indexer --force-regenesis
   # frontend:

@@ -1,16 +1,16 @@
-import { Dubhe, Transaction, UpgradePolicy } from '@0xobelisk/sui-client';
+import { Transaction, UpgradePolicy } from '@0xobelisk/sui-client';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
-import { DubheCliError, UpgradeError } from './errors';
+import { UpgradeError } from './errors';
 import {
   getOldPackageId,
   getVersion,
   getUpgradeCap,
   saveContractData,
-  validatePrivateKey,
   getOnchainSchemas,
   switchEnv,
-  getSchemaId
+  getSchemaId,
+  initializeDubhe
 } from './utils';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -97,21 +97,9 @@ export async function upgradeHandler(
 
   const path = process.cwd();
   const projectPath = `${path}/contracts/${name}`;
-  const privateKey = process.env.PRIVATE_KEY;
-  if (!privateKey)
-    throw new DubheCliError(
-      `Missing PRIVATE_KEY environment variable.
-Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
-in your contracts directory to use the default sui private key.`
-    );
 
-  const privateKeyFormat = validatePrivateKey(privateKey);
-  if (privateKeyFormat === false) {
-    throw new DubheCliError(`Please check your privateKey.`);
-  }
-  const dubhe = new Dubhe({
-    networkType: network,
-    secretKey: privateKeyFormat
+  const dubhe = initializeDubhe({
+    network
   });
 
   let oldVersion = Number(await getVersion(projectPath, network));
@@ -248,7 +236,9 @@ in your contracts directory to use the default sui private key.`
         console.log(chalk.green(`Migration Transaction Digest: ${result.digest}`));
       },
       onError: (error) => {
-        console.log(chalk.red('Migration Transaction failed!, Please execute the migration manually.'));
+        console.log(
+          chalk.red('Migration Transaction failed!, Please execute the migration manually.')
+        );
         console.error(error);
       }
     });
