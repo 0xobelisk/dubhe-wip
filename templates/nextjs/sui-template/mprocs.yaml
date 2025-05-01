@@ -1,0 +1,8 @@
+scrollback: 10000
+procs:
+  frontend:
+    shell: pnpm wait-on http://127.0.0.1:3001/ && pnpm start:frontend
+  node:
+    shell: pnpm dubhe node -f
+  deploy:
+    shell: pnpm wait-on http://127.0.0.1:9123/ && pnpm setup:localnet

@@ -1,6 +1,12 @@
 'use client';
 
-import { loadMetadata, Dubhe, Transaction, TransactionResult, SubscriptionKind } from '@0xobelisk/sui-client';
+import {
+  loadMetadata,
+  Dubhe,
+  Transaction,
+  TransactionResult,
+  SubscriptionKind
+} from '@0xobelisk/sui-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '@/app/state';
@@ -20,10 +26,10 @@ export default function Home() {
     const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
-      metadata: metadata,
+      metadata: metadata
     });
     const counterStorage = await dubhe.getStorageItem({
-      name: 'value',
+      name: 'value'
     });
     console.log('counter Storage ', counterStorage);
     setValue(counterStorage.value);
@@ -33,40 +39,39 @@ export default function Home() {
    * Increments the counter value
    */
   const incrementCounter = async () => {
-    console.log('process.env.NEXT_PUBLIC_PRIVATE_KEY', process.env.NEXT_PUBLIC_PRIVATE_KEY);
     setLoading(true);
     const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
     const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
       metadata: metadata,
-      secretKey: process.env.NEXT_PUBLIC_PRIVATE_KEY,
+      secretKey: process.env.NEXT_PUBLIC_PRIVATE_KEY
     });
     const tx = new Transaction();
     (await dubhe.tx.counter_system.inc({
       tx,
       params: [tx.object(DUBHE_SCHEMA_ID), tx.object(SCHEMA_ID), tx.pure.u32(1)],
-      isRaw: true,
+      isRaw: true
     })) as TransactionResult;
     await dubhe.signAndSendTxn({
       tx,
-      onSuccess: async result => {
+      onSuccess: async (result) => {
         setTimeout(async () => {
           toast('Transaction Successful', {
             description: new Date().toUTCString(),
             action: {
               label: 'Check in Explorer',
-              onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-            },
+              onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank')
+            }
           });
         }, 200);
 
         // await dubhe.waitForTransaction(result.digest);
       },
-      onError: error => {
+      onError: (error) => {
         console.error('Transaction failed:', error);
         toast.error('Transaction failed. Please try again.');
-      },
+      }
     });
 
     setLoading(false);
@@ -78,18 +83,18 @@ export default function Home() {
         [
           {
             kind: SubscriptionKind.Schema,
-            name: 'value',
-          },
+            name: 'value'
+          }
         ],
-        data => {
+        (data) => {
           console.log('Received increment event:', data);
 
           // Update counter value after receiving event
           setValue(data.value);
           toast('Counter Updated', {
-            description: `New value has been updated`,
+            description: `New value has been updated, ${data.value}`
           });
-        },
+        }
       );
       setSubscription(sub);
     } catch (error) {
@@ -103,7 +108,7 @@ export default function Home() {
       const dubhe = new Dubhe({
         networkType: NETWORK,
         packageId: PACKAGE_ID,
-        metadata: metadata,
+        metadata: metadata
       });
       await subscribeToCounter(dubhe);
       await queryCounterValue();
@@ -125,7 +130,9 @@ export default function Home() {
           <div className="flex flex-col gap-6 mt-12">
             <div className="flex flex-col gap-4">
               You account already have some sui from {NETWORK}
-              <div className="flex flex-col gap-6 text-2xl text-green-600 mt-6 ">Counter: {value}</div>
+              <div className="flex flex-col gap-6 text-2xl text-green-600 mt-6 ">
+                Counter: {value}
+              </div>
               <div className="flex flex-col gap-6">
                 <button
                   type="button"

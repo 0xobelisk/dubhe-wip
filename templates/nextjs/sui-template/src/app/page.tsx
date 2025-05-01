@@ -1,14 +1,24 @@
 'use client';
 
-import { loadMetadata, Dubhe, Transaction, TransactionResult } from '@0xobelisk/sui-client';
-import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
+import {
+  loadMetadata,
+  Dubhe,
+  Transaction,
+  TransactionResult,
+  SubscriptionKind
+} from '@0xobelisk/sui-client';
+import {
+  ConnectButton,
+  useCurrentWallet,
+  useSignAndExecuteTransaction,
+  useCurrentAccount
+} from '@mysten/dapp-kit';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { toast } from 'sonner';
 // import { useRouter } from 'next/router';
 import { Value } from '@/app/state';
-import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '@/chain/config';
-import { PRIVATEKEY } from '@/chain/key';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID, DUBHE_SCHEMA_ID } from '@/chain/config';
 
 export default function Home() {
   //   const router = useRouter();
@@ -19,6 +29,7 @@ export default function Home() {
   const [value, setValue] = useAtom(Value);
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState<string>('0');
+  const [subscription, setSubscription] = useState<WebSocket | null>(null);
 
   /**
    * Fetches the current value of the counter contract
@@ -28,16 +39,13 @@ export default function Home() {
     const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
-      metadata: metadata,
+      metadata: metadata
     });
-    const tx = new Transaction();
-    const counterValue = await dubhe.state({
-      tx,
-      schema: 'value', // schema name in dubhe.config.ts
-      params: [tx.object(SCHEMA_ID)],
+    const counterStorage = await dubhe.getStorageItem({
+      name: 'value'
     });
-    console.log('Counter value:', counterValue);
-    setValue(counterValue[0]);
+    console.log('counter Storage ', counterStorage);
+    setValue(counterStorage.value);
   };
 
   /**
@@ -48,6 +56,7 @@ export default function Home() {
     try {
       const dubhe = new Dubhe({ networkType: NETWORK });
       const balance = await dubhe.balanceOf(address);
+      console.log('balance ', balance);
       setBalance((Number(balance.totalBalance) / 1_000_000_000).toFixed(4));
     } catch (error) {
       console.error('Failed to fetch balance:', error);
@@ -64,50 +73,92 @@ export default function Home() {
       networkType: NETWORK,
       packageId: PACKAGE_ID,
       metadata: metadata,
-      secretKey: PRIVATEKEY,
+      secretKey: process.env.NEXT_PUBLIC_PRIVATE_KEY
     });
     const tx = new Transaction();
     (await dubhe.tx.counter_system.inc({
       tx,
-      params: [tx.object(SCHEMA_ID), tx.pure.u32(1)],
-      isRaw: true,
+      params: [tx.object(DUBHE_SCHEMA_ID), tx.object(SCHEMA_ID), tx.pure.u32(1)],
+      isRaw: true
     })) as TransactionResult;
 
     await signAndExecuteTransaction(
       {
         transaction: tx.serialize(),
-        chain: `sui:${NETWORK}`,
+        chain: `sui:${NETWORK}`
       },
       {
-        onSuccess: async result => {
+        onSuccess: async (result) => {
           setTimeout(async () => {
-            await queryCounterValue();
             toast('Transaction Successful', {
               description: new Date().toUTCString(),
               action: {
                 label: 'Check in Explorer',
-                onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-              },
+                onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank')
+              }
             });
           }, 200);
         },
-        onError: error => {
+        onError: (error) => {
           console.error('Transaction failed:', error);
           toast.error('Transaction failed. Please try again.');
-        },
-      },
+        }
+      }
     );
 
     setLoading(false);
   };
 
-  // Initialize counter and balance when the component mounts and wallet is connected
-  useEffect(() => {
-    if (address) {
-      queryCounterValue();
-      getBalance();
+  const subscribeToCounter = async (dubhe: Dubhe) => {
+    try {
+      const sub = await dubhe.subscribe(
+        [
+          {
+            kind: SubscriptionKind.Schema,
+            name: 'value'
+          }
+        ],
+        (data) => {
+          console.log('Received increment event:', data);
+
+          // Update counter value after receiving event
+          setValue(data.value);
+          toast('Counter Updated', {
+            description: `New value has been updated, ${data.value}`
+          });
+        }
+      );
+      setSubscription(sub);
+    } catch (error) {
+      console.error('Failed to subscribe to events:', error);
     }
+  };
+
+  useEffect(() => {
+    getBalance();
   }, [address]);
+
+  useEffect(() => {
+    const initSubscription = async () => {
+      const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
+      const dubhe = new Dubhe({
+        networkType: NETWORK,
+        packageId: PACKAGE_ID,
+        metadata: metadata
+      });
+
+      await subscribeToCounter(dubhe);
+      await queryCounterValue();
+    };
+
+    initSubscription();
+
+    return () => {
+      if (subscription) {
+        subscription.close();
+      }
+    };
+  }, []);
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
@@ -121,7 +172,9 @@ export default function Home() {
                 <ConnectButton />
                 <div className="mt-4 text-lg">
                   {Number(balance) === 0 ? (
-                    <span className="text-red-500">Balance is 0. Please acquire some {NETWORK} tokens first.</span>
+                    <span className="text-red-500">
+                      Balance is 0. Please acquire some {NETWORK} tokens first.
+                    </span>
                   ) : (
                     <span>Balance: {balance} SUI</span>
                   )}
@@ -129,7 +182,9 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-6 mt-12">
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-6 text-2xl text-green-600 mt-6">Counter: {value}</div>
+                  <div className="flex flex-col gap-6 text-2xl text-green-600 mt-6">
+                    Counter: {value}
+                  </div>
                   <div className="flex flex-col gap-6">
                     <button
                       type="button"

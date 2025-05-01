@@ -13,9 +13,9 @@ async function storeConfig(
   let code = `type NetworkType = 'testnet' | 'mainnet' | 'devnet' | 'localnet';
 
 export const NETWORK: NetworkType = '${network}';
-export const PACKAGE_ID = '${packageId}'
-export const SCHEMA_ID = '${schemaId}'
-export const DUBHE_SCHEMA_ID = '${dubheSchemaId}'
+export const PACKAGE_ID = '${packageId}';
+export const SCHEMA_ID = '${schemaId}';
+export const DUBHE_SCHEMA_ID = '${dubheSchemaId}';
 `;
 
   writeOutput(code, outputPath, 'storeConfig');
