@@ -4,7 +4,7 @@ import { loadMetadata, Dubhe, Transaction, TransactionResult, SubscriptionKind }
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '@/app/state';
-import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '@/chain/config';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID, DUBHE_SCHEMA_ID } from '@/chain/config';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -45,7 +45,7 @@ export default function Home() {
     const tx = new Transaction();
     (await dubhe.tx.counter_system.inc({
       tx,
-      params: [tx.object(SCHEMA_ID), tx.pure.u32(1)],
+      params: [tx.object(DUBHE_SCHEMA_ID), tx.object(SCHEMA_ID), tx.pure.u32(1)],
       isRaw: true,
     })) as TransactionResult;
     await dubhe.signAndSendTxn({

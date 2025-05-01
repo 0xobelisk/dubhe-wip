@@ -90,7 +90,7 @@ export async function getDeploymentSchemaId(projectPath: string, network: string
 
 export async function getDubheSchemaId(network: string) {
   const path = process.cwd();
-  const contractPath = `${path}/contracts/dubhe`;
+  const contractPath = `${path}/contracts/dubhe-framework`;
 
   switch (network) {
     case 'mainnet':

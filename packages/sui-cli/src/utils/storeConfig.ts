@@ -3,8 +3,13 @@ import { dirname } from 'path';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import { getDeploymentJson, getDubheSchemaId } from './utils';
 
-function storeConfig(network: string, packageId: string, schemaId: string, outputPath: string) {
-  const dubheSchemaId = getDubheSchemaId(network);
+async function storeConfig(
+  network: string,
+  packageId: string,
+  schemaId: string,
+  outputPath: string
+) {
+  const dubheSchemaId = await getDubheSchemaId(network);
   let code = `type NetworkType = 'testnet' | 'mainnet' | 'devnet' | 'localnet';
 
 export const NETWORK: NetworkType = '${network}';
@@ -37,5 +42,5 @@ export async function storeConfigHandler(
   const path = process.cwd();
   const contractPath = `${path}/contracts/${dubheConfig.name}`;
   const deployment = await getDeploymentJson(contractPath, network);
-  storeConfig(deployment.network, deployment.packageId, deployment.schemaId, outputPath);
+  await storeConfig(deployment.network, deployment.packageId, deployment.schemaId, outputPath);
 }
