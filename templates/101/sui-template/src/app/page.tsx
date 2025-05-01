@@ -33,6 +33,7 @@ export default function Home() {
    * Increments the counter value
    */
   const incrementCounter = async () => {
+    console.log('process.env.NEXT_PUBLIC_PRIVATE_KEY', process.env.NEXT_PUBLIC_PRIVATE_KEY);
     setLoading(true);
     const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
     const dubhe = new Dubhe({

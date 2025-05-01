@@ -215,7 +215,7 @@ async function waitForNode(dubhe: Dubhe): Promise<string> {
           const balance = coins.data.reduce((sum, coin) => sum + Number(coin.balance), 0);
           if (balance > 0) {
             process.stdout.write('\r' + ' '.repeat(50) + '\r');
-            console.log(`  ├─ Deployer balance: ${balance} SUI`);
+            console.log(`  ├─ Deployer balance: ${balance / 10 ** 9} SUI`);
             return chainId;
           } else if (!hasShownBalanceWarning) {
             process.stdout.write('\r' + ' '.repeat(50) + '\r');
@@ -295,7 +295,6 @@ async function publishContract(
   console.log('  ├─ Waiting for node...');
 
   const chainId = await waitForNode(dubhe);
-  console.log(`  ├─ ChainId: ${chainId}`);
   console.log('  ├─ Validating Environment...');
 
   await removeEnvContent(`${projectPath}/Move.lock`, network);
@@ -491,7 +490,6 @@ export async function publishDubheFramework(
   console.log('  ├─ Waiting for node...');
 
   const chainId = await waitForNode(dubhe);
-  console.log(`  ├─ ChainId: ${chainId}`);
 
   await removeEnvContent(`${projectPath}/Move.lock`, network);
   const [modules, dependencies] = buildContract(projectPath);

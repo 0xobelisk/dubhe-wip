@@ -3,8 +3,6 @@ procs:
   node:
     shell: pnpm dubhe node -f
   deploy:
-    shell: pnpm dubhe publish && pnpm dubhe config-store --output-ts-path ./src/chain/config.ts --network localnet
-  indexer:
-    shell: sleep 25 && pnpm sqlite-indexer --force-regenesis
-  # frontend:
-  #   shell: "NEXT_PUBLIC_RETRY_CONNECTION=true pnpm next"
+    shell: pnpm wait-on http://127.0.0.1:9123/ && pnpm setup:localnet
+  frontend:
+    shell: pnpm wait-on http://127.0.0.1:3001/ && pnpm start:frontend

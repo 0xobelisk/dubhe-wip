@@ -18,26 +18,36 @@ export async function generateAccountHandler(
   }
   const path = process.cwd();
   let privateKey: string | undefined;
+  let envContent = '';
 
   // Check if .env file exists
   try {
-    const envContent = fs.readFileSync(`${path}/.env`, 'utf8');
+    envContent = fs.readFileSync(`${path}/.env`, 'utf8');
     // Check for both possible environment variables
-    const privateKeyMatch = envContent.match(/PRIVATE_KEY=(.+)/);
-    const nextPublicMatch = envContent.match(/NEXT_PUBLIC_PRIVATE_KEY=(.+)/);
+    const privateKeyMatch = envContent.match(/^PRIVATE_KEY=(.+)$/m);
+    const nextPublicMatch = envContent.match(/^NEXT_PUBLIC_PRIVATE_KEY=(.+)$/m);
 
-    if (privateKeyMatch && privateKeyMatch[1]) {
-      privateKey = privateKeyMatch[1];
-    } else if (nextPublicMatch && nextPublicMatch[1]) {
+    // Prioritize the topmost record
+    if (nextPublicMatch && nextPublicMatch[1]) {
       privateKey = nextPublicMatch[1];
+    } else if (privateKeyMatch && privateKeyMatch[1]) {
+      privateKey = privateKeyMatch[1];
     }
 
     if (privateKey) {
-      // If a key exists, decide which form to use based on the useNextPublic parameter
-      const envContent = useNextPublic
-        ? `NEXT_PUBLIC_PRIVATE_KEY=${privateKey}`
-        : `PRIVATE_KEY=${privateKey}`;
-      fs.writeFileSync(`${path}/.env`, envContent);
+      // If key exists, decide whether to update keyname based on useNextPublic
+      const newKeyName = useNextPublic ? 'NEXT_PUBLIC_PRIVATE_KEY' : 'PRIVATE_KEY';
+
+      // Check if the current keyname is already the target keyname
+      const currentKeyName = nextPublicMatch ? 'NEXT_PUBLIC_PRIVATE_KEY' : 'PRIVATE_KEY';
+      if (currentKeyName !== newKeyName) {
+        // If keyname needs to be updated, update it
+        envContent = envContent.replace(
+          new RegExp(`^${currentKeyName}=.+$`, 'm'),
+          `${newKeyName}=${privateKey}`
+        );
+        fs.writeFileSync(`${path}/.env`, envContent);
+      }
 
       const dubhe = new Dubhe({ secretKey: privateKey });
       const keypair = dubhe.getSigner();
@@ -54,11 +64,18 @@ export async function generateAccountHandler(
     const keypair = dubhe.getSigner();
     privateKey = keypair.getSecretKey();
 
-    const envContent = useNextPublic
-      ? `NEXT_PUBLIC_PRIVATE_KEY=${privateKey}`
-      : `PRIVATE_KEY=${privateKey}`;
+    const newKeyName = useNextPublic ? 'NEXT_PUBLIC_PRIVATE_KEY' : 'PRIVATE_KEY';
+    const newContent = `${newKeyName}=${privateKey}`;
+
+    // If .env file exists, append new content; otherwise create a new file
+    if (envContent) {
+      envContent = envContent.trim() + '\n' + newContent;
+    } else {
+      envContent = newContent;
+    }
+
     fs.writeFileSync(`${path}/.env`, envContent);
-    console.log(chalk.green(`File created at: ${path}/.env`));
+    console.log(chalk.green(`File created/updated at: ${path}/.env`));
 
     console.log(chalk.blue(`New account generated: ${keypair.toSuiAddress()}`));
   }

@@ -4,9 +4,6 @@
   "description": "Simple dubhe sui 101 starter template",
   "scripts": {
     "dev": "mprocs",
-    "dev:node": "pnpm dubhe node -f",
-    "dev:indexer": "pnpm sqlite-indexer --force-regenesis",
-    "dev:deploy": "pnpm dubhe publish && pnpm dubhe config-store --output-ts-path ./src/chain/config.ts --network localnet",
     "// Utility Commands": "----------------",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
@@ -14,7 +11,7 @@
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "validate": "pnpm lint && pnpm format:check && pnpm type-check",
-    "start:localnet": "pnpm dubhe node",
+    "start:localnet": "pnpm dubhe node -f",
     "faucet": "pnpm dubhe faucet --network",
     "deploy": "pnpm dubhe publish --network",
     "upgrade": "pnpm dubhe upgrade --network",
@@ -33,7 +30,8 @@
     "prod:mainnet": "pnpm config:store mainnet && pnpm run indexer:sqlite mainnet",
     "// Next Environment": "----------------",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "start:frontend": "pnpm next"
   },
   "dependencies": {
     "@0xobelisk/sui-cli": "link:../../../packages/sui-cli",
@@ -49,6 +47,7 @@
     "viem": "2.21.19"
   },
   "devDependencies": {
+    "wait-on": "^8.0.3",
     "@eslint/eslintrc": "^3",
     "@types/node": "^18",
     "@types/react": "^19",
