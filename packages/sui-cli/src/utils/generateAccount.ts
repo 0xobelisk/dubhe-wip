@@ -23,30 +23,49 @@ export async function generateAccountHandler(
   // Check if .env file exists
   try {
     envContent = fs.readFileSync(`${path}/.env`, 'utf8');
-    // Check for both possible environment variables
-    const privateKeyMatch = envContent.match(/^PRIVATE_KEY=(.+)$/m);
-    const nextPublicMatch = envContent.match(/^NEXT_PUBLIC_PRIVATE_KEY=(.+)$/m);
 
-    // Prioritize the topmost record
-    if (nextPublicMatch && nextPublicMatch[1]) {
-      privateKey = nextPublicMatch[1];
-    } else if (privateKeyMatch && privateKeyMatch[1]) {
-      privateKey = privateKeyMatch[1];
+    // privateKey = process.env.PRIVATE_KEY || process.env.NEXT_PUBLIC_PRIVATE_KEY;
+    let privateKey = process.env.PRIVATE_KEY || process.env.NEXT_PUBLIC_PRIVATE_KEY;
+    if (useNextPublic) {
+      privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY || process.env.PRIVATE_KEY;
     }
 
     if (privateKey) {
       // If key exists, decide whether to update keyname based on useNextPublic
       const newKeyName = useNextPublic ? 'NEXT_PUBLIC_PRIVATE_KEY' : 'PRIVATE_KEY';
 
-      // Check if the current keyname is already the target keyname
-      const currentKeyName = nextPublicMatch ? 'NEXT_PUBLIC_PRIVATE_KEY' : 'PRIVATE_KEY';
-      if (currentKeyName !== newKeyName) {
-        // If keyname needs to be updated, update it
-        envContent = envContent.replace(
-          new RegExp(`^${currentKeyName}=.+$`, 'm'),
-          `${newKeyName}=${privateKey}`
-        );
-        fs.writeFileSync(`${path}/.env`, envContent);
+      // Find and update the last matching line based on privateKey value
+      const lines = envContent.split('\n');
+      let shouldUpdate = false;
+
+      // First check if the last matching line already has the correct keyname
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        if (line.endsWith(privateKey)) {
+          // If useNextPublic is true, only update if the line starts with PRIVATE_KEY=
+          // If useNextPublic is false, only update if the line starts with NEXT_PUBLIC_PRIVATE_KEY=
+          const [currentKeyName] = line.split('=');
+          if (useNextPublic) {
+            shouldUpdate = currentKeyName === 'PRIVATE_KEY';
+          } else {
+            shouldUpdate = currentKeyName === 'NEXT_PUBLIC_PRIVATE_KEY';
+          }
+          break;
+        }
+      }
+
+      // Only update if necessary
+      if (shouldUpdate) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i];
+          if (line.endsWith(privateKey)) {
+            const newLine = `${newKeyName}=${privateKey}`;
+            lines[i] = newLine;
+            envContent = lines.join('\n');
+            fs.writeFileSync(`${path}/.env`, envContent);
+            break;
+          }
+        }
       }
 
       const dubhe = new Dubhe({ secretKey: privateKey });
