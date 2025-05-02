@@ -1,0 +1,11 @@
+{
+  "projectName": "counter",
+  "network": "localnet",
+  "packageId": "0x6b37515a55af792ddb547657e5ddd50fbb1e8c212a98fcd8ab6412470070a788",
+  "schemaId": "0xb12ed895e7891da6480647b0b4780a507ce1e3ff4a226057a1aab5013308bb85",
+  "schemas": {
+    "value": "StorageValue<u32>"
+  },
+  "upgradeCap": "0x293888ed23f346e519c1f7079df09c99188e3e5e32002a3374a66135e522884c",
+  "version": 1
+}

@@ -10,7 +10,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '@/app/state';
-import { SCHEMA_ID, NETWORK, PACKAGE_ID, DUBHE_SCHEMA_ID } from '@/chain/config';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID, DUBHE_SCHEMA_ID } from '../../../contracts/config';
 import { toast } from 'sonner';
 
 export default function Home() {

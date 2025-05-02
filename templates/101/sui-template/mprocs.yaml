@@ -1,8 +1,11 @@
 scrollback: 10000
 procs:
+  frontend:
+    cwd: packages/client
+    shell: pnpm wait-on http://127.0.0.1:3001/ && pnpm prod:localnet && pnpm dev
   node:
+    cwd: packages/contracts
     shell: pnpm dubhe node -f
   deploy:
+    cwd: packages/contracts
     shell: pnpm wait-on http://127.0.0.1:9123/ && pnpm setup:localnet
-  frontend:
-    shell: pnpm wait-on http://127.0.0.1:3001/ && pnpm start:frontend
