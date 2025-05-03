@@ -9,48 +9,16 @@ module dubhe::dubhe_assets_system {
     use dubhe::dubhe_asset_status;
     use dubhe::dubhe_assets_functions;
     use dubhe::dubhe_asset_type;
+    use dubhe::dubhe_errors::not_freezable_error;
 
-    public entry fun create(    
-        schema: &mut Schema,
-        name: String,
-        symbol: String,
-        description: String,
-        decimals: u8,
-        icon_url: String,
-        extra_info: String,
-        initial_supply: u256,
-        send_to: address,
-        owner: address,
-        is_mintable: bool,
-        is_burnable: bool,
-        is_freezable: bool
-    ) {
-        // TODO: Charge a fee for creating an asset
-        // dapps_system::ensure_no_pausable<DappKey>(dapp);
-
-        // Create a new asset
-        let asset_id = dubhe_assets_functions::do_create(
-            schema,
-            is_mintable,
-            is_burnable,
-            is_freezable,
-            dubhe_asset_type::new_private(),
-            owner,
-            name,
-            symbol,
-            description,
-            decimals,
-            icon_url,
-            extra_info
-        );
-
-        if (initial_supply > 0) {
-            // Mint the initial supply
-            dubhe_assets_functions::do_mint(schema, asset_id, send_to, initial_supply);
-        };
-    }
-
-    /// Mint `amount` of asset `id` to `who`.
+    /// Mint `amount` of asset `id` to `who`. Sender must be the admin of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to mint the asset in.
+    /// * `asset_id`: The ID of the asset to mint.
+    /// * `to`: The address to mint the asset to.
+    /// * `amount`: The amount of the asset to mint.
     public entry fun mint(schema: &mut Schema, asset_id: u256, to: address, amount: u256, ctx: &mut TxContext) {
         let issuer = ctx.sender();
         asset_not_found_error(schema.asset_metadata().contains(asset_id));
@@ -61,7 +29,14 @@ module dubhe::dubhe_assets_system {
         dubhe_assets_functions::do_mint(schema, asset_id, to, amount);
     }
 
-    /// Reduce the balance of `who` by as much as possible up to `amount` assets of `id`.
+    /// Burn `amount` of asset `id` from `who`. Sender must be the admin of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to burn the asset in.
+    /// * `asset_id`: The ID of the asset to burn.
+    /// * `from`: The address to burn the asset from.
+    /// * `amount`: The amount of the asset to burn.
     public entry fun burn(schema: &mut Schema, asset_id: u256, from: address, amount: u256, ctx: &mut TxContext) {
         let burner = ctx.sender();
         asset_not_found_error(schema.asset_metadata().contains(asset_id));
@@ -72,36 +47,38 @@ module dubhe::dubhe_assets_system {
         dubhe_assets_functions::do_burn(schema, asset_id, from, amount);
     }
 
-    /// Move some assets from the sender account to another.
-    public entry fun transfer(schema: &mut Schema, asset_id: u256, to: address, amount: u256, ctx: &mut TxContext) {
-        let from = ctx.sender();
-        dubhe_assets_functions::do_transfer(schema, asset_id, from, to, amount);
-    }
-
-    /// Transfer the entire transferable balance from the caller asset account.
-    public entry fun transfer_all(schema: &mut Schema, asset_id: u256, to: address, ctx: &mut TxContext) {
-        let from = ctx.sender();
-        let balance = balance_of(schema, asset_id, from);
-
-        dubhe_assets_functions::do_transfer(schema, asset_id, from, to, balance);
-    }
-
     /// Disallow further unprivileged transfers of an asset `id` from an account `who`.
+    /// Sender must be the admin of the asset.
     /// `who` must already exist as an entry in `Account`s of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to freeze the asset in.
+    /// * `asset_id`: The ID of the asset to freeze.
+    /// * `who`: The address to freeze the asset from.
     public entry fun freeze_address(schema: &mut Schema, asset_id: u256, who: address, ctx: &mut TxContext) {
         let freezer = ctx.sender();
 
         asset_not_found_error(schema.asset_metadata().contains(asset_id));
         let asset_metadata = schema.asset_metadata().get(asset_id);
         no_permission_error(asset_metadata.get_owner() == freezer);
+        not_freezable_error(asset_metadata.get_is_freezable());
         account_not_found_error(schema.account().contains(asset_id, who));
-
+        
         let mut account = schema.account()[asset_id, who];
         account.set_status(dubhe_account_status::new_frozen());
         schema.account().set(asset_id, who, account);
     }
 
     /// Disallow further unprivileged transfers of an asset `id` to and from an account `who`.
+    /// Sender must be the admin of the asset.
+    /// `who` must already exist as an entry in `Account`s of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to block the asset in.
+    /// * `asset_id`: The ID of the asset to block.
+    /// * `who`: The address to block the asset from.
     public entry fun block_address(schema: &mut Schema, asset_id: u256, who: address, ctx: &mut TxContext) {
         let blocker = ctx.sender();
 
@@ -116,6 +93,14 @@ module dubhe::dubhe_assets_system {
     }
 
     /// Allow unprivileged transfers to and from an account again.
+    /// Sender must be the admin of the asset.
+    /// `who` must already exist as an entry in `Account`s of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to thaw the asset in.
+    /// * `asset_id`: The ID of the asset to thaw.
+    /// * `who`: The address to thaw the asset from.
     public entry fun thaw_address(schema: &mut Schema, asset_id: u256, who: address, ctx: &mut TxContext) {
         let unfreezer = ctx.sender();
 
@@ -130,6 +115,12 @@ module dubhe::dubhe_assets_system {
     }
 
     /// Disallow further unprivileged transfers for the asset class.
+    /// Sender must be the admin of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to freeze the asset in.
+    /// * `asset_id`: The ID of the asset to freeze.
     public entry fun freeze_asset(schema: &mut Schema, asset_id: u256, ctx: &mut TxContext) {
         let freezer = ctx.sender();
 
@@ -143,6 +134,12 @@ module dubhe::dubhe_assets_system {
     }
 
     /// Allow unprivileged transfers for the asset again.
+    /// Sender must be the admin of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to thaw the asset in.
+    /// * `asset_id`: The ID of the asset to thaw.
     public entry fun thaw_asset(schema: &mut Schema, asset_id: u256, ctx: &mut TxContext) {
         let unfreezer = ctx.sender();
 
@@ -156,6 +153,13 @@ module dubhe::dubhe_assets_system {
     }
 
     /// Change the Owner of an asset.
+    /// Sender must be the admin of the asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to change the owner of the asset in.
+    /// * `asset_id`: The ID of the asset to change the owner of.
+    /// * `to`: The address to change the owner of the asset to.
     public entry fun transfer_ownership(schema: &mut Schema, asset_id: u256, to: address, ctx: &mut TxContext) {
         let owner = ctx.sender();
 
@@ -167,24 +171,57 @@ module dubhe::dubhe_assets_system {
         schema.asset_metadata().set(asset_id, asset_metadata);
     }
 
-    public fun balance_of(schema: &mut Schema, asset_id: u256, who: address): u256 {
-        let maybe_account = schema.account().try_get(asset_id, who);
-        if (maybe_account.is_none()) {
-            return 0
-        };
-        let account = maybe_account.borrow();
-        account.get_balance()
+    /// Move some assets from the sender account to another.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to transfer the asset in.
+    /// * `asset_id`: The ID of the asset to transfer.
+    /// * `to`: The address to transfer the asset to.
+    /// * `amount`: The amount of the asset to transfer.
+    public entry fun transfer(schema: &mut Schema, asset_id: u256, to: address, amount: u256, ctx: &mut TxContext) {
+        let from = ctx.sender();
+        dubhe_assets_functions::do_transfer(schema, asset_id, from, to, amount);
     }
 
-    public fun supply_of(schema: &mut Schema, asset_id: u256): u256 {
-        let maybe_asset_metadata = schema.asset_metadata().try_get(asset_id);
-        if (maybe_asset_metadata.is_none()) {
-            return 0
-        };
-        let asset_metadata = maybe_asset_metadata.borrow();
-        asset_metadata.get_supply()
+    /// Transfer the entire transferable balance from the caller asset account.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to transfer the asset in.
+    /// * `asset_id`: The ID of the asset to transfer.
+    /// * `to`: The address to transfer the asset to.
+    public entry fun transfer_all(schema: &mut Schema, asset_id: u256, to: address, ctx: &mut TxContext) {
+        let from = ctx.sender();
+        let balance = balance_of(schema, asset_id, from);
+
+        dubhe_assets_functions::do_transfer(schema, asset_id, from, to, balance);
     }
 
+    // ===============================================================
+    // Dubhe package functions , only for other packages to use.
+    // ===============================================================
+
+    /// Create a new asset with the given parameters.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to create the asset in.
+    /// * `_`: The dapp key.
+    /// * `name`: The name of the asset.
+    /// * `symbol`: The symbol of the asset.
+    /// * `description`: The description of the asset.
+    /// * `decimals`: The number of decimals of the asset.
+    /// * `icon_url`: The URL of the asset's icon.
+    /// * `admin`: The address of the admin of the asset, which is the address that can mint, burn and freeze the asset on dubhe package.
+    ///            If the admin is the zero address, the asset is not mintable, burnable and freezable on dubhe package.
+    /// * `is_mintable`: Whether the asset is mintable.
+    /// * `is_burnable`: Whether the asset is burnable.
+    /// * `is_freezable`: Whether the asset is freezable.
+    /// 
+    /// # Returns
+    /// 
+    /// The ID of the newly created asset.
     public fun create_asset<DappKey: drop>(
         schema: &mut Schema, 
         _: DappKey,
@@ -193,6 +230,7 @@ module dubhe::dubhe_assets_system {
         description: String, 
         decimals: u8,
         icon_url: String, 
+        admin: address,
         is_mintable: bool, 
         is_burnable: bool, 
         is_freezable: bool
@@ -203,7 +241,7 @@ module dubhe::dubhe_assets_system {
             is_burnable,
             is_freezable,
             dubhe_asset_type::new_package(),
-            @0x0,
+            admin,
             name,
             symbol,
             description,
@@ -215,6 +253,15 @@ module dubhe::dubhe_assets_system {
         asset_id
     }
 
+    /// Mint `amount` of asset `id` to `to`. Dapps can only mint their own assets.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to mint the asset in.
+    /// * `_`: The dapp key.
+    /// * `asset_id`: The ID of the asset to mint.
+    /// * `to`: The address to mint the asset to.
+    /// * `amount`: The amount of the asset to mint.
     public fun mint_asset<DappKey: drop>(
         schema: &mut Schema,
         _: DappKey,
@@ -226,6 +273,13 @@ module dubhe::dubhe_assets_system {
         dubhe_assets_functions::do_mint(schema, asset_id, to, amount);
     }
 
+    /// Burn `amount` of asset `id` from `from`. Dapps can only burn their own assets.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to burn the asset in.
+    /// * `_`: The dapp key.
+    /// * `asset_id`: The ID of the asset to burn.
     public fun burn_asset<DappKey: drop>(
         schema: &mut Schema,
         _: DappKey,
@@ -237,6 +291,14 @@ module dubhe::dubhe_assets_system {
         dubhe_assets_functions::do_burn(schema, asset_id, from, amount);
     }       
 
+    /// Transfer `amount` of asset `id` from `from` to `to`. Dapps can only transfer their own assets.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to transfer the asset in.
+    /// * `_`: The dapp key.
+    /// * `asset_id`: The ID of the asset to transfer.
+    /// * `from`: The address to transfer the asset from.
     public fun transfer_asset<DappKey: drop>(
         schema: &mut Schema,
         _: DappKey,
@@ -247,5 +309,49 @@ module dubhe::dubhe_assets_system {
     ) {
         dubhe_assets_functions::assert_asset_is_package_asset<DappKey>(schema, asset_id);
         dubhe_assets_functions::do_transfer(schema, asset_id, from, to, amount);
+    }
+
+
+    // ===============================================================
+    // Dubhe view functions
+    // ===============================================================
+
+    /// Get the balance of an asset for an address.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to get the balance from.
+    /// * `asset_id`: The ID of the asset to get the balance of.
+    /// * `who`: The address to get the balance of.
+    /// 
+    /// # Returns
+    /// 
+    /// The balance of the address.
+    public fun balance_of(schema: &mut Schema, asset_id: u256, who: address): u256 {
+        let maybe_account = schema.account().try_get(asset_id, who);
+        if (maybe_account.is_none()) {
+            return 0
+        };
+        let account = maybe_account.borrow();
+        account.get_balance()
+    }
+
+    /// Get the supply of an asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to get the supply from.
+    /// * `asset_id`: The ID of the asset to get the supply of. 
+    /// 
+    /// # Returns
+    /// 
+    /// The supply of the asset.
+    public fun supply_of(schema: &mut Schema, asset_id: u256): u256 {
+        let maybe_asset_metadata = schema.asset_metadata().try_get(asset_id);
+        if (maybe_asset_metadata.is_none()) {
+            return 0
+        };
+        let asset_metadata = maybe_asset_metadata.borrow();
+        asset_metadata.get_supply()
     }
 }

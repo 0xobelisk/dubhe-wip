@@ -66,16 +66,16 @@ module dubhe::dubhe_assets_functions {
 
     public(package) fun do_mint(schema: &mut Schema, asset_id: u256, to: address, amount: u256) {
         invalid_receiver_error(to != @0xdead);
-        update(schema, asset_id, @0xdead, to, amount);
+        update(schema, asset_id, @0xfeed, to, amount);
     }
 
     public(package) fun do_burn(schema: &mut Schema, asset_id: u256, from: address, amount: u256) {
-        invalid_sender_error(from != @0xdead);
+        invalid_sender_error(from != @0xfeed);
         update(schema, asset_id, from, @0xdead, amount);
     }
 
     public(package) fun do_transfer(schema: &mut Schema, asset_id: u256, from: address, to: address, amount: u256) {
-        invalid_sender_error(from != @0xdead);
+        invalid_sender_error(from != @0xfeed);
         invalid_receiver_error(to != @0xdead);
         update(schema, asset_id, from, to, amount);
     }
@@ -84,7 +84,7 @@ module dubhe::dubhe_assets_functions {
     public(package) fun update(schema: &mut Schema, asset_id: u256, from: address, to: address, amount: u256) {
         asset_not_found_error(schema.asset_metadata().contains(asset_id));
         let mut asset_metadata = schema.asset_metadata()[asset_id];
-        if( from == @0xdead ) {
+        if( from == @0xfeed ) {
             // Overflow check required: The rest of the code assumes that totalSupply never overflows
             overflows_error(amount <= u256::max_value!() - asset_metadata.get_supply());
             // supply += amount;
