@@ -41,7 +41,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Check changeset status
-        run: pnpm changeset status
+        run: pnpm changeset status --since origin/main
 
       - name: Update package versions
         run: |
