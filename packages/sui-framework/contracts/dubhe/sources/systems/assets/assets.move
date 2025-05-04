@@ -12,6 +12,7 @@ module dubhe::dubhe_assets_system {
     use dubhe::dubhe_errors::not_freezable_error;
 
     /// Mint `amount` of asset `id` to `who`. Sender must be the admin of the asset.
+    /// Asset must be a mintable asset.
     /// 
     /// # Arguments
     /// 
@@ -30,6 +31,7 @@ module dubhe::dubhe_assets_system {
     }
 
     /// Burn `amount` of asset `id` from `who`. Sender must be the admin of the asset.
+    /// Asset must be a burnable asset.
     /// 
     /// # Arguments
     /// 

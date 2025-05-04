@@ -15,7 +15,7 @@ module dubhe::dubhe_assets_functions {
         account_blocked_error, overflows_error, 
         asset_not_found_error,
         account_not_found_error, account_frozen_error, balance_too_low_error,
-        invalid_receiver_error, invalid_sender_error
+        invalid_receiver_error, invalid_sender_error, asset_already_frozen_error,
     };
 
     /// Authorization Key for secondary apps.
@@ -92,6 +92,8 @@ module dubhe::dubhe_assets_functions {
             asset_metadata.set_supply(supply + amount);
             schema.asset_metadata().set(asset_id, asset_metadata);
         } else {
+            // asset already frozen
+            asset_already_frozen_error(asset_metadata.get_status() != dubhe_asset_status::new_frozen());
             account_not_found_error(schema.account().contains(asset_id, from));
             let (balance, status) = schema.account().get(asset_id, from).get();
             balance_too_low_error(balance >= amount);
@@ -118,6 +120,7 @@ module dubhe::dubhe_assets_functions {
             let mut account = schema.account().try_get(asset_id, to);
             if(account.is_some()) {
                 let (balance, status) = account.extract().get();
+                account_blocked_error(status != dubhe_account_status::new_blocked());
                 schema.account().set(asset_id, to, dubhe_account::new(balance + amount, status))
             } else {
                 let accounts = asset_metadata.get_accounts();
