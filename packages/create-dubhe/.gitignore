@@ -13,3 +13,4 @@ node_modules/
 *Move.lock
 **/chain/key.ts
 **/indexer.db
+templates

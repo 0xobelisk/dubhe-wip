@@ -1,18 +1,11 @@
 #!/usr/bin/env node
 import 'dotenv/config';
-// import fs from "node:fs";
-// import { eq } from "drizzle-orm";
 import { BetterSQLite3Database, drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
-// import { webSocket, http, Transport } from "viem";
 import Koa from 'koa';
 import cors from '@koa/cors';
 import { createKoaMiddleware } from 'trpc-koa-adapter';
-// import { createAppRouter } from "@latticexyz/store-sync/trpc-indexer";
-// import { chainState, schemaVersion, syncToSqlite } from "@latticexyz/store-sync/sqlite";
 import { createQueryAdapter } from '../sqlite/createQueryAdapter';
-// import { isDefined } from "@latticexyz/common/utils";
-// import { combineLatest, filter, first } from "rxjs";
 import { healthcheck } from '../koa-middleware/healthcheck';
 import { helloWorld } from '../koa-middleware/helloWorld';
 import { apiRoutes } from '../sqlite/apiRoutes';
@@ -66,12 +59,10 @@ const argv = await yargs(hideBin(process.argv))
   .option('rpc-url', {
     type: 'string',
     description: 'Node URL'
-    // demandOption: true,
   })
   .option('schema-id', {
     type: 'string',
     description: 'Schema ID to filter transactions'
-    // demandOption: true,
   })
   .option('host', {
     type: 'string',

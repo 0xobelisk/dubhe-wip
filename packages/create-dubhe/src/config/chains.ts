@@ -17,25 +17,25 @@ const TEMPLATES = {
     title: '101',
     description: 'Quick start',
     value: '101',
-    path: 'templates/101/{chain}-template'
+    path: '101/{chain}-template'
   },
   WEB: {
     title: 'Web',
     description: 'Web template',
     value: 'web',
-    path: 'templates/nextjs/{chain}-template'
+    path: 'nextjs/{chain}-template'
   },
   CONTRACT: {
     title: 'Contract',
     description: 'Contract template',
     value: 'contract',
-    path: 'templates/contract/{chain}-template'
+    path: 'contract/{chain}-template'
   },
   COCOS: {
     title: 'Cocos',
     description: 'Cocos Creator',
     value: 'cocos',
-    path: 'templates/cocos/{chain}-template'
+    path: 'cocos/{chain}-template'
   }
 } as const;
 

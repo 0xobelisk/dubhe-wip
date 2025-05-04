@@ -1,8 +1,7 @@
-import { Dubhe } from '@0xobelisk/sui-client';
 import type { CommandModule } from 'yargs';
 import { requestSuiFromFaucetV0, getFaucetHost } from '@mysten/sui/faucet';
 import { SuiClient, getFullnodeUrl, GetBalanceParams } from '@mysten/sui/client';
-import { validatePrivateKey, DubheCliError } from '../utils';
+import { initializeDubhe } from '../utils';
 
 type Options = {
   network: any;
@@ -36,21 +35,7 @@ const commandModule: CommandModule<Options, Options> = {
   async handler({ network, recipient }) {
     let faucet_address = '';
     if (recipient === undefined) {
-      const privateKey = process.env.PRIVATE_KEY;
-      if (!privateKey)
-        throw new DubheCliError(
-          `Missing PRIVATE_KEY environment variable.
-    Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
-    in your contracts directory to use the default sui private key.`
-        );
-
-      const privateKeyFormat = validatePrivateKey(privateKey);
-      if (privateKeyFormat === false) {
-        throw new DubheCliError(`Please check your PRIVATE_KEY.`);
-      }
-      const dubhe = new Dubhe({
-        secretKey: privateKeyFormat
-      });
+      const dubhe = initializeDubhe(network);
       faucet_address = dubhe.getAddress();
     } else {
       faucet_address = recipient;
@@ -67,14 +52,13 @@ const commandModule: CommandModule<Options, Options> = {
     }
 
     console.log('  ├─ Requesting funds from faucet...');
-    
+
     let retryCount = 0;
     let success = false;
     let spinnerIndex = 0;
     const startTime = Date.now();
     let isInterrupted = false;
 
-    // 设置 SIGINT 处理
     const handleInterrupt = () => {
       isInterrupted = true;
       process.stdout.write('\r' + ' '.repeat(50) + '\r');
@@ -82,7 +66,7 @@ const commandModule: CommandModule<Options, Options> = {
       process.exit(0);
     };
     process.on('SIGINT', handleInterrupt);
-    
+
     try {
       while (retryCount < MAX_RETRIES && !success && !isInterrupted) {
         try {
@@ -93,26 +77,26 @@ const commandModule: CommandModule<Options, Options> = {
           success = true;
         } catch (error) {
           if (isInterrupted) break;
-          
+
           retryCount++;
           if (retryCount === MAX_RETRIES) {
             console.log(`  └─ Failed to request funds after ${MAX_RETRIES} attempts.`);
             console.log('  └─ Please check your network connection and try again later.');
             process.exit(1);
           }
-          
+
           const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
           const spinner = SPINNER[spinnerIndex % SPINNER.length];
           spinnerIndex++;
-          
+
           process.stdout.write(`\r  ├─ ${spinner} Retrying... (${elapsedTime}s)`);
-          await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+          await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
         }
       }
     } finally {
       process.removeListener('SIGINT', handleInterrupt);
     }
-    
+
     if (isInterrupted) {
       process.exit(0);
     }
