@@ -1,8 +1,9 @@
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
-import prompts from 'prompts';
-import { CHAINS } from './config/chains';
+import yargsInteractive from 'yargs-interactive';
+import { CHAINS } from '../config/chains';
+import packageJson from '../../package.json';
 
 const cwd = process.cwd();
 const renameFiles: Record<string, string | undefined> = {
@@ -10,56 +11,76 @@ const renameFiles: Record<string, string | undefined> = {
 };
 const defaultTargetDir = 'dubhe-template-project';
 
+interface Choice {
+  name: string;
+  value: string;
+  description: string;
+}
+
 const init = async () => {
-  const response = await prompts([
-    {
-      type: 'text',
-      name: 'projectName',
-      message: 'Input your projectName.',
-      initial: defaultTargetDir
-    },
-    {
-      type: 'select',
-      name: 'chain',
-      message: 'Pick your chain.',
-      choices: CHAINS.map(({ title, description, value }) => ({
-        title,
-        description,
-        value
-      })),
-      initial: 0
-    },
-    {
-      type: (prev, values) => {
-        const chain = CHAINS.find((c) => c.value === values.chain);
-        return chain?.supportedTemplates.length === 1 ? null : 'select';
-      },
-      name: 'platform',
-      message: 'Pick your platform.',
-      choices: (prev, values) => {
-        const chain = CHAINS.find((c) => c.value === values.chain);
-        return (
-          chain?.supportedTemplates.map(({ title, description, value }) => ({
-            title,
-            description,
-            value
-          })) || []
-        );
-      },
-      initial: 0
-    }
-  ]);
+  // Prepare chain options
+  const chainChoices = CHAINS.map(({ title, description, value }) => ({
+    name: `${title} - ${description}`,
+    value
+  }));
 
-  const { projectName, chain, platform } = response;
+  // Step 1: Choose project name and chain
+  const firstStep = await yargsInteractive()
+    .usage('$0 [args]')
+    .interactive({
+      interactive: { default: true },
+      projectName: {
+        describe: 'Name your project',
+        type: 'input'
+      },
+      chain: {
+        describe: 'Pick your chain',
+        type: 'list',
+        choices: chainChoices.map((c) => c.value)
+      },
+      dubheVersion: {
+        describe: 'The version of Dubhe packages to use, defaults to latest',
+        type: 'input',
+        default: packageJson.version
+      }
+    });
 
+  const { projectName, chain, dubheVersion } = firstStep;
+
+  // Get available templates based on the selected chain
   const selectedChain = CHAINS.find((c) => c.value === chain);
-  let selectedTemplate = selectedChain?.supportedTemplates.find((t) => t.value === platform);
-
-  if (!selectedTemplate) {
-    selectedTemplate = selectedChain?.supportedTemplates[0];
+  if (!selectedChain) {
+    console.error('Invalid chain selection');
+    process.exit(1);
   }
 
-  const target = selectedTemplate?.path.replace('{chain}', chain) || '';
+  // Prepare platform options
+  const platformChoices = selectedChain.supportedTemplates.map(({ title, description, value }) => ({
+    name: `${title} - ${description}`,
+    value
+  }));
+
+  // Step 2: Choose platform
+  const secondStep = await yargsInteractive()
+    .usage('$0 [args]')
+    .interactive({
+      interactive: { default: true },
+      platform: {
+        describe: 'Pick your platform',
+        type: 'list',
+        choices: platformChoices.map((c) => c.value)
+      }
+    });
+
+  const { platform } = secondStep;
+
+  const selectedTemplate = selectedChain.supportedTemplates.find((t) => t.value === platform);
+  if (!selectedTemplate) {
+    console.error('Invalid platform selection');
+    process.exit(1);
+  }
+
+  const target = selectedTemplate.path.replace('{chain}', chain);
 
   let targetDir = projectName || defaultTargetDir;
   const root = path.join(cwd, targetDir);
@@ -101,19 +122,20 @@ const init = async () => {
 
   pkg.name = projectName;
 
-  write('package.json', JSON.stringify(pkg, null, 2) + '\n');
+  const pkgContent = JSON.stringify(pkg, null, 2);
+  const updatedPkgContent = pkgContent.replace(/{{dubhe-version}}/g, dubheVersion);
+
+  write('package.json', updatedPkgContent + '\n');
 
   const cdProjectName = path.relative(cwd, root);
 
-  // Console styling
   const styles = {
-    success: '\x1b[32m%s\x1b[0m', // Green
-    info: '\x1b[36m%s\x1b[0m', // Cyan
-    command: '\x1b[33m%s\x1b[0m', // Yellow
-    separator: '\x1b[90m%s\x1b[0m' // Gray
+    success: '\x1b[32m%s\x1b[0m',
+    info: '\x1b[36m%s\x1b[0m',
+    command: '\x1b[33m%s\x1b[0m',
+    separator: '\x1b[90m%s\x1b[0m'
   };
 
-  // Enhanced visual output
   console.log('\n' + '='.repeat(60));
   console.log(styles.success, '🎉 Project creation successful!');
   console.log(styles.info, `📁 Project location: ${root}`);
@@ -127,14 +149,12 @@ const init = async () => {
     );
   }
 
-  const actualTemplate = selectedTemplate?.value || '101';
+  const actualTemplate = selectedTemplate.value;
 
-  // Platform specific commands
   switch (actualTemplate) {
     case '101':
     case 'web':
       console.log(styles.command, `  ${pkgManager} install`);
-      console.log(styles.command, `  ${pkgManager} run start:localnet`);
       console.log(styles.command, `  ${pkgManager} run dev`);
       break;
     case 'contract':
