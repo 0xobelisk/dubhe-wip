@@ -6,7 +6,7 @@ export const dubheConfig = {
     data: {
         AccountStatus: ['Liquid', 'Frozen', 'Blocked'],
         AssetStatus: ['Liquid', 'Frozen'],
-        AssetType: ['LP', 'Wrapped', 'Private', 'Package'],
+        AssetType: ['Lp', 'Wrapped', 'Private', 'Package'],
         Account: { balance: 'u256', status: 'AccountStatus' },
         AssetMetadata: {
             // The user friendly name of this asset. Limited in length by `StringLimit`.

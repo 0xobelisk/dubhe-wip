@@ -7,11 +7,11 @@
   module dubhe::dubhe_asset_type {
 
   public enum AssetType has copy, drop , store {
-                                LP,Private,Package,Wrapped
+                                Lp,Private,Package,Wrapped
                         }
 
-  public fun new_l_p(): AssetType {
-    AssetType::LP
+  public fun new_lp(): AssetType {
+    AssetType::Lp
   }
 
   public fun new_private(): AssetType {

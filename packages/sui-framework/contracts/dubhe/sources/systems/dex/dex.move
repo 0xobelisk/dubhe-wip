@@ -37,7 +37,7 @@ module dubhe::dubhe_dex_system {
             false,
             false,
             false,
-            dubhe_asset_type::new_package(),
+            dubhe_asset_type::new_lp(),
             @0x0,
             ascii::string(LP_ASSET_NAME),
             lp_asset_symbol,
