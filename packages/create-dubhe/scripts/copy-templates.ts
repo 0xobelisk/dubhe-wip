@@ -61,7 +61,7 @@ const __dirname = path.dirname(__filename);
     // npm excludes .gitignore files during packaging/publishing, so we move this aside for now.
     // When creating a project from the template, we'll move this back.
     else if (/\.gitignore$/.test(destPath)) {
-      await fs.copyFile(sourcePath, destPath.replace(/\.gitignore$/, '_gitignore'));
+      await fs.copyFile(sourcePath, destPath.replace(/\.gitignore$/, '.gitignore_'));
     } else {
       await fs.copyFile(sourcePath, destPath);
     }

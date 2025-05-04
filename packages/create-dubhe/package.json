@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "tsup --watch",
     "build": "pnpm run build:js",
-    "build:js": "tsup && pnpm run copy-templates && npm run cocos-js-build",
+    "build:js": "tsup && pnpm run copy-templates",
     "clean": "pnpm run clean:js",
     "clean:js": "shx rm -rf dist",
     "copy-templates": "tsx ./scripts/copy-templates.ts",

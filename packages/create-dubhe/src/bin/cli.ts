@@ -1,21 +1,18 @@
 import { fileURLToPath } from 'node:url';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
+import glob from 'fast-glob';
 import yargsInteractive from 'yargs-interactive';
 import { CHAINS } from '../config/chains';
 import packageJson from '../../package.json';
+import { exists } from '../exists';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const cwd = process.cwd();
-const renameFiles: Record<string, string | undefined> = {
-  _gitignore: '.gitignore'
-};
-const defaultTargetDir = 'dubhe-template-project';
 
-interface Choice {
-  name: string;
-  value: string;
-  description: string;
-}
+const defaultTargetDir = 'dubhe-template-project';
 
 const init = async () => {
   // Prepare chain options
@@ -46,12 +43,12 @@ const init = async () => {
     });
 
   const { projectName, chain, dubheVersion } = firstStep;
+  if (!projectName) throw new Error('No project name provided.');
 
   // Get available templates based on the selected chain
   const selectedChain = CHAINS.find((c) => c.value === chain);
   if (!selectedChain) {
-    console.error('Invalid chain selection');
-    process.exit(1);
+    throw new Error('Invalid chain selection');
   }
 
   // Prepare platform options
@@ -76,58 +73,49 @@ const init = async () => {
 
   const selectedTemplate = selectedChain.supportedTemplates.find((t) => t.value === platform);
   if (!selectedTemplate) {
-    console.error('Invalid platform selection');
-    process.exit(1);
-  }
-
-  const target = selectedTemplate.path.replace('{chain}', chain);
-
-  let targetDir = projectName || defaultTargetDir;
-  const root = path.join(cwd, targetDir);
-
-  if (!fs.existsSync(root)) {
-    fs.mkdirSync(root, { recursive: true });
+    throw new Error('Invalid platform selection');
   }
 
   const pkgInfo = pkgFromUserAgent(process.env.npm_config_user_agent);
   const pkgManager = pkgInfo ? pkgInfo.name : 'npm';
 
-  const templateDir = path.resolve(fileURLToPath(import.meta.url), '../..', target);
+  const sourceDir = path.join(
+    __dirname,
+    '..',
+    'templates',
+    selectedTemplate.path.replace('{chain}', chain)
+  );
 
-  if (!fs.existsSync(templateDir)) {
-    console.error(`Template directory not found: ${templateDir}`);
-    process.exit(1);
+  if (!(await exists(sourceDir))) {
+    throw new Error(`Template directory not found: ${sourceDir}`);
   }
 
-  const write = (file: string, content?: string) => {
-    const targetPath = path.join(root, renameFiles[file] ?? file);
-    if (content) {
-      fs.writeFileSync(targetPath, content);
+  const destDir = path.join(process.cwd(), projectName);
+  console.log('destDir', destDir);
+  if (await exists(destDir)) {
+    throw new Error(`Target directory "${destDir}" already exists.`);
+  }
+
+  console.log('sourceDir', sourceDir);
+  const files = await glob('**/*', { cwd: sourceDir, dot: true });
+
+  for (const filename of files) {
+    const sourceFile = path.join(sourceDir, filename);
+    const destFile = path.join(destDir, filename);
+
+    await fs.mkdir(path.dirname(destFile), { recursive: true });
+
+    if (/package\.json$/.test(sourceFile)) {
+      const source = await fs.readFile(sourceFile, 'utf-8');
+      await fs.writeFile(destFile, source.replaceAll(/{{dubhe-version}}/g, dubheVersion), 'utf-8');
+    } else if (/\.gitignore_$/.test(sourceFile)) {
+      await fs.copyFile(sourceFile, destFile.replace(/_$/, ''));
     } else {
-      try {
-        copy(path.join(templateDir, file), targetPath);
-      } catch (error) {
-        console.error(`Error copying file ${file}:`, error);
-        process.exit(1);
-      }
+      await fs.copyFile(sourceFile, destFile);
     }
-  };
-
-  const files = fs.readdirSync(templateDir);
-  for (const file of files.filter((f) => f !== 'package.json' && f !== 'node_modules')) {
-    write(file);
   }
 
-  const pkg = JSON.parse(fs.readFileSync(path.join(templateDir, `package.json`), 'utf-8'));
-
-  pkg.name = projectName;
-
-  const pkgContent = JSON.stringify(pkg, null, 2);
-  const updatedPkgContent = pkgContent.replace(/{{dubhe-version}}/g, dubheVersion);
-
-  write('package.json', updatedPkgContent + '\n');
-
-  const cdProjectName = path.relative(cwd, root);
+  const cdProjectName = path.relative(cwd, destDir);
 
   const styles = {
     success: '\x1b[32m%s\x1b[0m',
@@ -138,11 +126,11 @@ const init = async () => {
 
   console.log('\n' + '='.repeat(60));
   console.log(styles.success, '🎉 Project creation successful!');
-  console.log(styles.info, `📁 Project location: ${root}`);
+  console.log(styles.info, `📁 Project location: ${destDir}`);
   console.log(styles.separator, '-'.repeat(60));
   console.log(styles.info, 'Next steps:\n');
 
-  if (root !== cwd) {
+  if (destDir !== cwd) {
     console.log(
       styles.command,
       `  cd ${cdProjectName.includes(' ') ? `"${cdProjectName}"` : cdProjectName}`
@@ -170,24 +158,6 @@ const init = async () => {
 
   console.log(styles.separator, '\n' + '='.repeat(60) + '\n');
 };
-
-function copy(src: string, dest: string) {
-  const stat = fs.statSync(src);
-  if (stat.isDirectory()) {
-    copyDir(src, dest);
-  } else {
-    fs.copyFileSync(src, dest);
-  }
-}
-
-function copyDir(srcDir: string, destDir: string) {
-  fs.mkdirSync(destDir, { recursive: true });
-  for (const file of fs.readdirSync(srcDir)) {
-    const srcFile = path.resolve(srcDir, file);
-    const destFile = path.resolve(destDir, file);
-    copy(srcFile, destFile);
-  }
-}
 
 function pkgFromUserAgent(userAgent: string | undefined) {
   if (!userAgent) return undefined;
