@@ -75,11 +75,11 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit version updates
+      - name: Commit and push changes
         if: success()
         run: |
           git add .
           git commit -m "chore: release v${{ env.VERSION }}"
-          git push
+          git push origin HEAD:main
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
