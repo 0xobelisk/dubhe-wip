@@ -35,6 +35,10 @@ const __dirname = path.dirname(__filename);
     const sourcePath = path.resolve(sourceDir, file);
     const destPath = path.resolve(destDir, file);
 
+    if (/pnpm-lock\.yaml$/.test(destPath)) {
+      continue;
+    }
+
     await fs.mkdir(path.dirname(destPath), { recursive: true });
 
     if (/package\.json$/.test(destPath)) {

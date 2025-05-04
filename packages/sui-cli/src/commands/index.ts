@@ -14,6 +14,7 @@ import configStore from './configStore';
 import query from './query';
 import call from './call';
 import watch from './watch';
+import wait from './wait';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Each command has different options
 export const commands: CommandModule<any, any>[] = [
@@ -30,5 +31,6 @@ export const commands: CommandModule<any, any>[] = [
   generateKey,
   checkBalance,
   configStore,
-  watch
+  watch,
+  wait
 ];
