@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import prompts from 'prompts';
@@ -70,7 +71,7 @@ const init = async () => {
   const pkgInfo = pkgFromUserAgent(process.env.npm_config_user_agent);
   const pkgManager = pkgInfo ? pkgInfo.name : 'npm';
 
-  const templateDir = path.resolve(cwd, '..', '..', target);
+  const templateDir = path.resolve(fileURLToPath(import.meta.url), '../..', target);
 
   if (!fs.existsSync(templateDir)) {
     console.error(`Template directory not found: ${templateDir}`);
