@@ -91,12 +91,10 @@ const init = async () => {
   }
 
   const destDir = path.join(process.cwd(), projectName);
-  console.log('destDir', destDir);
   if (await exists(destDir)) {
     throw new Error(`Target directory "${destDir}" already exists.`);
   }
 
-  console.log('sourceDir', sourceDir);
   const files = await glob('**/*', { cwd: sourceDir, dot: true });
 
   for (const filename of files) {
