@@ -15,7 +15,7 @@
     "deploy": "pnpm dubhe publish --network",
     "upgrade": "pnpm dubhe upgrade --network",
     "schemagen": "pnpm dubhe schemagen",
-    "account:gen": "pnpm dubhe generate-key --use-next-public",
+    "account:gen": "pnpm dubhe generate-key",
     "check-balance": "pnpm dubhe check-balance --network",
     "config:store": "pnpm dubhe config-store --output-ts-path ./config.ts --network",
     "indexer:sqlite": "pnpm sqlite-indexer --force-regenesis --network",
