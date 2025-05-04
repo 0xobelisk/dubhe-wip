@@ -10,6 +10,32 @@ module dubhe::dubhe_assets_system {
     use dubhe::dubhe_assets_functions;
     use dubhe::dubhe_asset_type;
     use dubhe::dubhe_errors::not_freezable_error;
+    use dubhe::dubhe_errors::invalid_metadata_error;
+
+    /// Set the metadata of an asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to set the metadata in.
+    /// * `asset_id`: The ID of the asset to set the metadata of.
+    /// * `name`: The name of the asset.
+    /// * `symbol`: The symbol of the asset.
+    /// * `description`: The description of the asset.
+    /// * `icon_url`: The URL of the asset's icon.
+    public entry fun set_metadata(schema: &mut Schema, asset_id: u256, name: String, symbol: String, description: String, icon_url: String, ctx: &mut TxContext) {
+        let admin = ctx.sender();
+        asset_not_found_error(schema.asset_metadata().contains(asset_id));
+        let mut asset_metadata = schema.asset_metadata()[asset_id];
+        no_permission_error(asset_metadata.get_owner() == admin);
+
+        invalid_metadata_error(!name.is_empty() && !symbol.is_empty() && !description.is_empty() && !icon_url.is_empty());
+
+        asset_metadata.set_name(name);
+        asset_metadata.set_symbol(symbol);
+        asset_metadata.set_description(description);
+        asset_metadata.set_icon_url(icon_url);
+        schema.asset_metadata().set(asset_id, asset_metadata);
+    }
 
     /// Mint `amount` of asset `id` to `who`. Sender must be the admin of the asset.
     /// Asset must be a mintable asset.
@@ -355,5 +381,98 @@ module dubhe::dubhe_assets_system {
         };
         let asset_metadata = maybe_asset_metadata.borrow();
         asset_metadata.get_supply()
+    }
+
+
+    /// Get the owner of an asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to get the owner from.
+    /// * `asset_id`: The ID of the asset to get the owner of.
+    /// 
+    public fun owner_of(schema: &mut Schema, asset_id: u256): address {
+        let maybe_asset_metadata = schema.asset_metadata().try_get(asset_id);
+        if (maybe_asset_metadata.is_none()) {
+            return @0x0
+        };
+        let asset_metadata = maybe_asset_metadata.borrow();
+        asset_metadata.get_owner()
+    }
+
+    /// Get the name of an asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to get the name from.
+    /// * `asset_id`: The ID of the asset to get the name of.
+    /// 
+    /// # Returns
+    /// 
+    /// The name of the asset.
+    public fun name(schema: &mut Schema, asset_id: u256): String {
+        let maybe_asset_metadata = schema.asset_metadata().try_get(asset_id);
+        if (maybe_asset_metadata.is_none()) {
+            return string(b"")
+        };
+        let asset_metadata = maybe_asset_metadata.borrow();
+        asset_metadata.get_name()
+    }
+
+    /// Get the symbol of an asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to get the symbol from.
+    /// * `asset_id`: The ID of the asset to get the symbol of.
+    /// 
+    /// # Returns
+    /// 
+    /// The symbol of the asset.
+    public fun symbol(schema: &mut Schema, asset_id: u256): String {
+        let maybe_asset_metadata = schema.asset_metadata().try_get(asset_id);
+        if (maybe_asset_metadata.is_none()) {
+            return string(b"")
+        };
+        let asset_metadata = maybe_asset_metadata.borrow();
+        asset_metadata.get_symbol()
+    }
+
+    /// Get the description of an asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to get the description from.
+    /// * `asset_id`: The ID of the asset to get the description of.
+    /// 
+    /// # Returns
+    /// 
+    /// The description of the asset.
+    public fun description(schema: &mut Schema, asset_id: u256): String {
+        let maybe_asset_metadata = schema.asset_metadata().try_get(asset_id);
+        if (maybe_asset_metadata.is_none()) {
+            return string(b"")
+        };
+        let asset_metadata = maybe_asset_metadata.borrow();
+        asset_metadata.get_description()
+    }
+
+    /// Get the icon URL of an asset.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `schema`: The Dubhe schema to get the icon URL from.
+    /// * `asset_id`: The ID of the asset to get the icon URL of.
+    /// 
+    /// # Returns
+    /// 
+    /// The icon URL of the asset.
+    public fun icon_url(schema: &mut Schema, asset_id: u256): String {
+        let maybe_asset_metadata = schema.asset_metadata().try_get(asset_id);
+        if (maybe_asset_metadata.is_none()) {
+            return string(b"")
+        };
+        let asset_metadata = maybe_asset_metadata.borrow();
+        asset_metadata.get_icon_url()
     }
 }

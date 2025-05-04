@@ -15,7 +15,7 @@ module dubhe::dubhe_assets_functions {
         account_blocked_error, overflows_error, 
         asset_not_found_error,
         account_not_found_error, account_frozen_error, balance_too_low_error,
-        invalid_receiver_error, invalid_sender_error, asset_already_frozen_error,
+        invalid_receiver_error, invalid_sender_error, asset_already_frozen_error
     };
 
     /// Authorization Key for secondary apps.
@@ -81,7 +81,7 @@ module dubhe::dubhe_assets_functions {
     }
 
 
-    public(package) fun update(schema: &mut Schema, asset_id: u256, from: address, to: address, amount: u256) {
+    public(package) fun update(schema: &mut Schema, asset_id: u256, from: address, to: address, amount: u256) {        
         asset_not_found_error(schema.asset_metadata().contains(asset_id));
         let mut asset_metadata = schema.asset_metadata()[asset_id];
         if( from == @0xfeed ) {

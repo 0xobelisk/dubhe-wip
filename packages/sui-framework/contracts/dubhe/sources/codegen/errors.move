@@ -56,6 +56,14 @@
 
   #[error]
 
+  const INVALID_METADATA: vector<u8> = b"Invalid metadata";
+
+  public fun invalid_metadata_error(condition: bool) {
+    assert!(condition, INVALID_METADATA)
+  }
+
+  #[error]
+
   const ACCOUNT_NOT_FOUND: vector<u8> = b"Account not found";
 
   public fun account_not_found_error(condition: bool) {

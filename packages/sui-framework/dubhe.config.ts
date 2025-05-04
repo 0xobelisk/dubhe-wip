@@ -93,6 +93,7 @@ export const dubheConfig = {
         asset_not_frozen: "Asset not frozen",
         invalid_sender: "Invalid sender",
         invalid_receiver: "Invalid receiver",
+        invalid_metadata: "Invalid metadata",
         account_not_found: "Account not found",
         account_blocked: "Account is blocked",
         account_frozen: "Account is frozen",
