@@ -25,8 +25,9 @@ compiler-version = "1.40.1"
 edition = "2024"
 flavor = "sui"
 
+
 [env.testnet]
 chain-id = "4c78adac"
-original-published-id = "0x7cb7bfd80494c23a9bc2c8aeb04aef45f1729a9424162f49c41acf0ed8d0699d"
-latest-published-id = "0x7cb7bfd80494c23a9bc2c8aeb04aef45f1729a9424162f49c41acf0ed8d0699d"
+original-published-id = "0xe2a38ae55a486bcaf79658cde76894207cada4d64d3cb1b2b06c6c12c10d5d5b"
+latest-published-id = "0xe2a38ae55a486bcaf79658cde76894207cada4d64d3cb1b2b06c6c12c10d5d5b"
 published-version = "1"
