@@ -1,9 +1,21 @@
-module dubhe::dubhe_math_system {
+module dubhe::dubhe_math {
     use std::u128;
     use std::u64;
 
     public fun min(x: u256, y: u256): u256 {
         if (x < y) x else y
+    }
+
+    public fun safe_mul(a: u256, b: u256): u256 {
+        if (a == 0 || b == 0) return 0;
+        let c = a * b;
+        assert!(c / a == b, 0);
+        c
+    }
+
+    public fun safe_div(a: u256, b: u256): u256 {
+        assert!(b != 0, 0);
+        a / b
     }
 
     /// https://medium.com/coinmonks/math-in-solidity-part-3-percents-and-proportions-4db014e080b1

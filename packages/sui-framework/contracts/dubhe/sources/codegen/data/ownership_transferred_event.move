@@ -22,8 +22,6 @@
 
   use dubhe::dubhe_pool::Pool;
 
-  use dubhe::dubhe_path_element::PathElement;
-
   use dubhe::dubhe_bridge_config::BridgeConfig;
 
   use dubhe::dubhe_dapp_metadata::DappMetadata;

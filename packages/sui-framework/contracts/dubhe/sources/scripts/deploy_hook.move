@@ -19,13 +19,10 @@
     custom_schema::add_to_schema(schema, ctx);
 
     schema.next_asset_id().set(0);
-    // 0.03% swap fee
-    schema.swap_fee().set(3);
-    // 0.01% lp fee
-    schema.lp_fee().set(1);
+    // 0.3% swap fee
+    schema.swap_fee().set(30);
     schema.fee_to().set(ctx.sender());
     schema.max_swap_path_len().set(6);
-    schema.min_liquidity().set(100);
 
     // bridge
     // to Dubhe_OS_Network => 1 DUBHE

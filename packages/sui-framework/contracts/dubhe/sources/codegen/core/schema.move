@@ -36,8 +36,6 @@
 
   use dubhe::dubhe_pool::Pool;
 
-  use dubhe::dubhe_path_element::PathElement;
-
   use dubhe::dubhe_bridge_config::BridgeConfig;
 
   use dubhe::dubhe_dapp_metadata::DappMetadata;
@@ -80,14 +78,6 @@
     storage::borrow_mut_field(&mut self.id, b"swap_fee")
   }
 
-  public fun borrow_lp_fee(self: &Schema): &StorageValue<u256> {
-    storage::borrow_field(&self.id, b"lp_fee")
-  }
-
-  public(package) fun lp_fee(self: &mut Schema): &mut StorageValue<u256> {
-    storage::borrow_mut_field(&mut self.id, b"lp_fee")
-  }
-
   public fun borrow_fee_to(self: &Schema): &StorageValue<address> {
     storage::borrow_field(&self.id, b"fee_to")
   }
@@ -102,14 +92,6 @@
 
   public(package) fun max_swap_path_len(self: &mut Schema): &mut StorageValue<u64> {
     storage::borrow_mut_field(&mut self.id, b"max_swap_path_len")
-  }
-
-  public fun borrow_min_liquidity(self: &Schema): &StorageValue<u256> {
-    storage::borrow_field(&self.id, b"min_liquidity")
-  }
-
-  public(package) fun min_liquidity(self: &mut Schema): &mut StorageValue<u256> {
-    storage::borrow_mut_field(&mut self.id, b"min_liquidity")
   }
 
   public fun borrow_pools(self: &Schema): &StorageDoubleMap<u256, u256, Pool> {
@@ -182,10 +164,8 @@
     storage::add_field<StorageMap<u256, AssetMetadata>>(&mut id, b"asset_metadata", storage_map_internal::new(b"asset_metadata", ctx));
     storage::add_field<StorageDoubleMap<u256, address, Account>>(&mut id, b"account", storage_double_map_internal::new(b"account", ctx));
     storage::add_field<StorageValue<u256>>(&mut id, b"swap_fee", storage_value_internal::new(b"swap_fee", ctx));
-    storage::add_field<StorageValue<u256>>(&mut id, b"lp_fee", storage_value_internal::new(b"lp_fee", ctx));
     storage::add_field<StorageValue<address>>(&mut id, b"fee_to", storage_value_internal::new(b"fee_to", ctx));
     storage::add_field<StorageValue<u64>>(&mut id, b"max_swap_path_len", storage_value_internal::new(b"max_swap_path_len", ctx));
-    storage::add_field<StorageValue<u256>>(&mut id, b"min_liquidity", storage_value_internal::new(b"min_liquidity", ctx));
     storage::add_field<StorageDoubleMap<u256, u256, Pool>>(&mut id, b"pools", storage_double_map_internal::new(b"pools", ctx));
     storage::add_field<StorageMap<String, BridgeConfig>>(&mut id, b"bridge", storage_map_internal::new(b"bridge", ctx));
     storage::add_field<StorageMap<address, address>>(&mut id, b"dapp_admin", storage_map_internal::new(b"dapp_admin", ctx));
@@ -225,20 +205,12 @@
     self.borrow_swap_fee().get()
   }
 
-  public fun get_lp_fee(self: &Schema): &u256 {
-    self.borrow_lp_fee().get()
-  }
-
   public fun get_fee_to(self: &Schema): &address {
     self.borrow_fee_to().get()
   }
 
   public fun get_max_swap_path_len(self: &Schema): &u64 {
     self.borrow_max_swap_path_len().get()
-  }
-
-  public fun get_min_liquidity(self: &Schema): &u256 {
-    self.borrow_min_liquidity().get()
   }
 
   public fun get_pools(self: &Schema, key1: u256, key2: u256): &Pool {

@@ -20,8 +20,6 @@
 
   use dubhe::dubhe_pool::Pool;
 
-  use dubhe::dubhe_path_element::PathElement;
-
   use dubhe::dubhe_bridge_config::BridgeConfig;
 
   use dubhe::dubhe_dapp_metadata::DappMetadata;
@@ -137,22 +135,51 @@
 			  )
   }
 
-  use dubhe::dubhe_swap_executed_event::SwapExecutedEvent;
+  use dubhe::dubhe_lp_minted_event::LpMintedEvent;
 
-  use dubhe::dubhe_swap_executed_event;
+  use dubhe::dubhe_lp_minted_event;
 
-  public fun swap_executed_event(
-    who: address,
-    send_to: address,
-    amount_in: u256,
-    amount_out: u256,
-    path: vector<u256>,
-  ) {
-    dubhe::storage_event::emit_set_record<SwapExecutedEvent, SwapExecutedEvent, SwapExecutedEvent>(
-				string(b"swap_executed_event"),
+  public fun lp_minted_event(sender: address, asset0: u256, asset1: u256, amount0: u256, amount1: u256, to: address) {
+    dubhe::storage_event::emit_set_record<LpMintedEvent, LpMintedEvent, LpMintedEvent>(
+				string(b"lp_minted_event"),
 				option::none(),
 			  	option::none(),
-			  option::some(dubhe_swap_executed_event::new(who,send_to,amount_in,amount_out,path))
+			  option::some(dubhe_lp_minted_event::new(sender,asset0,asset1,amount0,amount1,to))
+			  )
+  }
+
+  use dubhe::dubhe_lp_burned_event::LpBurnedEvent;
+
+  use dubhe::dubhe_lp_burned_event;
+
+  public fun lp_burned_event(sender: address, asset0: u256, asset1: u256, amount0: u256, amount1: u256, to: address) {
+    dubhe::storage_event::emit_set_record<LpBurnedEvent, LpBurnedEvent, LpBurnedEvent>(
+				string(b"lp_burned_event"),
+				option::none(),
+			  	option::none(),
+			  option::some(dubhe_lp_burned_event::new(sender,asset0,asset1,amount0,amount1,to))
+			  )
+  }
+
+  use dubhe::dubhe_swap_event::SwapEvent;
+
+  use dubhe::dubhe_swap_event;
+
+  public fun swap_event(
+    sender: address,
+    asset0: u256,
+    asset1: u256,
+    amount0_in: u256,
+    amount1_in: u256,
+    amount0_out: u256,
+    amount1_out: u256,
+    to: address,
+  ) {
+    dubhe::storage_event::emit_set_record<SwapEvent, SwapEvent, SwapEvent>(
+				string(b"swap_event"),
+				option::none(),
+			  	option::none(),
+			  option::some(dubhe_swap_event::new(sender,asset0,asset1,amount0_in,amount1_in,amount0_out,amount1_out,to))
 			  )
   }
 

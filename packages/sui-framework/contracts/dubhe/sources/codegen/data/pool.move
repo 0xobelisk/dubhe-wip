@@ -11,16 +11,19 @@
   public struct Pool has copy, drop, store {
     pool_address: address,
     lp_asset_id: u256,
+    reserve0: u128,
+    reserve1: u128,
+    k_last: u256,
   }
 
-  public fun new(pool_address: address, lp_asset_id: u256): Pool {
+  public fun new(pool_address: address, lp_asset_id: u256, reserve0: u128, reserve1: u128, k_last: u256): Pool {
     Pool {
-                                   pool_address,lp_asset_id
+                                   pool_address,lp_asset_id,reserve0,reserve1,k_last
                                }
   }
 
-  public fun get(self: &Pool): (address,u256) {
-    (self.pool_address,self.lp_asset_id)
+  public fun get(self: &Pool): (address,u256,u128,u128,u256) {
+    (self.pool_address,self.lp_asset_id,self.reserve0,self.reserve1,self.k_last)
   }
 
   public fun get_pool_address(self: &Pool): address {
@@ -31,6 +34,18 @@
     self.lp_asset_id
   }
 
+  public fun get_reserve0(self: &Pool): u128 {
+    self.reserve0
+  }
+
+  public fun get_reserve1(self: &Pool): u128 {
+    self.reserve1
+  }
+
+  public fun get_k_last(self: &Pool): u256 {
+    self.k_last
+  }
+
   public(package) fun set_pool_address(self: &mut Pool, pool_address: address) {
     self.pool_address = pool_address;
   }
@@ -39,8 +54,30 @@
     self.lp_asset_id = lp_asset_id;
   }
 
-  public(package) fun set(self: &mut Pool, pool_address: address, lp_asset_id: u256) {
+  public(package) fun set_reserve0(self: &mut Pool, reserve0: u128) {
+    self.reserve0 = reserve0;
+  }
+
+  public(package) fun set_reserve1(self: &mut Pool, reserve1: u128) {
+    self.reserve1 = reserve1;
+  }
+
+  public(package) fun set_k_last(self: &mut Pool, k_last: u256) {
+    self.k_last = k_last;
+  }
+
+  public(package) fun set(
+    self: &mut Pool,
+    pool_address: address,
+    lp_asset_id: u256,
+    reserve0: u128,
+    reserve1: u128,
+    k_last: u256,
+  ) {
     self.pool_address = pool_address;
     self.lp_asset_id = lp_asset_id;
+    self.reserve0 = reserve0;
+    self.reserve1 = reserve1;
+    self.k_last = k_last;
   }
 }

@@ -152,10 +152,18 @@
 
   #[error]
 
-  const BELOW_MIN_LIQUIDITY: vector<u8> = b"Amount is below Liquidity";
+  const BELOW_MIN_LIQUIDITY: vector<u8> = b"Amount is below liquidity";
 
   public fun below_min_liquidity_error(condition: bool) {
     assert!(condition, BELOW_MIN_LIQUIDITY)
+  }
+
+  #[error]
+
+  const LIQUIDITY_CANNOT_BE_ZERO: vector<u8> = b"Liquidity cannot be 0";
+
+  public fun liquidity_cannot_be_zero_error(condition: bool) {
+    assert!(condition, LIQUIDITY_CANNOT_BE_ZERO)
   }
 
   #[error]
@@ -172,6 +180,14 @@
 
   public fun more_than_max_swap_path_len_error(condition: bool) {
     assert!(condition, MORE_THAN_MAX_SWAP_PATH_LEN)
+  }
+
+  #[error]
+
+  const MORE_THAN_RESERVE: vector<u8> = b"More than reserve";
+
+  public fun more_than_reserve_error(condition: bool) {
+    assert!(condition, MORE_THAN_RESERVE)
   }
 
   #[error]
