@@ -369,6 +369,8 @@ async function publishContract(
   let schemas = dubheConfig.schemas;
   let upgradeCapId = '';
 
+  let printObjects: any[] = [];
+
   result.objectChanges!.map((object: ObjectChange) => {
     if (object.type === 'published') {
       console.log(`  ├─ Package ID: ${object.packageId}`);
@@ -381,6 +383,9 @@ async function publishContract(
     ) {
       console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
       upgradeCapId = object.objectId || '';
+    }
+    if (object.type === 'created') {
+      printObjects.push(object);
     }
   });
 
@@ -416,7 +421,7 @@ async function publishContract(
     console.log('  ├─ Hook execution successful');
     console.log(`  ├─ Transaction: ${deployHookResult.digest}`);
 
-    console.log('\n📋 Created Schemas:');
+    console.log('\n📋 Created Objects:');
     deployHookResult.objectChanges?.map((object: ObjectChange) => {
       if (
         object.type === 'created' &&
@@ -431,9 +436,13 @@ async function publishContract(
         object.objectType.includes('schema') &&
         !object.objectType.includes('dynamic_field')
       ) {
-        console.log(`  ├─ Type: ${object.objectType}`);
-        console.log(`  └─ ID: ${object.objectId}`);
+        printObjects.push(object);
       }
+    });
+
+    printObjects.map((object: ObjectChange) => {
+      console.log(`  ├─ Type: ${object.objectType}`);
+      console.log(`  └─ ID: ${object.objectId}`);
     });
 
     saveContractData(
