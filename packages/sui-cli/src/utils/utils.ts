@@ -8,6 +8,7 @@ import chalk from 'chalk';
 import { spawn } from 'child_process';
 import { Dubhe, NetworkType, SuiMoveNormalizedModules } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
+import packageJson from '../../package.json';
 
 export type DeploymentJsonType = {
   projectName: string;
@@ -186,11 +187,11 @@ export async function writeOutput(
 function getDubheDependency(network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'): string {
   switch (network) {
     case 'localnet':
-      return 'Dubhe = { local = "../dubhe-framework" }';
+      return 'Dubhe = { local = "../dubhe" }';
     case 'testnet':
-      return 'Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", subdir = "contracts/dubhe", rev = "develop" }';
+      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/contracts/dubhe", rev = "${packageJson.version}" }`;
     case 'mainnet':
-      return 'Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", subdir = "contracts/dubhe", rev = "develop" }';
+      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/contracts/dubhe", rev = "${packageJson.version}" }`;
     default:
       throw new Error(`Unsupported network: ${network}`);
   }
