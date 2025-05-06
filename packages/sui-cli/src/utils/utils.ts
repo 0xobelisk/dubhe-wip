@@ -238,11 +238,12 @@ export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'loc
 export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function loadKey(): string {
-  const privateKey = process.env.PRIVATE_KEY;
+  const privateKey = process.env.PRIVATE_KEY || process.env.NEXT_PUBLIC_PRIVATE_KEY;
   if (!privateKey) {
     throw new DubheCliError(
       `Missing private key environment variable.
   Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
+  or 'echo "NEXT_PUBLIC_PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
   in your contracts directory to use the default sui private key.`
     );
   }
