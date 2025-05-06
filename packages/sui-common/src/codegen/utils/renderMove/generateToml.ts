@@ -1,5 +1,6 @@
 import { DubheConfig } from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
+import packageJson from '../../../../package.json';
 
 export async function generateToml(config: DubheConfig, srcPrefix: string) {
   console.log('\n📄 Starting Move.toml Generation...');
@@ -12,7 +13,7 @@ edition = "2024"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.46.3" }
-Dubhe = { git = "https://github.com/0xobelisk/dubhe-framework.git", subdir = "contracts/dubhe", rev = "develop" }
+Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/contracts/dubhe", rev = "${packageJson.version}" }
 
 [addresses]
 sui = "0x2"
