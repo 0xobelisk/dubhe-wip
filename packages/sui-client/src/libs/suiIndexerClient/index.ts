@@ -202,15 +202,15 @@ export class SuiIndexerClient {
   async getEvents(params?: {
     first?: number;
     after?: string;
-    name?: string;
+    names?: string[];
     sender?: string;
     digest?: string;
     checkpoint?: string;
     orderBy?: string[];
   }): Promise<ConnectionResponse<IndexerEvent>> {
     const query = `
-      query GetEvents($first: Int, $after: String, $name: String, $sender: String, $digest: String, $checkpoint: String, $orderBy: [EventOrderField!]) {
-        events(first: $first, after: $after, name: $name, sender: $sender, digest: $digest, checkpoint: $checkpoint, orderBy: $orderBy) {
+      query GetEvents($first: Int, $after: String, $names: [String!], $sender: String, $digest: String, $checkpoint: String, $orderBy: [EventOrderField!]) {
+        events(first: $first, after: $after, names: $names, sender: $sender, digest: $digest, checkpoint: $checkpoint, orderBy: $orderBy) {
           edges {
             cursor
             node {

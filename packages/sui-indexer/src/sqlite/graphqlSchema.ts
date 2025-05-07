@@ -111,7 +111,7 @@ const typeDefs = `
     events(
       first: Int
       after: String
-      name: String
+      names: [String!]
       sender: String
       digest: String
       checkpoint: String
@@ -561,7 +561,7 @@ export function createResolvers(
         {
           first = DEFAULT_PAGE_SIZE,
           after,
-          name,
+          names,
           sender,
           digest,
           checkpoint,
@@ -569,7 +569,7 @@ export function createResolvers(
         }: {
           first?: number;
           after?: string;
-          name?: string;
+          names?: string[];
           sender?: string;
           digest?: string;
           checkpoint?: string;
@@ -582,23 +582,19 @@ export function createResolvers(
 
           // Collect filter conditions
           const conditions = [];
-          if (name && checkpoint) {
-            conditions.push(
-              and(
-                eq(dubheStoreEvents.name, name),
-                eq(dubheStoreEvents.checkpoint, checkpoint.toString())
-              )
-            );
-          } else if (name) {
-            conditions.push(eq(dubheStoreEvents.name, name));
-          } else if (checkpoint) {
-            conditions.push(eq(dubheStoreEvents.checkpoint, checkpoint.toString()));
+          if (names && names.length > 0) {
+            const nameValues = names.map((name) => `'${name}'`).join(',');
+            const nameCondition = sql`${dubheStoreEvents.name} IN (${sql.raw(nameValues)})`;
+            conditions.push(nameCondition);
           }
           if (sender) {
             conditions.push(eq(dubheStoreEvents.sender, sender));
           }
           if (digest) {
             conditions.push(eq(dubheStoreEvents.digest, digest));
+          }
+          if (checkpoint) {
+            conditions.push(eq(dubheStoreEvents.checkpoint, checkpoint.toString()));
           }
 
           // Get total count (apply filter conditions)
