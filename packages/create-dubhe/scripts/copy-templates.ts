@@ -67,55 +67,33 @@ const __dirname = path.dirname(__filename);
     }
   }
 
-  // 复制 dubhe 文件夹到每个模板
+  // Copy dubhe folder to templates
   const dubheSourcePath = path.join(rootDir, 'packages/sui-framework/src/dubhe');
   
-  // 检查源文件夹是否存在
   if (!await exists(dubheSourcePath)) {
     console.error(`Source dubhe folder not found at: ${dubheSourcePath}`);
     return;
   }
-
-  console.log(`Source dubhe folder found at: ${dubheSourcePath}`);
 
   const templates = await fs.readdir(destDir);
   
   for (const template of templates) {
     const templatePath = path.join(destDir, template);
     const isContractTemplate = template.includes('contract');
+    const targetPath = isContractTemplate 
+      ? path.join(templatePath, 'sui-template/src')
+      : path.join(templatePath, 'sui-template/packages/contracts/src');
+    const dubheDestPath = path.join(targetPath, 'dubhe');
     
-    if (isContractTemplate) {
-      const srcPath = path.join(templatePath, 'sui-template/src');
-      const dubheDestPath = path.join(srcPath, 'dubhe');
-      
-      try {
-        // 确保目标目录存在
-        await fs.mkdir(srcPath, { recursive: true });
-        console.log(`Copying dubhe to contract template: ${dubheDestPath}`);
-        await fs.cp(dubheSourcePath, dubheDestPath, { 
-          recursive: true, 
-          force: true,
-          errorOnExist: false
-        });
-      } catch (error) {
-        console.error(`Error copying dubhe to contract template: ${error}`);
-      }
-    } else {
-      const templateContractsPath = path.join(templatePath, 'sui-template/packages/contracts/src');
-      const dubheDestPath = path.join(templateContractsPath, 'dubhe');
-      
-      try {
-        // 确保目标目录存在
-        await fs.mkdir(templateContractsPath, { recursive: true });
-        console.log(`Copying dubhe to other template: ${dubheDestPath}`);
-        await fs.cp(dubheSourcePath, dubheDestPath, { 
-          recursive: true, 
-          force: true,
-          errorOnExist: false
-        });
-      } catch (error) {
-        console.error(`Error copying dubhe to other template: ${error}`);
-      }
+    try {
+      await fs.mkdir(targetPath, { recursive: true });
+      await fs.cp(dubheSourcePath, dubheDestPath, { 
+        recursive: true, 
+        force: true,
+        errorOnExist: false
+      });
+    } catch (error) {
+      console.error(`Error copying dubhe to ${template}: ${error}`);
     }
   }
 })();
