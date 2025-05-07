@@ -1,9 +1,0 @@
-{
-  "projectName": "dubhe",
-  "network": "localnet",
-  "packageId": "0xc7d12934e27a7442e688ea38e7aa98090a7969521797c83efcea863d53272604",
-  "schemaId": "0xb897c4dd07cd81485c8ee79410c12fe84e64eb29832b127932cbab4c1ccd30f7",
-  "schemas": {},
-  "upgradeCap": "0x04e573f9339732a89d201012273044721abe61d813b5e6ab11d04f00e984f60c",
-  "version": 1
-}
