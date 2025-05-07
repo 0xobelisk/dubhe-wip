@@ -40,7 +40,7 @@ export async function storeConfigHandler(
   outputPath: string
 ) {
   const path = process.cwd();
-  const contractPath = `${path}/contracts/${dubheConfig.name}`;
+  const contractPath = `${path}/src/${dubheConfig.name}`;
   const deployment = await getDeploymentJson(contractPath, network);
   await storeConfig(deployment.network, deployment.packageId, deployment.schemaId, outputPath);
 }

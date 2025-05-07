@@ -91,13 +91,13 @@ export async function getDeploymentSchemaId(projectPath: string, network: string
 
 export async function getDubheSchemaId(network: string) {
   const path = process.cwd();
-  const contractPath = `${path}/contracts/dubhe-framework`;
+  const contractPath = `${path}/src/dubhe`;
 
   switch (network) {
     case 'mainnet':
       return await getDeploymentSchemaId(contractPath, 'mainnet');
     case 'testnet':
-      return '0xa565cbb3641fff8f7e8ef384b215808db5f1837aa72c1cca1803b5d973699aac';
+      return await getDeploymentSchemaId(contractPath, 'testnet');
     case 'devnet':
       return await getDeploymentSchemaId(contractPath, 'devnet');
     case 'localnet':
@@ -166,7 +166,7 @@ export function saveContractData(
   const storeDeploymentData = JSON.stringify(DeploymentData, null, 2);
   writeOutput(
     storeDeploymentData,
-    `${path}/contracts/${projectName}/.history/sui_${network}/latest.json`,
+    `${path}/src/${projectName}/.history/sui_${network}/latest.json`,
     'Update deploy log'
   );
 }
@@ -191,7 +191,7 @@ function getDubheDependency(network: 'mainnet' | 'testnet' | 'devnet' | 'localne
     case 'testnet':
       return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/contracts/dubhe", rev = "${packageJson.version}" }`;
     case 'mainnet':
-      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/contracts/dubhe", rev = "${packageJson.version}" }`;
+      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "${packageJson.version}" }`;
     default:
       throw new Error(`Unsupported network: ${network}`);
   }

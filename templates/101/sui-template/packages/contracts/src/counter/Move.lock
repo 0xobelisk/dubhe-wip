@@ -2,7 +2,7 @@
 
 [move]
 version = 3
-manifest_digest = "3C13BDE317B3D97E146DC815138B00EC04803FF860EB77476BEFF536B07BA0DE"
+manifest_digest = "6284355CB9091DBCBB69E137F9BDDB269A855843F5317B81EBB62E19A6A5E27B"
 deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 dependencies = [
   { id = "Dubhe", name = "Dubhe" },
@@ -11,7 +11,7 @@ dependencies = [
 
 [[move.package]]
 id = "Dubhe"
-source = { local = "../dubhe-framework" }
+source = { local = "../dubhe" }
 
 dependencies = [
   { id = "Sui", name = "Sui" },
@@ -52,8 +52,20 @@ dependencies = [
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 [env.localnet]
-chain-id = "01a8d3f5"
-original-published-id = "0x2dba4ffc99469d1aa12e47460cd916bdbd1b8ec62c35f1826088eb50e296f8a4"
-latest-published-id = "0x2dba4ffc99469d1aa12e47460cd916bdbd1b8ec62c35f1826088eb50e296f8a4"
+chain-id = "13f08282"
+original-published-id = "0xfe20dc6e4e081f7cbe22b414f5629d490e0602b39c7e2881e1956a229a1721e6"
+latest-published-id = "0xfe20dc6e4e081f7cbe22b414f5629d490e0602b39c7e2881e1956a229a1721e6"
 published-version = "1"

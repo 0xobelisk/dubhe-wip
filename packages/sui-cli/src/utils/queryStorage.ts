@@ -51,7 +51,7 @@ export async function queryStorage({
   metadataFilePath?: string;
 }) {
   const path = process.cwd();
-  const projectPath = `${path}/contracts/${dubheConfig.name}`;
+  const projectPath = `${path}/src/${dubheConfig.name}`;
 
   packageId = packageId || (await getOldPackageId(projectPath, network));
 

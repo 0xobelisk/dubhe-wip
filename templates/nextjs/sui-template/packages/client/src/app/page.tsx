@@ -18,7 +18,7 @@ import { useAtom } from 'jotai';
 import { toast } from 'sonner';
 // import { useRouter } from 'next/router';
 import { Value } from '@/app/state';
-import { SCHEMA_ID, NETWORK, PACKAGE_ID, DUBHE_SCHEMA_ID } from 'contracts/config';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID, DUBHE_SCHEMA_ID } from '../../../contracts/deployment';
 
 export default function Home() {
   //   const router = useRouter();

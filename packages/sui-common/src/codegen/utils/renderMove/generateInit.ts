@@ -43,7 +43,7 @@ export async function generateInit(config: DubheConfig, srcPrefix: string) {
 `;
   await formatAndWriteMove(
     init_test_code,
-    `${srcPrefix}/contracts/${config.name}/sources/codegen/core/init_test.move`,
+    `${srcPrefix}/src/${config.name}/sources/codegen/core/init_test.move`,
     'formatAndWriteMove'
   );
 
@@ -73,7 +73,7 @@ export async function generateInit(config: DubheConfig, srcPrefix: string) {
   await formatAndWriteMove(
     init_code,
 
-    `${srcPrefix}/contracts/${config.name}/sources/codegen/core/genesis.move`,
+    `${srcPrefix}/src/${config.name}/sources/codegen/core/genesis.move`,
     'formatAndWriteMove'
   );
 }

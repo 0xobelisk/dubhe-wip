@@ -10,6 +10,7 @@ import {
   getOnchainSchemas,
   switchEnv,
   getSchemaId,
+  getDubheSchemaId,
   initializeDubhe
 } from './utils';
 import * as fs from 'fs';
@@ -96,7 +97,7 @@ export async function upgradeHandler(
   await switchEnv(network);
 
   const path = process.cwd();
-  const projectPath = `${path}/contracts/${name}`;
+  const projectPath = `${path}/src/${name}`;
 
   const dubhe = initializeDubhe({
     network
@@ -131,7 +132,7 @@ export async function upgradeHandler(
         dependencies: extractedDependencies,
         digest: extractedDigest
       } = JSON.parse(
-        execSync(`sui move build --dump-bytecode-as-base64 --path ${path}/contracts/${name}`, {
+        execSync(`sui move build --dump-bytecode-as-base64 --path ${path}/src/${name}`, {
           encoding: 'utf-8'
         })
       );
@@ -219,7 +220,7 @@ export async function upgradeHandler(
     const newVersion = oldVersion + 1;
     let args = [];
     if (name !== 'dubhe') {
-      let dubheSchemaId = await getSchemaId(`${process.cwd()}/contracts/dubhe-framework`, network);
+      let dubheSchemaId = await getDubheSchemaId(network);
       args.push(migrateTx.object(dubheSchemaId));
     }
     args.push(migrateTx.object(schemaId));

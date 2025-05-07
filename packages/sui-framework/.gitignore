@@ -48,8 +48,8 @@ out/
 build
 dist
 
-contracts/dubhe-framework/.history
-contracts/dubhe-framework/Move.lock
+contracts/dubhe/.history
+contracts/dubhe/Move.lock
 
 *.db
 

@@ -3,7 +3,7 @@ out
 broadcast
 cache
 node_modules
-contracts
+src
 .env
 *.db
 node_logs

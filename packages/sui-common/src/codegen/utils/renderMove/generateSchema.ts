@@ -147,7 +147,7 @@ export async function generateSchemaData(
 
     await formatAndWriteMove(
       code,
-      `${path}/contracts/${projectName}/sources/codegen/data/${convertToSnakeCase(name)}.move`,
+      `${path}/src/${projectName}/sources/codegen/data/${convertToSnakeCase(name)}.move`,
       'formatAndWriteMove'
     );
   }
@@ -268,7 +268,7 @@ export async function generateSchemaStructure(
   await formatAndWriteMove(
     schemaMoudle,
 
-    `${path}/contracts/${projectName}/sources/codegen/core/schema.move`,
+    `${path}/src/${projectName}/sources/codegen/core/schema.move`,
     'formatAndWriteMove'
   );
 }

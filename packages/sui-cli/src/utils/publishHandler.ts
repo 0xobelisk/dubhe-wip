@@ -469,14 +469,14 @@ async function checkDubheFramework(projectPath: string): Promise<boolean> {
     console.log(chalk.yellow('\nℹ️ Dubhe Framework Files Not Found'));
     console.log(chalk.yellow('  ├─ Expected Path:'), projectPath);
     console.log(chalk.yellow('  ├─ To set up Dubhe Framework:'));
-    console.log(chalk.yellow('  │  1. Create directory: mkdir -p contracts/dubhe-framework'));
+    console.log(chalk.yellow('  │  1. Create directory: mkdir -p contracts/dubhe'));
     console.log(
       chalk.yellow(
-        '  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe-framework contracts/dubhe-framework'
+        '  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe contracts/dubhe'
       )
     );
     console.log(
-      chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe-framework')
+      chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe')
     );
     console.log(chalk.yellow('  └─ After setup, restart the local node'));
     return false;
@@ -489,7 +489,7 @@ export async function publishDubheFramework(
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
   const path = process.cwd();
-  const projectPath = `${path}/contracts/dubhe-framework`;
+  const projectPath = `${path}/src/dubhe`;
 
   if (!(await checkDubheFramework(projectPath))) {
     return;
@@ -605,7 +605,7 @@ export async function publishDubheFramework(
     });
   }
 
-  saveContractData('dubhe-framework', network, packageId, schemaId, upgradeCapId, version, schemas);
+  saveContractData('dubhe', network, packageId, schemaId, upgradeCapId, version, schemas);
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
   await delay(1000);
@@ -627,7 +627,7 @@ export async function publishHandler(
   }
 
   const path = process.cwd();
-  const projectPath = `${path}/contracts/${dubheConfig.name}`;
+  const projectPath = `${path}/src/${dubheConfig.name}`;
   await updateDubheDependency(`${projectPath}/Move.toml`, network);
   await publishContract(dubhe, dubheConfig, network, projectPath, gasBudget);
 }

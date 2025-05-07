@@ -16,7 +16,7 @@
     "schemagen": "pnpm dubhe schemagen",
     "account:gen": "pnpm dubhe generate-key",
     "check-balance": "pnpm dubhe check-balance --network",
-    "config:store": "pnpm dubhe config-store --output-ts-path ./config.ts --network",
+    "config:store": "pnpm dubhe config-store --output-ts-path ./deployment.ts --network",
     "indexer:sqlite": "pnpm sqlite-indexer --force-regenesis --network",
     "// Development Environment": "----------------",
     "setup:localnet": "pnpm account:gen && pnpm faucet localnet && pnpm run deploy localnet && pnpm run config:store localnet && pnpm run indexer:sqlite localnet",

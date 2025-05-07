@@ -38,7 +38,7 @@ const commandModule: CommandModule<Options, Options> = {
       console.log('🚀 Running move test');
       const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
       const path = process.cwd();
-      const projectPath = `${path}/contracts/${dubheConfig.name}`;
+      const projectPath = `${path}/src/${dubheConfig.name}`;
       const command = `sui move test --path ${projectPath} ${
         test ? ` --test ${test}` : ''
       } --gas-limit ${gasLimit}`;

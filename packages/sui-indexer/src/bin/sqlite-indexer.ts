@@ -248,7 +248,7 @@ logger.info(`  - GraphQL:   http://${argv.host}:${argv.port}/graphql`);
 const dubheConfig = (await loadConfig(argv.configPath)) as DubheConfig;
 
 const path = process.cwd();
-const projectPath = `${path}/contracts/${dubheConfig.name}`;
+const projectPath = `${path}/src/${dubheConfig.name}`;
 
 const schemaId = argv.schemaId || (await getSchemaId(projectPath, argv.network));
 

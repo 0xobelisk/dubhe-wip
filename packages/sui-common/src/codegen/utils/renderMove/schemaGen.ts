@@ -25,15 +25,15 @@ export async function schemaGen(
 
   const path = srcPrefix ?? process.cwd();
 
-  if (existsSync(`${path}/contracts/${config.name}`)) {
-    deleteFolderRecursive(`${path}/contracts/${config.name}/sources/codegen`);
+  if (existsSync(`${path}/src/${config.name}`)) {
+    deleteFolderRecursive(`${path}/src/${config.name}/sources/codegen`);
   }
 
-  if (!existsSync(`${path}/contracts/${config.name}/Move.toml`)) {
+  if (!existsSync(`${path}/src/${config.name}/Move.toml`)) {
     await generateToml(config, path);
   }
 
-  if (!existsSync(`${path}/contracts/${config.name}/sources/script/deploy_hook.move`)) {
+  if (!existsSync(`${path}/src/${config.name}/sources/script/deploy_hook.move`)) {
     await generateDeployHook(config, path);
   }
 

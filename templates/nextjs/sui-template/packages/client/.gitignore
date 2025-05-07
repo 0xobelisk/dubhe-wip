@@ -41,8 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 # dubhe 
-contracts/dubhe-framework/.history
-contracts/dubhe-framework/Move.lock
+contracts/dubhe/.history
+contracts/dubhe/Move.lock
 **/build/
 src/chain/key.ts
 indexer.db
