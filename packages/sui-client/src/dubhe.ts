@@ -1260,7 +1260,7 @@ export class Dubhe {
   async getEvents({
     first,
     after,
-    name,
+    names,
     sender,
     digest,
     checkpoint,
@@ -1268,7 +1268,7 @@ export class Dubhe {
   }: {
     first?: number;
     after?: string;
-    name?: string;
+    names?: string[];
     sender?: string;
     digest?: string;
     checkpoint?: string;
@@ -1277,7 +1277,7 @@ export class Dubhe {
     return await this.suiIndexerClient.getEvents({
       first,
       after,
-      name,
+      names,
       sender,
       digest,
       checkpoint,
