@@ -473,39 +473,56 @@ export function createResolvers(
             } else if (Array.isArray(value)) {
               const jsonValue = JSON.stringify(value);
               conditions.push(sql`
-								CASE 
-									WHEN json_valid(${dubheStoreSchemas.value})
-									THEN (
-										CASE 
-											WHEN json_type(${dubheStoreSchemas.value}) = 'array'
-											THEN json(${dubheStoreSchemas.value}) = json(${jsonValue})
-											ELSE FALSE
-										END
-									)
-									ELSE FALSE 
-								END
-							`);
+                CASE 
+                  WHEN json_valid(${dubheStoreSchemas.value})
+                  THEN (
+                    CASE 
+                      WHEN json_type(${dubheStoreSchemas.value}) = 'array'
+                      THEN json(${dubheStoreSchemas.value}) = json(${jsonValue})
+                      ELSE FALSE
+                    END
+                  )
+                  ELSE FALSE 
+                END
+              `);
             } else if (typeof value === 'string') {
               conditions.push(
                 sql`(${dubheStoreSchemas.value} = ${value} OR 
-									(json_valid(${dubheStoreSchemas.value}) AND 
-									 json_extract(${dubheStoreSchemas.value}, '$') = ${value}))`
+                  (json_valid(${dubheStoreSchemas.value}) AND 
+                   json_extract(${dubheStoreSchemas.value}, '$') = ${value}))`
               );
             } else if (typeof value === 'number') {
               conditions.push(
                 sql`(${dubheStoreSchemas.value} = ${value.toString()} OR 
-									(json_valid(${dubheStoreSchemas.value}) AND 
-									 CAST(json_extract(${dubheStoreSchemas.value}, '$') AS NUMERIC) = ${value}))`
+                  (json_valid(${dubheStoreSchemas.value}) AND 
+                   CAST(json_extract(${dubheStoreSchemas.value}, '$') AS NUMERIC) = ${value}))`
               );
             } else if (typeof value === 'object') {
-              const jsonValue = JSON.stringify(value);
-              conditions.push(sql`
-								CASE 
-									WHEN json_valid(${dubheStoreSchemas.value})
-									THEN json(${dubheStoreSchemas.value}) = json(${jsonValue})
-									ELSE FALSE 
-								END
-							`);
+              // Handle object type filtering, optimize parameter handling
+              const jsonConditions = Object.entries(value).map(([key, val]) => {
+                const jsonPath = `$.${key}`;
+                if (typeof val === 'string') {
+                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) = ${val}`;
+                } else if (typeof val === 'number') {
+                  return sql`CAST(json_extract(${dubheStoreSchemas.value}, ${jsonPath}) AS NUMERIC) = ${val}`;
+                } else if (typeof val === 'boolean') {
+                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) = ${val.toString()}`;
+                } else if (val === null) {
+                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) IS NULL`;
+                } else if (Array.isArray(val) || typeof val === 'object') {
+                  const jsonVal = JSON.stringify(val);
+                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) = json(${jsonVal})`;
+                }
+                return sql`1=1`;
+              });
+
+              if (jsonConditions.length > 0) {
+                // Combine all conditions with AND
+                const combinedCondition = jsonConditions.reduce((acc, curr) =>
+                  acc ? sql`${acc} AND ${curr}` : curr
+                );
+                conditions.push(combinedCondition);
+              }
             }
           }
 
