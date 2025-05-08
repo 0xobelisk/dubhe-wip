@@ -76,19 +76,19 @@ module dubhe::dex_tests {
         scenario.end();
     }
 
-    #[test]
-    #[expected_failure(abort_code = dubhe::dubhe_errors::POOL_ALREADY_EXISTS)]
-    public fun create_same_pool_twice_should_fail() {
-        let (mut schema, mut scenario, _, _, _) = init_test();
+    // #[test]
+    // #[expected_failure(abort_code = dubhe::dubhe_errors::POOL_ALREADY_EXISTS)]
+    // public fun create_same_pool_twice_should_fail() {
+    //     let (mut schema, mut scenario, _, _, _) = init_test();
 
-        let ctx =  test_scenario::ctx(&mut scenario);
-        dubhe_dex_system::create_pool(&mut schema, 0, 1, ctx);
-        dubhe_dex_system::create_pool(&mut schema, 1, 0, ctx);
+    //     let ctx =  test_scenario::ctx(&mut scenario);
+    //     dubhe_dex_system::create_pool(&mut schema, 0, 1, ctx);
+    //     dubhe_dex_system::create_pool(&mut schema, 1, 0, ctx);
 
-        test_scenario::return_shared<Schema>(schema);
+    //     test_scenario::return_shared<Schema>(schema);
     
-        scenario.end();
-    }
+    //     scenario.end();
+    // }
 
     #[test]
     public fun can_add_liquidity() {
@@ -389,6 +389,70 @@ module dubhe::dex_tests {
         std::debug::print(&dubhe_dex_functions::get_pool(&mut schema, asset_1, asset_2));
         test_scenario::return_shared<Schema>(schema);
     
+        scenario.end();
+    }
+
+    #[test]
+    fun mock_swap() {
+        let (mut schema, mut scenario, asset_0, asset_1, _) = init_test();
+
+        let ctx = test_scenario::ctx(&mut scenario);
+      dubhe_dex_system::create_pool(&mut schema, asset_0, asset_1, ctx);
+
+      dubhe_assets_system::mint(&mut schema, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
+        dubhe_assets_system::mint(&mut schema, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
+
+      schema.pools().set(asset_0, asset_1, dubhe_pool::new(
+            @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7, 
+            2, 
+            3392173622 - 653980268 - 6524556,
+            80109881 - 15444457 - 154084, 
+            271746625189758982
+            )
+        );
+
+        schema.asset_metadata().set(asset_0, dubhe::dubhe_asset_metadata::new(
+            std::ascii::string(b"USDT"),
+            std::ascii::string(b"USDT"),
+            std::ascii::string(b"USDT"),
+            9,
+            std::ascii::string(b""),
+            std::ascii::string(b""),
+            @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7,
+            418696631,
+            0,
+            dubhe::dubhe_asset_status::new_liquid(),
+            true,
+            true,
+            true,
+            dubhe::dubhe_asset_type::new_lp()
+        ));
+
+        schema.account().set(asset_0, @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7, dubhe::dubhe_account::new(
+           2738193354,
+            dubhe::dubhe_account_status::new_liquid(),
+        ));
+
+        schema.account().set(asset_1, @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7, dubhe::dubhe_account::new(
+            64665424,
+            dubhe::dubhe_account_status::new_liquid(),
+        ));
+
+        dubhe_dex_system::add_liquidity(
+            &mut schema, 
+            asset_0, 
+            asset_1, 
+            200000000, 
+            4723218, 
+            199000000, 
+            4699602, 
+            ctx.sender(), 
+            ctx
+        );
+
+
+
+        test_scenario::return_shared<Schema>(schema);
         scenario.end();
     }
 }

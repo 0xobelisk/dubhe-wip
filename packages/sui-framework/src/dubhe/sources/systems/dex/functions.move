@@ -185,6 +185,7 @@ module dubhe::dubhe_dex_functions {
 
         update(&mut pool, balance0, balance1);
         if (fee_on) pool.set_k_last(dubhe_math::safe_mul(balance0, balance1)); // reserve0 and reserve1 are up-to-date
+        schema.pools().set(asset_0, asset_1, pool);
         lp_burned_event(ctx.sender(), asset_0, asset_1, amount0, amount1, to);
         (amount0, amount1)
     }
