@@ -23,4 +23,9 @@ module dubhe::dubhe_migrate {
             )
         );
   }
+
+  public entry fun migrate_to_v3(schema: &mut Schema, new_package_id: address, new_version: u32, ctx: &mut TxContext) {
+    let dapp_key = dubhe_dapp_key::new();
+    dubhe_dapp_system::upgrade_dapp(schema, dapp_key, new_package_id, new_version, ctx);
+  }
 }
