@@ -208,6 +208,32 @@ export async function updateDubheDependency(
   console.log(`Updated Dubhe dependency in ${filePath} for ${network}.`);
 }
 
+async function checkRpcAvailability(rpcUrl: string): Promise<boolean> {
+  try {
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'sui_getLatestCheckpointSequenceNumber',
+        params: []
+      })
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = await response.json();
+    return !data.error;
+  } catch (error) {
+    return false;
+  }
+}
+
 export async function addEnv(
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ): Promise<void> {
@@ -217,6 +243,16 @@ export async function addEnv(
     testnet: 'https://fullnode.testnet.sui.io:443/',
     mainnet: 'https://fullnode.mainnet.sui.io:443/'
   };
+
+  const rpcUrl = rpcMap[network];
+
+  // Check RPC availability first
+  const isRpcAvailable = await checkRpcAvailability(rpcUrl);
+  if (!isRpcAvailable) {
+    throw new Error(
+      `RPC endpoint ${rpcUrl} is not available. Please check your network connection or try again later.`
+    );
+  }
 
   return new Promise<void>((resolve, reject) => {
     let errorOutput = '';
@@ -231,25 +267,25 @@ export async function addEnv(
       }
     );
 
-    // 捕获标准输出
+    // Capture standard output
     suiProcess.stdout.on('data', (data) => {
       stdoutOutput += data.toString();
     });
 
-    // 捕获错误输出
+    // Capture error output
     suiProcess.stderr.on('data', (data) => {
       errorOutput += data.toString();
     });
 
-    // 处理进程错误（比如命令不存在）
+    // Handle process errors (e.g., command not found)
     suiProcess.on('error', (error) => {
       console.error(chalk.red(`\n❌ Failed to execute sui command: ${error.message}`));
       reject(new Error(`Failed to execute sui command: ${error.message}`));
     });
 
-    // 进程结束时的处理
+    // Handle process exit
     suiProcess.on('exit', (code) => {
-      // 检查是否包含"already exists"信息
+      // Check if "already exists" message is present
       if (errorOutput.includes('already exists') || stdoutOutput.includes('already exists')) {
         console.log(chalk.yellow(`Environment ${network} already exists, proceeding...`));
         resolve();
@@ -271,10 +307,10 @@ export async function addEnv(
 
 export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'localnet') {
   try {
-    // 首先尝试添加环境
+    // First, try to add the environment
     await addEnv(network);
 
-    // 然后切换到指定环境
+    // Then switch to the specified environment
     return new Promise<void>((resolve, reject) => {
       let errorOutput = '';
       let stdoutOutput = '';
@@ -310,7 +346,7 @@ export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'loc
       });
     });
   } catch (error) {
-    // 重新抛出错误，让调用者处理
+    // Re-throw the error for the caller to handle
     throw error;
   }
 }
