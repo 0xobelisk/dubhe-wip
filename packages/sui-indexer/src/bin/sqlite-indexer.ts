@@ -282,15 +282,25 @@ while (true) {
   }));
 
   for (const tx of txs) {
-    await insertTx(
-      database,
-      // @ts-ignore
-      tx.sender,
-      tx.checkpoint?.toString() as string,
-      tx.digest,
-      tx.cursor,
-      tx.timestampMs?.toString() as string
-    );
+    // @ts-ignore
+    for (const moveCall  of tx.transaction?.data?.transaction?.transactions) {
+      if (moveCall.MoveCall) {
+        console.log(JSON.stringify(moveCall, null, 2));
+        await insertTx(
+          database,
+          // @ts-ignore
+          tx.sender,
+          tx.checkpoint?.toString() as string,
+          tx.digest,
+          moveCall.MoveCall.package,
+          moveCall.MoveCall.module,
+          moveCall.MoveCall.function,
+          moveCall.MoveCall.arguments,
+          tx.cursor,
+          tx.timestampMs?.toString() as string
+        );
+    }
+  }
 
     if (tx.events) {
       for (const event of tx.events) {
