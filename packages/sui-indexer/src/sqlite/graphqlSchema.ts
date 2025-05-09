@@ -1,6 +1,6 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
-import { and, eq, gt, lt, asc, desc, sql } from 'drizzle-orm';
+import { and, eq, gt, asc, desc, sql } from 'drizzle-orm';
 import { dubheStoreEvents, dubheStoreSchemas, dubheStoreTransactions } from '../utils/tables';
 
 const typeDefs = `
@@ -124,6 +124,9 @@ const typeDefs = `
       sender: String
       digest: String
       checkpoint: Int
+      packageId: String
+      module: String
+      functionName: [String!]
       orderBy: [TransactionOrderField!]
     ): TransactionConnection!
   }
@@ -133,6 +136,10 @@ const typeDefs = `
     sender: String!
     checkpoint: Int!
     digest: String!
+    package: String!
+    module: String!
+    function: String!
+    arguments: JSON!
     created_at: String!
   }
 
@@ -301,18 +308,22 @@ export function createResolvers(
         {
           first = DEFAULT_PAGE_SIZE,
           after,
-          before,
           sender,
           digest,
           checkpoint,
+          packageId,
+          module,
+          functionName,
           orderBy
         }: {
           first?: number;
           after?: string;
-          before?: string;
           sender?: string;
           digest?: string;
           checkpoint?: number;
+          packageId?: string;
+          module?: string;
+          functionName?: string[];
           orderBy?: string[];
         }
       ) => {
@@ -331,6 +342,17 @@ export function createResolvers(
           if (digest) {
             conditions.push(eq(dubheStoreTransactions.digest, digest));
           }
+          if (packageId) {
+            conditions.push(eq(dubheStoreTransactions.package, packageId));
+          }
+          if (module) {
+            conditions.push(eq(dubheStoreTransactions.module, module));
+          }
+          if (functionName && functionName.length > 0) {
+            const functionNameValues = functionName.map((name) => `'${name}'`).join(',');
+            const functionNameCondition = sql`${dubheStoreTransactions.function} IN (${sql.raw(functionNameValues)})`;
+            conditions.push(functionNameCondition);
+          }
 
           // Get total count (apply filter conditions)
           const totalCount = getTotalCount(database, dubheStoreTransactions, conditions);
@@ -342,14 +364,6 @@ export function createResolvers(
               throw new Error('Invalid cursor');
             }
             conditions.push(gt(dubheStoreTransactions.id, afterId));
-          }
-
-          if (before) {
-            const beforeId = decodeCursor(before);
-            if (!beforeId) {
-              throw new Error('Invalid cursor');
-            }
-            conditions.push(lt(dubheStoreTransactions.id, beforeId));
           }
 
           // Apply all conditions at once
@@ -675,7 +689,6 @@ export function createSchema(
   });
 }
 
-// 辅助函数来解析各种类型的字面量
 function parseLiteral(ast: any): any {
   switch (ast.kind) {
     case 'ObjectValue':
