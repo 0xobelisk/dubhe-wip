@@ -128,6 +128,7 @@ const typeDefs = `
       module: String
       functionName: [String!]
       orderBy: [TransactionOrderField!]
+      showEvent: Boolean
     ): TransactionConnection!
   }
 
@@ -141,6 +142,7 @@ const typeDefs = `
     function: String!
     arguments: JSON!
     created_at: String!
+    events: [Event!]
   }
 
   type Schema {
@@ -314,7 +316,8 @@ export function createResolvers(
           packageId,
           module,
           functionName,
-          orderBy
+          orderBy,
+          showEvent
         }: {
           first?: number;
           after?: string;
@@ -325,6 +328,7 @@ export function createResolvers(
           module?: string;
           functionName?: string[];
           orderBy?: string[];
+          showEvent?: boolean;
         }
       ) => {
         try {
@@ -377,10 +381,31 @@ export function createResolvers(
           // Get paginated data
           const records = query.limit(limit + 1).all();
           const hasNextPage = records.length > limit;
-          const edges = records.slice(0, limit).map((record) => ({
-            cursor: encodeCursor(record.id),
-            node: record
-          }));
+          const edges = records.slice(0, limit).map((record: any) => {
+            let node: any = record;
+
+            if (showEvent) {
+              const events = database
+                .select()
+                .from(dubheStoreEvents)
+                .where(eq(dubheStoreEvents.digest, record.digest))
+                .orderBy(desc(dubheStoreEvents.id))
+                .all();
+
+              node = {
+                ...record,
+                events: events.map((event) => ({
+                  ...event,
+                  value: event.value
+                }))
+              };
+            }
+
+            return {
+              cursor: encodeCursor(record.id),
+              node
+            };
+          });
 
           return {
             edges,

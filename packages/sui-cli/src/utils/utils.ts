@@ -207,32 +207,111 @@ export async function updateDubheDependency(
   fs.writeFileSync(filePath, updatedContent, 'utf-8');
   console.log(`Updated Dubhe dependency in ${filePath} for ${network}.`);
 }
+
+export async function addEnv(
+  network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
+): Promise<void> {
+  const rpcMap = {
+    localnet: 'http://127.0.0.1:9000',
+    devnet: 'https://fullnode.devnet.sui.io:443/',
+    testnet: 'https://fullnode.testnet.sui.io:443/',
+    mainnet: 'https://fullnode.mainnet.sui.io:443/'
+  };
+
+  return new Promise<void>((resolve, reject) => {
+    let errorOutput = '';
+    let stdoutOutput = '';
+
+    const suiProcess = spawn(
+      'sui',
+      ['client', 'new-env', '--alias', network, '--rpc', rpcMap[network]],
+      {
+        env: { ...process.env },
+        stdio: 'pipe'
+      }
+    );
+
+    // 捕获标准输出
+    suiProcess.stdout.on('data', (data) => {
+      stdoutOutput += data.toString();
+    });
+
+    // 捕获错误输出
+    suiProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    // 处理进程错误（比如命令不存在）
+    suiProcess.on('error', (error) => {
+      console.error(chalk.red(`\n❌ Failed to execute sui command: ${error.message}`));
+      reject(new Error(`Failed to execute sui command: ${error.message}`));
+    });
+
+    // 进程结束时的处理
+    suiProcess.on('exit', (code) => {
+      // 检查是否包含"already exists"信息
+      if (errorOutput.includes('already exists') || stdoutOutput.includes('already exists')) {
+        console.log(chalk.yellow(`Environment ${network} already exists, proceeding...`));
+        resolve();
+        return;
+      }
+
+      if (code === 0) {
+        console.log(chalk.green(`Successfully added environment ${network}`));
+        resolve();
+      } else {
+        const finalError = errorOutput || stdoutOutput || `Process exited with code ${code}`;
+        console.error(chalk.red(`\n❌ Failed to add environment ${network}`));
+        console.error(chalk.red(`  └─ ${finalError.trim()}`));
+        reject(new Error(finalError));
+      }
+    });
+  });
+}
+
 export async function switchEnv(network: 'mainnet' | 'testnet' | 'devnet' | 'localnet') {
   try {
+    // 首先尝试添加环境
+    await addEnv(network);
+
+    // 然后切换到指定环境
     return new Promise<void>((resolve, reject) => {
+      let errorOutput = '';
+      let stdoutOutput = '';
+
       const suiProcess = spawn('sui', ['client', 'switch', '--env', network], {
         env: { ...process.env },
         stdio: 'pipe'
       });
 
+      suiProcess.stdout.on('data', (data) => {
+        stdoutOutput += data.toString();
+      });
+
+      suiProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+
       suiProcess.on('error', (error) => {
-        console.error(chalk.red('\n❌ Failed to Switch Env'));
-        console.error(chalk.red(`  Error: ${error.message}`));
-        reject(error); // Reject promise on error
+        console.error(chalk.red(`\n❌ Failed to execute sui command: ${error.message}`));
+        reject(new Error(`Failed to execute sui command: ${error.message}`));
       });
 
       suiProcess.on('exit', (code) => {
-        if (code !== 0) {
-          console.error(chalk.red(`\n❌ Process exited with code: ${code}`));
-          reject(new Error(`Process exited with code: ${code}`));
+        if (code === 0) {
+          console.log(chalk.green(`Successfully switched to environment ${network}`));
+          resolve();
         } else {
-          resolve(); // Resolve promise on successful exit
+          const finalError = errorOutput || stdoutOutput || `Process exited with code ${code}`;
+          console.error(chalk.red(`\n❌ Failed to switch to environment ${network}`));
+          console.error(chalk.red(`  └─ ${finalError.trim()}`));
+          reject(new Error(finalError));
         }
       });
     });
   } catch (error) {
-    console.error(chalk.red('\n❌ Failed to Switch Env'));
-    console.error(chalk.red(`  └─ Error: ${error}`));
+    // 重新抛出错误，让调用者处理
+    throw error;
   }
 }
 

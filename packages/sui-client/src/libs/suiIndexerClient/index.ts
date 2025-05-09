@@ -25,7 +25,12 @@ export interface IndexerTransaction {
   checkpoint: number;
   digest: string;
   sender: string;
+  package: string;
+  module: string;
+  function: string;
+  arguments: any;
   created_at: string;
+  events?: IndexerEvent[];
 }
 
 export interface IndexerSchema {
@@ -89,11 +94,37 @@ export class SuiIndexerClient {
     sender?: string;
     digest?: string;
     checkpoint?: number;
+    packageId?: string;
+    module?: string;
+    functionName?: string[];
     orderBy?: string[];
+    showEvent?: boolean;
   }): Promise<ConnectionResponse<IndexerTransaction>> {
     const query = `
-      query GetTransactions($first: Int, $after: String, $sender: String, $digest: String, $checkpoint: Int, $orderBy: [TransactionOrderField!]) {
-        transactions(first: $first, after: $after, sender: $sender, digest: $digest, checkpoint: $checkpoint, orderBy: $orderBy) {
+      query GetTransactions(
+        $first: Int, 
+        $after: String, 
+        $sender: String, 
+        $digest: String, 
+        $checkpoint: Int, 
+        $packageId: String,
+        $module: String,
+        $functionName: [String!],
+        $orderBy: [TransactionOrderField!],
+        $showEvent: Boolean!
+      ) {
+        transactions(
+          first: $first, 
+          after: $after, 
+          sender: $sender, 
+          digest: $digest, 
+          checkpoint: $checkpoint,
+          packageId: $packageId,
+          module: $module,
+          functionName: $functionName,
+          orderBy: $orderBy,
+          showEvent: $showEvent
+        ) {
           edges {
             cursor
             node {
@@ -101,7 +132,20 @@ export class SuiIndexerClient {
               checkpoint
               digest
               sender
+              package
+              module
+              function
+              arguments
               created_at
+              events @include(if: $showEvent) {
+                id
+                checkpoint
+                digest
+                name
+                sender
+                value
+                created_at
+              }
             }
           }
           pageInfo {
@@ -115,16 +159,18 @@ export class SuiIndexerClient {
 
     const response = await this.fetchGraphql<{
       transactions: ConnectionResponse<IndexerTransaction>;
-    }>(query, params);
+    }>(query, { ...params, showEvent: params?.showEvent ?? false });
     return response.transactions;
   }
 
   async getTransaction(
-    digest: string
+    digest: string,
+    showEvent?: boolean
   ): Promise<IndexerTransaction | undefined> {
     const response = await this.getTransactions({
       first: 1,
       digest,
+      showEvent,
     });
     return response.edges[0]?.node;
   }

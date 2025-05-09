@@ -1142,14 +1142,22 @@ export class Dubhe {
     sender,
     digest,
     checkpoint,
+    packageId,
+    module,
+    functionName,
     orderBy,
+    showEvent,
   }: {
     first?: number;
     after?: string;
     sender?: string;
     digest?: string;
     checkpoint?: number;
+    packageId?: string;
+    module?: string;
+    functionName?: string[];
     orderBy?: string[];
+    showEvent?: boolean;
   }): Promise<ConnectionResponse<IndexerTransaction>> {
     return await this.suiIndexerClient.getTransactions({
       first,
@@ -1157,7 +1165,11 @@ export class Dubhe {
       sender,
       digest,
       checkpoint,
+      packageId,
+      module,
+      functionName,
       orderBy,
+      showEvent,
     });
   }
 

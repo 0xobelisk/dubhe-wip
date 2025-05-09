@@ -3,7 +3,6 @@ out
 broadcast
 cache
 node_modules
-src
 .env
 *.db
 node_logs
