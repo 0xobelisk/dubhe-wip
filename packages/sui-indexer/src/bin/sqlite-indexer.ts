@@ -136,8 +136,11 @@ function getFullnodeUrl(network: 'mainnet' | 'testnet' | 'localnet'): string {
   }
 }
 
+
+const rpcUrl = argv.rpcUrl || getFullnodeUrl(argv.network as 'mainnet' | 'testnet' | 'localnet');
+
 const publicClient = new SuiClient({
-  url: argv.rpcUrl || getFullnodeUrl(argv.network as 'mainnet' | 'testnet' | 'localnet')
+  url: rpcUrl
 });
 
 const ensureDirectoryExists = function (filePath: string) {
@@ -282,10 +285,10 @@ while (true) {
   }));
 
   for (const tx of txs) {
-    // @ts-ignore
+    if (tx.events && tx.events.length !== 0) {
+      // @ts-ignore
     for (const moveCall  of tx.transaction?.data?.transaction?.transactions) {
       if (moveCall.MoveCall) {
-        console.log(JSON.stringify(moveCall, null, 2));
         await insertTx(
           database,
           // @ts-ignore
@@ -295,14 +298,15 @@ while (true) {
           moveCall.MoveCall.package,
           moveCall.MoveCall.module,
           moveCall.MoveCall.function,
-          moveCall.MoveCall.arguments,
+          // @ts-ignore
+          tx.transaction?.data?.transaction?.inputs,
           tx.cursor,
           tx.timestampMs?.toString() as string
         );
+      }
     }
-  }
 
-    if (tx.events) {
+  if (tx.events) {
       for (const event of tx.events) {
         logger.info(`${JSON.stringify(event.parsedJson)}`);
 
@@ -394,6 +398,11 @@ while (true) {
           );
         }
       }
+    }
+    } else {
+      logger.warn(`No events found for transaction ${tx.digest}`);
+      logger.warn(`Please replace rpc-url to get events`);
+      logger.warn(`Current rpc-url: ${rpcUrl}`);
     }
   }
 }
