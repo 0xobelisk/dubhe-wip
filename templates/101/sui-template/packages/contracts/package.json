@@ -9,7 +9,7 @@
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "validate": "pnpm lint && pnpm format:check && pnpm type-check",
-    "start:localnet": "pnpm dubhe node -f",
+    "start:localnet": "pnpm dubhe node",
     "faucet": "pnpm dubhe faucet --network",
     "deploy": "pnpm dubhe publish --network",
     "upgrade": "pnpm dubhe upgrade --network",
