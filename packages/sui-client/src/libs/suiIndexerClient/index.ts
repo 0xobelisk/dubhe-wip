@@ -370,10 +370,17 @@ export class SuiIndexerClient {
     };
   }
 
-  async subscribe(
-    types: SubscribableType[],
-    handleData: (data: any) => void
-  ): Promise<WebSocket> {
-    return this.http.subscribe(types, handleData);
+  async subscribe({
+    types,
+    handleData,
+    onOpen,
+    onClose,
+  }: {
+    types: SubscribableType[];
+    handleData: (data: any) => void;
+    onOpen?: () => void;
+    onClose?: () => void;
+  }): Promise<WebSocket> {
+    return this.http.subscribe({ types, handleData, onOpen, onClose });
   }
 }

@@ -79,14 +79,14 @@ export default function Home() {
 
   const subscribeToCounter = async (dubhe: Dubhe) => {
     try {
-      const sub = await dubhe.subscribe(
-        [
+      const sub = await dubhe.subscribe({
+        types: [
           {
             kind: SubscriptionKind.Schema,
             name: 'value'
           }
         ],
-        (data) => {
+        handleData: (data) => {
           console.log('Received increment event:', data);
 
           // Update counter value after receiving event
@@ -94,8 +94,14 @@ export default function Home() {
           toast('Counter Updated', {
             description: `New value has been updated, ${data.value}`
           });
+        },
+        onOpen: () => {
+          console.log('Connected to the WebSocket server');
+        },
+        onClose: () => {
+          console.log('Disconnected from the WebSocket server');
         }
-      );
+      });
       setSubscription(sub);
     } catch (error) {
       console.error('Failed to subscribe to events:', error);

@@ -1406,11 +1406,23 @@ export class Dubhe {
     return response;
   }
 
-  async subscribe(
-    types: SubscribableType[],
-    handleData: (data: any) => void
-  ): Promise<WebSocket> {
-    return this.suiIndexerClient.subscribe(types, handleData);
+  async subscribe({
+    types,
+    handleData,
+    onOpen,
+    onClose,
+  }: {
+    types: SubscribableType[];
+    handleData: (data: any) => void;
+    onOpen?: () => void;
+    onClose?: () => void;
+  }): Promise<WebSocket> {
+    return this.suiIndexerClient.subscribe({
+      types,
+      handleData,
+      onOpen,
+      onClose,
+    });
   }
 
   #processKeyParameter(tx: Transaction, keyType: string, value: any) {
