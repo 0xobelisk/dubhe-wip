@@ -1,5 +1,5 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { and, eq, gt, asc, desc, sql } from 'drizzle-orm';
 import { dubheStoreEvents, dubheStoreSchemas, dubheStoreTransactions } from './tables';
 
@@ -178,7 +178,7 @@ const typeDefs = `
 `;
 
 export function createResolvers(
-  database: BaseSQLiteDatabase<'sync', any>,
+  database: PostgresJsDatabase<Record<string, unknown>>,
   defaultPageSize: number,
   paginationLimit: number
 ) {
@@ -189,7 +189,12 @@ export function createResolvers(
 
   const decodeCursor = (cursor: string) => parseInt(Buffer.from(cursor, 'base64').toString());
 
-  const applyOrderBy = (query: any, table: any, orderBy?: string[], jsonOrderBy?: any[]) => {
+  // // 定义一个有orderBy方法的类型接口
+  // interface WithOrderBy {
+  //   orderBy: (...args: any[]) => any;
+  // }
+
+  const applyOrderBy = (query: any, table: any, orderBy?: string[], jsonOrderBy?: any[]): any => {
     if (!orderBy && (!jsonOrderBy || jsonOrderBy.length === 0)) {
       return query.orderBy(desc(table.created_at));
     }
@@ -240,21 +245,21 @@ export function createResolvers(
       if (jsonOrderBy && jsonOrderBy.length > 0) {
         jsonOrderBy.forEach(({ path, direction, type = 'STRING' }) => {
           const orderFn = direction === 'DESC' ? desc : asc;
-          const jsonPath = `$.${path}`;
+          const jsonPath = `'${path}'`;
 
           let orderExpr;
           switch (type) {
             case 'INTEGER':
-              orderExpr = sql`CAST(COALESCE(json_extract(${table.value}, ${jsonPath}), '0') AS INTEGER)`;
+              orderExpr = sql`CAST(COALESCE(${table.value}->>${jsonPath}, '0') AS INTEGER)`;
               break;
             case 'FLOAT':
-              orderExpr = sql`CAST(COALESCE(json_extract(${table.value}, ${jsonPath}), '0') AS FLOAT)`;
+              orderExpr = sql`CAST(COALESCE(${table.value}->>${jsonPath}, '0') AS FLOAT)`;
               break;
             case 'BOOLEAN':
-              orderExpr = sql`CAST(COALESCE(json_extract(${table.value}, ${jsonPath}), '0') AS BOOLEAN)`;
+              orderExpr = sql`CAST(COALESCE(${table.value}->>${jsonPath}, '0') AS BOOLEAN)`;
               break;
             default: // STRING
-              orderExpr = sql`COALESCE(json_extract(${table.value}, ${jsonPath}), '')`;
+              orderExpr = sql`COALESCE(${table.value}->>${jsonPath}, '')`;
           }
 
           query = query.orderBy(orderFn(orderExpr));
@@ -268,15 +273,15 @@ export function createResolvers(
     }
   };
 
-  const getTotalCount = (database: any, table: any, conditions: any[] = []) => {
+  const getTotalCount = async (database: any, table: any, conditions: any[] = []) => {
     let query = database.select({ count: sql<number>`count(*)` }).from(table);
 
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
 
-    const result = query.get();
-    return result?.count ?? 0;
+    const result = await query.execute();
+    return result?.length > 0 ? Number(result[0].count) : 0;
   };
 
   const resolvers = {
@@ -359,7 +364,7 @@ export function createResolvers(
           }
 
           // Get total count (apply filter conditions)
-          const totalCount = getTotalCount(database, dubheStoreTransactions, conditions);
+          const totalCount = await getTotalCount(database, dubheStoreTransactions, conditions);
 
           // Handle cursor (need to use with filter conditions AND)
           if (after) {
@@ -372,25 +377,27 @@ export function createResolvers(
 
           // Apply all conditions at once
           if (conditions.length > 0) {
-            query = query.where(and(...conditions));
+            query = query.where(and(...conditions)) as any;
           }
 
           // Apply sorting
           query = applyOrderBy(query, dubheStoreTransactions, orderBy);
 
           // Get paginated data
-          const records = query.limit(limit + 1).all();
+          const records = await query.limit(limit + 1).execute();
           const hasNextPage = records.length > limit;
-          const edges = records.slice(0, limit).map((record: any) => {
+
+          const edges = [];
+          for (const record of records.slice(0, limit)) {
             let node: any = record;
 
             if (showEvent) {
-              const events = database
+              const events = await database
                 .select()
                 .from(dubheStoreEvents)
                 .where(eq(dubheStoreEvents.digest, record.digest))
                 .orderBy(desc(dubheStoreEvents.id))
-                .all();
+                .execute();
 
               node = {
                 ...record,
@@ -401,11 +408,11 @@ export function createResolvers(
               };
             }
 
-            return {
+            edges.push({
               cursor: encodeCursor(record.id),
               node
-            };
-          });
+            });
+          }
 
           return {
             edges,
@@ -461,41 +468,31 @@ export function createResolvers(
           if (key1 !== undefined) {
             if (typeof key1 === 'string') {
               conditions.push(
-                sql`(${dubheStoreSchemas.key1} = ${key1} OR 
-									(json_valid(${dubheStoreSchemas.key1}) AND 
-									 json_extract(${dubheStoreSchemas.key1}, '$') = ${key1}))`
+                sql`${dubheStoreSchemas.key1}::text = ${key1} OR 
+                    ${dubheStoreSchemas.key1}->>'$' = ${key1} OR
+                    ${dubheStoreSchemas.key1} = to_jsonb(${key1}::text) OR
+                    ${dubheStoreSchemas.key1}::text = concat('"', ${key1}, '"')`
               );
             } else if (key1 === null) {
               conditions.push(sql`${dubheStoreSchemas.key1} IS NULL`);
             } else if (typeof key1 === 'object') {
               const jsonKey1 = JSON.stringify(key1);
-              conditions.push(sql`
-								CASE 
-									WHEN json_valid(${dubheStoreSchemas.key1})
-									THEN json(${dubheStoreSchemas.key1}) = json(${jsonKey1})
-									ELSE ${dubheStoreSchemas.key1} = ${jsonKey1}
-								END
-							`);
+              conditions.push(sql`${dubheStoreSchemas.key1}::jsonb = ${jsonKey1}::jsonb`);
             }
           }
           if (key2 !== undefined) {
             if (typeof key2 === 'string') {
               conditions.push(
-                sql`(${dubheStoreSchemas.key2} = ${key2} OR 
-									(json_valid(${dubheStoreSchemas.key2}) AND 
-									 json_extract(${dubheStoreSchemas.key2}, '$') = ${key2}))`
+                sql`${dubheStoreSchemas.key2}::text = ${key2} OR 
+                    ${dubheStoreSchemas.key2}->>'$' = ${key2} OR
+                    ${dubheStoreSchemas.key2} = to_jsonb(${key2}::text) OR
+                    ${dubheStoreSchemas.key2}::text = concat('"', ${key2}, '"')`
               );
             } else if (key2 === null) {
               conditions.push(sql`${dubheStoreSchemas.key2} IS NULL`);
             } else if (typeof key2 === 'object') {
               const jsonKey2 = JSON.stringify(key2);
-              conditions.push(sql`
-								CASE 
-									WHEN json_valid(${dubheStoreSchemas.key2})
-									THEN json(${dubheStoreSchemas.key2}) = json(${jsonKey2})
-									ELSE ${dubheStoreSchemas.key2} = ${jsonKey2}
-								END
-							`);
+              conditions.push(sql`${dubheStoreSchemas.key2}::jsonb = ${jsonKey2}::jsonb`);
             }
           }
           if (typeof is_removed === 'boolean')
@@ -506,51 +503,36 @@ export function createResolvers(
             conditions.push(eq(dubheStoreSchemas.last_update_digest, last_update_digest));
           if (value !== undefined) {
             if (typeof value === 'boolean') {
-              conditions.push(sql`${dubheStoreSchemas.value} = ${value.toString()}`);
+              conditions.push(sql`${dubheStoreSchemas.value}::text = ${value.toString()}`);
             } else if (value === null) {
               conditions.push(sql`${dubheStoreSchemas.value} IS NULL`);
             } else if (Array.isArray(value)) {
               const jsonValue = JSON.stringify(value);
-              conditions.push(sql`
-                CASE 
-                  WHEN json_valid(${dubheStoreSchemas.value})
-                  THEN (
-                    CASE 
-                      WHEN json_type(${dubheStoreSchemas.value}) = 'array'
-                      THEN json(${dubheStoreSchemas.value}) = json(${jsonValue})
-                      ELSE FALSE
-                    END
-                  )
-                  ELSE FALSE 
-                END
-              `);
+              conditions.push(sql`${dubheStoreSchemas.value}::jsonb = ${jsonValue}::jsonb`);
             } else if (typeof value === 'string') {
               conditions.push(
-                sql`(${dubheStoreSchemas.value} = ${value} OR 
-                  (json_valid(${dubheStoreSchemas.value}) AND 
-                   json_extract(${dubheStoreSchemas.value}, '$') = ${value}))`
+                sql`${dubheStoreSchemas.value}::text = ${value} OR ${dubheStoreSchemas.value}->>'$' = ${value}`
               );
             } else if (typeof value === 'number') {
               conditions.push(
-                sql`(${dubheStoreSchemas.value} = ${value.toString()} OR 
-                  (json_valid(${dubheStoreSchemas.value}) AND 
-                   CAST(json_extract(${dubheStoreSchemas.value}, '$') AS NUMERIC) = ${value}))`
+                sql`${dubheStoreSchemas.value}::text = ${value.toString()} OR 
+                   (${dubheStoreSchemas.value}->>'$')::numeric = ${value}`
               );
             } else if (typeof value === 'object') {
-              // Handle object type filtering, optimize parameter handling
+              // Handle object type filtering for PostgreSQL
               const jsonConditions = Object.entries(value).map(([key, val]) => {
-                const jsonPath = `$.${key}`;
+                const jsonPath = `'${key}'`;
                 if (typeof val === 'string') {
-                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) = ${val}`;
+                  return sql`${dubheStoreSchemas.value}->${jsonPath} = to_jsonb(${val}::text)`;
                 } else if (typeof val === 'number') {
-                  return sql`CAST(json_extract(${dubheStoreSchemas.value}, ${jsonPath}) AS NUMERIC) = ${val}`;
+                  return sql`(${dubheStoreSchemas.value}->${jsonPath})::numeric = ${val}`;
                 } else if (typeof val === 'boolean') {
-                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) = ${val.toString()}`;
+                  return sql`${dubheStoreSchemas.value}->${jsonPath} = to_jsonb(${val})`;
                 } else if (val === null) {
-                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) IS NULL`;
+                  return sql`${dubheStoreSchemas.value}->${jsonPath} IS NULL`;
                 } else if (Array.isArray(val) || typeof val === 'object') {
                   const jsonVal = JSON.stringify(val);
-                  return sql`json_extract(${dubheStoreSchemas.value}, ${jsonPath}) = json(${jsonVal})`;
+                  return sql`${dubheStoreSchemas.value}->${jsonPath} = ${jsonVal}::jsonb`;
                 }
                 return sql`1=1`;
               });
@@ -566,7 +548,7 @@ export function createResolvers(
           }
 
           // Get filtered total count
-          const totalCount = getTotalCount(database, dubheStoreSchemas, conditions);
+          const totalCount = await getTotalCount(database, dubheStoreSchemas, conditions);
 
           // Handle cursor pagination (need to use with filter conditions AND)
           if (after) {
@@ -579,14 +561,14 @@ export function createResolvers(
 
           // Apply all conditions
           if (conditions.length > 0) {
-            query = query.where(and(...conditions));
+            query = query.where(and(...conditions)) as any;
           }
 
           // Apply sorting
           query = applyOrderBy(query, dubheStoreSchemas, orderBy, jsonOrderBy);
 
           // Get paginated data
-          const records = query.limit(limit + 1).all();
+          const records = await query.limit(limit + 1).execute();
           const hasNextPage = records.length > limit;
           const edges = records.slice(0, limit).map((record) => ({
             cursor: encodeCursor(record.id),
@@ -654,7 +636,7 @@ export function createResolvers(
           }
 
           // Get total count (apply filter conditions)
-          const totalCount = getTotalCount(database, dubheStoreEvents, conditions);
+          const totalCount = await getTotalCount(database, dubheStoreEvents, conditions);
 
           // Handle cursor (need to use with filter conditions AND)
           if (after) {
@@ -667,14 +649,14 @@ export function createResolvers(
 
           // Apply all conditions at once
           if (conditions.length > 0) {
-            query = query.where(and(...conditions));
+            query = query.where(and(...conditions)) as any;
           }
 
           // Apply sorting
           query = applyOrderBy(query, dubheStoreEvents, orderBy);
 
           // Get paginated data
-          const records = query.limit(limit + 1).all();
+          const records = await query.limit(limit + 1).execute();
           const hasNextPage = records.length > limit;
           const edges = records.slice(0, limit).map((record) => ({
             cursor: encodeCursor(record.id),
@@ -704,7 +686,7 @@ export function createResolvers(
 }
 
 export function createSchema(
-  database: BaseSQLiteDatabase<'sync', any>,
+  database: PostgresJsDatabase<Record<string, unknown>>,
   defaultPageSize: number,
   paginationLimit: number
 ) {
