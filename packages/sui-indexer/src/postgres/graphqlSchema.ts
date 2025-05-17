@@ -468,31 +468,57 @@ export function createResolvers(
           if (key1 !== undefined) {
             if (typeof key1 === 'string') {
               conditions.push(
-                sql`${dubheStoreSchemas.key1}::text = ${key1} OR 
-                    ${dubheStoreSchemas.key1}->>'$' = ${key1} OR
+                sql`(${dubheStoreSchemas.key1}::text = ${key1}::text OR 
+                    ${dubheStoreSchemas.key1}->>'$' = ${key1}::text OR
                     ${dubheStoreSchemas.key1} = to_jsonb(${key1}::text) OR
-                    ${dubheStoreSchemas.key1}::text = concat('"', ${key1}, '"')`
+                    ${dubheStoreSchemas.key1}::text = concat('"', ${key1}::text, '"')::text)`
               );
             } else if (key1 === null) {
               conditions.push(sql`${dubheStoreSchemas.key1} IS NULL`);
+            } else if (typeof key1 === 'number') {
+              const numberAsString = key1.toString();
+              conditions.push(
+                sql`(${dubheStoreSchemas.key1}::text = ${numberAsString}::text OR
+                    ${dubheStoreSchemas.key1}->>'$' = ${numberAsString}::text OR
+                    ${dubheStoreSchemas.key1} = to_jsonb(${numberAsString}::text))`
+              );
+            } else if (typeof key1 === 'boolean') {
+              const boolAsString = key1.toString();
+              conditions.push(
+                sql`(${dubheStoreSchemas.key1}::text = ${boolAsString}::text OR
+                    ${dubheStoreSchemas.key1} = to_jsonb(${boolAsString}::boolean))`
+              );
             } else if (typeof key1 === 'object') {
               const jsonKey1 = JSON.stringify(key1);
-              conditions.push(sql`${dubheStoreSchemas.key1}::jsonb = ${jsonKey1}::jsonb`);
+              conditions.push(sql`(${dubheStoreSchemas.key1}::jsonb = ${jsonKey1}::jsonb)`);
             }
           }
           if (key2 !== undefined) {
             if (typeof key2 === 'string') {
               conditions.push(
-                sql`${dubheStoreSchemas.key2}::text = ${key2} OR 
-                    ${dubheStoreSchemas.key2}->>'$' = ${key2} OR
+                sql`(${dubheStoreSchemas.key2}::text = ${key2}::text OR 
+                    ${dubheStoreSchemas.key2}->>'$' = ${key2}::text OR
                     ${dubheStoreSchemas.key2} = to_jsonb(${key2}::text) OR
-                    ${dubheStoreSchemas.key2}::text = concat('"', ${key2}, '"')`
+                    ${dubheStoreSchemas.key2}::text = concat('"', ${key2}::text, '"')::text)`
               );
             } else if (key2 === null) {
               conditions.push(sql`${dubheStoreSchemas.key2} IS NULL`);
+            } else if (typeof key2 === 'number') {
+              const numberAsString = key2.toString();
+              conditions.push(
+                sql`(${dubheStoreSchemas.key2}::text = ${numberAsString}::text OR
+                    ${dubheStoreSchemas.key2}->>'$' = ${numberAsString}::text OR
+                    ${dubheStoreSchemas.key2} = to_jsonb(${numberAsString}::text))`
+              );
+            } else if (typeof key2 === 'boolean') {
+              const boolAsString = key2.toString();
+              conditions.push(
+                sql`(${dubheStoreSchemas.key2}::text = ${boolAsString}::text OR
+                    ${dubheStoreSchemas.key2} = to_jsonb(${boolAsString}::boolean))`
+              );
             } else if (typeof key2 === 'object') {
               const jsonKey2 = JSON.stringify(key2);
-              conditions.push(sql`${dubheStoreSchemas.key2}::jsonb = ${jsonKey2}::jsonb`);
+              conditions.push(sql`(${dubheStoreSchemas.key2}::jsonb = ${jsonKey2}::jsonb)`);
             }
           }
           if (typeof is_removed === 'boolean')
@@ -503,7 +529,7 @@ export function createResolvers(
             conditions.push(eq(dubheStoreSchemas.last_update_digest, last_update_digest));
           if (value !== undefined) {
             if (typeof value === 'boolean') {
-              conditions.push(sql`${dubheStoreSchemas.value}::text = ${value.toString()}`);
+              conditions.push(sql`${dubheStoreSchemas.value}::text = ${value.toString()}::text`);
             } else if (value === null) {
               conditions.push(sql`${dubheStoreSchemas.value} IS NULL`);
             } else if (Array.isArray(value)) {
@@ -511,12 +537,12 @@ export function createResolvers(
               conditions.push(sql`${dubheStoreSchemas.value}::jsonb = ${jsonValue}::jsonb`);
             } else if (typeof value === 'string') {
               conditions.push(
-                sql`${dubheStoreSchemas.value}::text = ${value} OR ${dubheStoreSchemas.value}->>'$' = ${value}`
+                sql`(${dubheStoreSchemas.value}::text = ${value}::text OR ${dubheStoreSchemas.value}->>'$' = ${value}::text)`
               );
             } else if (typeof value === 'number') {
               conditions.push(
-                sql`${dubheStoreSchemas.value}::text = ${value.toString()} OR 
-                   (${dubheStoreSchemas.value}->>'$')::numeric = ${value}`
+                sql`(${dubheStoreSchemas.value}::text = ${value.toString()}::text OR 
+                   (${dubheStoreSchemas.value}->>'$')::numeric = ${value}::numeric)`
               );
             } else if (typeof value === 'object') {
               // Handle object type filtering for PostgreSQL
@@ -525,9 +551,9 @@ export function createResolvers(
                 if (typeof val === 'string') {
                   return sql`${dubheStoreSchemas.value}->${jsonPath} = to_jsonb(${val}::text)`;
                 } else if (typeof val === 'number') {
-                  return sql`(${dubheStoreSchemas.value}->${jsonPath})::numeric = ${val}`;
+                  return sql`(${dubheStoreSchemas.value}->${jsonPath})::numeric = ${val}::numeric`;
                 } else if (typeof val === 'boolean') {
-                  return sql`${dubheStoreSchemas.value}->${jsonPath} = to_jsonb(${val})`;
+                  return sql`${dubheStoreSchemas.value}->${jsonPath} = to_jsonb(${val}::boolean)`;
                 } else if (val === null) {
                   return sql`${dubheStoreSchemas.value}->${jsonPath} IS NULL`;
                 } else if (Array.isArray(val) || typeof val === 'object') {
