@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS "__dubheStoreTransactions" (
     package TEXT NOT NULL,
     module TEXT NOT NULL,
     function TEXT NOT NULL,
-    arguments JSONB NOT NULL,
+    arguments TEXT NOT NULL,
     cursor TEXT NOT NULL, 
     created_at TEXT NOT NULL
 );
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS "__dubheStoreSchemas" (
     last_update_checkpoint TEXT NOT NULL,
     last_update_digest TEXT NOT NULL,
     name TEXT NOT NULL,
-    key1 JSONB,
-    key2 JSONB,
-    value JSONB NOT NULL,
+    key1 TEXT,
+    key2 TEXT,
+    value TEXT NOT NULL,
     is_removed BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS "__dubheStoreEvents" (
     checkpoint TEXT NOT NULL,
     digest TEXT NOT NULL,
     name TEXT NOT NULL,
-    value JSONB NOT NULL,
+    value TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
 
@@ -53,7 +53,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_schemas_unique_key ON "__dubheStoreSchemas
 CREATE TABLE IF NOT EXISTS "__dubheStoreConfig" (
     id SERIAL PRIMARY KEY,
     key TEXT NOT NULL UNIQUE,
-    value JSONB NOT NULL,
+    value TEXT NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

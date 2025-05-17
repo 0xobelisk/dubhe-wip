@@ -140,7 +140,15 @@ const publicClient = new SuiClient({
   url: rpcUrl
 });
 
-const database = drizzle(postgres(argv.databaseUrl, { prepare: false }));
+// 添加SQL日志记录
+const pgConnection = postgres(argv.databaseUrl, { prepare: false });
+const database = drizzle(pgConnection, {
+  logger: {
+    logQuery: (query, params) => {
+      logger.info(`执行SQL: ${query} - 参数: ${JSON.stringify(params)}`);
+    }
+  }
+});
 
 // if (argv.forceRegenesis) {
 //   clearDatabase(database);
@@ -303,12 +311,16 @@ while (true) {
           // @ts-ignore
           const name: string = event.parsedJson['name'];
           if (name.endsWith('_event')) {
-            const eventData = parseData({
+            let eventData = parseData({
               sender: tx.sender,
               name,
               // @ts-ignore
               value: event.parsedJson['value']
             });
+            eventData.value =
+              typeof eventData.value === 'object'
+                ? JSON.stringify(eventData.value)
+                : eventData.value;
             // Broadcast the event to subscribed WebSocket clients
             wss.clients.forEach((client) => {
               if (client.readyState !== client.OPEN) return;
@@ -325,21 +337,28 @@ while (true) {
                 }
               });
             });
-            await database.insert(dubheStoreEvents).values(
-              parseData({
-                sender: tx.sender,
-                checkpoint: tx.checkpoint?.toString() as string,
-                digest: tx.digest,
-                created_at: tx.timestampMs?.toString() as string,
-                name: name,
-                // @ts-ignore
-                value: event.parsedJson['value']
-              })
-            );
+            let eventDataStore = parseData({
+              sender: tx.sender,
+              checkpoint: tx.checkpoint?.toString() as string,
+              digest: tx.digest,
+              created_at: tx.timestampMs?.toString() as string,
+              name: name,
+              // @ts-ignore
+              value: event.parsedJson['value']
+            });
+            eventDataStore.value =
+              typeof eventDataStore.value === 'object'
+                ? JSON.stringify(eventDataStore.value)
+                : eventDataStore.value;
+            await database.insert(dubheStoreEvents).values(eventDataStore);
             // Handle schema set events
             // @ts-ignore
           } else if (event.parsedJson.hasOwnProperty('value')) {
-            const schemaData = parseData(event.parsedJson);
+            let schemaData = parseData(event.parsedJson);
+            schemaData.value =
+              typeof schemaData.value === 'object'
+                ? JSON.stringify(schemaData.value)
+                : schemaData.value;
             wss.clients.forEach((client) => {
               if (client.readyState !== client.OPEN) return;
 

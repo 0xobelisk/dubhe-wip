@@ -1,5 +1,5 @@
-import { and, eq, getTableName, isNull, or, sql } from 'drizzle-orm';
-import { pgTable, serial, text, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { and, eq, getTableName, sql } from 'drizzle-orm';
+import { pgTable, serial, text, boolean } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { parseData } from '@0xobelisk/sui-common';
 
@@ -25,7 +25,7 @@ export const setupDatabase = (database: ReturnType<typeof drizzle>) => {
     package TEXT,
     module TEXT,
     function TEXT,
-    arguments JSONB,
+    arguments TEXT,
 	cursor TEXT, 
 	created_at TEXT)`
   );
@@ -35,9 +35,9 @@ export const setupDatabase = (database: ReturnType<typeof drizzle>) => {
             last_update_checkpoint TEXT,
             last_update_digest TEXT,
             name TEXT,
-            key1 JSONB,
-            key2 JSONB,
-            value JSONB,
+            key1 TEXT,
+            key2 TEXT,
+            value TEXT,
             is_removed BOOLEAN DEFAULT FALSE,
 			created_at TEXT,
 			updated_at TEXT
@@ -49,7 +49,7 @@ export const setupDatabase = (database: ReturnType<typeof drizzle>) => {
             checkpoint TEXT,
             digest TEXT,
             name TEXT,
-            value JSONB,
+            value TEXT,
 			created_at TEXT
         )`);
 };
@@ -68,7 +68,7 @@ export const dubheStoreTransactions = pgTable('__dubheStoreTransactions', {
   package: text('package').notNull(),
   module: text('module').notNull(),
   function: text('function').notNull(),
-  arguments: jsonb('arguments').notNull(),
+  arguments: text('arguments').notNull(),
   cursor: text('cursor').notNull(),
   created_at: text('created_at').notNull()
 });
@@ -76,9 +76,9 @@ export const dubheStoreTransactions = pgTable('__dubheStoreTransactions', {
 export const dubheStoreSchemas = pgTable('__dubheStoreSchemas', {
   id: serial('id').primaryKey().notNull(),
   name: text('name').notNull(),
-  key1: jsonb('key1'),
-  key2: jsonb('key2'),
-  value: jsonb('value').notNull(),
+  key1: text('key1'),
+  key2: text('key2'),
+  value: text('value').notNull(),
   last_update_checkpoint: text('last_update_checkpoint').notNull(),
   last_update_digest: text('last_update_digest').notNull(),
   is_removed: boolean('is_removed').notNull().default(false),
@@ -90,7 +90,7 @@ export const dubheStoreEvents = pgTable('__dubheStoreEvents', {
   id: serial('id').primaryKey().notNull(),
   sender: text('sender').notNull(),
   name: text('name').notNull(),
-  value: jsonb('value').notNull(),
+  value: text('value').notNull(),
   checkpoint: text('checkpoint').notNull(),
   digest: text('digest').notNull(),
   created_at: text('created_at').notNull()
@@ -130,6 +130,7 @@ export async function syncToPostgres(
   operationType: OperationType
 ) {
   let res = event as EventData;
+
   if (operationType === OperationType.Remove) {
     await pgDB
       .update(dubheStoreSchemas)
@@ -137,16 +138,8 @@ export async function syncToPostgres(
       .where(
         and(
           eq(dubheStoreSchemas.name, res.name),
-          and(
-            or(
-              isNull(dubheStoreSchemas.key1),
-              eq(sql`${dubheStoreSchemas.key1}::jsonb`, sql`${JSON.stringify(res.key1)}::jsonb`)
-            ),
-            or(
-              isNull(dubheStoreSchemas.key2),
-              eq(sql`${dubheStoreSchemas.key2}::jsonb`, sql`${JSON.stringify(res.key2)}::jsonb`)
-            )
-          )
+          sql`((${dubheStoreSchemas.key1} IS NULL) OR (${dubheStoreSchemas.key1} = ${typeof res.key1 === 'object' ? JSON.stringify(res.key1) : res.key1?.toString() || null}))`,
+          sql`((${dubheStoreSchemas.key2} IS NULL) OR (${dubheStoreSchemas.key2} = ${typeof res.key2 === 'object' ? JSON.stringify(res.key2) : res.key2?.toString() || null}))`
         )
       )
       .execute();
@@ -157,73 +150,53 @@ export async function syncToPostgres(
       .where(
         and(
           eq(dubheStoreSchemas.name, res.name),
-          and(
-            or(
-              isNull(dubheStoreSchemas.key1),
-              eq(sql`${dubheStoreSchemas.key1}::jsonb`, sql`${JSON.stringify(res.key1)}::jsonb`)
-            ),
-            or(
-              isNull(dubheStoreSchemas.key2),
-              eq(sql`${dubheStoreSchemas.key2}::jsonb`, sql`${JSON.stringify(res.key2)}::jsonb`)
-            )
-          )
+          sql`((${dubheStoreSchemas.key1} IS NULL) OR (${dubheStoreSchemas.key1} = ${typeof res.key1 === 'object' ? JSON.stringify(res.key1) : res.key1?.toString() || null}))`,
+          sql`((${dubheStoreSchemas.key2} IS NULL) OR (${dubheStoreSchemas.key2} = ${typeof res.key2 === 'object' ? JSON.stringify(res.key2) : res.key2?.toString() || null}))`
         )
       )
       .execute();
 
     if (existingRecord.length > 0) {
       const id = existingRecord[0].id;
-      await pgDB
+
+      let updateData = parseData({
+        last_update_checkpoint: checkpoint,
+        last_update_digest: digest,
+        value: res.value,
+        is_removed: false,
+        updated_at: created_at
+      });
+
+      updateData.value =
+        typeof updateData.value === 'object' ? JSON.stringify(updateData.value) : updateData.value;
+
+      const updateQuery = pgDB
         .update(dubheStoreSchemas)
-        .set(
-          parseData({
-            last_update_checkpoint: checkpoint,
-            last_update_digest: digest,
-            value: res.value,
-            is_removed: false,
-            updated_at: created_at
-          })
-        )
-        .where(eq(dubheStoreSchemas.id, id))
-        .execute();
+        .set(updateData)
+        .where(eq(dubheStoreSchemas.id, id));
+
+      await updateQuery.execute();
     } else {
-      await pgDB
-        .insert(dubheStoreSchemas)
-        .values(
-          parseData({
-            last_update_checkpoint: checkpoint,
-            last_update_digest: digest,
-            name: res.name,
-            key1: res.key1,
-            key2: res.key2,
-            value: res.value,
-            is_removed: false,
-            created_at,
-            updated_at: created_at
-          })
-        )
-        .execute();
+      let insertData = parseData({
+        last_update_checkpoint: checkpoint,
+        last_update_digest: digest,
+        name: res.name,
+        key1: res.key1,
+        key2: res.key2,
+        value: res.value,
+        is_removed: false,
+        created_at,
+        updated_at: created_at
+      });
+
+      insertData.value =
+        typeof insertData.value === 'object' ? JSON.stringify(insertData.value) : insertData.value;
+
+      const insertQuery = pgDB.insert(dubheStoreSchemas).values(insertData);
+
+      await insertQuery.execute();
     }
   }
-}
-
-export async function insertEvent(
-  pgDB: ReturnType<typeof drizzle>,
-  sender: string,
-  checkpoint: string,
-  digest: string,
-  name: string,
-  value: object,
-  created_at: string
-) {
-  await pgDB.insert(dubheStoreEvents).values({
-    sender,
-    checkpoint,
-    digest,
-    name,
-    value: JSON.stringify(value),
-    created_at
-  });
 }
 
 export const internalTables = [dubheStoreTransactions, dubheStoreSchemas, dubheStoreEvents];
