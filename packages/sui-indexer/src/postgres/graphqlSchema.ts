@@ -189,7 +189,7 @@ export function createResolvers(
 
   const decodeCursor = (cursor: string) => parseInt(Buffer.from(cursor, 'base64').toString());
 
-  // // 定义一个有orderBy方法的类型接口
+  // // Define a type interface with orderBy method
   // interface WithOrderBy {
   //   orderBy: (...args: any[]) => any;
   // }
@@ -249,7 +249,7 @@ export function createResolvers(
           let orderExpr;
           switch (type) {
             case 'INTEGER':
-              // PostgreSQL 中等同于 SQLite 的 json_extract
+              // Equivalent to json_extract in SQLite for PostgreSQL
               orderExpr = sql`CAST(COALESCE((CAST(${table.value} AS jsonb) ->> ${path}::text)::text, '0') AS INTEGER)`;
               break;
             case 'FLOAT':
@@ -291,18 +291,18 @@ export function createResolvers(
           return null;
         }
 
-        // 处理可能是字符串形式存储的 JSON
+        // Handle JSON potentially stored as a string
         if (typeof value === 'string') {
           try {
-            // 尝试解析 JSON 字符串
+            // Attempt to parse JSON string
             return JSON.parse(value);
           } catch {
-            // 如果解析失败，返回原始字符串
+            // If parsing fails, return the original string
             return value;
           }
         }
 
-        // 直接返回非字符串值
+        // Directly return non-string values
         return value;
       },
       parseValue: (value: any) => {
@@ -408,10 +408,10 @@ export function createResolvers(
               node = {
                 ...record,
                 events: events.map((event) => {
-                  // 安全处理 value 字段
+                  // Safely handle the value field
                   let safeValue = event.value;
                   try {
-                    // 如果是字符串且可能是 JSON，尝试解析
+                    // If it's a string and possibly JSON, attempt to parse
                     if (
                       typeof safeValue === 'string' &&
                       (safeValue.startsWith('{') || safeValue.startsWith('['))
@@ -419,7 +419,7 @@ export function createResolvers(
                       safeValue = JSON.parse(safeValue);
                     }
                   } catch (e) {
-                    // 如果解析失败，保持原样
+                    // If parsing fails, keep the original
                     console.warn('Failed to parse event value as JSON:', e);
                   }
 
@@ -539,7 +539,7 @@ export function createResolvers(
               conditions.push(sql`${dubheStoreSchemas.value} IS NULL`);
             } else if (Array.isArray(value)) {
               const jsonValue = JSON.stringify(value);
-              // 数组类型匹配，确保类型安全
+              // Array type matching, ensuring type safety
               conditions.push(sql`
                 CASE 
                   WHEN jsonb_typeof(CAST(${dubheStoreSchemas.value} AS jsonb)) = 'array'
@@ -561,7 +561,7 @@ export function createResolvers(
                     ((CAST(${dubheStoreSchemas.value} AS jsonb) ->> '$')::numeric = ${value}::numeric)))`
               );
             } else if (typeof value === 'object') {
-              // 处理对象类型，支持部分字段查询，与 SQLite 版本保持一致
+              // Handle object type, support partial field queries, consistent with SQLite version
               const jsonConditions = Object.entries(value).map(([key, val]) => {
                 if (val === null) {
                   return sql`(CAST(${dubheStoreSchemas.value} AS jsonb) -> ${key}::text) IS NULL`;
@@ -579,12 +579,12 @@ export function createResolvers(
               });
 
               if (jsonConditions.length > 0) {
-                // 组合所有条件，与 SQLite 版本一致使用 AND
+                // Combine all conditions, use AND consistent with SQLite version
                 const combinedCondition = jsonConditions.reduce((acc, curr) =>
                   acc ? sql`${acc} AND ${curr}` : curr
                 );
 
-                // 确保值是有效的 JSON 对象
+                // Ensure the value is a valid JSON object
                 conditions.push(sql`
                   jsonb_typeof(CAST(${dubheStoreSchemas.value} AS jsonb)) = 'object' AND (${combinedCondition})
                 `);
@@ -704,7 +704,7 @@ export function createResolvers(
           const records = await query.limit(limit + 1).execute();
           const hasNextPage = records.length > limit;
           const edges = records.slice(0, limit).map((record) => {
-            // 处理 value 字段，尝试解析 JSON
+            // Handle the value field, attempt to parse JSON
             let eventValue = record.value;
             try {
               if (

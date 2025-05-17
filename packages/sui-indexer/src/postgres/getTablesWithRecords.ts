@@ -5,7 +5,7 @@ import { SyncFilter, TableWithRecords } from '@latticexyz/store-sync';
 import { dubheStoreSchemas } from './tables';
 
 /**
- * 获取数据库中的表和记录信息 - PostgreSQL版本
+ * Get tables and records information from the database - PostgreSQL version
  */
 export async function getTablesWithRecords(
   database: PostgresJsDatabase<Record<string, unknown>>,
@@ -19,21 +19,21 @@ export async function getTablesWithRecords(
     readonly filters?: readonly SyncFilter[];
   }
 ): Promise<{ blockNumber: bigint | null; tables: readonly TableWithRecords[] }> {
-  // 获取最新区块号 - 在实际实现中应从某个配置表中获取
+  // Get the latest block number - in actual implementation, this should be retrieved from a configuration table
   const blockNumber = BigInt(chainId);
 
-  // 处理过滤器
+  // Process filters
   const tableIds = Array.from(new Set(filters.map((filter) => filter.tableId)));
 
-  // 构建表名查询条件
+  // Construct table name query conditions
   const conditions = [];
 
   if (tableIds.length > 0) {
-    // 在实际实现中应该构建适当的过滤条件
+    // In actual implementation, appropriate filter conditions should be constructed
     conditions.push(eq(dubheStoreSchemas.name, tableIds[0]));
   }
 
-  // 查询数据库
+  // Query the database
   let query = database.select().from(dubheStoreSchemas);
 
   if (conditions.length > 0) {
@@ -42,15 +42,15 @@ export async function getTablesWithRecords(
 
   const schemas = await query.orderBy(desc(dubheStoreSchemas.created_at)).execute();
 
-  // 构建表结构 - 先转为unknown类型再转为TableWithRecords
+  // Construct table structure - first cast to unknown type then to TableWithRecords
   const tablesWithRecords = schemas.map((schema) => {
-    // 为每个schema创建一个表结构
+    // Create a table structure for each schema
     const tableData = {
       id: schema.id,
       name: schema.name,
       address: address || ('0x' as Hex),
       tableId: schema.name as Hex,
-      namespace: '', // 添加缺失的namespace属性
+      namespace: '', // Add missing namespace property
       keySchema: { key1: 'bytes32', key2: 'bytes32' },
       valueSchema: { value: 'bytes' },
       type: 'schema' as string,
