@@ -1,5 +1,4 @@
--- 初始化PostgreSQL表结构
--- 交易表
+-- Transactions table
 CREATE TABLE IF NOT EXISTS "__dubheStoreTransactions" (
     id SERIAL PRIMARY KEY, 
     sender TEXT NOT NULL, 
@@ -13,7 +12,7 @@ CREATE TABLE IF NOT EXISTS "__dubheStoreTransactions" (
     created_at TEXT NOT NULL
 );
 
--- Schema表
+-- Schema table
 CREATE TABLE IF NOT EXISTS "__dubheStoreSchemas" (
     id SERIAL PRIMARY KEY,
     last_update_checkpoint TEXT NOT NULL,
@@ -27,7 +26,7 @@ CREATE TABLE IF NOT EXISTS "__dubheStoreSchemas" (
     updated_at TEXT NOT NULL
 );
 
--- 事件表
+-- Events table
 CREATE TABLE IF NOT EXISTS "__dubheStoreEvents" (
     id SERIAL PRIMARY KEY,
     sender TEXT NOT NULL,
@@ -38,7 +37,7 @@ CREATE TABLE IF NOT EXISTS "__dubheStoreEvents" (
     created_at TEXT NOT NULL
 );
 
--- 添加索引以提高查询性能
+-- Add indexes to improve query performance
 CREATE INDEX IF NOT EXISTS idx_transactions_digest ON "__dubheStoreTransactions" (digest);
 CREATE INDEX IF NOT EXISTS idx_transactions_sender ON "__dubheStoreTransactions" (sender);
 CREATE INDEX IF NOT EXISTS idx_schemas_name ON "__dubheStoreSchemas" (name);
@@ -49,7 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_events_sender ON "__dubheStoreEvents" (sender);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_schemas_unique_key ON "__dubheStoreSchemas" (name, key1, key2);
 
--- 配置表，用于存储全局配置和元数据
+-- Configuration table, used to store global configurations and metadata
 CREATE TABLE IF NOT EXISTS "__dubheStoreConfig" (
     id SERIAL PRIMARY KEY,
     key TEXT NOT NULL UNIQUE,
@@ -57,7 +56,7 @@ CREATE TABLE IF NOT EXISTS "__dubheStoreConfig" (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 插入一些基本配置
+-- Insert some basic configurations
 INSERT INTO "__dubheStoreConfig" (key, value)
 VALUES ('version', '"1.0.0"'),
        ('last_checkpoint', '0'),
