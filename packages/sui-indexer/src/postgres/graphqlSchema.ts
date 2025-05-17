@@ -246,21 +246,20 @@ export function createResolvers(
         jsonOrderBy.forEach(({ path, direction, type = 'STRING' }) => {
           const orderFn = direction === 'DESC' ? desc : asc;
 
-          // 参考 SQLite 中类似 json_extract 的写法
           let orderExpr;
           switch (type) {
             case 'INTEGER':
-              // 尝试使用 jsonb_path_query_first 等效于 SQLite 的 json_extract
-              orderExpr = sql`CAST(COALESCE(jsonb_path_query_first(CAST(${table.value} AS jsonb), '$."${path}"')::text, '0') AS INTEGER)`;
+              // PostgreSQL 中等同于 SQLite 的 json_extract
+              orderExpr = sql`CAST(COALESCE((CAST(${table.value} AS jsonb) ->> ${path}::text)::text, '0') AS INTEGER)`;
               break;
             case 'FLOAT':
-              orderExpr = sql`CAST(COALESCE(jsonb_path_query_first(CAST(${table.value} AS jsonb), '$."${path}"')::text, '0') AS FLOAT)`;
+              orderExpr = sql`CAST(COALESCE((CAST(${table.value} AS jsonb) ->> ${path}::text)::text, '0') AS FLOAT)`;
               break;
             case 'BOOLEAN':
-              orderExpr = sql`CAST(COALESCE(jsonb_path_query_first(CAST(${table.value} AS jsonb), '$."${path}"')::text, '0') AS BOOLEAN)`;
+              orderExpr = sql`CAST(COALESCE((CAST(${table.value} AS jsonb) ->> ${path}::text)::text, 'false') AS BOOLEAN)`;
               break;
             default: // STRING
-              orderExpr = sql`COALESCE(jsonb_path_query_first(CAST(${table.value} AS jsonb), '$."${path}"')::text, '')`;
+              orderExpr = sql`COALESCE((CAST(${table.value} AS jsonb) ->> ${path}::text)::text, '')`;
           }
 
           query = query.orderBy(orderFn(orderExpr));
@@ -291,13 +290,19 @@ export function createResolvers(
         if (value === null || value === undefined) {
           return null;
         }
+
+        // 处理可能是字符串形式存储的 JSON
         if (typeof value === 'string') {
           try {
+            // 尝试解析 JSON 字符串
             return JSON.parse(value);
           } catch {
+            // 如果解析失败，返回原始字符串
             return value;
           }
         }
+
+        // 直接返回非字符串值
         return value;
       },
       parseValue: (value: any) => {
@@ -402,10 +407,27 @@ export function createResolvers(
 
               node = {
                 ...record,
-                events: events.map((event) => ({
-                  ...event,
-                  value: event.value
-                }))
+                events: events.map((event) => {
+                  // 安全处理 value 字段
+                  let safeValue = event.value;
+                  try {
+                    // 如果是字符串且可能是 JSON，尝试解析
+                    if (
+                      typeof safeValue === 'string' &&
+                      (safeValue.startsWith('{') || safeValue.startsWith('['))
+                    ) {
+                      safeValue = JSON.parse(safeValue);
+                    }
+                  } catch (e) {
+                    // 如果解析失败，保持原样
+                    console.warn('Failed to parse event value as JSON:', e);
+                  }
+
+                  return {
+                    ...event,
+                    value: safeValue
+                  };
+                })
               };
             }
 
@@ -469,69 +491,39 @@ export function createResolvers(
           if (key1 !== undefined) {
             if (typeof key1 === 'string') {
               conditions.push(
-                sql`(${dubheStoreSchemas.key1} = ${key1} OR 
-                    (json_typeof(${dubheStoreSchemas.key1}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.key1} AS jsonb), '$')::text = ${key1}))`
+                sql`(${dubheStoreSchemas.key1} = ${key1}::text OR 
+                    ${dubheStoreSchemas.key1} = concat('"', ${key1}::text, '"')::text)`
               );
             } else if (key1 === null) {
               conditions.push(sql`${dubheStoreSchemas.key1} IS NULL`);
             } else if (typeof key1 === 'number') {
               const numberAsString = key1.toString();
-              conditions.push(
-                sql`(${dubheStoreSchemas.key1} = ${numberAsString} OR 
-                    (json_typeof(${dubheStoreSchemas.key1}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.key1} AS jsonb), '$')::text = ${numberAsString}))`
-              );
+              conditions.push(sql`${dubheStoreSchemas.key1} = ${numberAsString}::text`);
             } else if (typeof key1 === 'boolean') {
               const boolAsString = key1.toString();
-              conditions.push(
-                sql`(${dubheStoreSchemas.key1} = ${boolAsString} OR 
-                    (json_typeof(${dubheStoreSchemas.key1}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.key1} AS jsonb), '$')::text = ${boolAsString}))`
-              );
+              conditions.push(sql`${dubheStoreSchemas.key1} = ${boolAsString}::text`);
             } else if (typeof key1 === 'object') {
               const jsonKey1 = JSON.stringify(key1);
-              conditions.push(sql`
-                CASE 
-                  WHEN json_typeof(${dubheStoreSchemas.key1}::json) IS NOT NULL
-                  THEN ${dubheStoreSchemas.key1}::jsonb = ${jsonKey1}::jsonb
-                  ELSE ${dubheStoreSchemas.key1} = ${jsonKey1}
-                END
-              `);
+              conditions.push(sql`${dubheStoreSchemas.key1} = ${jsonKey1}::text`);
             }
           }
           if (key2 !== undefined) {
             if (typeof key2 === 'string') {
               conditions.push(
-                sql`(${dubheStoreSchemas.key2} = ${key2} OR 
-                    (json_typeof(${dubheStoreSchemas.key2}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.key2} AS jsonb), '$')::text = ${key2}))`
+                sql`(${dubheStoreSchemas.key2} = ${key2}::text OR 
+                    ${dubheStoreSchemas.key2} = concat('"', ${key2}::text, '"')::text)`
               );
             } else if (key2 === null) {
               conditions.push(sql`${dubheStoreSchemas.key2} IS NULL`);
             } else if (typeof key2 === 'number') {
               const numberAsString = key2.toString();
-              conditions.push(
-                sql`(${dubheStoreSchemas.key2} = ${numberAsString} OR 
-                    (json_typeof(${dubheStoreSchemas.key2}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.key2} AS jsonb), '$')::text = ${numberAsString}))`
-              );
+              conditions.push(sql`${dubheStoreSchemas.key2} = ${numberAsString}::text`);
             } else if (typeof key2 === 'boolean') {
               const boolAsString = key2.toString();
-              conditions.push(
-                sql`(${dubheStoreSchemas.key2} = ${boolAsString} OR 
-                    (json_typeof(${dubheStoreSchemas.key2}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.key2} AS jsonb), '$')::text = ${boolAsString}))`
-              );
+              conditions.push(sql`${dubheStoreSchemas.key2} = ${boolAsString}::text`);
             } else if (typeof key2 === 'object') {
               const jsonKey2 = JSON.stringify(key2);
-              conditions.push(sql`
-                CASE 
-                  WHEN json_typeof(${dubheStoreSchemas.key2}::json) IS NOT NULL
-                  THEN ${dubheStoreSchemas.key2}::jsonb = ${jsonKey2}::jsonb
-                  ELSE ${dubheStoreSchemas.key2} = ${jsonKey2}
-                END
-              `);
+              conditions.push(sql`${dubheStoreSchemas.key2} = ${jsonKey2}::text`);
             }
           }
           if (typeof is_removed === 'boolean')
@@ -542,73 +534,59 @@ export function createResolvers(
             conditions.push(eq(dubheStoreSchemas.last_update_digest, last_update_digest));
           if (value !== undefined) {
             if (typeof value === 'boolean') {
-              const boolAsString = value.toString();
-              conditions.push(
-                sql`(${dubheStoreSchemas.value} = ${boolAsString} OR 
-                    (json_typeof(${dubheStoreSchemas.value}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.value} AS jsonb), '$')::text = ${boolAsString}))`
-              );
+              conditions.push(sql`${dubheStoreSchemas.value} = ${value.toString()}::text`);
             } else if (value === null) {
               conditions.push(sql`${dubheStoreSchemas.value} IS NULL`);
             } else if (Array.isArray(value)) {
               const jsonValue = JSON.stringify(value);
+              // 数组类型匹配，确保类型安全
               conditions.push(sql`
                 CASE 
-                  WHEN json_typeof(${dubheStoreSchemas.value}::json) IS NOT NULL
-                  THEN ${dubheStoreSchemas.value}::jsonb = ${jsonValue}::jsonb
-                  ELSE ${dubheStoreSchemas.value} = ${jsonValue}
+                  WHEN jsonb_typeof(CAST(${dubheStoreSchemas.value} AS jsonb)) = 'array'
+                  THEN CAST(${dubheStoreSchemas.value} AS jsonb) = ${jsonValue}::jsonb
+                  ELSE false
                 END
               `);
             } else if (typeof value === 'string') {
               conditions.push(
-                sql`(${dubheStoreSchemas.value} = ${value} OR 
-                    (json_typeof(${dubheStoreSchemas.value}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.value} AS jsonb), '$')::text = ${value}))`
+                sql`(${dubheStoreSchemas.value} = ${value}::text OR 
+                   (jsonb_typeof(CAST(${dubheStoreSchemas.value} AS jsonb)) IS NOT NULL AND 
+                    (CAST(${dubheStoreSchemas.value} AS jsonb) ->> '$')::text = ${value}::text))`
               );
             } else if (typeof value === 'number') {
               const numberAsString = value.toString();
               conditions.push(
-                sql`(${dubheStoreSchemas.value} = ${numberAsString} OR 
-                    (json_typeof(${dubheStoreSchemas.value}::json) IS NOT NULL AND 
-                     jsonb_path_query_first(CAST(${dubheStoreSchemas.value} AS jsonb), '$')::text = ${numberAsString}))`
+                sql`(${dubheStoreSchemas.value} = ${numberAsString}::text OR 
+                   (jsonb_typeof(CAST(${dubheStoreSchemas.value} AS jsonb)) IS NOT NULL AND 
+                    ((CAST(${dubheStoreSchemas.value} AS jsonb) ->> '$')::numeric = ${value}::numeric)))`
               );
             } else if (typeof value === 'object') {
-              const jsonValue = JSON.stringify(value);
-
-              // 针对对象类型的情况，检查是否包含具体属性
-              if (Object.keys(value).length > 0) {
-                const jsonConditions = Object.entries(value).map(([key, val]) => {
-                  const valStr =
-                    typeof val === 'object'
-                      ? JSON.stringify(val)
-                      : typeof val === 'string'
-                        ? val
-                        : String(val);
-
-                  return sql`
-                    CASE 
-                      WHEN json_typeof(${dubheStoreSchemas.value}::json) IS NOT NULL
-                      THEN jsonb_path_query_first(CAST(${dubheStoreSchemas.value} AS jsonb), '$.${key}')::text = ${valStr}::text
-                      ELSE FALSE
-                    END
-                  `;
-                });
-
-                if (jsonConditions.length > 0) {
-                  // 组合所有条件
-                  const combinedCondition = jsonConditions.reduce((acc, curr) =>
-                    acc ? sql`${acc} AND ${curr}` : curr
-                  );
-                  conditions.push(combinedCondition);
+              // 处理对象类型，支持部分字段查询，与 SQLite 版本保持一致
+              const jsonConditions = Object.entries(value).map(([key, val]) => {
+                if (val === null) {
+                  return sql`(CAST(${dubheStoreSchemas.value} AS jsonb) -> ${key}::text) IS NULL`;
+                } else if (typeof val === 'string') {
+                  return sql`(CAST(${dubheStoreSchemas.value} AS jsonb) ->> ${key}::text) = ${val}::text`;
+                } else if (typeof val === 'number') {
+                  return sql`((CAST(${dubheStoreSchemas.value} AS jsonb) ->> ${key}::text)::numeric) = ${val}::numeric`;
+                } else if (typeof val === 'boolean') {
+                  return sql`((CAST(${dubheStoreSchemas.value} AS jsonb) ->> ${key}::text)::boolean) = ${val}::boolean`;
+                } else if (Array.isArray(val) || typeof val === 'object') {
+                  const jsonVal = JSON.stringify(val);
+                  return sql`(CAST(${dubheStoreSchemas.value} AS jsonb) -> ${key}::text) = ${jsonVal}::jsonb`;
                 }
-              } else {
-                // 空对象情况
+                return sql`true`;
+              });
+
+              if (jsonConditions.length > 0) {
+                // 组合所有条件，与 SQLite 版本一致使用 AND
+                const combinedCondition = jsonConditions.reduce((acc, curr) =>
+                  acc ? sql`${acc} AND ${curr}` : curr
+                );
+
+                // 确保值是有效的 JSON 对象
                 conditions.push(sql`
-                  CASE 
-                    WHEN json_typeof(${dubheStoreSchemas.value}::json) IS NOT NULL
-                    THEN ${dubheStoreSchemas.value}::jsonb = ${jsonValue}::jsonb
-                    ELSE ${dubheStoreSchemas.value} = ${jsonValue}
-                  END
+                  jsonb_typeof(CAST(${dubheStoreSchemas.value} AS jsonb)) = 'object' AND (${combinedCondition})
                 `);
               }
             }
@@ -725,13 +703,28 @@ export function createResolvers(
           // Get paginated data
           const records = await query.limit(limit + 1).execute();
           const hasNextPage = records.length > limit;
-          const edges = records.slice(0, limit).map((record) => ({
-            cursor: encodeCursor(record.id),
-            node: {
-              ...record,
-              value: record.value
+          const edges = records.slice(0, limit).map((record) => {
+            // 处理 value 字段，尝试解析 JSON
+            let eventValue = record.value;
+            try {
+              if (
+                typeof eventValue === 'string' &&
+                (eventValue.startsWith('{') || eventValue.startsWith('['))
+              ) {
+                eventValue = JSON.parse(eventValue);
+              }
+            } catch (e) {
+              console.warn('Failed to parse event value:', e);
             }
-          }));
+
+            return {
+              cursor: encodeCursor(record.id),
+              node: {
+                ...record,
+                value: eventValue
+              }
+            };
+          });
 
           return {
             edges,
