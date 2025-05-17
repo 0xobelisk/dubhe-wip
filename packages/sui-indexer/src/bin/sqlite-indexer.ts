@@ -19,7 +19,7 @@ import {
   OperationType,
   setupDatabase,
   syncToSqlite
-} from '../utils/tables';
+} from '../sqlite/tables';
 import { desc } from 'drizzle-orm';
 import { metrics } from '../koa-middleware/metrics';
 import { createAppRouter } from '../sqlite/createAppRouter';
@@ -135,7 +135,6 @@ function getFullnodeUrl(network: 'mainnet' | 'testnet' | 'localnet'): string {
       throw new Error('Invalid network type');
   }
 }
-
 
 const rpcUrl = argv.rpcUrl || getFullnodeUrl(argv.network as 'mainnet' | 'testnet' | 'localnet');
 
@@ -287,118 +286,118 @@ while (true) {
   for (const tx of txs) {
     if (tx.events && tx.events.length !== 0) {
       // @ts-ignore
-    for (const moveCall  of tx.transaction?.data?.transaction?.transactions) {
-      if (moveCall.MoveCall) {
-        await insertTx(
-          database,
-          // @ts-ignore
-          tx.sender,
-          tx.checkpoint?.toString() as string,
-          tx.digest,
-          moveCall.MoveCall.package,
-          moveCall.MoveCall.module,
-          moveCall.MoveCall.function,
-          // @ts-ignore
-          tx.transaction?.data?.transaction?.inputs,
-          tx.cursor,
-          tx.timestampMs?.toString() as string
-        );
-      }
-    }
-
-  if (tx.events) {
-      for (const event of tx.events) {
-        logger.info(`${JSON.stringify(event.parsedJson)}`);
-
-        // @ts-ignore
-        const name: string = event.parsedJson['name'];
-        if (name.endsWith('_event')) {
-          const eventData = parseData({
-            sender: tx.sender,
-            name,
-            // @ts-ignore
-            value: event.parsedJson['value']
-          });
-          // Broadcast the event to subscribed WebSocket clients
-          wss.clients.forEach((client) => {
-            if (client.readyState !== client.OPEN) return;
-            const clientSubs = subscriptions.get(client);
-            if (!clientSubs) return;
-            clientSubs.forEach((sub) => {
-              if (
-                sub.kind === SubscriptionKind.Event &&
-                (!sub.name || sub.name === name.replace('_event', '')) &&
-                (!sub.sender || sub.sender === tx.sender)
-              ) {
-                eventData.name = sub.name || name.replace('_event', '');
-                client.send(JSON.stringify(eventData));
-              }
-            });
-          });
-          await database.insert(dubheStoreEvents).values(
-            parseData({
-              sender: tx.sender,
-              checkpoint: tx.checkpoint?.toString() as string,
-              digest: tx.digest,
-              created_at: tx.timestampMs?.toString() as string,
-              name: name,
-              // @ts-ignore
-              value: event.parsedJson['value']
-            })
-          );
-          // Handle schema set events
-          // @ts-ignore
-        } else if (event.parsedJson.hasOwnProperty('value')) {
-          const schemaData = parseData(event.parsedJson);
-          wss.clients.forEach((client) => {
-            if (client.readyState !== client.OPEN) return;
-
-            const clientSubs = subscriptions.get(client);
-            if (!clientSubs) return;
-            clientSubs.forEach((sub) => {
-              if (sub.kind === SubscriptionKind.Schema && (!sub.name || sub.name === name)) {
-                client.send(JSON.stringify(schemaData));
-              }
-            });
-          });
-          await syncToSqlite(
+      for (const moveCall of tx.transaction?.data?.transaction?.transactions) {
+        if (moveCall.MoveCall) {
+          await insertTx(
             database,
+            // @ts-ignore
+            tx.sender,
             tx.checkpoint?.toString() as string,
             tx.digest,
-            tx.timestampMs?.toString() as string,
-            event.parsedJson,
-            OperationType.Set
-          );
-        } else {
-          const schemaData = {
+            moveCall.MoveCall.package,
+            moveCall.MoveCall.module,
+            moveCall.MoveCall.function,
             // @ts-ignore
-            ...event.parsedJson,
-            value: null
-          };
-          wss.clients.forEach((client) => {
-            if (client.readyState !== client.OPEN) return;
-
-            const clientSubs = subscriptions.get(client);
-            if (!clientSubs) return;
-
-            clientSubs.forEach((sub) => {
-              if (sub.kind === SubscriptionKind.Schema && (!sub.name || sub.name === name)) {
-                client.send(JSON.stringify(schemaData));
-              }
-            });
-          });
-
-          await syncToSqlite(
-            database,
-            tx.checkpoint?.toString() as string,
-            tx.digest,
-            tx.timestampMs?.toString() as string,
-            event.parsedJson,
-            OperationType.Remove
+            tx.transaction?.data?.transaction?.inputs,
+            tx.cursor,
+            tx.timestampMs?.toString() as string
           );
         }
       }
-    }
+
+      if (tx.events) {
+        for (const event of tx.events) {
+          logger.info(`${JSON.stringify(event.parsedJson)}`);
+
+          // @ts-ignore
+          const name: string = event.parsedJson['name'];
+          if (name.endsWith('_event')) {
+            const eventData = parseData({
+              sender: tx.sender,
+              name,
+              // @ts-ignore
+              value: event.parsedJson['value']
+            });
+            // Broadcast the event to subscribed WebSocket clients
+            wss.clients.forEach((client) => {
+              if (client.readyState !== client.OPEN) return;
+              const clientSubs = subscriptions.get(client);
+              if (!clientSubs) return;
+              clientSubs.forEach((sub) => {
+                if (
+                  sub.kind === SubscriptionKind.Event &&
+                  (!sub.name || sub.name === name.replace('_event', '')) &&
+                  (!sub.sender || sub.sender === tx.sender)
+                ) {
+                  eventData.name = sub.name || name.replace('_event', '');
+                  client.send(JSON.stringify(eventData));
+                }
+              });
+            });
+            await database.insert(dubheStoreEvents).values(
+              parseData({
+                sender: tx.sender,
+                checkpoint: tx.checkpoint?.toString() as string,
+                digest: tx.digest,
+                created_at: tx.timestampMs?.toString() as string,
+                name: name,
+                // @ts-ignore
+                value: event.parsedJson['value']
+              })
+            );
+            // Handle schema set events
+            // @ts-ignore
+          } else if (event.parsedJson.hasOwnProperty('value')) {
+            const schemaData = parseData(event.parsedJson);
+            wss.clients.forEach((client) => {
+              if (client.readyState !== client.OPEN) return;
+
+              const clientSubs = subscriptions.get(client);
+              if (!clientSubs) return;
+              clientSubs.forEach((sub) => {
+                if (sub.kind === SubscriptionKind.Schema && (!sub.name || sub.name === name)) {
+                  client.send(JSON.stringify(schemaData));
+                }
+              });
+            });
+            await syncToSqlite(
+              database,
+              tx.checkpoint?.toString() as string,
+              tx.digest,
+              tx.timestampMs?.toString() as string,
+              event.parsedJson,
+              OperationType.Set
+            );
+          } else {
+            const schemaData = {
+              // @ts-ignore
+              ...event.parsedJson,
+              value: null
+            };
+            wss.clients.forEach((client) => {
+              if (client.readyState !== client.OPEN) return;
+
+              const clientSubs = subscriptions.get(client);
+              if (!clientSubs) return;
+
+              clientSubs.forEach((sub) => {
+                if (sub.kind === SubscriptionKind.Schema && (!sub.name || sub.name === name)) {
+                  client.send(JSON.stringify(schemaData));
+                }
+              });
+            });
+
+            await syncToSqlite(
+              database,
+              tx.checkpoint?.toString() as string,
+              tx.digest,
+              tx.timestampMs?.toString() as string,
+              event.parsedJson,
+              OperationType.Remove
+            );
+          }
+        }
+      }
     } else {
       logger.warn(`No events found for transaction ${tx.digest}`);
       logger.warn(`Please replace rpc-url to get events`);
