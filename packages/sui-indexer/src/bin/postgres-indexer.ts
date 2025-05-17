@@ -140,14 +140,15 @@ const publicClient = new SuiClient({
   url: rpcUrl
 });
 
-// 添加SQL日志记录
 const pgConnection = postgres(argv.databaseUrl, { prepare: false });
 const database = drizzle(pgConnection, {
-  logger: {
-    logQuery: (query, params) => {
-      logger.info(`执行SQL: ${query} - 参数: ${JSON.stringify(params)}`);
-    }
-  }
+  logger: argv.debug
+    ? {
+        logQuery: (query, params) => {
+          logger.info(`Executing SQL: ${query} - Params: ${JSON.stringify(params)}`);
+        }
+      }
+    : undefined
 });
 
 // if (argv.forceRegenesis) {
