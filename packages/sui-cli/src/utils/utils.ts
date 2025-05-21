@@ -189,9 +189,9 @@ function getDubheDependency(network: 'mainnet' | 'testnet' | 'devnet' | 'localne
     case 'localnet':
       return 'Dubhe = { local = "../dubhe" }';
     case 'testnet':
-      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/contracts/dubhe", rev = "${packageJson.version}" }`;
+      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "v${packageJson.version}" }`;
     case 'mainnet':
-      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "${packageJson.version}" }`;
+      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "v${packageJson.version}" }`;
     default:
       throw new Error(`Unsupported network: ${network}`);
   }
