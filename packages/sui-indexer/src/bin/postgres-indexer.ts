@@ -254,7 +254,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const syncInterval = argv.network === 'localnet' ? 500 : argv.syncInterval;
 
-// 批量去重函数，确保 (name, key1, key2) 唯一
+// Batch deduplication function, ensuring (name, key1, key2) uniqueness
 function deduplicateSchemas(
   schemas: Array<{
     last_update_checkpoint: string;
@@ -271,12 +271,12 @@ function deduplicateSchemas(
   const map = new Map<string, (typeof schemas)[0]>();
   for (const s of schemas) {
     const key = `${s.name}|${s.key1 ?? ''}|${s.key2 ?? ''}`;
-    map.set(key, s); // 保留最后一条
+    map.set(key, s); // keep the last one
   }
   return Array.from(map.values());
 }
 
-// 同步进度监控数据
+// Sync progress monitoring data
 interface SyncProgress {
   startTime: number;
   startCheckpoint: number;
@@ -295,23 +295,23 @@ const syncProgress: SyncProgress = {
   syncRate: 0
 };
 
-// 更新同步进度
+// Update sync progress
 async function updateSyncProgress(publicClient: SuiClient, currentCheckpoint: number) {
   const now = Date.now();
 
-  // 每30秒检查一次进度
+  // Check progress every 30 seconds
   if (now - syncProgress.lastCheckTime < 30000) {
     return;
   }
 
   try {
-    // 获取链上最新 checkpoint
+    // Get the latest checkpoint from the chain
     const latestCheckpointData = await publicClient.getLatestCheckpointSequenceNumber();
     const latestCheckpoint = Number(latestCheckpointData);
 
-    // 更新进度数据
+    // Update progress data
     if (syncProgress.startCheckpoint === 0) {
-      // 初始化起始值
+      // Initialize starting values
       syncProgress.startCheckpoint = currentCheckpoint;
       syncProgress.lastCheckpoint = currentCheckpoint;
       syncProgress.latestCheckpoint = latestCheckpoint;
@@ -319,7 +319,7 @@ async function updateSyncProgress(publicClient: SuiClient, currentCheckpoint: nu
       return;
     }
 
-    // 计算同步速率 (checkpoints/second)
+    // Calculate sync rate (checkpoints/second)
     const elapsedSeconds = (now - syncProgress.lastCheckTime) / 1000;
     const checkpointsDone = currentCheckpoint - syncProgress.lastCheckpoint;
 
@@ -327,13 +327,13 @@ async function updateSyncProgress(publicClient: SuiClient, currentCheckpoint: nu
       syncProgress.syncRate = checkpointsDone / elapsedSeconds;
     }
 
-    // 计算剩余时间
+    // Calculate remaining time
     const remainingCheckpoints = latestCheckpoint - currentCheckpoint;
     let estimatedSeconds =
       syncProgress.syncRate > 0 ? remainingCheckpoints / syncProgress.syncRate : 0;
 
-    // 构建人性化时间格式
-    let timeRemaining = '未知';
+    // Format time in a human-readable format
+    let timeRemaining = 'unknown';
     if (syncProgress.syncRate > 0) {
       const hours = Math.floor(estimatedSeconds / 3600);
       const minutes = Math.floor((estimatedSeconds % 3600) / 60);
@@ -341,34 +341,34 @@ async function updateSyncProgress(publicClient: SuiClient, currentCheckpoint: nu
 
       timeRemaining =
         hours > 0
-          ? `${hours}小时${minutes}分钟`
+          ? `${hours}h ${minutes}m`
           : minutes > 0
-            ? `${minutes}分钟${seconds}秒`
-            : `${seconds}秒`;
+            ? `${minutes}m ${seconds}s`
+            : `${seconds}s`;
     }
 
-    // 计算进度百分比
+    // Calculate progress percentage
     const totalToSync = latestCheckpoint - syncProgress.startCheckpoint;
     const syncedSoFar = currentCheckpoint - syncProgress.startCheckpoint;
     const progressPercent =
       totalToSync > 0 ? ((syncedSoFar / totalToSync) * 100).toFixed(2) : '0.00';
 
-    // 输出进度信息
-    logger.info(`========== 同步进度报告 ==========`);
+    // Output progress information
+    logger.info(`========== Sync Progress Report ==========`);
     logger.info(
-      `当前 checkpoint: ${currentCheckpoint} / ${latestCheckpoint} (${progressPercent}%)`
+      `Current checkpoint: ${currentCheckpoint} / ${latestCheckpoint} (${progressPercent}%)`
     );
-    logger.info(`同步速度: ${(syncProgress.syncRate * 60).toFixed(2)} checkpoints/分钟`);
-    logger.info(`预计剩余时间: ${timeRemaining}`);
-    logger.info(`距离链头差距: ${remainingCheckpoints} checkpoints`);
-    logger.info(`==================================`);
+    logger.info(`Sync speed: ${(syncProgress.syncRate * 60).toFixed(2)} checkpoints/minute`);
+    logger.info(`Estimated time remaining: ${timeRemaining}`);
+    logger.info(`Distance to chain head: ${remainingCheckpoints} checkpoints`);
+    logger.info(`==========================================`);
 
-    // 更新最后检查时间和检查点
+    // Update last check time and checkpoint
     syncProgress.lastCheckTime = now;
     syncProgress.lastCheckpoint = currentCheckpoint;
     syncProgress.latestCheckpoint = latestCheckpoint;
   } catch (error) {
-    logger.error(`更新同步进度时出错: ${error}`);
+    logger.error(`Error updating sync progress: ${error}`);
   }
 }
 
@@ -382,7 +382,7 @@ while (true) {
   // 获取当前checkpoint，用于更新进度
   const currentCheckpoint = lastTxRecord.checkpoint ? Number(lastTxRecord.checkpoint) : 0;
 
-  // 更新同步进度
+  // Update sync progress
   await updateSyncProgress(publicClient, currentCheckpoint);
 
   let response = await publicClient.queryTransactionBlocks({
@@ -398,17 +398,17 @@ while (true) {
     }
   });
 
-  // 调试日志：打印 RPC 响应数据
-  logger.info(`==== 本次批量拉取到的交易数量: ${response.data.length} ====`);
+  // Debug log: print RPC response data
+  logger.info(`==== Number of transactions fetched in this batch: ${response.data.length} ====`);
   for (const tx of response.data) {
-    // // 随机抽查部分交易详细内容
+    // // Randomly inspect some transaction details
     // if (Math.random() < 0.1) {
-    //   // 10%概率打印详细信息
+    //   // 10% chance to print detailed information
     if (argv.debug) {
-      logger.info(`交易 ${tx.digest} 的 events 数量: ${tx.events ? tx.events.length : 0}`);
+      logger.info(`Transaction ${tx.digest} has ${tx.events ? tx.events.length : 0} events`);
 
       logger.info(
-        `交易 ${tx.digest} 的完整结构: ${JSON.stringify({
+        `Complete structure of transaction ${tx.digest}: ${JSON.stringify({
           events: tx.events,
           sender: tx.transaction?.data?.sender,
           checkpoint: tx.checkpoint
@@ -417,7 +417,7 @@ while (true) {
     }
   }
 
-  // 批量收集
+  // Batch collection
   const txInserts: Array<{
     sender: string;
     checkpoint: string;
@@ -452,7 +452,7 @@ while (true) {
   for (const tx of txs) {
     if (tx.events && tx.events.length !== 0) {
       if (argv.debug) {
-        logger.info(`处理有 events 的交易 ${tx.digest}, events 数量: ${tx.events.length}`);
+        logger.info(`Processing transaction ${tx.digest} with ${tx.events.length} events`);
       }
 
       for (const moveCall of (tx.transaction?.data?.transaction?.transactions || []) as any[]) {
@@ -475,7 +475,9 @@ while (true) {
         const parsedJson = event.parsedJson as any;
         const name = parsedJson['name'];
         if (argv.debug) {
-          logger.info(`处理 event: ${name}, value 类型: ${JSON.stringify(parsedJson['value'])}`);
+          logger.info(
+            `Processing event: ${name}, value type: ${JSON.stringify(parsedJson['value'])}`
+          );
         }
 
         if (name && typeof name === 'string' && name.endsWith('_event')) {
@@ -496,7 +498,7 @@ while (true) {
           });
           if (argv.debug) {
             logger.info(
-              `添加到 eventInserts: ${name}, 当前 eventInserts 数量: ${eventInserts.length}`
+              `Added to eventInserts: ${name}, current eventInserts count: ${eventInserts.length}`
             );
           }
         } else if (parsedJson && Object.prototype.hasOwnProperty.call(parsedJson, 'value')) {
@@ -565,12 +567,12 @@ while (true) {
     }
   }
 
-  // 批量写入，包裹在事务里
-  logger.info(`==== 准备批量写入数据库 ====`);
-  logger.info(`txInserts 数量: ${txInserts.length}`);
-  logger.info(`eventInserts 数量: ${eventInserts.length}`);
-  logger.info(`schemaSetInserts 数量: ${schemaSetInserts.length}`);
-  logger.info(`schemaRemoveOps 数量: ${schemaRemoveOps.length}`);
+  // Batch write, wrapped in a transaction
+  logger.info(`==== Preparing to batch write to database ====`);
+  logger.info(`txInserts count: ${txInserts.length}`);
+  logger.info(`eventInserts count: ${eventInserts.length}`);
+  logger.info(`schemaSetInserts count: ${schemaSetInserts.length}`);
+  logger.info(`schemaRemoveOps count: ${schemaRemoveOps.length}`);
 
   await database.transaction(async (trx) => {
     await bulkInsertTx(trx, txInserts);
