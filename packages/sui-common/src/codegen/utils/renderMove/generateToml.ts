@@ -13,16 +13,12 @@ edition = "2024"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.46.3" }
-Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "${packageJson.version}" }
+Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "v${packageJson.version}" }
 
 [addresses]
 sui = "0x2"
 ${config.name} = "0x0"
 `;
-  await formatAndWriteMove(
-    code,
-    `${srcPrefix}/src/${config.name}/Move.toml`,
-    'formatAndWriteMove'
-  );
+  await formatAndWriteMove(code, `${srcPrefix}/src/${config.name}/Move.toml`, 'formatAndWriteMove');
   console.log('✅ Move.toml Generation Complete\n');
 }
