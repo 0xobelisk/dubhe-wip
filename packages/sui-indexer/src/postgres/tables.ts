@@ -201,3 +201,133 @@ export async function syncToPostgres(
 
 export const internalTables = [dubheStoreTransactions, dubheStoreSchemas, dubheStoreEvents];
 export const internalTableNames = internalTables.map(getTableName);
+
+// 批量插入交易
+export async function bulkInsertTx(
+  pgDB: ReturnType<typeof drizzle>,
+  txs: Array<{
+    sender: string;
+    checkpoint: string;
+    digest: string;
+    pkg: string;
+    mod: string;
+    func: string;
+    args: string;
+    cursor: string;
+    created_at: string;
+  }>
+) {
+  if (txs.length === 0) return;
+  await pgDB.insert(dubheStoreTransactions).values(
+    txs.map((tx) => ({
+      sender: tx.sender,
+      checkpoint: tx.checkpoint,
+      digest: tx.digest,
+      package: tx.pkg,
+      module: tx.mod,
+      function: tx.func,
+      arguments: tx.args,
+      cursor: tx.cursor,
+      created_at: tx.created_at
+    }))
+  );
+}
+
+// 批量插入事件
+export async function bulkInsertEvents(
+  pgDB: ReturnType<typeof drizzle>,
+  events: Array<{
+    sender: string;
+    checkpoint: string;
+    digest: string;
+    name: string;
+    value: string;
+    created_at: string;
+  }>
+) {
+  if (events.length === 0) return;
+  await pgDB.insert(dubheStoreEvents).values(events);
+}
+
+// 批量 upsert schema（分为批量 update 已存在的和批量 insert 新的）
+export async function bulkUpsertSchemas(
+  pgDB: ReturnType<typeof drizzle>,
+  schemas: Array<{
+    last_update_checkpoint: string;
+    last_update_digest: string;
+    name: string;
+    key1: string | null;
+    key2: string | null;
+    value: string;
+    is_removed: boolean;
+    created_at: string;
+    updated_at: string;
+  }>
+) {
+  if (schemas.length === 0) return;
+  // 先查出已存在的（根据 name, key1, key2 唯一索引）
+  const existing = await pgDB
+    .select({
+      name: dubheStoreSchemas.name,
+      key1: dubheStoreSchemas.key1,
+      key2: dubheStoreSchemas.key2
+    })
+    .from(dubheStoreSchemas)
+    .where(
+      sql`(${dubheStoreSchemas.name}, ${dubheStoreSchemas.key1}, ${dubheStoreSchemas.key2}) in (${sql.raw(schemas.map((s) => `('${s.name}',${s.key1 ? `'${s.key1}'` : 'NULL'},${s.key2 ? `'${s.key2}'` : 'NULL'})`).join(', '))})`
+    )
+    .execute();
+  const existSet = new Set(existing.map((e) => `${e.name}|${e.key1}|${e.key2}`));
+  const toUpdate = schemas.filter((s) => existSet.has(`${s.name}|${s.key1}|${s.key2}`));
+  const toInsert = schemas.filter((s) => !existSet.has(`${s.name}|${s.key1}|${s.key2}`));
+  // 批量 update
+  for (const s of toUpdate) {
+    await pgDB
+      .update(dubheStoreSchemas)
+      .set({
+        last_update_checkpoint: s.last_update_checkpoint,
+        last_update_digest: s.last_update_digest,
+        value: s.value,
+        is_removed: s.is_removed,
+        updated_at: s.updated_at
+      })
+      .where(
+        and(
+          eq(dubheStoreSchemas.name, s.name),
+          s.key1 ? eq(dubheStoreSchemas.key1, s.key1) : sql`${dubheStoreSchemas.key1} IS NULL`,
+          s.key2 ? eq(dubheStoreSchemas.key2, s.key2) : sql`${dubheStoreSchemas.key2} IS NULL`
+        )
+      )
+      .execute();
+  }
+  // 批量 insert
+  if (toInsert.length > 0) {
+    await pgDB.insert(dubheStoreSchemas).values(toInsert);
+  }
+}
+
+// 批量 remove schema（批量 update is_removed）
+export async function bulkRemoveSchemas(
+  pgDB: ReturnType<typeof drizzle>,
+  schemas: Array<{
+    name: string;
+    key1: string | null;
+    key2: string | null;
+    updated_at: string;
+  }>
+) {
+  if (schemas.length === 0) return;
+  for (const s of schemas) {
+    await pgDB
+      .update(dubheStoreSchemas)
+      .set({ is_removed: true, updated_at: s.updated_at })
+      .where(
+        and(
+          eq(dubheStoreSchemas.name, s.name),
+          s.key1 ? eq(dubheStoreSchemas.key1, s.key1) : sql`${dubheStoreSchemas.key1} IS NULL`,
+          s.key2 ? eq(dubheStoreSchemas.key2, s.key2) : sql`${dubheStoreSchemas.key2} IS NULL`
+        )
+      )
+      .execute();
+  }
+}
