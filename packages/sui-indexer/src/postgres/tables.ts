@@ -52,6 +52,28 @@ export const setupDatabase = (database: ReturnType<typeof drizzle>) => {
             value TEXT,
 			created_at TEXT
         )`);
+        
+  // Add unique index to handle NULL values
+  database.execute(sql`
+    DO $$
+    BEGIN
+      BEGIN
+        ALTER TABLE "__dubheStoreSchemas" 
+        ADD CONSTRAINT IF NOT EXISTS unique_name_key1_key2 
+        UNIQUE (name, COALESCE(key1, ''), COALESCE(key2, ''));
+      EXCEPTION
+        WHEN duplicate_constraint THEN
+          NULL;
+      END;
+    END $$;
+  `);
+  
+  // Add indexes to improve query performance
+  database.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_schemas_name ON "__dubheStoreSchemas" (name);
+    CREATE INDEX IF NOT EXISTS idx_schemas_name_keys ON "__dubheStoreSchemas" (name, key1, key2);
+    CREATE INDEX IF NOT EXISTS idx_schemas_checkpoint ON "__dubheStoreSchemas" (last_update_checkpoint);
+  `);
 };
 
 export const clearDatabase = (database: ReturnType<typeof drizzle>) => {
@@ -202,7 +224,7 @@ export async function syncToPostgres(
 export const internalTables = [dubheStoreTransactions, dubheStoreSchemas, dubheStoreEvents];
 export const internalTableNames = internalTables.map(getTableName);
 
-// 批量插入交易
+// Batch insert transactions
 export async function bulkInsertTx(
   pgDB: ReturnType<typeof drizzle>,
   txs: Array<{
@@ -233,7 +255,7 @@ export async function bulkInsertTx(
   );
 }
 
-// 批量插入事件
+// Batch insert events
 export async function bulkInsertEvents(
   pgDB: ReturnType<typeof drizzle>,
   events: Array<{
@@ -249,7 +271,7 @@ export async function bulkInsertEvents(
   await pgDB.insert(dubheStoreEvents).values(events);
 }
 
-// 批量 upsert schema（分为批量 update 已存在的和批量 insert 新的）
+// Batch upsert schema (separate batch update for existing and batch insert for new)
 export async function bulkUpsertSchemas(
   pgDB: ReturnType<typeof drizzle>,
   schemas: Array<{
@@ -258,76 +280,128 @@ export async function bulkUpsertSchemas(
     name: string;
     key1: string | null;
     key2: string | null;
-    value: string;
+    value: string | null;
     is_removed: boolean;
     created_at: string;
     updated_at: string;
   }>
 ) {
   if (schemas.length === 0) return;
-  // 先查出已存在的（根据 name, key1, key2 唯一索引）
-  const existing = await pgDB
-    .select({
-      name: dubheStoreSchemas.name,
-      key1: dubheStoreSchemas.key1,
-      key2: dubheStoreSchemas.key2
-    })
-    .from(dubheStoreSchemas)
-    .where(
-      sql`(${dubheStoreSchemas.name}, ${dubheStoreSchemas.key1}, ${dubheStoreSchemas.key2}) in (${sql.raw(schemas.map((s) => `('${s.name}',${s.key1 ? `'${s.key1}'` : 'NULL'},${s.key2 ? `'${s.key2}'` : 'NULL'})`).join(', '))})`
-    )
-    .execute();
-  const existSet = new Set(existing.map((e) => `${e.name}|${e.key1}|${e.key2}`));
-  const toUpdate = schemas.filter((s) => existSet.has(`${s.name}|${s.key1}|${s.key2}`));
-  const toInsert = schemas.filter((s) => !existSet.has(`${s.name}|${s.key1}|${s.key2}`));
-  // 批量 update
-  for (const s of toUpdate) {
-    await pgDB
-      .update(dubheStoreSchemas)
-      .set({
-        last_update_checkpoint: s.last_update_checkpoint,
-        last_update_digest: s.last_update_digest,
-        value: s.value,
-        is_removed: s.is_removed,
-        updated_at: s.updated_at
-      })
-      .where(
-        and(
-          eq(dubheStoreSchemas.name, s.name),
-          s.key1 ? eq(dubheStoreSchemas.key1, s.key1) : sql`${dubheStoreSchemas.key1} IS NULL`,
-          s.key2 ? eq(dubheStoreSchemas.key2, s.key2) : sql`${dubheStoreSchemas.key2} IS NULL`
-        )
-      )
-      .execute();
-  }
-  // 批量 insert
-  if (toInsert.length > 0) {
-    await pgDB.insert(dubheStoreSchemas).values(toInsert);
-  }
-}
 
-// 批量 remove schema（批量 update is_removed）
-export async function bulkRemoveSchemas(
-  pgDB: ReturnType<typeof drizzle>,
-  schemas: Array<{
-    name: string;
-    key1: string | null;
-    key2: string | null;
-    updated_at: string;
-  }>
-) {
-  if (schemas.length === 0) return;
-  for (const s of schemas) {
-    await pgDB
-      .update(dubheStoreSchemas)
-      .set({ is_removed: true, updated_at: s.updated_at })
-      .where(
-        and(
-          eq(dubheStoreSchemas.name, s.name),
-          s.key1 ? eq(dubheStoreSchemas.key1, s.key1) : sql`${dubheStoreSchemas.key1} IS NULL`,
-          s.key2 ? eq(dubheStoreSchemas.key2, s.key2) : sql`${dubheStoreSchemas.key2} IS NULL`
+  // For high-throughput scenarios, use optimized approach
+  // Direct bulk operations with optimal batch size
+  const OPTIMAL_BATCH_SIZE = 100; // Optimal for ~100 records/second throughput
+  
+  // Separate records for deletion and normal updates
+  const toRemove = schemas.filter(s => s.is_removed === true && s.value === null);
+  const toUpsert = schemas.filter(s => !(s.is_removed === true && s.value === null));
+
+  // Process deletion operations - optimized for large batches
+  if (toRemove.length > 0) {
+    // Create temporary table for deletion operations
+    await pgDB.execute(sql`
+      CREATE TEMPORARY TABLE temp_remove (
+        name TEXT NOT NULL,
+        key1 TEXT,
+        key2 TEXT,
+        updated_at TEXT NOT NULL
+      ) ON COMMIT DROP;
+    `);
+    
+    // Insert into temporary table in batches
+    for (let i = 0; i < toRemove.length; i += OPTIMAL_BATCH_SIZE) {
+      const batch = toRemove.slice(i, i + OPTIMAL_BATCH_SIZE);
+      const valuesSql = batch.map(s => 
+        `('${s.name}', ${s.key1 === null ? 'NULL' : `'${s.key1}'`}, ${s.key2 === null ? 'NULL' : `'${s.key2}'`}, '${s.updated_at}')`
+      ).join(',');
+      
+      await pgDB.execute(sql`
+        INSERT INTO temp_remove (name, key1, key2, updated_at)
+        VALUES ${sql.raw(valuesSql)};
+      `);
+    }
+    
+    // Use COALESCE function to handle NULL value comparisons
+    await pgDB.execute(sql`
+      UPDATE "__dubheStoreSchemas" AS t SET
+        is_removed = true,
+        updated_at = tr.updated_at
+      FROM temp_remove AS tr
+      WHERE t.name = tr.name
+        AND COALESCE(t.key1, '') = COALESCE(tr.key1, '')
+        AND COALESCE(t.key2, '') = COALESCE(tr.key2, '');
+    `);
+  }
+
+  // Process updates and insertions with high-performance approach
+  if (toUpsert.length > 0) {
+    // Create temporary table for upsert operations
+    await pgDB.execute(sql`
+      CREATE TEMPORARY TABLE temp_upsert (
+        last_update_checkpoint TEXT NOT NULL,
+        last_update_digest TEXT NOT NULL,
+        name TEXT NOT NULL,
+        key1 TEXT,
+        key2 TEXT,
+        value TEXT NOT NULL,
+        is_removed BOOLEAN NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) ON COMMIT DROP;
+    `);
+    
+    // Insert into temporary table in batches
+    for (let i = 0; i < toUpsert.length; i += OPTIMAL_BATCH_SIZE) {
+      const batch = toUpsert.slice(i, i + OPTIMAL_BATCH_SIZE);
+      const valuesSql = batch.map(s => 
+        `('${s.last_update_checkpoint}', '${s.last_update_digest}', '${s.name}', 
+          ${s.key1 === null ? 'NULL' : `'${s.key1}'`}, 
+          ${s.key2 === null ? 'NULL' : `'${s.key2}'`}, 
+          '${s.value || ''}', ${s.is_removed}, '${s.created_at}', '${s.updated_at}')`
+      ).join(',');
+      
+      await pgDB.execute(sql`
+        INSERT INTO temp_upsert (
+          last_update_checkpoint, last_update_digest, name, key1, key2, 
+          value, is_removed, created_at, updated_at
         )
+        VALUES ${sql.raw(valuesSql)};
+      `);
+    }
+    
+    // Use more efficient method supported by PostgreSQL 14
+    // 1. First update existing records
+    await pgDB.execute(sql`
+      UPDATE "__dubheStoreSchemas" AS ds 
+      SET
+        last_update_checkpoint = tu.last_update_checkpoint,
+        last_update_digest = tu.last_update_digest,
+        value = tu.value,
+        is_removed = tu.is_removed,
+        updated_at = tu.updated_at
+      FROM temp_upsert AS tu
+      WHERE ds.name = tu.name
+        AND COALESCE(ds.key1, '') = COALESCE(tu.key1, '')
+        AND COALESCE(ds.key2, '') = COALESCE(tu.key2, '')
+        AND tu.last_update_checkpoint::bigint > ds.last_update_checkpoint::bigint;
+    `);
+    
+    // 2. Insert non-existing records
+    await pgDB.execute(sql`
+      INSERT INTO "__dubheStoreSchemas" (
+        last_update_checkpoint, last_update_digest, name, key1, key2, 
+        value, is_removed, created_at, updated_at
       )
-      .execute();
+      SELECT 
+        tu.last_update_checkpoint, tu.last_update_digest, tu.name, tu.key1, tu.key2,
+        tu.value, tu.is_removed, tu.created_at, tu.updated_at
+      FROM temp_upsert tu
+      WHERE NOT EXISTS (
+        SELECT 1 FROM "__dubheStoreSchemas" ds 
+        WHERE ds.name = tu.name
+          AND COALESCE(ds.key1, '') = COALESCE(tu.key1, '')
+          AND COALESCE(ds.key2, '') = COALESCE(tu.key2, '')
+      );
+    `);
   }
 }

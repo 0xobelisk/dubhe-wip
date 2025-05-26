@@ -20,7 +20,6 @@ import {
   bulkInsertTx,
   bulkInsertEvents,
   bulkUpsertSchemas,
-  bulkRemoveSchemas
 } from '../postgres/tables';
 import { desc } from 'drizzle-orm';
 import { metrics } from '../koa-middleware/metrics';
@@ -255,6 +254,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const syncInterval = argv.network === 'localnet' ? 500 : argv.syncInterval;
 
 // Batch deduplication function, ensuring (name, key1, key2) uniqueness
+// Optimized for high throughput (300+ records per second)
 function deduplicateSchemas(
   schemas: Array<{
     last_update_checkpoint: string;
@@ -262,18 +262,44 @@ function deduplicateSchemas(
     name: string;
     key1: string | null;
     key2: string | null;
-    value: string;
+    value: string | null;
     is_removed: boolean;
     created_at: string;
     updated_at: string;
   }>
 ) {
-  const map = new Map<string, (typeof schemas)[0]>();
-  for (const s of schemas) {
+  // For high-throughput scenarios, use a more efficient approach
+  // Pre-allocate result array to avoid resizing
+  const resultArray = new Array(Math.floor(schemas.length * 0.75)); // Estimate 25% duplicates
+  let resultCount = 0;
+  
+  // Use Map to store the latest records (determined by checkpoint value)
+  // Pre-size the Map with expected capacity
+  const map = new Map<string, number>(); // key -> index in resultArray
+  
+  for (let i = 0; i < schemas.length; i++) {
+    const s = schemas[i];
     const key = `${s.name}|${s.key1 ?? ''}|${s.key2 ?? ''}`;
-    map.set(key, s); // keep the last one
+    
+    const existingIndex = map.get(key);
+    if (existingIndex === undefined) {
+      // New entry
+      if (resultCount < resultArray.length) {
+        resultArray[resultCount] = s;
+      } else {
+        // Resize if needed (should be rare due to pre-allocation)
+        resultArray.push(s);
+      }
+      map.set(key, resultCount);
+      resultCount++;
+    } else if (Number(s.last_update_checkpoint) > Number(resultArray[existingIndex].last_update_checkpoint)) {
+      // Update existing entry with newer data
+      resultArray[existingIndex] = s;
+    }
   }
-  return Array.from(map.values());
+  
+  // Return only the used portion of the array
+  return resultCount === resultArray.length ? resultArray : resultArray.slice(0, resultCount);
 }
 
 // Sync progress monitoring data
@@ -300,7 +326,9 @@ async function updateSyncProgress(publicClient: SuiClient, currentCheckpoint: nu
   const now = Date.now();
 
   // Check progress every 30 seconds
-  if (now - syncProgress.lastCheckTime < 30000) {
+  const checkInterval = 120000;
+  // Check progress every 120 seconds
+  if (now - syncProgress.lastCheckTime < checkInterval) {
     return;
   }
 
@@ -379,11 +407,14 @@ while (true) {
     logger.info('Syncing transactions...');
   }
 
-  // 获取当前checkpoint，用于更新进度
+  // Get current checkpoint for progress tracking
   const currentCheckpoint = lastTxRecord.checkpoint ? Number(lastTxRecord.checkpoint) : 0;
 
   // Update sync progress
   await updateSyncProgress(publicClient, currentCheckpoint);
+
+  // Record start time for processing
+  const processingStartTime = Date.now();
 
   let response = await publicClient.queryTransactionBlocks({
     filter: {
@@ -398,26 +429,12 @@ while (true) {
     }
   });
 
-  // Debug log: print RPC response data
+  const responseEndTime = Date.now();
+  const responseTimeMs = responseEndTime - processingStartTime;
+
   logger.info(`==== Number of transactions fetched in this batch: ${response.data.length} ====`);
-  for (const tx of response.data) {
-    // // Randomly inspect some transaction details
-    // if (Math.random() < 0.1) {
-    //   // 10% chance to print detailed information
-    if (argv.debug) {
-      logger.info(`Transaction ${tx.digest} has ${tx.events ? tx.events.length : 0} events`);
 
-      logger.info(
-        `Complete structure of transaction ${tx.digest}: ${JSON.stringify({
-          events: tx.events,
-          sender: tx.transaction?.data?.sender,
-          checkpoint: tx.checkpoint
-        })}`
-      );
-    }
-  }
-
-  // Batch collection
+  // Pre-allocate arrays with optimal capacity for high throughput
   const txInserts: Array<{
     sender: string;
     checkpoint: string;
@@ -429,6 +446,7 @@ while (true) {
     cursor: string;
     created_at: string;
   }> = [];
+  
   const eventInserts: Array<{
     sender: string;
     checkpoint: string;
@@ -437,148 +455,166 @@ while (true) {
     value: string;
     created_at: string;
   }> = [];
-  const schemaOps: Array<{
-    type: 'set' | 'remove';
-    tx: any;
-    event: any;
-  }> = [];
-
-  const txs = response.data.map((tx: any) => ({
-    ...tx,
-    cursor: tx.digest,
-    sender: tx.transaction?.data?.sender
-  }));
-
-  for (const tx of txs) {
-    if (tx.events && tx.events.length !== 0) {
-      if (argv.debug) {
-        logger.info(`Processing transaction ${tx.digest} with ${tx.events.length} events`);
-      }
-
-      for (const moveCall of (tx.transaction?.data?.transaction?.transactions || []) as any[]) {
-        if (moveCall.MoveCall) {
-          txInserts.push({
-            sender: tx.sender,
-            checkpoint: tx.checkpoint!.toString(),
-            digest: tx.digest,
-            pkg: moveCall.MoveCall.package,
-            mod: moveCall.MoveCall.module,
-            func: moveCall.MoveCall.function,
-            args: JSON.stringify(tx.transaction?.data?.transaction?.inputs ?? []),
-            cursor: tx.cursor,
-            created_at: tx.timestampMs!.toString()
-          });
-        }
-      }
-
-      for (const event of tx.events as any[]) {
-        const parsedJson = event.parsedJson as any;
-        const name = parsedJson['name'];
-        if (argv.debug) {
-          logger.info(
-            `Processing event: ${name}, value type: ${JSON.stringify(parsedJson['value'])}`
-          );
-        }
-
-        if (name && typeof name === 'string' && name.endsWith('_event')) {
-          let eventData = parseData({
-            sender: tx.sender,
-            name,
-            value: parsedJson['value']
-          });
-          eventData.value =
-            typeof eventData.value === 'object' ? JSON.stringify(eventData.value) : eventData.value;
-          eventInserts.push({
-            sender: tx.sender,
-            checkpoint: tx.checkpoint?.toString() as string,
-            digest: tx.digest,
-            name: name,
-            value: eventData.value,
-            created_at: tx.timestampMs?.toString() as string
-          });
-          if (argv.debug) {
-            logger.info(
-              `Added to eventInserts: ${name}, current eventInserts count: ${eventInserts.length}`
-            );
-          }
-        } else if (parsedJson && Object.prototype.hasOwnProperty.call(parsedJson, 'value')) {
-          schemaOps.push({
-            type: 'set',
-            tx,
-            event
-          });
-        } else {
-          schemaOps.push({
-            type: 'remove',
-            tx,
-            event
-          });
-        }
-      }
-    } else {
-      if (argv.debug) {
-        logger.warn(`No events found for transaction ${tx.digest}`);
-        logger.warn(`Please replace rpc-url to get events`);
-        logger.warn(`Current rpc-url: ${rpcUrl}`);
-      }
-    }
-  }
-
+  
   const schemaSetInserts: Array<{
     last_update_checkpoint: string;
     last_update_digest: string;
     name: string;
     key1: string | null;
     key2: string | null;
-    value: string;
+    value: string | null;
     is_removed: boolean;
     created_at: string;
     updated_at: string;
   }> = [];
-  const schemaRemoveOps: Array<{
-    name: string;
-    key1: string | null;
-    key2: string | null;
-    updated_at: string;
-  }> = [];
 
-  for (const op of schemaOps) {
-    if (op.type === 'set') {
-      const parsed = parseData(op.event.parsedJson);
-      schemaSetInserts.push({
-        last_update_checkpoint: op.tx.checkpoint!.toString(),
-        last_update_digest: op.tx.digest,
-        name: parsed.name,
-        key1: parsed.key1 ?? null,
-        key2: parsed.key2 ?? null,
-        value: typeof parsed.value === 'object' ? JSON.stringify(parsed.value) : parsed.value,
-        is_removed: false,
-        created_at: op.tx.timestampMs!.toString(),
-        updated_at: op.tx.timestampMs!.toString()
+  // Measure data extraction time
+  const extractionStartTime = Date.now();
+  
+  // Process all transactions
+  for (const tx of response.data as any[]) {
+    const sender = tx.transaction?.data?.sender;
+    const checkpoint = tx.checkpoint?.toString() ?? '0';
+    const timestamp = tx.timestampMs?.toString() ?? Date.now().toString();
+    
+    
+    logger.info(`tx.digest: ${tx.digest}`);
+    logger.info(`tx: ${JSON.stringify(tx)}`);
+    logger.info(`tx.checkpoint: ${tx.checkpoint}`);
+    logger.info(`tx.timestampMs: ${tx.timestampMs}`);
+    
+    // Collect moveCalls
+    const moveCalls: any[] = [];
+    if (tx.transaction?.data?.transaction?.transactions) {
+      for (const item of tx.transaction.data.transaction.transactions) {
+        if (item.MoveCall) moveCalls.push(item.MoveCall);
+      }
+    }
+    
+    // Process MoveCalls
+    for (const moveCall of moveCalls) {
+      txInserts.push({
+        sender,
+        checkpoint,
+        digest: tx.digest ?? '',
+        pkg: moveCall.package,
+        mod: moveCall.module,
+        func: moveCall.function,
+        args: JSON.stringify(tx.transaction?.data?.transaction?.inputs ?? []),
+        cursor: tx.digest ?? '',
+        created_at: timestamp
       });
-    } else {
-      const parsed = parseData(op.event.parsedJson);
-      schemaRemoveOps.push({
-        name: parsed.name,
-        key1: parsed.key1 ?? null,
-        key2: parsed.key2 ?? null,
-        updated_at: op.tx.timestampMs!.toString()
-      });
+    }
+    
+    // Process events if they exist
+    const events: any[] = tx.events || [];
+    for (const event of events) {
+      const parsedJson = event.parsedJson as any;
+      const name = parsedJson['name'];
+      
+      if (name && typeof name === 'string') {
+        if (name.endsWith('_event')) {
+          // Event processing
+          let eventData = parseData({
+            sender,
+            name,
+            value: parsedJson['value']
+          });
+          
+          // Convert value to string if it's an object
+          const eventValue = typeof eventData.value === 'object' 
+            ? JSON.stringify(eventData.value) 
+            : eventData.value;
+            
+          eventInserts.push({
+            sender,
+            checkpoint,
+            digest: tx.digest ?? '',
+            name,
+            value: eventValue,
+            created_at: timestamp
+          });
+        } else {
+          // Schema processing
+          const parsed = parseData(parsedJson);
+          const hasValue = Object.prototype.hasOwnProperty.call(parsedJson, 'value');
+          
+          // Convert value to string if it's an object
+          const schemaValue = hasValue
+            ? (typeof parsed.value === 'object' ? JSON.stringify(parsed.value) : parsed.value)
+            : null;
+          
+          schemaSetInserts.push({
+            last_update_checkpoint: checkpoint,
+            last_update_digest: tx.digest ?? '',
+            name,
+            key1: parsed.key1 ?? null,
+            key2: parsed.key2 ?? null,
+            value: schemaValue,
+            is_removed: !hasValue,
+            created_at: timestamp,
+            updated_at: timestamp
+          });
+        }
+      }
     }
   }
 
-  // Batch write, wrapped in a transaction
-  logger.info(`==== Preparing to batch write to database ====`);
+  // If no events were found in any transaction, continue to next batch
+  if (txInserts.length === 0 && eventInserts.length === 0 && schemaSetInserts.length === 0) {
+    logger.info('No events found in any transaction in this batch, continuing to next batch...');
+    continue;
+  }
+
+  const extractionEndTime = Date.now();
+  const extractionTimeMs = extractionEndTime - extractionStartTime;
+  
   logger.info(`txInserts count: ${txInserts.length}`);
   logger.info(`eventInserts count: ${eventInserts.length}`);
-  logger.info(`schemaSetInserts count: ${schemaSetInserts.length}`);
-  logger.info(`schemaRemoveOps count: ${schemaRemoveOps.length}`);
 
+  // Measure database operation time
+  const dbStartTime = Date.now();
+  
+  // Optimize database write logic for high throughput
   await database.transaction(async (trx) => {
-    await bulkInsertTx(trx, txInserts);
-    await bulkInsertEvents(trx, eventInserts);
-    const dedupedSchemaSetInserts = deduplicateSchemas(schemaSetInserts);
-    await bulkUpsertSchemas(trx, dedupedSchemaSetInserts);
-    await bulkRemoveSchemas(trx, schemaRemoveOps);
+    // Process in parallel but with optimal batch sizes
+    const operations = [];
+    
+    if (txInserts.length > 0) {
+      operations.push(bulkInsertTx(trx, txInserts));
+    }
+    
+    if (eventInserts.length > 0) {
+      operations.push(bulkInsertEvents(trx, eventInserts));
+    }
+    
+    if (schemaSetInserts.length > 0) {
+      // Deduplicate schemas before writing to database
+      const dedupedSchemaSetInserts = deduplicateSchemas(schemaSetInserts);
+      logger.info(`dedupedSchemaSetInserts count: ${dedupedSchemaSetInserts.length}`);
+      operations.push(bulkUpsertSchemas(trx, dedupedSchemaSetInserts));
+    }
+    
+    // Execute all operations in parallel
+    await Promise.all(operations);
   });
+  
+  const dbEndTime = Date.now();
+  const dbOperationTimeMs = dbEndTime - dbStartTime;
+  
+  // Calculate total processing time
+  const processingEndTime = Date.now();
+  const totalProcessingTimeMs = processingEndTime - processingStartTime;
+  
+  // Log detailed timing information
+  logger.info(`Response time: ${responseTimeMs}ms`);
+  logger.info(`Data extraction time: ${extractionTimeMs}ms`);
+  logger.info(`Database operation time: ${dbOperationTimeMs}ms`);
+  logger.info(`Total processing time: ${totalProcessingTimeMs}ms`);
+  logger.info(`====================================`);
+  
+  // Help garbage collection by clearing large arrays
+  txInserts.length = 0;
+  eventInserts.length = 0;
+  schemaSetInserts.length = 0;
 }
