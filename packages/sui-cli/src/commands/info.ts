@@ -1,13 +1,11 @@
-// import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { CommandModule } from 'yargs';
-import { logError, validatePrivateKey } from '../utils';
+import { logError, initializeDubhe } from '../utils';
 import dotenv from 'dotenv';
-import { Dubhe } from '@0xobelisk/sui-client';
 import chalk from 'chalk';
 dotenv.config();
 
 type Options = {
-  network: string;
+  network: any;
 };
 
 const InfoCommand: CommandModule<Options, Options> = {
@@ -25,24 +23,22 @@ const InfoCommand: CommandModule<Options, Options> = {
   },
   handler: async ({ network }) => {
     try {
-      console.log('current network:', chalk.green(network));
-      const privateKey = process.env.PRIVATE_KEY;
-      // console.log('privateKey', privateKey);
-      if (!privateKey) {
-        throw new Error('PRIVATE_KEY is not set');
-      }
-
-      if (!validatePrivateKey(privateKey)) {
-        throw new Error('Invalid private key');
-      }
-
-      const dubhe = new Dubhe({ secretKey: privateKey });
+      const dubhe = initializeDubhe({ network });
       const keypair = dubhe.getSigner();
 
-      console.log('deployer address:', chalk.green(keypair.toSuiAddress()));
+      console.log(chalk.blue('Account Information:'));
+      console.log(`  Network: ${chalk.green(network)}`);
+      console.log(`  Address: ${chalk.green(keypair.toSuiAddress())}`);
 
-      const balance = await dubhe.getBalance('0x2::sui::SUI');
-      console.log('balance:', chalk.green(Number(balance.totalBalance) / 10 ** 9), 'SUI');
+      try {
+        const balance = await dubhe.getBalance('0x2::sui::SUI');
+        const suiBalance = (Number(balance.totalBalance) / 10 ** 9).toFixed(4);
+        console.log(`  Balance: ${chalk.green(suiBalance)} SUI`);
+      } catch (error) {
+        console.log(
+          `  Balance: ${chalk.red('Failed to fetch balance')} ${chalk.gray('(Network error)')}`
+        );
+      }
     } catch (error) {
       logError(error);
       process.exit(1);
