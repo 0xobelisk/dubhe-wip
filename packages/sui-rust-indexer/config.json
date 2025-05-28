@@ -1,0 +1,44 @@
+{
+      "tables" : [
+            {
+                  "accounts": {
+                        "schemas": [
+                              { "asset_id": "u256" },
+                              { "account": "address" },
+                              { "balance": "u256" }
+                        ],
+                        "key" : ["asset_id", "account"]
+                  }
+            },
+            {
+                  "position": {
+                        "schemas": [
+                              { "player": "address" },
+                              { "x": "u64" },
+                              { "y": "u64" }
+                        ],
+                        "key" : ["player"]
+                  }
+            },
+            {
+                  "encounter": {
+                        "schemas": [
+                              { "player": "address" },
+                              { "exists": "bool" },
+                              { "monster": "address" },
+                              { "catch_attempts": "u256" }
+                        ],
+                        "key" : ["player"]
+                  }
+            },
+            {
+                  "map_config": {
+                        "schemas": [
+                              { "width": "u64" },
+                              { "height": "u64" }
+                        ],
+                        "key" : []
+                  }
+            }         
+      ]
+} 
