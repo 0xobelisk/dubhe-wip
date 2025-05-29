@@ -3,10 +3,10 @@ name: Release Packages
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 env:
-  NODE_OPTIONS: "--max-old-space-size=4096"
+  NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
   release:
@@ -26,13 +26,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 9
 
       - name: Install dependencies
         run: pnpm install
