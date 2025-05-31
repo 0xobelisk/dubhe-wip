@@ -16,6 +16,7 @@ use crate::{
     events::{StorageSetRecord, StoreSetField},
     sql::{generate_update_sql, generate_insert_sql},
     db::PgConnectionPool,
+    notify::{notify_store_change, setup_notification_triggers, create_table_trigger},
 };
 use crate::table::parse_table_tuple;
 use crate::table::parse_table_field;
@@ -64,6 +65,12 @@ impl DubheIndexerWorker {
             .execute(&mut conn)
             .await?;
         
+        // 暂时注释掉通知触发器设置，避免触发器错误
+        /*
+        // 设置通知触发器函数
+        setup_notification_triggers(&mut conn).await?;
+        */
+        
         for table in tables {
             println!("Creating table: {}", table.name);
             println!("Key fields: {:?}", table.key_fields);
@@ -82,6 +89,13 @@ impl DubheIndexerWorker {
                     .execute(&mut conn)
                     .await?;
             }
+            
+            // 暂时注释掉触发器创建，避免触发器错误
+            /*
+            // 为每个表创建触发器
+            let table_name_with_prefix = format!("store_{}", table.name);
+            create_table_trigger(&mut conn, &table_name_with_prefix, &["INSERT", "UPDATE", "DELETE"]).await?;
+            */
         }
         
         Ok(())
@@ -145,14 +159,48 @@ impl DubheIndexerWorker {
         );
 
         println!("Final SQL: {}", sql);
-        diesel::sql_query(&sql)
-            .execute(&mut conn)
-            .await?;
+        
+        // Execute SQL with proper error handling
+        match diesel::sql_query(&sql).execute(&mut conn).await {
+            Ok(rows_affected) => {
+                println!("Successfully executed SQL, rows affected: {}", rows_affected);
+            },
+            Err(e) => {
+                eprintln!("Error executing SQL: {:?}", e);
+                eprintln!("Failed SQL: {}", sql);
+                // Return the error instead of continuing
+                return Err(e.into());
+            }
+        }
+
+        // 暂时注释掉通知系统，避免触发器错误
+        /*
+        // 发送通知
+        let key_json_values: Vec<(String, serde_json::Value)> = key_fields.iter()
+            .map(|(name, _)| {
+                let value = key_values.get(name).unwrap_or(&serde_json::Value::Null);
+                (name.clone(), value.clone())
+            })
+            .collect();
+            
+        let value_json_values: Vec<(String, serde_json::Value)> = value_fields.iter()
+            .map(|(name, _)| {
+                let value = value_values.get(name).unwrap_or(&serde_json::Value::Null);
+                (name.clone(), value.clone())
+            })
+            .collect();
+            
+        if let Err(e) = notify_store_change(&mut conn, &table_name, "create", &key_json_values, &value_json_values).await {
+            eprintln!("Error sending notification: {:?}", e);
+            // Continue processing even if notification fails
+        }
+        */
 
         Ok(())
     }
 
     pub async fn handle_store_set_field(&self, set_field: &StoreSetField) -> Result<()> {
+        let mut conn = self.pg_pool.get().await?;
         let table_name = String::from_utf8_lossy(&set_field.table_id[3..]).to_string();
         println!("Table name: {}", table_name);
         
@@ -200,10 +248,36 @@ impl DubheIndexerWorker {
 
         println!("Update SQL: {}", sql);
         
-        let mut conn = self.pg_pool.get().await?;
-        diesel::sql_query(&sql)
-            .execute(&mut conn)
-            .await?;
+        // Execute SQL with proper error handling
+        match diesel::sql_query(&sql).execute(&mut conn).await {
+            Ok(rows_affected) => {
+                println!("Successfully executed update SQL, rows affected: {}", rows_affected);
+            },
+            Err(e) => {
+                eprintln!("Error executing update SQL: {:?}", e);
+                eprintln!("Failed SQL: {}", sql);
+                // Return the error instead of continuing
+                return Err(e.into());
+            }
+        }
+        
+        // 暂时注释掉通知系统，避免触发器错误
+        /*
+        // 发送通知
+        let key_json_values: Vec<(String, serde_json::Value)> = key_fields.iter()
+            .map(|(name, _)| {
+                let value = key_values.get(name).unwrap_or(&serde_json::Value::Null);
+                (name.clone(), value.clone())
+            })
+            .collect();
+            
+        let updated_value = vec![(field_name.clone(), value.clone())];
+        
+        if let Err(e) = notify_store_change(&mut conn, &table_name, "update", &key_json_values, &updated_value).await {
+            eprintln!("Error sending notification: {:?}", e);
+            // Continue processing even if notification fails
+        }
+        */
         
         Ok(())
     }

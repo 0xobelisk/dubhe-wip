@@ -2,12 +2,7 @@ use sui_types::base_types::SuiAddress;
 use move_core_types::u256::U256;
 use bcs;
 use serde_json;
-use hex;
-use std::fmt::Binary;
-use std::fmt::Debug;
-use anyhow::Result;
 use serde_json::Value;
-use std::str::FromStr;
 
 pub const ONCHAIN_TABLE: &str = "ont";
 pub const OFFCHAIN_TABLE: &str = "oft";

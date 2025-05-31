@@ -1,0 +1,1574 @@
+"""The root query type which gives access points into the data universe."""
+type Query implements Node {
+  """
+  Exposes the root query type nested one level down. This is helpful for Relay 1
+  which can only query top level fields if they are in a particular form.
+  """
+  query: Query!
+
+  """
+  The root query type must be a `Node` to work well with Relay 1 mutations. This just resolves to `query`.
+  """
+  nodeId: ID!
+
+  """Fetches an object given its globally unique `ID`."""
+  node(
+    """The globally unique `ID`."""
+    nodeId: ID!
+  ): Node
+
+  """Reads and enables pagination through a set of `StoreAccount`."""
+  allStoreAccounts(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreAccount`."""
+    orderBy: [StoreAccountsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreAccountCondition
+  ): StoreAccountsConnection
+
+  """Reads and enables pagination through a set of `StoreEncounter`."""
+  allStoreEncounters(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreEncounter`."""
+    orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreEncounterCondition
+  ): StoreEncountersConnection
+
+  """Reads and enables pagination through a set of `StoreMapConfig`."""
+  allStoreMapConfigs(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreMapConfig`."""
+    orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
+  ): StoreMapConfigsConnection
+
+  """Reads and enables pagination through a set of `StorePosition`."""
+  allStorePositions(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StorePosition`."""
+    orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StorePositionCondition
+  ): StorePositionsConnection
+
+  """Reads and enables pagination through a set of `TableField`."""
+  allTableFields(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `TableField`."""
+    orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TableFieldCondition
+  ): TableFieldsConnection
+  storeAccountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
+  storeEncounterByPlayer(player: String!): StoreEncounter
+  storePositionByPlayer(player: String!): StorePosition
+  tableFieldByTableNameAndFieldName(tableName: String!, fieldName: String!): TableField
+
+  """Reads a single `StoreAccount` using its globally unique `ID`."""
+  storeAccount(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreAccount`.
+    """
+    nodeId: ID!
+  ): StoreAccount
+
+  """Reads a single `StoreEncounter` using its globally unique `ID`."""
+  storeEncounter(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreEncounter`.
+    """
+    nodeId: ID!
+  ): StoreEncounter
+
+  """Reads a single `StorePosition` using its globally unique `ID`."""
+  storePosition(
+    """
+    The globally unique `ID` to be used in selecting a single `StorePosition`.
+    """
+    nodeId: ID!
+  ): StorePosition
+
+  """Reads a single `TableField` using its globally unique `ID`."""
+  tableField(
+    """
+    The globally unique `ID` to be used in selecting a single `TableField`.
+    """
+    nodeId: ID!
+  ): TableField
+}
+
+"""An object with a globally unique `ID`."""
+interface Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+}
+
+"""A connection to a list of `StoreAccount` values."""
+type StoreAccountsConnection {
+  """A list of `StoreAccount` objects."""
+  nodes: [StoreAccount!]!
+
+  """
+  A list of edges which contains the `StoreAccount` and cursor to aid in pagination.
+  """
+  edges: [StoreAccountsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `StoreAccount` you could get from the connection."""
+  totalCount: Int!
+}
+
+type StoreAccount implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  assetId: String!
+  account: String!
+  balance: String
+}
+
+"""A `StoreAccount` edge in the connection."""
+type StoreAccountsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreAccount` at the end of the edge."""
+  node: StoreAccount!
+}
+
+"""A location in a connection that can be used for resuming pagination."""
+scalar Cursor
+
+"""Information about pagination in a connection."""
+type PageInfo {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: Cursor
+
+  """When paginating forwards, the cursor to continue."""
+  endCursor: Cursor
+}
+
+"""Methods to use when ordering `StoreAccount`."""
+enum StoreAccountsOrderBy {
+  NATURAL
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreAccount` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreAccountCondition {
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
+}
+
+"""A connection to a list of `StoreEncounter` values."""
+type StoreEncountersConnection {
+  """A list of `StoreEncounter` objects."""
+  nodes: [StoreEncounter!]!
+
+  """
+  A list of edges which contains the `StoreEncounter` and cursor to aid in pagination.
+  """
+  edges: [StoreEncountersEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `StoreEncounter` you could get from the connection."""
+  totalCount: Int!
+}
+
+type StoreEncounter implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  player: String!
+  exists: Boolean
+  monster: String
+  catchAttempts: String
+}
+
+"""A `StoreEncounter` edge in the connection."""
+type StoreEncountersEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreEncounter` at the end of the edge."""
+  node: StoreEncounter!
+}
+
+"""Methods to use when ordering `StoreEncounter`."""
+enum StoreEncountersOrderBy {
+  NATURAL
+  PLAYER_ASC
+  PLAYER_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreEncounter` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreEncounterCondition {
+  """Checks for equality with the object’s `player` field."""
+  player: String
+}
+
+"""A connection to a list of `StoreMapConfig` values."""
+type StoreMapConfigsConnection {
+  """A list of `StoreMapConfig` objects."""
+  nodes: [StoreMapConfig!]!
+
+  """
+  A list of edges which contains the `StoreMapConfig` and cursor to aid in pagination.
+  """
+  edges: [StoreMapConfigsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `StoreMapConfig` you could get from the connection."""
+  totalCount: Int!
+}
+
+type StoreMapConfig {
+  width: String
+  height: String
+}
+
+"""A `StoreMapConfig` edge in the connection."""
+type StoreMapConfigsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreMapConfig` at the end of the edge."""
+  node: StoreMapConfig!
+}
+
+"""Methods to use when ordering `StoreMapConfig`."""
+enum StoreMapConfigsOrderBy {
+  NATURAL
+}
+
+"""A connection to a list of `StorePosition` values."""
+type StorePositionsConnection {
+  """A list of `StorePosition` objects."""
+  nodes: [StorePosition!]!
+
+  """
+  A list of edges which contains the `StorePosition` and cursor to aid in pagination.
+  """
+  edges: [StorePositionsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `StorePosition` you could get from the connection."""
+  totalCount: Int!
+}
+
+type StorePosition implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  player: String!
+  x: String
+  y: String
+}
+
+"""A `StorePosition` edge in the connection."""
+type StorePositionsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StorePosition` at the end of the edge."""
+  node: StorePosition!
+}
+
+"""Methods to use when ordering `StorePosition`."""
+enum StorePositionsOrderBy {
+  NATURAL
+  PLAYER_ASC
+  PLAYER_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StorePosition` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StorePositionCondition {
+  """Checks for equality with the object’s `player` field."""
+  player: String
+}
+
+"""A connection to a list of `TableField` values."""
+type TableFieldsConnection {
+  """A list of `TableField` objects."""
+  nodes: [TableField!]!
+
+  """
+  A list of edges which contains the `TableField` and cursor to aid in pagination.
+  """
+  edges: [TableFieldsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `TableField` you could get from the connection."""
+  totalCount: Int!
+}
+
+type TableField implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  tableName: String!
+  fieldName: String!
+  fieldType: String
+  fieldIndex: Int
+  isKey: Boolean
+}
+
+"""A `TableField` edge in the connection."""
+type TableFieldsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `TableField` at the end of the edge."""
+  node: TableField!
+}
+
+"""Methods to use when ordering `TableField`."""
+enum TableFieldsOrderBy {
+  NATURAL
+  TABLE_NAME_ASC
+  TABLE_NAME_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `TableField` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input TableFieldCondition {
+  """Checks for equality with the object’s `tableName` field."""
+  tableName: String
+}
+
+"""
+The root mutation type which contains root level fields which mutate data.
+"""
+type Mutation {
+  """Creates a single `StoreAccount`."""
+  createStoreAccount(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateStoreAccountInput!
+  ): CreateStoreAccountPayload
+
+  """Creates a single `StoreEncounter`."""
+  createStoreEncounter(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateStoreEncounterInput!
+  ): CreateStoreEncounterPayload
+
+  """Creates a single `StoreMapConfig`."""
+  createStoreMapConfig(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateStoreMapConfigInput!
+  ): CreateStoreMapConfigPayload
+
+  """Creates a single `StorePosition`."""
+  createStorePosition(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateStorePositionInput!
+  ): CreateStorePositionPayload
+
+  """Creates a single `TableField`."""
+  createTableField(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateTableFieldInput!
+  ): CreateTableFieldPayload
+
+  """
+  Updates a single `StoreAccount` using its globally unique id and a patch.
+  """
+  updateStoreAccount(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateStoreAccountInput!
+  ): UpdateStoreAccountPayload
+
+  """Updates a single `StoreAccount` using a unique key and a patch."""
+  updateStoreAccountByAssetIdAndAccount(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateStoreAccountByAssetIdAndAccountInput!
+  ): UpdateStoreAccountPayload
+
+  """
+  Updates a single `StoreEncounter` using its globally unique id and a patch.
+  """
+  updateStoreEncounter(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateStoreEncounterInput!
+  ): UpdateStoreEncounterPayload
+
+  """Updates a single `StoreEncounter` using a unique key and a patch."""
+  updateStoreEncounterByPlayer(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateStoreEncounterByPlayerInput!
+  ): UpdateStoreEncounterPayload
+
+  """
+  Updates a single `StorePosition` using its globally unique id and a patch.
+  """
+  updateStorePosition(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateStorePositionInput!
+  ): UpdateStorePositionPayload
+
+  """Updates a single `StorePosition` using a unique key and a patch."""
+  updateStorePositionByPlayer(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateStorePositionByPlayerInput!
+  ): UpdateStorePositionPayload
+
+  """
+  Updates a single `TableField` using its globally unique id and a patch.
+  """
+  updateTableField(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateTableFieldInput!
+  ): UpdateTableFieldPayload
+
+  """Updates a single `TableField` using a unique key and a patch."""
+  updateTableFieldByTableNameAndFieldName(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateTableFieldByTableNameAndFieldNameInput!
+  ): UpdateTableFieldPayload
+
+  """Deletes a single `StoreAccount` using its globally unique id."""
+  deleteStoreAccount(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteStoreAccountInput!
+  ): DeleteStoreAccountPayload
+
+  """Deletes a single `StoreAccount` using a unique key."""
+  deleteStoreAccountByAssetIdAndAccount(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteStoreAccountByAssetIdAndAccountInput!
+  ): DeleteStoreAccountPayload
+
+  """Deletes a single `StoreEncounter` using its globally unique id."""
+  deleteStoreEncounter(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteStoreEncounterInput!
+  ): DeleteStoreEncounterPayload
+
+  """Deletes a single `StoreEncounter` using a unique key."""
+  deleteStoreEncounterByPlayer(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteStoreEncounterByPlayerInput!
+  ): DeleteStoreEncounterPayload
+
+  """Deletes a single `StorePosition` using its globally unique id."""
+  deleteStorePosition(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteStorePositionInput!
+  ): DeleteStorePositionPayload
+
+  """Deletes a single `StorePosition` using a unique key."""
+  deleteStorePositionByPlayer(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteStorePositionByPlayerInput!
+  ): DeleteStorePositionPayload
+
+  """Deletes a single `TableField` using its globally unique id."""
+  deleteTableField(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteTableFieldInput!
+  ): DeleteTableFieldPayload
+
+  """Deletes a single `TableField` using a unique key."""
+  deleteTableFieldByTableNameAndFieldName(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteTableFieldByTableNameAndFieldNameInput!
+  ): DeleteTableFieldPayload
+}
+
+"""The output of our create `StoreAccount` mutation."""
+type CreateStoreAccountPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StoreAccount` that was created by this mutation."""
+  storeAccount: StoreAccount
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StoreAccount`. May be used by Relay 1."""
+  storeAccountEdge(
+    """The method to use when ordering `StoreAccount`."""
+    orderBy: [StoreAccountsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StoreAccountsEdge
+}
+
+"""All input for the create `StoreAccount` mutation."""
+input CreateStoreAccountInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `StoreAccount` to be created by this mutation."""
+  storeAccount: StoreAccountInput!
+}
+
+"""An input for mutations affecting `StoreAccount`"""
+input StoreAccountInput {
+  assetId: String!
+  account: String!
+  balance: String
+}
+
+"""The output of our create `StoreEncounter` mutation."""
+type CreateStoreEncounterPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StoreEncounter` that was created by this mutation."""
+  storeEncounter: StoreEncounter
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StoreEncounter`. May be used by Relay 1."""
+  storeEncounterEdge(
+    """The method to use when ordering `StoreEncounter`."""
+    orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StoreEncountersEdge
+}
+
+"""All input for the create `StoreEncounter` mutation."""
+input CreateStoreEncounterInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `StoreEncounter` to be created by this mutation."""
+  storeEncounter: StoreEncounterInput!
+}
+
+"""An input for mutations affecting `StoreEncounter`"""
+input StoreEncounterInput {
+  player: String!
+  exists: Boolean
+  monster: String
+  catchAttempts: String
+}
+
+"""The output of our create `StoreMapConfig` mutation."""
+type CreateStoreMapConfigPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StoreMapConfig` that was created by this mutation."""
+  storeMapConfig: StoreMapConfig
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StoreMapConfig`. May be used by Relay 1."""
+  storeMapConfigEdge(
+    """The method to use when ordering `StoreMapConfig`."""
+    orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
+  ): StoreMapConfigsEdge
+}
+
+"""All input for the create `StoreMapConfig` mutation."""
+input CreateStoreMapConfigInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `StoreMapConfig` to be created by this mutation."""
+  storeMapConfig: StoreMapConfigInput!
+}
+
+"""An input for mutations affecting `StoreMapConfig`"""
+input StoreMapConfigInput {
+  width: String
+  height: String
+}
+
+"""The output of our create `StorePosition` mutation."""
+type CreateStorePositionPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StorePosition` that was created by this mutation."""
+  storePosition: StorePosition
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StorePosition`. May be used by Relay 1."""
+  storePositionEdge(
+    """The method to use when ordering `StorePosition`."""
+    orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StorePositionsEdge
+}
+
+"""All input for the create `StorePosition` mutation."""
+input CreateStorePositionInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `StorePosition` to be created by this mutation."""
+  storePosition: StorePositionInput!
+}
+
+"""An input for mutations affecting `StorePosition`"""
+input StorePositionInput {
+  player: String!
+  x: String
+  y: String
+}
+
+"""The output of our create `TableField` mutation."""
+type CreateTableFieldPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `TableField` that was created by this mutation."""
+  tableField: TableField
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `TableField`. May be used by Relay 1."""
+  tableFieldEdge(
+    """The method to use when ordering `TableField`."""
+    orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TableFieldsEdge
+}
+
+"""All input for the create `TableField` mutation."""
+input CreateTableFieldInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `TableField` to be created by this mutation."""
+  tableField: TableFieldInput!
+}
+
+"""An input for mutations affecting `TableField`"""
+input TableFieldInput {
+  tableName: String!
+  fieldName: String!
+  fieldType: String
+  fieldIndex: Int
+  isKey: Boolean
+}
+
+"""The output of our update `StoreAccount` mutation."""
+type UpdateStoreAccountPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StoreAccount` that was updated by this mutation."""
+  storeAccount: StoreAccount
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StoreAccount`. May be used by Relay 1."""
+  storeAccountEdge(
+    """The method to use when ordering `StoreAccount`."""
+    orderBy: [StoreAccountsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StoreAccountsEdge
+}
+
+"""All input for the `updateStoreAccount` mutation."""
+input UpdateStoreAccountInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `StoreAccount` to be updated.
+  """
+  nodeId: ID!
+
+  """
+  An object where the defined keys will be set on the `StoreAccount` being updated.
+  """
+  storeAccountPatch: StoreAccountPatch!
+}
+
+"""
+Represents an update to a `StoreAccount`. Fields that are set will be updated.
+"""
+input StoreAccountPatch {
+  assetId: String
+  account: String
+  balance: String
+}
+
+"""All input for the `updateStoreAccountByAssetIdAndAccount` mutation."""
+input UpdateStoreAccountByAssetIdAndAccountInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `StoreAccount` being updated.
+  """
+  storeAccountPatch: StoreAccountPatch!
+  assetId: String!
+  account: String!
+}
+
+"""The output of our update `StoreEncounter` mutation."""
+type UpdateStoreEncounterPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StoreEncounter` that was updated by this mutation."""
+  storeEncounter: StoreEncounter
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StoreEncounter`. May be used by Relay 1."""
+  storeEncounterEdge(
+    """The method to use when ordering `StoreEncounter`."""
+    orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StoreEncountersEdge
+}
+
+"""All input for the `updateStoreEncounter` mutation."""
+input UpdateStoreEncounterInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `StoreEncounter` to be updated.
+  """
+  nodeId: ID!
+
+  """
+  An object where the defined keys will be set on the `StoreEncounter` being updated.
+  """
+  storeEncounterPatch: StoreEncounterPatch!
+}
+
+"""
+Represents an update to a `StoreEncounter`. Fields that are set will be updated.
+"""
+input StoreEncounterPatch {
+  player: String
+  exists: Boolean
+  monster: String
+  catchAttempts: String
+}
+
+"""All input for the `updateStoreEncounterByPlayer` mutation."""
+input UpdateStoreEncounterByPlayerInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `StoreEncounter` being updated.
+  """
+  storeEncounterPatch: StoreEncounterPatch!
+  player: String!
+}
+
+"""The output of our update `StorePosition` mutation."""
+type UpdateStorePositionPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StorePosition` that was updated by this mutation."""
+  storePosition: StorePosition
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StorePosition`. May be used by Relay 1."""
+  storePositionEdge(
+    """The method to use when ordering `StorePosition`."""
+    orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StorePositionsEdge
+}
+
+"""All input for the `updateStorePosition` mutation."""
+input UpdateStorePositionInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `StorePosition` to be updated.
+  """
+  nodeId: ID!
+
+  """
+  An object where the defined keys will be set on the `StorePosition` being updated.
+  """
+  storePositionPatch: StorePositionPatch!
+}
+
+"""
+Represents an update to a `StorePosition`. Fields that are set will be updated.
+"""
+input StorePositionPatch {
+  player: String
+  x: String
+  y: String
+}
+
+"""All input for the `updateStorePositionByPlayer` mutation."""
+input UpdateStorePositionByPlayerInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `StorePosition` being updated.
+  """
+  storePositionPatch: StorePositionPatch!
+  player: String!
+}
+
+"""The output of our update `TableField` mutation."""
+type UpdateTableFieldPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `TableField` that was updated by this mutation."""
+  tableField: TableField
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `TableField`. May be used by Relay 1."""
+  tableFieldEdge(
+    """The method to use when ordering `TableField`."""
+    orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TableFieldsEdge
+}
+
+"""All input for the `updateTableField` mutation."""
+input UpdateTableFieldInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `TableField` to be updated.
+  """
+  nodeId: ID!
+
+  """
+  An object where the defined keys will be set on the `TableField` being updated.
+  """
+  tableFieldPatch: TableFieldPatch!
+}
+
+"""
+Represents an update to a `TableField`. Fields that are set will be updated.
+"""
+input TableFieldPatch {
+  tableName: String
+  fieldName: String
+  fieldType: String
+  fieldIndex: Int
+  isKey: Boolean
+}
+
+"""All input for the `updateTableFieldByTableNameAndFieldName` mutation."""
+input UpdateTableFieldByTableNameAndFieldNameInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `TableField` being updated.
+  """
+  tableFieldPatch: TableFieldPatch!
+  tableName: String!
+  fieldName: String!
+}
+
+"""The output of our delete `StoreAccount` mutation."""
+type DeleteStoreAccountPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StoreAccount` that was deleted by this mutation."""
+  storeAccount: StoreAccount
+  deletedStoreAccountId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StoreAccount`. May be used by Relay 1."""
+  storeAccountEdge(
+    """The method to use when ordering `StoreAccount`."""
+    orderBy: [StoreAccountsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StoreAccountsEdge
+}
+
+"""All input for the `deleteStoreAccount` mutation."""
+input DeleteStoreAccountInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `StoreAccount` to be deleted.
+  """
+  nodeId: ID!
+}
+
+"""All input for the `deleteStoreAccountByAssetIdAndAccount` mutation."""
+input DeleteStoreAccountByAssetIdAndAccountInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  assetId: String!
+  account: String!
+}
+
+"""The output of our delete `StoreEncounter` mutation."""
+type DeleteStoreEncounterPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StoreEncounter` that was deleted by this mutation."""
+  storeEncounter: StoreEncounter
+  deletedStoreEncounterId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StoreEncounter`. May be used by Relay 1."""
+  storeEncounterEdge(
+    """The method to use when ordering `StoreEncounter`."""
+    orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StoreEncountersEdge
+}
+
+"""All input for the `deleteStoreEncounter` mutation."""
+input DeleteStoreEncounterInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `StoreEncounter` to be deleted.
+  """
+  nodeId: ID!
+}
+
+"""All input for the `deleteStoreEncounterByPlayer` mutation."""
+input DeleteStoreEncounterByPlayerInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  player: String!
+}
+
+"""The output of our delete `StorePosition` mutation."""
+type DeleteStorePositionPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `StorePosition` that was deleted by this mutation."""
+  storePosition: StorePosition
+  deletedStorePositionId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `StorePosition`. May be used by Relay 1."""
+  storePositionEdge(
+    """The method to use when ordering `StorePosition`."""
+    orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StorePositionsEdge
+}
+
+"""All input for the `deleteStorePosition` mutation."""
+input DeleteStorePositionInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `StorePosition` to be deleted.
+  """
+  nodeId: ID!
+}
+
+"""All input for the `deleteStorePositionByPlayer` mutation."""
+input DeleteStorePositionByPlayerInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  player: String!
+}
+
+"""The output of our delete `TableField` mutation."""
+type DeleteTableFieldPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `TableField` that was deleted by this mutation."""
+  tableField: TableField
+  deletedTableFieldId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `TableField`. May be used by Relay 1."""
+  tableFieldEdge(
+    """The method to use when ordering `TableField`."""
+    orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TableFieldsEdge
+}
+
+"""All input for the `deleteTableField` mutation."""
+input DeleteTableFieldInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  The globally unique `ID` which will identify a single `TableField` to be deleted.
+  """
+  nodeId: ID!
+}
+
+"""All input for the `deleteTableFieldByTableNameAndFieldName` mutation."""
+input DeleteTableFieldByTableNameAndFieldNameInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  tableName: String!
+  fieldName: String!
+}
+
+"""
+The root subscription type: contains events and live queries you can subscribe to with the `subscription` operation.
+
+#### Live Queries
+
+Live query fields are differentiated by containing `(live)` at the end of their
+description, they are added for each field in the `Query` type. When you
+subscribe to a live query field, the selection set will be evaluated and sent to
+the client, and then most things\* that would cause the output of the selection
+set to change will trigger the selection set to be re-evaluated and the results
+to be re-sent to the client.
+
+_(\* Not everything: typically only changes to persisted data referenced by the query are detected, not computed fields.)_
+
+Live queries can be very expensive, so try and keep them small and focussed.
+
+#### Events
+
+Event fields will run their selection set when, and only when, the specified
+server-side event occurs. This makes them a lot more efficient than Live
+Queries, but it is still recommended that you keep payloads fairly small.
+"""
+type Subscription {
+  """
+  Exposes the root query type nested one level down. This is helpful for Relay 1
+  which can only query top level fields if they are in a particular form. (live)
+  """
+  query: Query!
+
+  """
+  The root query type must be a `Node` to work well with Relay 1 mutations. This just resolves to `query`. (live)
+  """
+  nodeId: ID!
+
+  """Fetches an object given its globally unique `ID`. (live)"""
+  node(
+    """The globally unique `ID`."""
+    nodeId: ID!
+  ): Node
+
+  """Reads and enables pagination through a set of `StoreAccount`. (live)"""
+  allStoreAccounts(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreAccount`."""
+    orderBy: [StoreAccountsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreAccountCondition
+  ): StoreAccountsConnection
+
+  """Reads and enables pagination through a set of `StoreEncounter`. (live)"""
+  allStoreEncounters(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreEncounter`."""
+    orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreEncounterCondition
+  ): StoreEncountersConnection
+
+  """Reads and enables pagination through a set of `StoreMapConfig`. (live)"""
+  allStoreMapConfigs(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreMapConfig`."""
+    orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
+  ): StoreMapConfigsConnection
+
+  """Reads and enables pagination through a set of `StorePosition`. (live)"""
+  allStorePositions(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StorePosition`."""
+    orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StorePositionCondition
+  ): StorePositionsConnection
+
+  """Reads and enables pagination through a set of `TableField`. (live)"""
+  allTableFields(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `TableField`."""
+    orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TableFieldCondition
+  ): TableFieldsConnection
+
+  """ (live)"""
+  storeAccountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
+
+  """ (live)"""
+  storeEncounterByPlayer(player: String!): StoreEncounter
+
+  """ (live)"""
+  storePositionByPlayer(player: String!): StorePosition
+
+  """ (live)"""
+  tableFieldByTableNameAndFieldName(tableName: String!, fieldName: String!): TableField
+
+  """Reads a single `StoreAccount` using its globally unique `ID`. (live)"""
+  storeAccount(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreAccount`.
+    """
+    nodeId: ID!
+  ): StoreAccount
+
+  """Reads a single `StoreEncounter` using its globally unique `ID`. (live)"""
+  storeEncounter(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreEncounter`.
+    """
+    nodeId: ID!
+  ): StoreEncounter
+
+  """Reads a single `StorePosition` using its globally unique `ID`. (live)"""
+  storePosition(
+    """
+    The globally unique `ID` to be used in selecting a single `StorePosition`.
+    """
+    nodeId: ID!
+  ): StorePosition
+
+  """Reads a single `TableField` using its globally unique `ID`. (live)"""
+  tableField(
+    """
+    The globally unique `ID` to be used in selecting a single `TableField`.
+    """
+    nodeId: ID!
+  ): TableField
+  listen(
+    topic: String!
+
+    """
+    If true, this subscription will trigger an event as soon as it initiates.
+    """
+    initialEvent: Boolean! = false
+  ): ListenPayload!
+}
+
+type ListenPayload {
+  """
+  Our root query field type. Allows us to run any query from our subscription payload.
+  """
+  query: Query
+  relatedNode: Node
+  relatedNodeId: ID
+}

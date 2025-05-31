@@ -3,7 +3,6 @@
 
 use anyhow::Result;
 use diesel::QueryableByName;
-use diesel_async::RunQueryDsl;
 use dotenvy::dotenv;
 use std::env;
 use sui_data_ingestion_core::setup_single_workflow;
@@ -17,6 +16,7 @@ mod table;
 mod worker;
 mod db;
 mod tls;
+mod notify;
 
 use crate::worker::DubheIndexerWorker;
 use crate::db::get_connection_pool;

@@ -41,12 +41,46 @@ pub fn generate_insert_sql(
         values.push(format_sql_value(&value_values[field_name], field_type));
     }
     
-    format!(
+    // Generate conflict columns (primary key columns)
+    let conflict_columns: Vec<String> = key_fields.iter()
+        .map(|(field_name, _)| field_name.clone())
+        .collect();
+    
+    // Generate update clauses for value fields
+    let mut update_clauses = Vec::new();
+    for (field_name, field_type) in value_fields {
+        update_clauses.push(format!(
+            "{} = {}",
+            field_name,
+            format_sql_value(&value_values[field_name], field_type)
+        ));
+    }
+    
+    let base_sql = format!(
         "INSERT INTO store_{} ({}) VALUES ({})",
         table_name,
         fields.join(", "),
         values.join(", ")
-    )
+    );
+    
+    // Add ON CONFLICT clause if there are key fields and value fields to update
+    if !conflict_columns.is_empty() && !update_clauses.is_empty() {
+        format!(
+            "{} ON CONFLICT ({}) DO UPDATE SET {}",
+            base_sql,
+            conflict_columns.join(", "),
+            update_clauses.join(", ")
+        )
+    } else if !conflict_columns.is_empty() {
+        // If no value fields to update, just ignore conflicts
+        format!(
+            "{} ON CONFLICT ({}) DO NOTHING",
+            base_sql,
+            conflict_columns.join(", ")
+        )
+    } else {
+        base_sql
+    }
 }
 
 pub fn generate_update_sql(
