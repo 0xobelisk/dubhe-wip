@@ -6,4 +6,5 @@ export * from './server-manager';
 export * from './enhanced-playground';
 export * from './query-filter';
 export * from './simple-naming';
+export * from './all-fields-filter-plugin';
 //# sourceMappingURL=index.d.ts.map

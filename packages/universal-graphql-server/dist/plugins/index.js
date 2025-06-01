@@ -23,4 +23,5 @@ __exportStar(require("./server-manager"), exports);
 __exportStar(require("./enhanced-playground"), exports);
 __exportStar(require("./query-filter"), exports);
 __exportStar(require("./simple-naming"), exports);
+__exportStar(require("./all-fields-filter-plugin"), exports);
 //# sourceMappingURL=index.js.map

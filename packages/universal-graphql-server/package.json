@@ -36,6 +36,7 @@
 		"graphql-ws": "^5.14.2",
 		"pg": "^8.11.3",
 		"postgraphile": "^4.13.0",
+		"postgraphile-plugin-connection-filter": "^2.3.0",
 		"ws": "^8.14.2"
 	},
 	"devDependencies": {

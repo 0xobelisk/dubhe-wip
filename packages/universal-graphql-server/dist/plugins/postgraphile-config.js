@@ -1,10 +1,15 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPostGraphileConfig = createPostGraphileConfig;
 exports.createPlaygroundHtml = createPlaygroundHtml;
 const enhanced_playground_1 = require("./enhanced-playground");
 const query_filter_1 = require("./query-filter");
 const simple_naming_1 = require("./simple-naming");
+const all_fields_filter_plugin_1 = require("./all-fields-filter-plugin");
+const postgraphile_plugin_connection_filter_1 = __importDefault(require("postgraphile-plugin-connection-filter"));
 // 创建 PostGraphile 配置
 function createPostGraphileConfig(options) {
     const { port, nodeEnv, graphqlEndpoint, enableSubscriptions, enableCors, availableTables, } = options;
@@ -29,15 +34,91 @@ function createPostGraphileConfig(options) {
         dynamicJson: true,
         setofFunctionsContainNulls: false,
         ignoreRBAC: false,
-        ignoreIndexes: false,
+        ignoreIndexes: true,
         // 启用 introspection 和其他重要功能
         disableQueryLog: nodeEnv !== 'development',
         allowExplain: nodeEnv === 'development',
         watchPg: nodeEnv === 'development',
         // GraphQL 端点
         graphqlRoute: graphqlEndpoint,
-        // 添加自定义插件 - 过滤查询和简化命名
-        appendPlugins: [query_filter_1.QueryFilterPlugin, simple_naming_1.SimpleNamingPlugin],
+        // 添加自定义插件 - 包含官方的connection filter插件
+        appendPlugins: [
+            query_filter_1.QueryFilterPlugin,
+            simple_naming_1.SimpleNamingPlugin,
+            postgraphile_plugin_connection_filter_1.default,
+            all_fields_filter_plugin_1.AllFieldsFilterPlugin,
+        ],
+        // Connection Filter 插件的高级配置选项
+        graphileBuildOptions: {
+            // 启用所有支持的操作符
+            connectionFilterAllowedOperators: [
+                'isNull',
+                'equalTo',
+                'notEqualTo',
+                'distinctFrom',
+                'notDistinctFrom',
+                'lessThan',
+                'lessThanOrEqualTo',
+                'greaterThan',
+                'greaterThanOrEqualTo',
+                'in',
+                'notIn',
+                'like',
+                'notLike',
+                'ilike',
+                'notIlike',
+                'similarTo',
+                'notSimilarTo',
+                'includes',
+                'notIncludes',
+                'includesInsensitive',
+                'notIncludesInsensitive',
+                'startsWith',
+                'notStartsWith',
+                'startsWithInsensitive',
+                'notStartsWithInsensitive',
+                'endsWith',
+                'notEndsWith',
+                'endsWithInsensitive',
+                'notEndsWithInsensitive',
+            ],
+            // 支持所有字段类型的过滤 - 明确允许所有类型
+            connectionFilterAllowedFieldTypes: [
+                'String',
+                'Int',
+                'Float',
+                'Boolean',
+                'ID',
+                'Date',
+                'Time',
+                'Datetime',
+                'JSON',
+            ],
+            // 启用逻辑操作符 (and, or, not)
+            connectionFilterLogicalOperators: true,
+            // 启用关系过滤
+            connectionFilterRelations: true,
+            // 启用计算列过滤
+            connectionFilterComputedColumns: true,
+            // 启用数组过滤
+            connectionFilterArrays: true,
+            // 启用函数过滤
+            connectionFilterSetofFunctions: true,
+            // 允许空输入和空对象输入
+            connectionFilterAllowNullInput: true,
+            connectionFilterAllowEmptyObjectInput: true,
+            // // 使用简化的操作符名称
+            // connectionFilterOperatorNames: {
+            // 	equalTo: 'eq',
+            // 	notEqualTo: 'ne',
+            // 	lessThan: 'lt',
+            // 	lessThanOrEqualTo: 'lte',
+            // 	greaterThan: 'gt',
+            // 	greaterThanOrEqualTo: 'gte',
+            // 	includesInsensitive: 'icontains',
+            // 	notIncludesInsensitive: 'nicontains',
+            // },
+        },
         // 只包含检测到的表
         includeExtensionResources: false,
         // 排除不需要的表

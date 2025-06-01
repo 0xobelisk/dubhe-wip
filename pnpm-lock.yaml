@@ -1333,6 +1333,9 @@ importers:
       postgraphile:
         specifier: ^4.13.0
         version: 4.14.1
+      postgraphile-plugin-connection-filter:
+        specifier: ^2.3.0
+        version: 2.3.0
       ws:
         specifier: ^8.14.2
         version: 8.18.2
@@ -7342,6 +7345,9 @@ packages:
     peerDependencies:
       graphql: ^15.8.0
       pg: '>=6.1.0 <9'
+
+  postgraphile-plugin-connection-filter@2.3.0:
+    resolution: {integrity: sha512-TR5bq/NOqqtm4xV3D2Qw+CJo0Hanrx1lqh0KZiU78z8YijcLC0NuT3z0nJyCB842nWbx5Wi6p0S+xmrgzRFNgQ==}
 
   postgraphile@4.14.1:
     resolution: {integrity: sha512-4Rz//TtnjyZk6CbrcypWJNFRwXupHK+bHvaYaX2RrtxMJ2lTaoMDYOdEFESdo/POie3CAEbsC8ZBqb9eR/EyVw==}
@@ -16382,6 +16388,10 @@ snapshots:
       tslib: 2.8.1
     transitivePeerDependencies:
       - supports-color
+
+  postgraphile-plugin-connection-filter@2.3.0:
+    dependencies:
+      tslib: 2.8.1
 
   postgraphile@4.14.1:
     dependencies:

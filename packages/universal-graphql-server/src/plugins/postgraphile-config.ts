@@ -1,6 +1,8 @@
 import { createEnhancedPlayground } from './enhanced-playground';
 import { QueryFilterPlugin } from './query-filter';
 import { SimpleNamingPlugin } from './simple-naming';
+import { AllFieldsFilterPlugin } from './all-fields-filter-plugin';
+import ConnectionFilterPlugin from 'postgraphile-plugin-connection-filter';
 
 export interface PostGraphileConfigOptions {
 	port: string | number;
@@ -49,7 +51,7 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		dynamicJson: true,
 		setofFunctionsContainNulls: false,
 		ignoreRBAC: false,
-		ignoreIndexes: false,
+		ignoreIndexes: true,
 
 		// 启用 introspection 和其他重要功能
 		disableQueryLog: nodeEnv !== 'development',
@@ -59,8 +61,93 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		// GraphQL 端点
 		graphqlRoute: graphqlEndpoint,
 
-		// 添加自定义插件 - 过滤查询和简化命名
-		appendPlugins: [QueryFilterPlugin, SimpleNamingPlugin],
+		// 添加自定义插件 - 包含官方的connection filter插件
+		appendPlugins: [
+			QueryFilterPlugin,
+			SimpleNamingPlugin,
+			ConnectionFilterPlugin,
+			AllFieldsFilterPlugin,
+		],
+
+		// Connection Filter 插件的高级配置选项
+		graphileBuildOptions: {
+			// 启用所有支持的操作符
+			connectionFilterAllowedOperators: [
+				'isNull',
+				'equalTo',
+				'notEqualTo',
+				'distinctFrom',
+				'notDistinctFrom',
+				'lessThan',
+				'lessThanOrEqualTo',
+				'greaterThan',
+				'greaterThanOrEqualTo',
+				'in',
+				'notIn',
+				'like',
+				'notLike',
+				'ilike',
+				'notIlike',
+				'similarTo',
+				'notSimilarTo',
+				'includes',
+				'notIncludes',
+				'includesInsensitive',
+				'notIncludesInsensitive',
+				'startsWith',
+				'notStartsWith',
+				'startsWithInsensitive',
+				'notStartsWithInsensitive',
+				'endsWith',
+				'notEndsWith',
+				'endsWithInsensitive',
+				'notEndsWithInsensitive',
+			],
+
+			// 支持所有字段类型的过滤 - 明确允许所有类型
+			connectionFilterAllowedFieldTypes: [
+				'String',
+				'Int',
+				'Float',
+				'Boolean',
+				'ID',
+				'Date',
+				'Time',
+				'Datetime',
+				'JSON',
+			],
+
+			// 启用逻辑操作符 (and, or, not)
+			connectionFilterLogicalOperators: true,
+
+			// 启用关系过滤
+			connectionFilterRelations: true,
+
+			// 启用计算列过滤
+			connectionFilterComputedColumns: true,
+
+			// 启用数组过滤
+			connectionFilterArrays: true,
+
+			// 启用函数过滤
+			connectionFilterSetofFunctions: true,
+
+			// 允许空输入和空对象输入
+			connectionFilterAllowNullInput: true,
+			connectionFilterAllowEmptyObjectInput: true,
+
+			// // 使用简化的操作符名称
+			// connectionFilterOperatorNames: {
+			// 	equalTo: 'eq',
+			// 	notEqualTo: 'ne',
+			// 	lessThan: 'lt',
+			// 	lessThanOrEqualTo: 'lte',
+			// 	greaterThan: 'gt',
+			// 	greaterThanOrEqualTo: 'gte',
+			// 	includesInsensitive: 'icontains',
+			// 	notIncludesInsensitive: 'nicontains',
+			// },
+		},
 
 		// 只包含检测到的表
 		includeExtensionResources: false,

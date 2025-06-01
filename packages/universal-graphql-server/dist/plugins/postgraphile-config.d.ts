@@ -30,6 +30,17 @@ export declare function createPostGraphileConfig(options: PostGraphileConfigOpti
     watchPg: boolean;
     graphqlRoute: string;
     appendPlugins: import("postgraphile").Plugin[];
+    graphileBuildOptions: {
+        connectionFilterAllowedOperators: string[];
+        connectionFilterAllowedFieldTypes: string[];
+        connectionFilterLogicalOperators: boolean;
+        connectionFilterRelations: boolean;
+        connectionFilterComputedColumns: boolean;
+        connectionFilterArrays: boolean;
+        connectionFilterSetofFunctions: boolean;
+        connectionFilterAllowNullInput: boolean;
+        connectionFilterAllowEmptyObjectInput: boolean;
+    };
     includeExtensionResources: boolean;
     ignoreTable: (tableName: string) => boolean;
     exportGqlSchemaPath: string | undefined;

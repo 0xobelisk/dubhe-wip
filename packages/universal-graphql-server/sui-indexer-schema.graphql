@@ -44,6 +44,11 @@ type Query implements Node {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: StoreAccountCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreAccountFilter
   ): StoreAccountsConnection
 
   """Reads and enables pagination through a set of `StoreEncounter`."""
@@ -73,6 +78,11 @@ type Query implements Node {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: StoreEncounterCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreEncounterFilter
   ): StoreEncountersConnection
 
   """Reads and enables pagination through a set of `StoreMapConfig`."""
@@ -97,6 +107,16 @@ type Query implements Node {
 
     """The method to use when ordering `StoreMapConfig`."""
     orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreMapConfigCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreMapConfigFilter
   ): StoreMapConfigsConnection
 
   """Reads and enables pagination through a set of `StorePosition`."""
@@ -126,6 +146,11 @@ type Query implements Node {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: StorePositionCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StorePositionFilter
   ): StorePositionsConnection
 
   """Reads and enables pagination through a set of `TableField`."""
@@ -155,6 +180,11 @@ type Query implements Node {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: TableFieldCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TableFieldFilter
   ): TableFieldsConnection
   storeAccountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
   storeEncounterByPlayer(player: String!): StoreEncounter
@@ -261,6 +291,10 @@ enum StoreAccountsOrderBy {
   NATURAL
   ASSET_ID_ASC
   ASSET_ID_DESC
+  ACCOUNT_ASC
+  ACCOUNT_DESC
+  BALANCE_ASC
+  BALANCE_DESC
   PRIMARY_KEY_ASC
   PRIMARY_KEY_DESC
 }
@@ -272,6 +306,123 @@ tested for equality and combined with a logical ‘and.’
 input StoreAccountCondition {
   """Checks for equality with the object’s `assetId` field."""
   assetId: String
+
+  """Checks for equality with the object’s `account` field."""
+  account: String
+
+  """Checks for equality with the object’s `balance` field."""
+  balance: String
+}
+
+"""
+A filter to be used against `StoreAccount` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreAccountFilter {
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
+
+  """Filter by the object’s `account` field."""
+  account: StringFilter
+
+  """Filter by the object’s `balance` field."""
+  balance: StringFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreAccountFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreAccountFilter!]
+
+  """Negates the expression."""
+  not: StoreAccountFilter
+}
+
+"""
+A filter to be used against String fields. All fields are combined with a logical ‘and.’
+"""
+input StringFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: String
+
+  """Not equal to the specified value."""
+  notEqualTo: String
+
+  """
+  Not equal to the specified value, treating null like an ordinary value.
+  """
+  distinctFrom: String
+
+  """Equal to the specified value, treating null like an ordinary value."""
+  notDistinctFrom: String
+
+  """Included in the specified list."""
+  in: [String!]
+
+  """Not included in the specified list."""
+  notIn: [String!]
+
+  """Less than the specified value."""
+  lessThan: String
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: String
+
+  """Greater than the specified value."""
+  greaterThan: String
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: String
+
+  """Contains the specified string (case-sensitive)."""
+  includes: String
+
+  """Does not contain the specified string (case-sensitive)."""
+  notIncludes: String
+
+  """Contains the specified string (case-insensitive)."""
+  includesInsensitive: String
+
+  """Does not contain the specified string (case-insensitive)."""
+  notIncludesInsensitive: String
+
+  """Starts with the specified string (case-sensitive)."""
+  startsWith: String
+
+  """Does not start with the specified string (case-sensitive)."""
+  notStartsWith: String
+
+  """Starts with the specified string (case-insensitive)."""
+  startsWithInsensitive: String
+
+  """Does not start with the specified string (case-insensitive)."""
+  notStartsWithInsensitive: String
+
+  """Ends with the specified string (case-sensitive)."""
+  endsWith: String
+
+  """Does not end with the specified string (case-sensitive)."""
+  notEndsWith: String
+
+  """Ends with the specified string (case-insensitive)."""
+  endsWithInsensitive: String
+
+  """Does not end with the specified string (case-insensitive)."""
+  notEndsWithInsensitive: String
+
+  """
+  Matches the specified pattern (case-sensitive). An underscore (_) matches any single character; a percent sign (%) matches any sequence of zero or more characters.
+  """
+  like: String
+
+  """
+  Does not match the specified pattern (case-sensitive). An underscore (_) matches any single character; a percent sign (%) matches any sequence of zero or more characters.
+  """
+  notLike: String
 }
 
 """A connection to a list of `StoreEncounter` values."""
@@ -316,6 +467,12 @@ enum StoreEncountersOrderBy {
   NATURAL
   PLAYER_ASC
   PLAYER_DESC
+  EXISTS_ASC
+  EXISTS_DESC
+  MONSTER_ASC
+  MONSTER_DESC
+  CATCH_ATTEMPTS_ASC
+  CATCH_ATTEMPTS_DESC
   PRIMARY_KEY_ASC
   PRIMARY_KEY_DESC
 }
@@ -327,6 +484,83 @@ tested for equality and combined with a logical ‘and.’
 input StoreEncounterCondition {
   """Checks for equality with the object’s `player` field."""
   player: String
+
+  """Checks for equality with the object’s `exists` field."""
+  exists: Boolean
+
+  """Checks for equality with the object’s `monster` field."""
+  monster: String
+
+  """Checks for equality with the object’s `catchAttempts` field."""
+  catchAttempts: String
+}
+
+"""
+A filter to be used against `StoreEncounter` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreEncounterFilter {
+  """Filter by the object’s `player` field."""
+  player: StringFilter
+
+  """Filter by the object’s `exists` field."""
+  exists: BooleanFilter
+
+  """Filter by the object’s `monster` field."""
+  monster: StringFilter
+
+  """Filter by the object’s `catchAttempts` field."""
+  catchAttempts: StringFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreEncounterFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreEncounterFilter!]
+
+  """Negates the expression."""
+  not: StoreEncounterFilter
+}
+
+"""
+A filter to be used against Boolean fields. All fields are combined with a logical ‘and.’
+"""
+input BooleanFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: Boolean
+
+  """Not equal to the specified value."""
+  notEqualTo: Boolean
+
+  """
+  Not equal to the specified value, treating null like an ordinary value.
+  """
+  distinctFrom: Boolean
+
+  """Equal to the specified value, treating null like an ordinary value."""
+  notDistinctFrom: Boolean
+
+  """Included in the specified list."""
+  in: [Boolean!]
+
+  """Not included in the specified list."""
+  notIn: [Boolean!]
+
+  """Less than the specified value."""
+  lessThan: Boolean
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: Boolean
+
+  """Greater than the specified value."""
+  greaterThan: Boolean
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: Boolean
 }
 
 """A connection to a list of `StoreMapConfig` values."""
@@ -363,6 +597,42 @@ type StoreMapConfigsEdge {
 """Methods to use when ordering `StoreMapConfig`."""
 enum StoreMapConfigsOrderBy {
   NATURAL
+  WIDTH_ASC
+  WIDTH_DESC
+  HEIGHT_ASC
+  HEIGHT_DESC
+}
+
+"""
+A condition to be used against `StoreMapConfig` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreMapConfigCondition {
+  """Checks for equality with the object’s `width` field."""
+  width: String
+
+  """Checks for equality with the object’s `height` field."""
+  height: String
+}
+
+"""
+A filter to be used against `StoreMapConfig` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreMapConfigFilter {
+  """Filter by the object’s `width` field."""
+  width: StringFilter
+
+  """Filter by the object’s `height` field."""
+  height: StringFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreMapConfigFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreMapConfigFilter!]
+
+  """Negates the expression."""
+  not: StoreMapConfigFilter
 }
 
 """A connection to a list of `StorePosition` values."""
@@ -406,6 +676,10 @@ enum StorePositionsOrderBy {
   NATURAL
   PLAYER_ASC
   PLAYER_DESC
+  X_ASC
+  X_DESC
+  Y_ASC
+  Y_DESC
   PRIMARY_KEY_ASC
   PRIMARY_KEY_DESC
 }
@@ -417,6 +691,35 @@ tested for equality and combined with a logical ‘and.’
 input StorePositionCondition {
   """Checks for equality with the object’s `player` field."""
   player: String
+
+  """Checks for equality with the object’s `x` field."""
+  x: String
+
+  """Checks for equality with the object’s `y` field."""
+  y: String
+}
+
+"""
+A filter to be used against `StorePosition` object types. All fields are combined with a logical ‘and.’
+"""
+input StorePositionFilter {
+  """Filter by the object’s `player` field."""
+  player: StringFilter
+
+  """Filter by the object’s `x` field."""
+  x: StringFilter
+
+  """Filter by the object’s `y` field."""
+  y: StringFilter
+
+  """Checks for all expressions in this list."""
+  and: [StorePositionFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StorePositionFilter!]
+
+  """Negates the expression."""
+  not: StorePositionFilter
 }
 
 """A connection to a list of `TableField` values."""
@@ -462,6 +765,14 @@ enum TableFieldsOrderBy {
   NATURAL
   TABLE_NAME_ASC
   TABLE_NAME_DESC
+  FIELD_NAME_ASC
+  FIELD_NAME_DESC
+  FIELD_TYPE_ASC
+  FIELD_TYPE_DESC
+  FIELD_INDEX_ASC
+  FIELD_INDEX_DESC
+  IS_KEY_ASC
+  IS_KEY_DESC
   PRIMARY_KEY_ASC
   PRIMARY_KEY_DESC
 }
@@ -473,6 +784,89 @@ for equality and combined with a logical ‘and.’
 input TableFieldCondition {
   """Checks for equality with the object’s `tableName` field."""
   tableName: String
+
+  """Checks for equality with the object’s `fieldName` field."""
+  fieldName: String
+
+  """Checks for equality with the object’s `fieldType` field."""
+  fieldType: String
+
+  """Checks for equality with the object’s `fieldIndex` field."""
+  fieldIndex: Int
+
+  """Checks for equality with the object’s `isKey` field."""
+  isKey: Boolean
+}
+
+"""
+A filter to be used against `TableField` object types. All fields are combined with a logical ‘and.’
+"""
+input TableFieldFilter {
+  """Filter by the object’s `tableName` field."""
+  tableName: StringFilter
+
+  """Filter by the object’s `fieldName` field."""
+  fieldName: StringFilter
+
+  """Filter by the object’s `fieldType` field."""
+  fieldType: StringFilter
+
+  """Filter by the object’s `fieldIndex` field."""
+  fieldIndex: IntFilter
+
+  """Filter by the object’s `isKey` field."""
+  isKey: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [TableFieldFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [TableFieldFilter!]
+
+  """Negates the expression."""
+  not: TableFieldFilter
+}
+
+"""
+A filter to be used against Int fields. All fields are combined with a logical ‘and.’
+"""
+input IntFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: Int
+
+  """Not equal to the specified value."""
+  notEqualTo: Int
+
+  """
+  Not equal to the specified value, treating null like an ordinary value.
+  """
+  distinctFrom: Int
+
+  """Equal to the specified value, treating null like an ordinary value."""
+  notDistinctFrom: Int
+
+  """Included in the specified list."""
+  in: [Int!]
+
+  """Not included in the specified list."""
+  notIn: [Int!]
+
+  """Less than the specified value."""
+  lessThan: Int
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: Int
+
+  """Greater than the specified value."""
+  greaterThan: Int
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: Int
 }
 
 """
@@ -1398,6 +1792,11 @@ type Subscription {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: StoreAccountCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreAccountFilter
   ): StoreAccountsConnection
 
   """Reads and enables pagination through a set of `StoreEncounter`. (live)"""
@@ -1427,6 +1826,11 @@ type Subscription {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: StoreEncounterCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreEncounterFilter
   ): StoreEncountersConnection
 
   """Reads and enables pagination through a set of `StoreMapConfig`. (live)"""
@@ -1451,6 +1855,16 @@ type Subscription {
 
     """The method to use when ordering `StoreMapConfig`."""
     orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreMapConfigCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreMapConfigFilter
   ): StoreMapConfigsConnection
 
   """Reads and enables pagination through a set of `StorePosition`. (live)"""
@@ -1480,6 +1894,11 @@ type Subscription {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: StorePositionCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StorePositionFilter
   ): StorePositionsConnection
 
   """Reads and enables pagination through a set of `TableField`. (live)"""
@@ -1509,6 +1928,11 @@ type Subscription {
     A condition to be used in determining which values should be returned by the collection.
     """
     condition: TableFieldCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TableFieldFilter
   ): TableFieldsConnection
 
   """ (live)"""

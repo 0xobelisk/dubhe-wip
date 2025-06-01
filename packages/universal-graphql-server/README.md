@@ -9,6 +9,19 @@
 - **PostGraphile 驱动**: 基于强大的 PostGraphile 自动生成 GraphQL API
 - **零配置**: 无需手动定义 schema，基于现有数据库自动推断
 
+### 🔍 高级过滤功能
+- **丰富的操作符**: 支持等于、大于、小于、包含、模糊匹配等20+种过滤操作符
+- **逻辑组合**: 支持AND、OR、NOT逻辑操作符进行复杂条件组合
+- **全字段过滤**: 自动为所有字段生成相应的过滤器
+- **类型智能**: 根据字段类型自动提供合适的过滤操作符
+- **关系过滤**: 支持基于关联表字段进行过滤
+
+### 📈 增强的排序和分页
+- **全字段排序**: 支持对任意字段进行升序/降序排序
+- **多字段排序**: 支持同时按多个字段排序
+- **高效分页**: Relay风格的cursor分页和offset分页
+- **性能优化**: 智能查询优化和索引建议
+
 ### 📡 实时功能
 - **WebSocket 支持**: 完整的 GraphQL 订阅功能
 - **实时查询**: PostGraphile Live Queries 支持
@@ -253,6 +266,171 @@ query GetRecentTransactions {
 }
 ```
 
+### 高级过滤查询
+
+现在支持强大的过滤功能，包括多种操作符和逻辑组合：
+
+```graphql
+# 基础过滤 - 使用大于操作符
+query GetHighValueAccounts {
+  storeAccounts(filter: {
+    balance: { gt: "1000" }
+  }) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# 多条件过滤 - 隐式AND组合
+query GetSpecificAccounts {
+  storeAccounts(filter: {
+    balance: { gte: "100", lte: "10000" },
+    assetId: { startsWith: "0x2" }
+  }) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# 逻辑操作符 - OR组合
+query GetAccountsWithConditions {
+  storeAccounts(filter: {
+    or: [
+      { balance: { gt: "50000" } },
+      { assetId: { in: ["0x123", "0x456", "0x789"] } }
+    ]
+  }) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# 复杂逻辑组合 - AND, OR, NOT
+query GetComplexFilteredAccounts {
+  storeAccounts(filter: {
+    and: [
+      {
+        or: [
+          { balance: { gt: "1000" } },
+          { assetId: { like: "%special%" } }
+        ]
+      },
+      {
+        not: {
+          account: { includesInsensitive: "test" }
+        }
+      }
+    ]
+  }) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# 字符串模糊搜索
+query SearchPlayers {
+  storeEncounters(filter: {
+    player: { includesInsensitive: "alice" },
+    monster: { isNull: false }
+  }) {
+    nodes {
+      player
+      monster
+      catchAttempts
+    }
+  }
+}
+
+# 数组和范围查询
+query GetPositionsInRange {
+  storePositions(filter: {
+    player: { in: ["player1", "player2", "player3"] },
+    x: { gte: "10", lte: "100" },
+    y: { isNull: false }
+  }) {
+    nodes {
+      player
+      x
+      y
+    }
+  }
+}
+```
+
+### 增强的排序功能
+
+支持所有字段的多种排序组合：
+
+```graphql
+# 单字段排序
+query GetAccountsByBalance {
+  storeAccounts(
+    orderBy: [BALANCE_DESC]
+  ) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# 多字段排序
+query GetAccountsMultiSort {
+  storeAccounts(
+    orderBy: [ASSET_ID_ASC, BALANCE_DESC]
+  ) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# 过滤 + 排序 + 分页
+query GetFilteredSortedPaginated($after: Cursor) {
+  storeAccounts(
+    filter: {
+      balance: { gt: "1000" }
+    },
+    orderBy: [BALANCE_DESC, ASSET_ID_ASC],
+    first: 10,
+    after: $after
+  ) {
+    edges {
+      node {
+        assetId
+        account
+        balance
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}
+```
+
+> 📖 **详细过滤功能文档**: 查看 [高级过滤和查询功能使用指南](./ADVANCED_FILTERING_GUIDE.md) 了解所有支持的操作符、使用示例和最佳实践。
+
 ## 🏗️ 架构说明
 
 ### 工作原理
@@ -447,7 +625,7 @@ const client = new ApolloClient({
 });
 ```
 
-## �� 许可证
+## 📄 许可证
 
 MIT License
 
