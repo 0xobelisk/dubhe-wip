@@ -53,10 +53,21 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		ignoreRBAC: false,
 		ignoreIndexes: true,
 
-		// 启用 introspection 和其他重要功能
-		disableQueryLog: nodeEnv !== 'development',
+		// 日志控制配置
+		// 通过环境变量控制SQL查询日志: DISABLE_QUERY_LOG=true 禁用查询日志
+		disableQueryLog:
+			process.env.DISABLE_QUERY_LOG === 'true' ||
+			(nodeEnv === 'production' &&
+				process.env.ENABLE_QUERY_LOG !== 'true'),
+
+		// 启用查询执行计划解释（仅开发环境）
 		allowExplain: nodeEnv === 'development',
+
+		// 监控PostgreSQL变化（仅开发环境）
 		watchPg: nodeEnv === 'development',
+
+		// GraphQL查询超时设置
+		queryTimeout: parseInt(process.env.QUERY_TIMEOUT || '30000'),
 
 		// GraphQL 端点
 		graphqlRoute: graphqlEndpoint,

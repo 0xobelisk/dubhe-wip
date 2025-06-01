@@ -2,6 +2,13 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Pool, PoolClient } from 'pg';
 import { IncomingMessage } from 'http';
 import { parse as parseUrl } from 'url';
+import {
+	wsLogger,
+	dbLogger,
+	systemLogger,
+	logWebSocketEvent,
+	logDatabaseOperation,
+} from './logger';
 
 interface ClientSubscription {
 	tables: Set<string>;
@@ -35,7 +42,10 @@ export class RealtimeSubscriptionServer {
 			perMessageDeflate: false,
 		});
 
-		console.log(`🔥 实时订阅服务器启动在端口 ${port}`);
+		wsLogger.info('🔥 实时订阅服务器启动', {
+			port,
+			perMessageDeflate: false,
+		});
 
 		this.setupWebSocketHandlers();
 		this.setupPostgreSQLListener();
@@ -57,21 +67,25 @@ export class RealtimeSubscriptionServer {
 
 			for (const channel of channels) {
 				await this.pgClient.query(`LISTEN "${channel}"`);
-				console.log(`👂 监听通道: ${channel}`);
+				dbLogger.info('👂 监听通道', { channel });
 			}
 
 			// 设置通知处理器
 			this.pgClient.on('notification', msg => {
 				try {
-					console.log(
-						`📡 收到数据库通知: ${msg.channel} - ${msg.payload}`
-					);
+					dbLogger.info('📡 收到数据库通知', {
+						channel: msg.channel,
+						payloadLength: msg.payload?.length || 0,
+					});
 
 					let data;
 					try {
 						data = JSON.parse(msg.payload || '{}');
 					} catch (e) {
 						data = { raw: msg.payload };
+						dbLogger.warn('通知payload解析失败，使用原始数据', {
+							payload: msg.payload,
+						});
 					}
 
 					// 广播给所有相关的客户端
@@ -81,27 +95,32 @@ export class RealtimeSubscriptionServer {
 						data: data,
 					});
 				} catch (error) {
-					console.error('❌ 处理通知时出错:', error);
+					dbLogger.error('处理通知时出错', error, {
+						channel: msg.channel,
+						payload: msg.payload,
+					});
 				}
 			});
 
 			// 处理连接错误
 			this.pgClient.on('error', err => {
-				console.error('❌ PostgreSQL 连接错误:', err);
+				dbLogger.error('PostgreSQL 连接错误', err);
 				this.reconnectPostgreSQL();
 			});
 
 			this.isListening = true;
-			console.log('✅ PostgreSQL 通知监听器设置完成');
+			dbLogger.info('✅ PostgreSQL 通知监听器设置完成', {
+				channelsCount: channels.length,
+			});
 		} catch (error) {
-			console.error('❌ 设置PostgreSQL监听器失败:', error);
+			dbLogger.error('设置PostgreSQL监听器失败', error);
 			// 5秒后重试
 			setTimeout(() => this.setupPostgreSQLListener(), 5000);
 		}
 	}
 
 	private async reconnectPostgreSQL() {
-		console.log('🔄 重新连接PostgreSQL...');
+		dbLogger.info('🔄 重新连接PostgreSQL...');
 		this.isListening = false;
 
 		if (this.pgClient) {
@@ -119,7 +138,10 @@ export class RealtimeSubscriptionServer {
 
 	private setupWebSocketHandlers() {
 		this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
-			console.log('🔗 新的WebSocket连接');
+			const clientId = `${req.socket.remoteAddress}:${req.socket.remotePort}`;
+			logWebSocketEvent('新的WebSocket连接', this.clients.size + 1, {
+				clientId,
+			});
 
 			// 初始化客户端订阅信息
 			this.clients.set(ws, {
@@ -137,9 +159,9 @@ export class RealtimeSubscriptionServer {
 			ws.on('message', (data: Buffer) => {
 				try {
 					const message = JSON.parse(data.toString());
-					this.handleClientMessage(ws, message);
+					this.handleClientMessage(ws, message, clientId);
 				} catch (error) {
-					console.error('❌ 解析客户端消息失败:', error);
+					wsLogger.error('解析客户端消息失败', error, { clientId });
 					this.sendToClient(ws, {
 						type: 'error',
 						message: '消息格式错误',
@@ -149,19 +171,21 @@ export class RealtimeSubscriptionServer {
 
 			// 处理连接关闭
 			ws.on('close', () => {
-				console.log('🔌 WebSocket连接关闭');
+				logWebSocketEvent('WebSocket连接关闭', this.clients.size - 1, {
+					clientId,
+				});
 				this.clients.delete(ws);
 			});
 
 			// 处理错误
 			ws.on('error', error => {
-				console.error('❌ WebSocket错误:', error);
+				wsLogger.error('WebSocket错误', error, { clientId });
 				this.clients.delete(ws);
 			});
 		});
 	}
 
-	private handleClientMessage(ws: WebSocket, message: any) {
+	private handleClientMessage(ws: WebSocket, message: any, clientId: string) {
 		const clientSub = this.clients.get(ws);
 		if (!clientSub) return;
 
@@ -169,31 +193,51 @@ export class RealtimeSubscriptionServer {
 			case 'subscribe':
 				if (message.table) {
 					clientSub.tables.add(message.table);
-					console.log(`📝 客户端订阅表: ${message.table}`);
+					wsLogger.info('客户端订阅表', {
+						clientId,
+						table: message.table,
+						totalTables: clientSub.tables.size,
+					});
 				}
 				if (message.channel) {
 					clientSub.channels.add(message.channel);
-					console.log(`📝 客户端订阅通道: ${message.channel}`);
+					wsLogger.info('客户端订阅通道', {
+						clientId,
+						channel: message.channel,
+						totalChannels: clientSub.channels.size,
+					});
 				}
 				break;
 
 			case 'unsubscribe':
 				if (message.table) {
 					clientSub.tables.delete(message.table);
-					console.log(`🗑️  客户端取消订阅表: ${message.table}`);
+					wsLogger.info('客户端取消订阅表', {
+						clientId,
+						table: message.table,
+						totalTables: clientSub.tables.size,
+					});
 				}
 				if (message.channel) {
 					clientSub.channels.delete(message.channel);
-					console.log(`🗑️  客户端取消订阅通道: ${message.channel}`);
+					wsLogger.info('客户端取消订阅通道', {
+						clientId,
+						channel: message.channel,
+						totalChannels: clientSub.channels.size,
+					});
 				}
 				break;
 
 			case 'ping':
 				this.sendToClient(ws, { type: 'pong' });
+				wsLogger.debug('响应ping', { clientId });
 				break;
 
 			default:
-				console.log('❓ 未知消息类型:', message.type);
+				wsLogger.warn('未知消息类型', {
+					type: message.type,
+					clientId,
+				});
 		}
 	}
 
@@ -202,14 +246,19 @@ export class RealtimeSubscriptionServer {
 			try {
 				ws.send(JSON.stringify(message));
 			} catch (error) {
-				console.error('❌ 发送消息给客户端失败:', error);
+				wsLogger.error('发送消息给客户端失败', error);
 			}
 		}
 	}
 
 	private broadcast(message: NotificationMessage) {
-		console.log(`📢 广播消息给 ${this.clients.size} 个客户端`);
+		const clientCount = this.clients.size;
+		logWebSocketEvent('广播消息', clientCount, {
+			messageType: message.type,
+			channel: message.channel,
+		});
 
+		let sentCount = 0;
 		this.clients.forEach((subscription, ws) => {
 			let shouldSend = false;
 
@@ -247,7 +296,13 @@ export class RealtimeSubscriptionServer {
 
 			if (shouldSend) {
 				this.sendToClient(ws, message);
+				sentCount++;
 			}
+		});
+
+		wsLogger.debug('广播完成', {
+			totalClients: clientCount,
+			sentToClients: sentCount,
 		});
 	}
 
@@ -265,21 +320,26 @@ export class RealtimeSubscriptionServer {
 		};
 
 		this.broadcast(testMessage);
-		console.log('📤 发送测试消息');
+		wsLogger.info('📤 发送测试消息', { table });
 	}
 
 	// 获取状态信息
 	public getStatus() {
-		return {
+		const status = {
 			isListening: this.isListening,
 			clientCount: this.clients.size,
 			pgConnected: this.pgClient !== null,
 		};
+
+		systemLogger.debug('获取实时服务器状态', status);
+		return status;
 	}
 
 	// 优雅关闭
 	public async close() {
-		console.log('🛑 关闭实时订阅服务器...');
+		systemLogger.info('🛑 关闭实时订阅服务器...', {
+			clientCount: this.clients.size,
+		});
 
 		// 关闭所有WebSocket连接
 		this.wss.clients.forEach(ws => {
@@ -293,6 +353,7 @@ export class RealtimeSubscriptionServer {
 		if (this.pgClient) {
 			try {
 				this.pgClient.release();
+				dbLogger.info('PostgreSQL连接已释放');
 			} catch (e) {
 				// 忽略释放错误
 			}
@@ -300,7 +361,8 @@ export class RealtimeSubscriptionServer {
 
 		// 关闭连接池
 		await this.pgPool.end();
+		dbLogger.info('数据库连接池已关闭');
 
-		console.log('✅ 实时订阅服务器已关闭');
+		systemLogger.info('✅ 实时订阅服务器已关闭');
 	}
 }

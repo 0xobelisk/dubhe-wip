@@ -1,5 +1,6 @@
 import { makeExtendSchemaPlugin, gql, embed } from 'postgraphile';
 import { GraphQLResolveInfo } from 'graphql';
+import { subscriptionLogger, gqlLogger } from './logger';
 
 interface SubscriptionContext {
 	pgClient?: any;
@@ -45,6 +46,12 @@ export const createDynamicSubscriptionPlugin = (tableNames: string[]) => {
 		.map(name => name.replace('store_', ''))
 		.map(name => createStoreSubscription(name))
 		.join('\n');
+
+	subscriptionLogger.info('创建动态订阅插件', {
+		totalTables: tableNames.length,
+		storeTables: tableNames.filter(name => name.startsWith('store_'))
+			.length,
+	});
 
 	return makeExtendSchemaPlugin(({ pgSql: sql }) => ({
 		typeDefs: gql`
@@ -160,7 +167,10 @@ export const SystemTableSubscriptionPlugin = makeExtendSchemaPlugin(
 		resolvers: {
 			SystemEventPayload: {
 				event: (payload: any) => {
-					console.log('🔍 SystemEventPayload.event:', payload);
+					subscriptionLogger.debug('解析SystemEventPayload.event', {
+						payloadType: typeof payload,
+						payloadLength: payload?.length || 0,
+					});
 					const data = parseNotifyPayload(payload);
 					return data.event || data.operation || 'system_event';
 				},
@@ -183,21 +193,33 @@ export const SystemTableSubscriptionPlugin = makeExtendSchemaPlugin(
 
 // 辅助函数：解析 PostgreSQL NOTIFY payload
 export function parseNotifyPayload(payload: string): any {
-	console.log('🔍 接收到 payload:', payload);
+	subscriptionLogger.debug('接收到 payload', {
+		payloadType: typeof payload,
+		payloadLength: payload?.length || 0,
+	});
 
 	try {
 		const parsed = JSON.parse(payload);
-		console.log('✅ JSON 解析成功:', parsed);
+		subscriptionLogger.debug('JSON 解析成功', {
+			event: parsed.event,
+			table: parsed.table,
+		});
 		return parsed;
 	} catch (e) {
 		// 如果不是 JSON，返回原始字符串
-		console.log('⚠️  payload 不是有效的 JSON，返回原始数据');
+		subscriptionLogger.warn('payload 不是有效的 JSON，返回原始数据', {
+			payload:
+				payload?.substring(0, 100) +
+				(payload?.length > 100 ? '...' : ''),
+			error: e instanceof Error ? e.message : String(e),
+		});
 		return { raw: payload, event: 'raw_data', data: payload };
 	}
 }
 
 // 创建订阅授权函数（可选）
 export const createSubscriptionAuthorizationFunction = () => {
+	subscriptionLogger.info('创建订阅授权函数');
 	return `
         CREATE OR REPLACE FUNCTION app_hidden.validate_subscription(topic text)
         RETURNS TEXT AS $$

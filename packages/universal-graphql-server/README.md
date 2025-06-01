@@ -713,4 +713,196 @@ MIT License
 
 ---
 
-💡 **提示**: 这个服务器设计为 `sui-rust-indexer` 的完美伴侣，提供强大的 GraphQL 接口来访问索引的数据。无需手动配置 schema，一切都是自动的！ 
+💡 **提示**: 这个服务器设计为 `sui-rust-indexer` 的完美伴侣，提供强大的 GraphQL 接口来访问索引的数据。无需手动配置 schema，一切都是自动的！
+
+# 🔧 主要特性
+
+- 🚀 **自动扫描数据库表结构**：无需手动配置，自动适配 sui-rust-indexer 的动态表
+- 📊 **完整的 GraphQL API**：为所有表自动生成 CRUD 操作
+- 📡 **实时订阅支持**：WebSocket 订阅数据变更
+- 🎮 **增强版 GraphQL Playground**：现代化的查询界面，支持 Schema Explorer 和代码导出
+- 🔍 **智能过滤和分页**：支持复杂查询条件
+- 🎯 **开发友好**：提供详细的欢迎页面和使用指南
+- 📝 **结构化日志系统**：使用 Winston 提供专业的日志记录和监控
+
+## 📋 环境要求
+
+- Node.js 18.0.0+
+- PostgreSQL 数据库（由 sui-rust-indexer 管理）
+- TypeScript 5.0+
+
+## 🚀 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install
+```
+
+### 2. 配置环境变量
+
+复制并编辑环境变量文件：
+
+```bash
+cp .env.example .env
+```
+
+主要配置项：
+
+```bash
+# 数据库连接
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres
+
+# 服务器配置
+PORT=4000
+GRAPHQL_ENDPOINT=/graphql
+PG_SCHEMA=public
+
+# 功能开关
+ENABLE_CORS=true
+ENABLE_SUBSCRIPTIONS=true
+REALTIME_PORT=4001
+
+# 日志配置
+LOG_LEVEL=info  # error, warn, info, debug, verbose
+```
+
+### 3. 启动服务器
+
+```bash
+# 开发模式（支持热重载）
+npm run dev
+
+# 生产模式
+npm run build
+npm start
+```
+
+### 4. 访问服务
+
+- 🏠 **主页**：http://localhost:4000 - 服务器信息和使用指南
+- 🎮 **GraphQL Playground**：http://localhost:4000/playground - 现代化查询界面
+- 📊 **GraphQL API**：http://localhost:4000/graphql - API 端点
+- 📡 **WebSocket 订阅**：ws://localhost:4000/graphql - 实时订阅
+
+## 📊 日志系统
+
+本项目使用专业的 Winston 日志系统，提供结构化的日志记录：
+
+### 主要特性
+
+- 🎨 **彩色输出**：不同级别使用不同颜色
+- 📁 **文件记录**：自动保存到 `logs/` 目录
+- 🏷️ **组件标识**：明确标识日志来源
+- 📊 **结构化数据**：支持附加元数据
+- ⚡ **性能监控**：内置性能指标记录
+- 🔒 **敏感信息保护**：自动隐藏密码等敏感信息
+
+### 日志级别
+
+```bash
+export LOG_LEVEL=debug  # 显示所有级别的日志
+export LOG_LEVEL=info   # 默认级别，生产环境推荐
+export LOG_LEVEL=warn   # 只显示警告和错误
+```
+
+### 日志文件
+
+- `logs/combined.log`：所有日志（JSON格式）
+- `logs/error.log`：错误日志
+- `logs/exceptions.log`：未捕获异常
+- `logs/rejections.log`：Promise拒绝
+
+详细使用说明请参考：[LOGGING.md](./LOGGING.md)
+
+## 🎮 使用 GraphQL Playground
+
+访问 http://localhost:4000/playground 体验增强版 GraphQL Playground：
+
+### 主要功能
+
+- 📊 **Schema Explorer**：可视化浏览 GraphQL Schema
+- 🔍 **智能补全**：自动补全查询语句
+- 📝 **查询历史**：保存和管理查询历史
+- 📋 **代码导出**：支持多种语言的代码生成
+- 🎨 **现代化界面**：美观的用户界面
+
+### 示例查询
+
+```graphql
+# 查询所有动态表
+{
+  __schema {
+    queryType {
+      fields {
+        name
+        description
+      }
+    }
+  }
+}
+
+# 如果有 store_accounts 表
+{
+  allStoreAccounts(first: 10) {
+    edges {
+      node {
+        id
+        # 其他字段根据表结构动态生成
+      }
+    }
+  }
+}
+```
+
+### 实时订阅
+
+如果启用了订阅功能，可以使用实时订阅：
+
+```graphql
+subscription {
+  allStoresChanged {
+    event
+    table
+    data
+    timestamp
+  }
+}
+```
+
+## 🔧 配置选项
+
+### 数据库配置
+
+```bash
+DATABASE_URL=postgres://username:password@host:port/database
+PG_SCHEMA=public  # 要扫描的数据库模式
+```
+
+### 服务器配置
+
+```bash
+PORT=4000                    # HTTP 服务器端口
+GRAPHQL_ENDPOINT=/graphql    # GraphQL API 路径
+ENABLE_CORS=true            # 是否启用 CORS
+```
+
+### 订阅配置
+
+```bash
+ENABLE_SUBSCRIPTIONS=true    # 是否启用订阅功能
+REALTIME_PORT=4001          # WebSocket 服务器端口
+```
+
+### 日志配置
+
+```bash
+LOG_LEVEL=info              # 日志级别
+LOG_TO_FILE=true           # 是否保存到文件
+LOG_DIR=./logs             # 日志文件目录
+
+# PostGraphile SQL查询日志控制
+DISABLE_QUERY_LOG=false     # 设置为true禁用SQL查询日志
+ENABLE_QUERY_LOG=false      # 生产环境中设置为true启用查询日志
+QUERY_TIMEOUT=30000         # GraphQL查询超时时间（毫秒）
+```

@@ -42,7 +42,7 @@ export const QueryFilterPlugin: Plugin = builder => {
 			}
 		});
 
-		console.log('🔍 过滤后的查询字段:', Object.keys(filteredFields));
+		// console.log('🔍 过滤后的查询字段:', Object.keys(filteredFields));
 		return filteredFields;
 	});
 };

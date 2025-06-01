@@ -1,1 +1,0 @@
-{"version":3,"file":"subscription-manager.d.ts","sourceRoot":"","sources":["../../src/plugins/subscription-manager.ts"],"names":[],"mappings":"AAMA,MAAM,WAAW,kBAAkB;IAClC,mBAAmB,EAAE,MAAM,CAAC;IAC5B,UAAU,EAAE,MAAM,EAAE,CAAC;CACrB;AAED,qBAAa,mBAAmB;IACnB,OAAO,CAAC,MAAM;gBAAN,MAAM,EAAE,kBAAkB;IAGxC,uBAAuB;;;;;;;IAyC7B,qBAAqB,CAAC,OAAO,EAAE,OAAO,GAAG,IAAI;CAS7C"}

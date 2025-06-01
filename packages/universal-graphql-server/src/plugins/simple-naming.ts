@@ -38,10 +38,10 @@ export const SimpleNamingPlugin: Plugin = builder => {
 			renamedFields[newFieldName] = fields[fieldName];
 		});
 
-		console.log(
-			'🔄 重命名的查询字段:',
-			Object.keys(renamedFields).filter(name => !name.startsWith('all'))
-		);
+		// console.log(
+		// 	'🔄 重命名的查询字段:',
+		// 	Object.keys(renamedFields).filter(name => !name.startsWith('all'))
+		// );
 		return renamedFields;
 	});
 };
