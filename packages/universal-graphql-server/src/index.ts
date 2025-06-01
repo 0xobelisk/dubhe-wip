@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import {
 	DatabaseIntrospector,
 	createPostGraphileConfig,
+	PostGraphileConfigOptions,
 	SubscriptionManager,
 	ServerManager,
 	WelcomePageConfig,
@@ -57,7 +58,7 @@ const startServer = async (): Promise<void> => {
 		subscriptionManager.logSubscriptionStatus(subscriptionSuccess);
 
 		// 3. 创建 PostGraphile 配置
-		const postgraphileConfig = createPostGraphileConfig({
+		const postgraphileConfigOptions: PostGraphileConfigOptions = {
 			port: PORT,
 			nodeEnv: NODE_ENV,
 			graphqlEndpoint: GRAPHQL_ENDPOINT,
@@ -65,7 +66,11 @@ const startServer = async (): Promise<void> => {
 			enableCors: ENABLE_CORS,
 			databaseUrl: DATABASE_URL,
 			availableTables: tableNames,
-		});
+		};
+
+		const postgraphileConfig = createPostGraphileConfig(
+			postgraphileConfigOptions
+		);
 
 		// 4. 创建 PostGraphile 中间件
 		const postgraphileMiddleware = postgraphile(pgPool, PG_SCHEMA, {
@@ -95,7 +100,8 @@ const startServer = async (): Promise<void> => {
 		const httpServer = serverManager.createHttpServer(
 			postgraphileMiddleware,
 			allTables,
-			welcomeConfig
+			welcomeConfig,
+			postgraphileConfigOptions
 		);
 
 		// 7. 启动HTTP服务器

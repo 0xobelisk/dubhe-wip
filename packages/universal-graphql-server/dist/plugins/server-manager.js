@@ -5,6 +5,7 @@ const http_1 = require("http");
 const pg_1 = require("pg");
 const realtime_server_1 = require("../realtime-server");
 const welcome_page_1 = require("./welcome-page");
+const postgraphile_config_1 = require("./postgraphile-config");
 class ServerManager {
     config;
     realtimeServer = null;
@@ -12,7 +13,7 @@ class ServerManager {
         this.config = config;
     }
     // 创建HTTP服务器
-    createHttpServer(postgraphileMiddleware, allTables, welcomeConfig) {
+    createHttpServer(postgraphileMiddleware, allTables, welcomeConfig, postgraphileConfig) {
         return (0, http_1.createServer)(async (req, res) => {
             const url = req.url || '';
             try {
@@ -24,10 +25,25 @@ class ServerManager {
                     res.end((0, welcome_page_1.createWelcomePage)(allTables, welcomeConfig));
                     return;
                 }
-                // GraphQL 和 GraphiQL 请求交给 PostGraphile 处理
-                if (url.startsWith(this.config.graphqlEndpoint) ||
-                    url.startsWith('/graphiql')) {
+                // 处理增强版 GraphQL Playground
+                if (url.startsWith('/playground')) {
+                    res.writeHead(200, {
+                        'Content-Type': 'text/html; charset=utf-8',
+                    });
+                    res.end((0, postgraphile_config_1.createPlaygroundHtml)(postgraphileConfig));
+                    return;
+                }
+                // GraphQL 请求交给 PostGraphile 处理
+                if (url.startsWith(this.config.graphqlEndpoint)) {
                     return postgraphileMiddleware(req, res);
+                }
+                // 如果访问旧的 /graphiql 路径，重定向到新的 /playground
+                if (url.startsWith('/graphiql')) {
+                    res.writeHead(301, {
+                        Location: '/playground',
+                    });
+                    res.end();
+                    return;
                 }
                 // 404 处理
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -96,8 +112,9 @@ class ServerManager {
         console.log('');
         console.log(`📍 服务器地址: http://localhost:${this.config.port}`);
         console.log(`📊 GraphQL API: http://localhost:${this.config.port}${this.config.graphqlEndpoint}`);
-        console.log(`🎮 增强版 GraphQL Playground: http://localhost:${this.config.port}/graphiql`);
+        console.log(`🎮 增强版 GraphQL Playground: http://localhost:${this.config.port}/playground`);
         console.log(`   ✨ 现代化界面 + Schema Explorer + 代码导出`);
+        console.log(`   📝 旧路径 /graphiql 会自动重定向到 /playground`);
         if (this.config.enableSubscriptions === 'true') {
             console.log(`📡 WebSocket 订阅: ws://localhost:${this.config.port}${this.config.graphqlEndpoint}`);
         }

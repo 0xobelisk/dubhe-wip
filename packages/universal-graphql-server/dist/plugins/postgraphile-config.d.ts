@@ -12,7 +12,6 @@ export declare function createPostGraphileConfig(options: PostGraphileConfigOpti
     subscriptions: boolean;
     live: boolean;
     websocketMiddlewares?: never[] | undefined;
-    watchPg?: boolean | undefined;
     pgSettings?: {
         statement_timeout: string;
     } | undefined;
@@ -26,15 +25,13 @@ export declare function createPostGraphileConfig(options: PostGraphileConfigOpti
     setofFunctionsContainNulls: boolean;
     ignoreRBAC: boolean;
     ignoreIndexes: boolean;
+    disableQueryLog: boolean;
+    allowExplain: boolean;
+    watchPg: boolean;
     graphqlRoute: string;
-    graphiqlRoute: string;
-    graphiqlHtmlGenerator: (req: import("http").IncomingMessage, res: import("http").ServerResponse, config?: any) => string;
     includeExtensionResources: boolean;
     ignoreTable: (tableName: string) => boolean;
-    graphiqlOptions: {
-        headerEditorEnabled: boolean;
-        requestCredentials: string;
-    };
     exportGqlSchemaPath: string | undefined;
 };
+export declare function createPlaygroundHtml(options: PostGraphileConfigOptions): string;
 //# sourceMappingURL=postgraphile-config.d.ts.map

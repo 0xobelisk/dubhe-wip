@@ -3,6 +3,10 @@ import { Pool } from 'pg';
 import { RealtimeSubscriptionServer } from '../realtime-server';
 import type { DynamicTable } from './database-introspector';
 import { createWelcomePage, WelcomePageConfig } from './welcome-page';
+import {
+	createPlaygroundHtml,
+	PostGraphileConfigOptions,
+} from './postgraphile-config';
 
 export interface ServerConfig {
 	port: string | number;
@@ -21,7 +25,8 @@ export class ServerManager {
 	createHttpServer(
 		postgraphileMiddleware: any,
 		allTables: DynamicTable[],
-		welcomeConfig: WelcomePageConfig
+		welcomeConfig: WelcomePageConfig,
+		postgraphileConfig: PostGraphileConfigOptions
 	) {
 		return createServer(
 			async (req: IncomingMessage, res: ServerResponse) => {
@@ -37,12 +42,27 @@ export class ServerManager {
 						return;
 					}
 
-					// GraphQL 和 GraphiQL 请求交给 PostGraphile 处理
-					if (
-						url.startsWith(this.config.graphqlEndpoint) ||
-						url.startsWith('/graphiql')
-					) {
+					// 处理增强版 GraphQL Playground
+					if (url.startsWith('/playground')) {
+						res.writeHead(200, {
+							'Content-Type': 'text/html; charset=utf-8',
+						});
+						res.end(createPlaygroundHtml(postgraphileConfig));
+						return;
+					}
+
+					// GraphQL 请求交给 PostGraphile 处理
+					if (url.startsWith(this.config.graphqlEndpoint)) {
 						return postgraphileMiddleware(req, res);
+					}
+
+					// 如果访问旧的 /graphiql 路径，重定向到新的 /playground
+					if (url.startsWith('/graphiql')) {
+						res.writeHead(301, {
+							Location: '/playground',
+						});
+						res.end();
+						return;
 					}
 
 					// 404 处理
@@ -136,9 +156,10 @@ export class ServerManager {
 			`📊 GraphQL API: http://localhost:${this.config.port}${this.config.graphqlEndpoint}`
 		);
 		console.log(
-			`🎮 增强版 GraphQL Playground: http://localhost:${this.config.port}/graphiql`
+			`🎮 增强版 GraphQL Playground: http://localhost:${this.config.port}/playground`
 		);
 		console.log(`   ✨ 现代化界面 + Schema Explorer + 代码导出`);
+		console.log(`   📝 旧路径 /graphiql 会自动重定向到 /playground`);
 
 		if (this.config.enableSubscriptions === 'true') {
 			console.log(

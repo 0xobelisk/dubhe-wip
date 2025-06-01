@@ -157,7 +157,7 @@ function createWelcomePage(tables, config) {
 					
 					<div class="center">
 						<a href="${graphqlEndpoint}" class="link">📊 GraphQL API</a>
-						<a href="/graphiql" class="link">🎮 增强版 GraphQL Playground</a>
+						<a href="/playground" class="link">🎮 增强版 GraphQL Playground</a>
 					</div>
 
 					<div class="info-grid">

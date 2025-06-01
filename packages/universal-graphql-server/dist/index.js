@@ -67,7 +67,7 @@ const startServer = async () => {
         const { pluginHook, success: subscriptionSuccess } = await subscriptionManager.loadSubscriptionPlugins();
         subscriptionManager.logSubscriptionStatus(subscriptionSuccess);
         // 3. 创建 PostGraphile 配置
-        const postgraphileConfig = (0, plugins_1.createPostGraphileConfig)({
+        const postgraphileConfigOptions = {
             port: PORT,
             nodeEnv: NODE_ENV,
             graphqlEndpoint: GRAPHQL_ENDPOINT,
@@ -75,7 +75,8 @@ const startServer = async () => {
             enableCors: ENABLE_CORS,
             databaseUrl: DATABASE_URL,
             availableTables: tableNames,
-        });
+        };
+        const postgraphileConfig = (0, plugins_1.createPostGraphileConfig)(postgraphileConfigOptions);
         // 4. 创建 PostGraphile 中间件
         const postgraphileMiddleware = (0, postgraphile_1.postgraphile)(pgPool, PG_SCHEMA, {
             ...postgraphileConfig,
@@ -98,7 +99,7 @@ const startServer = async () => {
             databaseUrl: DATABASE_URL,
             realtimePort: REALTIME_PORT,
         });
-        const httpServer = serverManager.createHttpServer(postgraphileMiddleware, allTables, welcomeConfig);
+        const httpServer = serverManager.createHttpServer(postgraphileMiddleware, allTables, welcomeConfig, postgraphileConfigOptions);
         // 7. 启动HTTP服务器
         httpServer.listen(PORT, () => {
             serverManager.logServerInfo(allTables, welcomeConfig);
