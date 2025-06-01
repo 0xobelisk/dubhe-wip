@@ -29,6 +29,7 @@ export declare function createPostGraphileConfig(options: PostGraphileConfigOpti
     allowExplain: boolean;
     watchPg: boolean;
     graphqlRoute: string;
+    appendPlugins: import("postgraphile").Plugin[];
     includeExtensionResources: boolean;
     ignoreTable: (tableName: string) => boolean;
     exportGqlSchemaPath: string | undefined;

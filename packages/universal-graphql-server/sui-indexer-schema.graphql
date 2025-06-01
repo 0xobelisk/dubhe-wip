@@ -18,7 +18,7 @@ type Query implements Node {
   ): Node
 
   """Reads and enables pagination through a set of `StoreAccount`."""
-  allStoreAccounts(
+  storeAccounts(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -47,7 +47,7 @@ type Query implements Node {
   ): StoreAccountsConnection
 
   """Reads and enables pagination through a set of `StoreEncounter`."""
-  allStoreEncounters(
+  storeEncounters(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -76,7 +76,7 @@ type Query implements Node {
   ): StoreEncountersConnection
 
   """Reads and enables pagination through a set of `StoreMapConfig`."""
-  allStoreMapConfigs(
+  storeMapConfigs(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -100,7 +100,7 @@ type Query implements Node {
   ): StoreMapConfigsConnection
 
   """Reads and enables pagination through a set of `StorePosition`."""
-  allStorePositions(
+  storePositions(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -129,7 +129,7 @@ type Query implements Node {
   ): StorePositionsConnection
 
   """Reads and enables pagination through a set of `TableField`."""
-  allTableFields(
+  tableFields(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -1372,7 +1372,7 @@ type Subscription {
   ): Node
 
   """Reads and enables pagination through a set of `StoreAccount`. (live)"""
-  allStoreAccounts(
+  storeAccounts(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -1401,7 +1401,7 @@ type Subscription {
   ): StoreAccountsConnection
 
   """Reads and enables pagination through a set of `StoreEncounter`. (live)"""
-  allStoreEncounters(
+  storeEncounters(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -1430,7 +1430,7 @@ type Subscription {
   ): StoreEncountersConnection
 
   """Reads and enables pagination through a set of `StoreMapConfig`. (live)"""
-  allStoreMapConfigs(
+  storeMapConfigs(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -1454,7 +1454,7 @@ type Subscription {
   ): StoreMapConfigsConnection
 
   """Reads and enables pagination through a set of `StorePosition`. (live)"""
-  allStorePositions(
+  storePositions(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -1483,7 +1483,7 @@ type Subscription {
   ): StorePositionsConnection
 
   """Reads and enables pagination through a set of `TableField`. (live)"""
-  allTableFields(
+  tableFields(
     """Only read the first `n` values of the set."""
     first: Int
 

@@ -21,4 +21,6 @@ __exportStar(require("./postgraphile-config"), exports);
 __exportStar(require("./subscription-manager"), exports);
 __exportStar(require("./server-manager"), exports);
 __exportStar(require("./enhanced-playground"), exports);
+__exportStar(require("./query-filter"), exports);
+__exportStar(require("./simple-naming"), exports);
 //# sourceMappingURL=index.js.map

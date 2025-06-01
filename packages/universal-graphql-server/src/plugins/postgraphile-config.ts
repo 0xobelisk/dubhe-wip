@@ -1,4 +1,6 @@
 import { createEnhancedPlayground } from './enhanced-playground';
+import { QueryFilterPlugin } from './query-filter';
+import { SimpleNamingPlugin } from './simple-naming';
 
 export interface PostGraphileConfigOptions {
 	port: string | number;
@@ -56,6 +58,9 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 
 		// GraphQL 端点
 		graphqlRoute: graphqlEndpoint,
+
+		// 添加自定义插件 - 过滤查询和简化命名
+		appendPlugins: [QueryFilterPlugin, SimpleNamingPlugin],
 
 		// 只包含检测到的表
 		includeExtensionResources: false,

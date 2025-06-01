@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPostGraphileConfig = createPostGraphileConfig;
 exports.createPlaygroundHtml = createPlaygroundHtml;
 const enhanced_playground_1 = require("./enhanced-playground");
+const query_filter_1 = require("./query-filter");
+const simple_naming_1 = require("./simple-naming");
 // 创建 PostGraphile 配置
 function createPostGraphileConfig(options) {
     const { port, nodeEnv, graphqlEndpoint, enableSubscriptions, enableCors, availableTables, } = options;
@@ -34,6 +36,8 @@ function createPostGraphileConfig(options) {
         watchPg: nodeEnv === 'development',
         // GraphQL 端点
         graphqlRoute: graphqlEndpoint,
+        // 添加自定义插件 - 过滤查询和简化命名
+        appendPlugins: [query_filter_1.QueryFilterPlugin, simple_naming_1.SimpleNamingPlugin],
         // 只包含检测到的表
         includeExtensionResources: false,
         // 排除不需要的表
