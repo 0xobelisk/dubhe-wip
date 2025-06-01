@@ -56,25 +56,64 @@ const createDynamicSubscriptionPlugin = (tableNames) => {
 				"""
 				allStoresChanged: StoreChangePayload
 					@pgSubscription(topic: "store:all")
+					
+				"""
+				订阅具体表的变更
+				"""
+				tableChanged(tableName: String!): TableChangePayload
+					@pgSubscription(topic: { $graphql: "\"table:\" + $args.tableName + \":change\"" })
 			}
 
 			${storeSubscriptions}
 		`,
         resolvers: {
             StoreChangePayload: {
-                event: (payload) => payload.event,
-                table: (payload) => payload.table,
-                timestamp: (payload) => payload.timestamp,
-                data: (payload) => payload.data,
-                id: (payload) => payload.id,
+                event: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.event || data.operation || 'unknown';
+                },
+                table: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.table || data.table_name || 'unknown';
+                },
+                timestamp: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.timestamp || new Date().toISOString();
+                },
+                data: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.data || data.new_record || data;
+                },
+                id: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.id || data.key || null;
+                },
             },
             TableChangePayload: {
-                event: (payload) => payload.event,
-                table: (payload) => payload.table,
-                schema: (payload) => payload.schema,
-                timestamp: (payload) => payload.timestamp,
-                data: (payload) => payload.data,
-                id: (payload) => payload.id,
+                event: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.event || data.operation || 'unknown';
+                },
+                table: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.table || data.table_name || 'unknown';
+                },
+                schema: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.schema || 'public';
+                },
+                timestamp: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.timestamp || new Date().toISOString();
+                },
+                data: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.data || data.new_record || data;
+                },
+                id: (payload) => {
+                    const data = parseNotifyPayload(payload);
+                    return data.id || data.key || null;
+                },
             },
         },
     }));
@@ -100,21 +139,38 @@ exports.SystemTableSubscriptionPlugin = (0, postgraphile_1.makeExtendSchemaPlugi
 		`,
     resolvers: {
         SystemEventPayload: {
-            event: (payload) => payload.event,
-            subject: (payload) => payload.subject,
-            timestamp: (payload) => payload.timestamp || new Date().toISOString(),
-            data: (payload) => payload.data,
+            event: (payload) => {
+                console.log('🔍 SystemEventPayload.event:', payload);
+                const data = parseNotifyPayload(payload);
+                return data.event || data.operation || 'system_event';
+            },
+            subject: (payload) => {
+                const data = parseNotifyPayload(payload);
+                return data.subject || data.table || null;
+            },
+            timestamp: (payload) => {
+                const data = parseNotifyPayload(payload);
+                return data.timestamp || new Date().toISOString();
+            },
+            data: (payload) => {
+                const data = parseNotifyPayload(payload);
+                return data.data || data;
+            },
         },
     },
 }));
 // 辅助函数：解析 PostgreSQL NOTIFY payload
 function parseNotifyPayload(payload) {
+    console.log('🔍 接收到 payload:', payload);
     try {
-        return JSON.parse(payload);
+        const parsed = JSON.parse(payload);
+        console.log('✅ JSON 解析成功:', parsed);
+        return parsed;
     }
     catch (e) {
         // 如果不是 JSON，返回原始字符串
-        return { raw: payload };
+        console.log('⚠️  payload 不是有效的 JSON，返回原始数据');
+        return { raw: payload, event: 'raw_data', data: payload };
     }
 }
 // 创建订阅授权函数（可选）

@@ -7,6 +7,7 @@ import {
 	SystemTableSubscriptionPlugin,
 	createSubscriptionAuthorizationFunction,
 } from './subscriptions';
+import { RealtimeSubscriptionServer } from './realtime-server';
 
 // 加载环境变量
 dotenv.config();
@@ -400,8 +401,18 @@ const createPostGraphileConfig = (availableTables: string[]) => {
 		...(ENABLE_SUBSCRIPTIONS === 'true' && {
 			// 使用非池化连接确保订阅正常工作
 			ownerConnectionString: DATABASE_URL,
-			// PostGraphile 内置 WebSocket 支持
-			simpleSubscriptions: true,
+			// 启用订阅功能，但不使用简单模式
+			subscriptions: true,
+			// 启用实时查询
+			live: true,
+			// 配置WebSocket端点
+			websocketMiddlewares: [],
+			// 启用实时查询（让标准查询支持subscription）
+			watchPg: true,
+			// 启用查询缓存以支持实时更新
+			pgSettings: {
+				statement_timeout: '30s',
+			},
 		}),
 	};
 };
@@ -436,21 +447,23 @@ const startServer = async (): Promise<void> => {
 
 		// 创建插件钩子，加载 @graphile/pg-pubsub 插件
 		let pluginHook;
+		const appendPlugins = [];
 
 		if (ENABLE_SUBSCRIPTIONS === 'true') {
 			try {
 				console.log('🔌 正在加载 subscription 插件...');
 				const PgPubsub = require('@graphile/pg-pubsub').default;
-				pluginHook = makePluginHook([PgPubsub]);
 
-				// 暂时禁用自定义订阅插件以排除错误
-				// const dynamicSubscriptionPlugin =
-				// 	createDynamicSubscriptionPlugin(tableNames);
-				// appendPlugins.push(dynamicSubscriptionPlugin);
-				// appendPlugins.push(SystemTableSubscriptionPlugin);
+				// 重新启用自定义订阅插件
+				const dynamicSubscriptionPlugin =
+					createDynamicSubscriptionPlugin(tableNames);
+				appendPlugins.push(dynamicSubscriptionPlugin);
+				appendPlugins.push(SystemTableSubscriptionPlugin);
+
+				pluginHook = makePluginHook([PgPubsub, ...appendPlugins]);
 
 				console.log('✅ Subscription 插件加载成功');
-				console.log('⚠️  自定义订阅暂时禁用以排除配置错误');
+				console.log('✅ 自定义订阅插件已启用');
 			} catch (error) {
 				console.warn(
 					'⚠️  无法加载 @graphile/pg-pubsub 插件，将禁用 subscription 功能'
@@ -507,9 +520,18 @@ const startServer = async (): Promise<void> => {
 			console.log('   这提供了类似的实时数据更新功能');
 		}
 
+		// 声明实时订阅服务器变量
+		let realtimeServer: RealtimeSubscriptionServer | null = null;
+
 		// 优雅关闭处理
 		process.on('SIGINT', async () => {
 			console.log('\n⏹️  正在关闭服务器...');
+
+			// 关闭实时订阅服务器
+			if (realtimeServer) {
+				await realtimeServer.close();
+			}
+
 			await pgPool.end();
 			server.close();
 			process.exit(0);
@@ -542,7 +564,26 @@ const startServer = async (): Promise<void> => {
 			console.log('按 Ctrl+C 停止服务器');
 		});
 
-		// 可选：监听数据库变更
+		// 启动实时订阅服务器
+		try {
+			const REALTIME_PORT = parseInt(process.env.REALTIME_PORT || '4001');
+			realtimeServer = new RealtimeSubscriptionServer(
+				REALTIME_PORT,
+				DATABASE_URL
+			);
+
+			console.log('');
+			console.log('🔥 实时推送服务已启动！');
+			console.log(
+				`📡 WebSocket实时推送: ws://localhost:${REALTIME_PORT}`
+			);
+			console.log('💡 客户端可以连接到此端口接收实时数据更新');
+		} catch (error) {
+			console.error('❌ 启动实时订阅服务器失败:', error);
+			console.log('⚠️  将继续运行GraphQL服务器，但没有实时推送功能');
+		}
+
+		// 可选：监听数据库变更（用于调试）
 		if (ENABLE_SUBSCRIPTIONS === 'true') {
 			try {
 				const notifyClient = new Pool({
@@ -550,20 +591,23 @@ const startServer = async (): Promise<void> => {
 				});
 				const client = await notifyClient.connect();
 
-				// 监听可能的表结构变更
+				// 监听表结构变更
 				await client.query('LISTEN table_structure_changes');
 
-				client.on('notification', async () => {
-					console.log(
-						'📡 检测到数据库结构变更，建议重启服务器以更新 GraphQL schema'
-					);
+				client.on('notification', async msg => {
+					if (msg.channel === 'table_structure_changes') {
+						console.log(
+							'📡 检测到数据库结构变更，建议重启服务器以更新 GraphQL schema'
+						);
+					}
 				});
 
-				console.log('👂 数据库变更监听已启动');
+				console.log('👂 数据库结构变更监听已启动');
 			} catch (error) {
 				console.log(
 					'⚠️  数据库变更监听启动失败，将继续运行（这不影响基本功能）'
 				);
+				console.log('   错误详情:', error);
 			}
 		}
 	} catch (error) {

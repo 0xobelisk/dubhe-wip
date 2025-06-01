@@ -73,6 +73,12 @@ export const createDynamicSubscriptionPlugin = (tableNames: string[]) => {
 				"""
 				allStoresChanged: StoreChangePayload
 					@pgSubscription(topic: "store:all")
+					
+				"""
+				订阅具体表的变更
+				"""
+				tableChanged(tableName: String!): TableChangePayload
+					@pgSubscription(topic: { $graphql: "\"table:\" + $args.tableName + \":change\"" })
 			}
 
 			${storeSubscriptions}
@@ -80,19 +86,52 @@ export const createDynamicSubscriptionPlugin = (tableNames: string[]) => {
 
 		resolvers: {
 			StoreChangePayload: {
-				event: (payload: any) => payload.event,
-				table: (payload: any) => payload.table,
-				timestamp: (payload: any) => payload.timestamp,
-				data: (payload: any) => payload.data,
-				id: (payload: any) => payload.id,
+				event: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.event || data.operation || 'unknown';
+				},
+				table: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.table || data.table_name || 'unknown';
+				},
+				timestamp: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.timestamp || new Date().toISOString();
+				},
+				data: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.data || data.new_record || data;
+				},
+				id: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.id || data.key || null;
+				},
 			},
 			TableChangePayload: {
-				event: (payload: any) => payload.event,
-				table: (payload: any) => payload.table,
-				schema: (payload: any) => payload.schema,
-				timestamp: (payload: any) => payload.timestamp,
-				data: (payload: any) => payload.data,
-				id: (payload: any) => payload.id,
+				event: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.event || data.operation || 'unknown';
+				},
+				table: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.table || data.table_name || 'unknown';
+				},
+				schema: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.schema || 'public';
+				},
+				timestamp: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.timestamp || new Date().toISOString();
+				},
+				data: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.data || data.new_record || data;
+				},
+				id: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.id || data.key || null;
+				},
 			},
 		},
 	}));
@@ -120,11 +159,23 @@ export const SystemTableSubscriptionPlugin = makeExtendSchemaPlugin(
 
 		resolvers: {
 			SystemEventPayload: {
-				event: (payload: any) => payload.event,
-				subject: (payload: any) => payload.subject,
-				timestamp: (payload: any) =>
-					payload.timestamp || new Date().toISOString(),
-				data: (payload: any) => payload.data,
+				event: (payload: any) => {
+					console.log('🔍 SystemEventPayload.event:', payload);
+					const data = parseNotifyPayload(payload);
+					return data.event || data.operation || 'system_event';
+				},
+				subject: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.subject || data.table || null;
+				},
+				timestamp: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.timestamp || new Date().toISOString();
+				},
+				data: (payload: any) => {
+					const data = parseNotifyPayload(payload);
+					return data.data || data;
+				},
 			},
 		},
 	})
@@ -132,11 +183,16 @@ export const SystemTableSubscriptionPlugin = makeExtendSchemaPlugin(
 
 // 辅助函数：解析 PostgreSQL NOTIFY payload
 export function parseNotifyPayload(payload: string): any {
+	console.log('🔍 接收到 payload:', payload);
+
 	try {
-		return JSON.parse(payload);
+		const parsed = JSON.parse(payload);
+		console.log('✅ JSON 解析成功:', parsed);
+		return parsed;
 	} catch (e) {
 		// 如果不是 JSON，返回原始字符串
-		return { raw: payload };
+		console.log('⚠️  payload 不是有效的 JSON，返回原始数据');
+		return { raw: payload, event: 'raw_data', data: payload };
 	}
 }
 

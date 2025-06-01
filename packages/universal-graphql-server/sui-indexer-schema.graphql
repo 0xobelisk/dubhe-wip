@@ -1554,21 +1554,4 @@ type Subscription {
     """
     nodeId: ID!
   ): TableField
-  listen(
-    topic: String!
-
-    """
-    If true, this subscription will trigger an event as soon as it initiates.
-    """
-    initialEvent: Boolean! = false
-  ): ListenPayload!
-}
-
-type ListenPayload {
-  """
-  Our root query field type. Allows us to run any query from our subscription payload.
-  """
-  query: Query
-  relatedNode: Node
-  relatedNodeId: ID
 }
