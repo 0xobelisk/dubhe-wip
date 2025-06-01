@@ -65,11 +65,8 @@ impl DubheIndexerWorker {
             .execute(&mut conn)
             .await?;
         
-        // 暂时注释掉通知触发器设置，避免触发器错误
-        /*
         // 设置通知触发器函数
         setup_notification_triggers(&mut conn).await?;
-        */
         
         for table in tables {
             println!("Creating table: {}", table.name);
@@ -90,12 +87,9 @@ impl DubheIndexerWorker {
                     .await?;
             }
             
-            // 暂时注释掉触发器创建，避免触发器错误
-            /*
             // 为每个表创建触发器
             let table_name_with_prefix = format!("store_{}", table.name);
             create_table_trigger(&mut conn, &table_name_with_prefix, &["INSERT", "UPDATE", "DELETE"]).await?;
-            */
         }
         
         Ok(())
@@ -173,8 +167,6 @@ impl DubheIndexerWorker {
             }
         }
 
-        // 暂时注释掉通知系统，避免触发器错误
-        /*
         // 发送通知
         let key_json_values: Vec<(String, serde_json::Value)> = key_fields.iter()
             .map(|(name, _)| {
@@ -194,7 +186,6 @@ impl DubheIndexerWorker {
             eprintln!("Error sending notification: {:?}", e);
             // Continue processing even if notification fails
         }
-        */
 
         Ok(())
     }
@@ -261,8 +252,6 @@ impl DubheIndexerWorker {
             }
         }
         
-        // 暂时注释掉通知系统，避免触发器错误
-        /*
         // 发送通知
         let key_json_values: Vec<(String, serde_json::Value)> = key_fields.iter()
             .map(|(name, _)| {
@@ -277,7 +266,6 @@ impl DubheIndexerWorker {
             eprintln!("Error sending notification: {:?}", e);
             // Continue processing even if notification fails
         }
-        */
         
         Ok(())
     }

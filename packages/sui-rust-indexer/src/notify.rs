@@ -94,64 +94,53 @@ pub async fn notify_store_change(
 
 // 创建触发器函数和触发器
 pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Result<()> {
-    // 创建通用的触发器函数
+    // 创建更简单的触发器函数
     let create_function = r#"
     CREATE OR REPLACE FUNCTION tg__graphql_subscription() RETURNS trigger AS $$
     DECLARE
-        v_process_new bool = (TG_OP = 'INSERT' OR TG_OP = 'UPDATE');
-        v_process_old bool = (TG_OP = 'UPDATE' OR TG_OP = 'DELETE');
-        v_event text = TG_ARGV[0];
-        v_topic_template text = TG_ARGV[1];
-        v_attribute text = TG_ARGV[2];
-        v_record record;
-        v_sub text;
+        v_event text;
         v_topic text;
-        v_i int = 0;
-        v_last_topic text;
         v_payload jsonb;
+        v_record jsonb;
     BEGIN
-        -- 处理 NEW 和 OLD 记录
-        FOR v_i IN 0..1 LOOP
-            IF (v_i = 0) AND v_process_new IS TRUE THEN
-                v_record = NEW;
-            ELSIF (v_i = 1) AND v_process_old IS TRUE THEN
-                v_record = OLD;
-            ELSE
-                CONTINUE;
-            END IF;
-            
-            -- 获取订阅属性值
-            IF v_attribute IS NOT NULL THEN
-                EXECUTE 'SELECT $1.' || quote_ident(v_attribute)
-                    USING v_record
-                    INTO v_sub;
-            END IF;
-            
-            -- 构建主题
-            IF v_sub IS NOT NULL THEN
-                v_topic = replace(v_topic_template, '$1', v_sub);
-            ELSE
-                v_topic = v_topic_template;
-            END IF;
-            
-            -- 避免重复通知
-            IF v_topic IS DISTINCT FROM v_last_topic THEN
-                v_last_topic = v_topic;
-                
-                -- 构建简化的 payload
-                v_payload = jsonb_build_object(
-                    'event', v_event,
-                    'table', TG_TABLE_NAME,
-                    'schema', TG_TABLE_SCHEMA,
-                    'data', to_jsonb(v_record),
-                    'timestamp', current_timestamp
-                );
-                
-                PERFORM pg_notify(v_topic, v_payload::text);
-            END IF;
-        END LOOP;
+        -- 确定事件类型
+        IF TG_OP = 'INSERT' THEN
+            v_event = 'create';
+            v_record = to_jsonb(NEW);
+        ELSIF TG_OP = 'UPDATE' THEN
+            v_event = 'update';
+            v_record = to_jsonb(NEW);
+        ELSIF TG_OP = 'DELETE' THEN
+            v_event = 'delete';
+            v_record = to_jsonb(OLD);
+        ELSE
+            RETURN NULL;
+        END IF;
         
-        RETURN v_record;
+        -- 构建主题
+        v_topic = format('table:%s:change', TG_TABLE_NAME);
+        
+        -- 构建简化的 payload
+        v_payload = jsonb_build_object(
+            'event', v_event,
+            'table', TG_TABLE_NAME,
+            'schema', TG_TABLE_SCHEMA,
+            'data', v_record,
+            'timestamp', extract(epoch from current_timestamp)
+        );
+        
+        -- 发送通知
+        PERFORM pg_notify(v_topic, v_payload::text);
+        
+        -- 也发送到通用频道
+        PERFORM pg_notify('store:all', v_payload::text);
+        
+        -- 返回适当的记录
+        IF TG_OP = 'DELETE' THEN
+            RETURN OLD;
+        ELSE
+            RETURN NEW;
+        END IF;
     END;
     $$ LANGUAGE plpgsql VOLATILE;
     "#;
