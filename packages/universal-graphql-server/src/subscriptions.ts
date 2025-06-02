@@ -30,7 +30,7 @@ const createTableSubscriptionPayload = (tableName: string) => `
     }
 `;
 
-// 动态创建 store 表的订阅（简化版，避免复杂的指令参数）
+// 动态创建表的订阅（移除store前缀）
 const createStoreSubscription = (storeName: string) => `
     extend type Subscription {
         """订阅 ${storeName} 表的变更"""
@@ -40,7 +40,7 @@ const createStoreSubscription = (storeName: string) => `
 
 // 创建动态订阅插件
 export const createDynamicSubscriptionPlugin = (tableNames: string[]) => {
-	// 为每个动态表生成订阅定义
+	// 为每个动态表生成订阅定义，去掉store_前缀暴露给API
 	const storeSubscriptions = tableNames
 		.filter(name => name.startsWith('store_'))
 		.map(name => name.replace('store_', ''))
@@ -76,7 +76,7 @@ export const createDynamicSubscriptionPlugin = (tableNames: string[]) => {
 
 			extend type Subscription {
 				"""
-				订阅所有 store 表的变更
+				订阅所有表的变更
 				"""
 				allStoresChanged: StoreChangePayload
 					@pgSubscription(topic: "store:all")

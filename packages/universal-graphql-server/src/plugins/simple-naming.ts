@@ -1,4 +1,3 @@
-// 简单的命名插件 - 去掉 "all" 前缀
 import { Plugin } from 'postgraphile';
 
 export const SimpleNamingPlugin: Plugin = builder => {
@@ -35,13 +34,30 @@ export const SimpleNamingPlugin: Plugin = builder => {
 				}
 			}
 
+			// 去掉 "Store" 前缀 (注意大写的S)
+			if (newFieldName.startsWith('store') && newFieldName !== 'store') {
+				// storeAccounts -> accounts
+				// storeAccount -> account
+				// storeEncounters -> encounters
+				// storeEncounter -> encounter
+				newFieldName = newFieldName.replace(/^store/, '');
+				// 第一个字母变成小写，保持驼峰命名
+				if (newFieldName.length > 0) {
+					newFieldName =
+						newFieldName.charAt(0).toLowerCase() +
+						newFieldName.slice(1);
+				}
+			}
+
 			renamedFields[newFieldName] = fields[fieldName];
 		});
 
-		// console.log(
-		// 	'🔄 重命名的查询字段:',
-		// 	Object.keys(renamedFields).filter(name => !name.startsWith('all'))
-		// );
+		console.log(
+			'🔄 重命名的查询字段:',
+			Object.keys(renamedFields).filter(
+				name => !name.startsWith('all') && !name.startsWith('store')
+			)
+		);
 		return renamedFields;
 	});
 };

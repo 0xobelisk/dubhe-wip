@@ -149,7 +149,7 @@ const startServer = async (): Promise<void> => {
 		});
 
 		// 8. 启动实时订阅服务器
-		await serverManager.startRealtimeServer();
+		await serverManager.startRealtimeServer(tableNames);
 
 		// 9. 启动数据库变更监听
 		await serverManager.startDatabaseListener(DATABASE_URL);

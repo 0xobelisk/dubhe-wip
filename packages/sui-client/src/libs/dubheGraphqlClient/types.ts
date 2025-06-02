@@ -82,7 +82,7 @@ export interface DateFilter extends FilterCondition {
   greaterThanOrEqualTo?: string;
 }
 
-// Store表基础类型
+// Store表基础类型（现在API中已去掉store前缀）
 export interface StoreTableRow {
   id: string;
   createdAt: string;

@@ -37,40 +37,24 @@ import {
 } from './types';
 import { parseValue } from './utils';
 
-// 预定义的GraphQL查询片段
-const STORE_TABLE_FIELDS = gql`
-  fragment StoreTableFields on Node {
-    id
-    ... on StoreTableRow {
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-const PAGE_INFO_FIELDS = gql`
-  fragment PageInfoFields on PageInfo {
-    hasNextPage
-    hasPreviousPage
-    startCursor
-    endCursor
-  }
-`;
-
+// GraphQL fragments - 通用化设计
 const CONNECTION_FIELDS = gql`
-  fragment ConnectionFields on Connection {
-    totalCount
+  fragment ConnectionFields on Node {
     pageInfo {
-      ...PageInfoFields
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
     }
-    edges {
-      cursor
-      node {
-        id
-      }
-    }
+    totalCount
   }
-  ${PAGE_INFO_FIELDS}
+`;
+
+// 通用的表字段 fragment - 不硬编码具体类型
+const TABLE_FIELDS = gql`
+  fragment TableFields on Node {
+    nodeId
+  }
 `;
 
 // 转换缓存策略类型
@@ -107,12 +91,44 @@ export class DubheGraphqlClient {
 
     // 如果提供了订阅端点，创建WebSocket Link
     if (config.subscriptionEndpoint) {
-      this.subscriptionClient = createClient({
+      // 在Node.js环境中自动导入ws模块
+      let webSocketImpl;
+      try {
+        // 检查是否在Node.js环境中
+        if (typeof window === 'undefined' && typeof global !== 'undefined') {
+          // Node.js环境，需要导入ws
+          const wsModule = require('ws');
+          webSocketImpl = wsModule.default || wsModule;
+          console.log('✅ 成功导入 ws 模块用于 WebSocket 支持');
+
+          // 在Node.js环境中设置全局WebSocket，避免apollo client内部错误
+          if (typeof (global as any).WebSocket === 'undefined') {
+            (global as any).WebSocket = webSocketImpl;
+          }
+        } else {
+          // 浏览器环境，使用原生WebSocket
+          webSocketImpl = WebSocket;
+        }
+      } catch (error) {
+        console.warn(
+          '⚠️ 警告：无法导入ws模块，WebSocket功能可能不可用:',
+          error
+        );
+      }
+
+      const clientOptions: any = {
         url: config.subscriptionEndpoint,
         connectionParams: {
           headers: config.headers,
         },
-      });
+      };
+
+      // 只有在Node.js环境且成功导入ws时才添加webSocketImpl
+      if (webSocketImpl && typeof window === 'undefined') {
+        clientOptions.webSocketImpl = webSocketImpl;
+      }
+
+      this.subscriptionClient = createClient(clientOptions);
 
       const wsLink = new GraphQLWsLink(this.subscriptionClient);
 
@@ -138,13 +154,56 @@ export class DubheGraphqlClient {
           // 为Connection类型配置缓存策略
           Query: {
             fields: {
-              // 支持分页查询的缓存合并
-              allStoreTables: {
+              // 支持分页查询的缓存合并（适配新的表名）
+              accounts: {
                 keyArgs: ['filter', 'orderBy'],
                 merge(existing = { edges: [] }, incoming) {
+                  // 安全检查，确保incoming有edges属性
+                  if (!incoming || !Array.isArray(incoming.edges)) {
+                    return existing;
+                  }
                   return {
                     ...incoming,
-                    edges: [...existing.edges, ...incoming.edges],
+                    edges: [...(existing.edges || []), ...incoming.edges],
+                  };
+                },
+              },
+              encounters: {
+                keyArgs: ['filter', 'orderBy'],
+                merge(existing = { edges: [] }, incoming) {
+                  // 安全检查，确保incoming有edges属性
+                  if (!incoming || !Array.isArray(incoming.edges)) {
+                    return existing;
+                  }
+                  return {
+                    ...incoming,
+                    edges: [...(existing.edges || []), ...incoming.edges],
+                  };
+                },
+              },
+              positions: {
+                keyArgs: ['filter', 'orderBy'],
+                merge(existing = { edges: [] }, incoming) {
+                  // 安全检查，确保incoming有edges属性
+                  if (!incoming || !Array.isArray(incoming.edges)) {
+                    return existing;
+                  }
+                  return {
+                    ...incoming,
+                    edges: [...(existing.edges || []), ...incoming.edges],
+                  };
+                },
+              },
+              mapConfigs: {
+                keyArgs: ['filter', 'orderBy'],
+                merge(existing = { edges: [] }, incoming) {
+                  // 安全检查，确保incoming有edges属性
+                  if (!incoming || !Array.isArray(incoming.edges)) {
+                    return existing;
+                  }
+                  return {
+                    ...incoming,
+                    edges: [...(existing.edges || []), ...incoming.edges],
                   };
                 },
               },
@@ -248,26 +307,30 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 获取所有Store表数据（通用查询方法）
+   * 获取表数据（通用查询方法）- 已适配去掉store前缀的API
    */
-  async getAllStoreTables<T extends StoreTableRow>(
+  async getAllTables<T extends StoreTableRow>(
     tableName: string,
     params?: BaseQueryParams & {
       filter?: Record<string, any>;
       orderBy?: OrderBy[];
+      fields?: string[]; // 允许用户指定需要查询的字段
     }
   ): Promise<Connection<T>> {
+    // 转换OrderBy为枚举值
+    const orderByEnums = convertOrderByToEnum(tableName, params?.orderBy);
+
+    // 动态构建查询
     const query = gql`
-      query GetAllStoreTables(
-        $tableName: String!
+      query GetAllTables(
         $first: Int
         $last: Int
-        $after: String
-        $before: String
-        $filter: ${tableName}Filter
-        $orderBy: [${tableName}sOrderBy!]
+        $after: Cursor
+        $before: Cursor
+        $filter: ${this.getFilterTypeName(tableName)}
+        $orderBy: [${this.getOrderByTypeName(tableName)}!]
       ) {
-        allStoreTables: all${tableName}s(
+        ${tableName}(
           first: $first
           last: $last
           after: $after
@@ -275,30 +338,41 @@ export class DubheGraphqlClient {
           filter: $filter
           orderBy: $orderBy
         ) {
-          ...ConnectionFields
+          totalCount
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
           edges {
             cursor
             node {
-              ...StoreTableFields
+              ${getTableFields(tableName, params?.fields)}
             }
           }
         }
       }
-      ${CONNECTION_FIELDS}
-      ${STORE_TABLE_FIELDS}
     `;
 
-    const result = await this.query(query, {
-      tableName,
-      ...params,
-    });
+    // 构建查询参数，使用枚举值
+    const queryParams = {
+      first: params?.first,
+      last: params?.last,
+      after: params?.after,
+      before: params?.before,
+      filter: params?.filter,
+      orderBy: orderByEnums,
+    };
+
+    const result = await this.query(query, queryParams);
 
     if (result.error) {
       throw result.error;
     }
 
     return (
-      (result.data as any)?.allStoreTables || {
+      (result.data as any)?.[tableName] || {
         edges: [],
         pageInfo: { hasNextPage: false, hasPreviousPage: false },
       }
@@ -306,51 +380,59 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 根据ID获取单个Store表记录
+   * 根据条件获取单个表记录 - 已适配去掉store前缀的API
    */
-  async getStoreTableById<T extends StoreTableRow>(
+  async getTableByCondition<T extends StoreTableRow>(
     tableName: string,
-    id: string
+    condition: Record<string, any>,
+    fields?: string[] // 允许用户指定需要查询的字段
   ): Promise<T | null> {
+    // 构建查询字段名，例如：accountByAssetIdAndAccount
+    const conditionKeys = Object.keys(condition);
+    const queryFieldName = this.buildSingleQueryName(tableName, conditionKeys);
+
     const query = gql`
-      query GetStoreTableById($tableName: String!, $id: ID!) {
-        storeTableById: ${tableName}ById(id: $id) {
-          ...StoreTableFields
+      query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
+        ${queryFieldName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
+          ${getTableFields(tableName, fields)}
         }
       }
-      ${STORE_TABLE_FIELDS}
     `;
 
-    const result = await this.query(query, { tableName, id });
+    const result = await this.query(query, condition);
 
     if (result.error) {
       throw result.error;
     }
 
-    return (result.data as any)?.storeTableById || null;
+    return (result.data as any)?.[queryFieldName] || null;
   }
 
   /**
-   * 订阅Store表数据变更
+   * 订阅表数据变更 - 已适配去掉store前缀的API
    */
-  subscribeToStoreTableChanges<T extends StoreTableRow>(
+  subscribeToTableChanges<T extends StoreTableRow>(
     tableName: string,
-    options?: SubscriptionOptions
-  ): Observable<SubscriptionResult<{ storeTableChanged: T }>> {
+    options?: SubscriptionOptions & {
+      fields?: string[]; // 允许用户指定需要订阅的字段
+    }
+  ): Observable<SubscriptionResult<{ [key: string]: T }>> {
+    // 订阅字段名和查询字段名相同，不需要"Changed"后缀
+    const subscriptionName = tableName;
+
     const subscription = gql`
-      subscription SubscribeToStoreTableChanges($tableName: String!) {
-        storeTableChanged: ${tableName}Changed(tableName: $tableName) {
-          ...StoreTableFields
+      subscription SubscribeToTableChanges {
+        ${subscriptionName} {
+          ${getTableFields(tableName, options?.fields)}
         }
       }
-      ${STORE_TABLE_FIELDS}
     `;
 
-    return this.subscribe(subscription, { tableName }, options);
+    return this.subscribe(subscription, {}, options);
   }
 
   /**
-   * 构建动态查询
+   * 构建动态查询 - 已适配去掉store前缀的API
    */
   buildQuery(
     tableName: string,
@@ -367,11 +449,11 @@ export class DubheGraphqlClient {
     return gql`
       query DynamicQuery(
         $first: Int
-        $after: String
-        $filter: ${tableName}Filter
-        $orderBy: [${tableName}sOrderBy!]
+        $after: Cursor
+        $filter: ${this.getFilterTypeName(tableName)}
+        $orderBy: [${this.getOrderByTypeName(tableName)}!]
       ) {
-        all${tableName}s(
+        ${tableName}(
           first: $first
           after: $after
           filter: $filter
@@ -394,32 +476,130 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 高级过滤查询构建器
+   * 批量查询多个表 - 已适配去掉store前缀的API
    */
-  createFilterBuilder<T extends StoreTableRow>(tableName: string) {
-    return {
-      where: (conditions: Record<string, any>) => ({
-        query: this.buildQuery(tableName, ['id', 'createdAt', 'updatedAt'], {
-          filter: conditions,
-        }),
-        variables: { filter: conditions },
-      }),
+  async batchQuery<T extends Record<string, any>>(
+    queries: Array<{
+      key: string;
+      tableName: string;
+      params?: BaseQueryParams & { filter?: Record<string, any> };
+    }>
+  ): Promise<Record<string, Connection<StoreTableRow>>> {
+    const batchPromises = queries.map(async ({ key, tableName, params }) => {
+      const result = await this.getAllTables(tableName, params);
+      return { key, result };
+    });
 
-      orderBy: (orders: OrderBy[]) => ({
-        query: this.buildQuery(tableName, ['id', 'createdAt', 'updatedAt'], {
-          orderBy: orders,
-        }),
-        variables: { orderBy: orders },
-      }),
+    const results = await Promise.all(batchPromises);
 
-      paginate: (first?: number, after?: string) => ({
-        query: this.buildQuery(tableName, ['id', 'createdAt', 'updatedAt'], {
-          first,
-          after,
-        }),
-        variables: { first, after },
-      }),
-    };
+    return results.reduce(
+      (acc, { key, result }) => {
+        acc[key] = result;
+        return acc;
+      },
+      {} as Record<string, Connection<StoreTableRow>>
+    );
+  }
+
+  /**
+   * 实时数据流监听 - 已适配去掉store前缀的API
+   */
+  createRealTimeDataStream<T extends StoreTableRow>(
+    tableName: string,
+    initialQuery?: BaseQueryParams & { filter?: Record<string, any> }
+  ): Observable<Connection<T>> {
+    return new Observable((observer: any) => {
+      // 首先执行初始查询
+      this.getAllTables<T>(tableName, initialQuery)
+        .then((initialData) => {
+          observer.next(initialData);
+        })
+        .catch((error) => observer.error(error));
+
+      // 然后订阅实时更新
+      const subscription = this.subscribeToTableChanges<T>(tableName, {
+        onData: () => {
+          // 当有数据变更时，重新执行查询
+          this.getAllTables<T>(tableName, initialQuery)
+            .then((updatedData) => {
+              observer.next(updatedData);
+            })
+            .catch((error) => observer.error(error));
+        },
+        onError: (error) => observer.error(error),
+      });
+
+      return () => subscription.subscribe().unsubscribe();
+    });
+  }
+
+  // 私有辅助方法 - 通用化处理
+  private getFilterTypeName(tableName: string): string {
+    // 动态推断Filter类型名
+    // 将 encounters -> StoreEncounterFilter
+    // 将 accounts -> StoreAccountFilter
+    // 规则：tableName 去掉复数形式，首字母大写，加上Store前缀和Filter后缀
+    const singularName = tableName.endsWith('s')
+      ? tableName.slice(0, -1)
+      : tableName;
+    const capitalizedName =
+      singularName.charAt(0).toUpperCase() + singularName.slice(1);
+    return `Store${capitalizedName}Filter`;
+  }
+
+  private getOrderByTypeName(tableName: string): string {
+    // 动态推断OrderBy类型名
+    // 将 encounters -> StoreEncountersOrderBy
+    // 将 accounts -> StoreAccountsOrderBy
+    // 规则：tableName 首字母大写，加上Store前缀和OrderBy后缀
+    const capitalizedName =
+      tableName.charAt(0).toUpperCase() + tableName.slice(1);
+    return `Store${capitalizedName}OrderBy`;
+  }
+
+  private buildSingleQueryName(
+    tableName: string,
+    conditionKeys: string[]
+  ): string {
+    const capitalizedKeys = conditionKeys.map(
+      (key) => key.charAt(0).toUpperCase() + key.slice(1)
+    );
+    return `${tableName.charAt(0).toLowerCase() + tableName.slice(1)}By${capitalizedKeys.join('And')}`;
+  }
+
+  // 为了向后兼容，保留旧的方法名作为别名
+  /** @deprecated 请使用 getAllTables */
+  async getAllStoreTables<T extends StoreTableRow>(
+    tableName: string,
+    params?: BaseQueryParams & {
+      filter?: Record<string, any>;
+      orderBy?: OrderBy[];
+    }
+  ): Promise<Connection<T>> {
+    console.warn('getAllStoreTables is deprecated, please use getAllTables');
+    return this.getAllTables(tableName, params);
+  }
+
+  /** @deprecated 请使用 getTableByCondition */
+  async getStoreTableById<T extends StoreTableRow>(
+    tableName: string,
+    id: string
+  ): Promise<T | null> {
+    console.warn(
+      'getStoreTableById is deprecated, please use getTableByCondition'
+    );
+    return this.getTableByCondition(tableName, { id });
+  }
+
+  /** @deprecated 请使用 subscribeToTableChanges */
+  subscribeToStoreTableChanges<T extends StoreTableRow>(
+    tableName: string,
+    options?: SubscriptionOptions
+  ): Observable<SubscriptionResult<{ storeTableChanged: T }>> {
+    console.warn(
+      'subscribeToStoreTableChanges is deprecated, please use subscribeToTableChanges'
+    );
+    return this.subscribeToTableChanges(tableName, options) as any;
   }
 
   /**
@@ -451,64 +631,6 @@ export class DubheGraphqlClient {
       this.subscriptionClient.dispose();
     }
   }
-
-  /**
-   * 批量查询多个表
-   */
-  async batchQuery<T extends Record<string, any>>(
-    queries: Array<{
-      key: string;
-      tableName: string;
-      params?: BaseQueryParams & { filter?: Record<string, any> };
-    }>
-  ): Promise<Record<string, Connection<StoreTableRow>>> {
-    const batchPromises = queries.map(async ({ key, tableName, params }) => {
-      const result = await this.getAllStoreTables(tableName, params);
-      return { key, result };
-    });
-
-    const results = await Promise.all(batchPromises);
-
-    return results.reduce(
-      (acc, { key, result }) => {
-        acc[key] = result;
-        return acc;
-      },
-      {} as Record<string, Connection<StoreTableRow>>
-    );
-  }
-
-  /**
-   * 实时数据流监听
-   */
-  createRealTimeDataStream<T extends StoreTableRow>(
-    tableName: string,
-    initialQuery?: BaseQueryParams & { filter?: Record<string, any> }
-  ): Observable<Connection<T>> {
-    return new Observable((observer: any) => {
-      // 首先执行初始查询
-      this.getAllStoreTables<T>(tableName, initialQuery)
-        .then((initialData) => {
-          observer.next(initialData);
-        })
-        .catch((error) => observer.error(error));
-
-      // 然后订阅实时更新
-      const subscription = this.subscribeToStoreTableChanges<T>(tableName, {
-        onData: () => {
-          // 当有数据变更时，重新执行查询
-          this.getAllStoreTables<T>(tableName, initialQuery)
-            .then((updatedData) => {
-              observer.next(updatedData);
-            })
-            .catch((error) => observer.error(error));
-        },
-        onError: (error) => observer.error(error),
-      });
-
-      return () => subscription.subscribe().unsubscribe();
-    });
-  }
 }
 
 // 导出便利函数
@@ -520,17 +642,17 @@ export function createDubheGraphqlClient(
 
 // 导出常用的GraphQL查询构建器
 export const QueryBuilders = {
-  // 构建基础查询
+  // 构建基础查询 - 已适配去掉store前缀的API
   basic: (
     tableName: string,
     fields: string[] = ['id', 'createdAt', 'updatedAt']
   ) => gql`
-    query Basic${tableName}Query(
+    query Basic${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Query(
       $first: Int
       $after: String
-      $filter: ${tableName}Filter
+      $filter: ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Filter
     ) {
-      all${tableName}s(first: $first, after: $after, filter: $filter) {
+      ${tableName}(first: $first, after: $after, filter: $filter) {
         totalCount
         pageInfo {
           hasNextPage
@@ -546,10 +668,10 @@ export const QueryBuilders = {
     }
   `,
 
-  // 构建订阅查询
+  // 构建订阅查询 - 已适配去掉store前缀的API
   subscription: (tableName: string) => gql`
-    subscription ${tableName}Subscription {
-      ${tableName}Changed {
+    subscription ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Subscription {
+      ${tableName.charAt(0).toLowerCase() + tableName.slice(1)}Changed {
         id
         createdAt
         updatedAt
@@ -557,3 +679,33 @@ export const QueryBuilders = {
     }
   `,
 };
+
+// 辅助函数：转换OrderBy格式
+function convertOrderByToEnum(
+  tableName: string,
+  orderBy?: OrderBy[]
+): string[] {
+  if (!orderBy || orderBy.length === 0) {
+    return ['NATURAL'];
+  }
+
+  return orderBy.map((order) => {
+    const field = order.field.toUpperCase();
+    const direction = order.direction === 'DESC' ? 'DESC' : 'ASC';
+
+    // 将字段名和方向组合成枚举值
+    return `${field}_${direction}`;
+  });
+}
+
+// 动态获取表字段的函数 - 真正通用化
+function getTableFields(tableName: string, customFields?: string[]): string {
+  if (customFields && customFields.length > 0) {
+    // 如果用户指定了字段，使用用户指定的字段
+    return customFields.join('\n    ');
+  }
+
+  // 默认只查询 nodeId，这是所有表都应该有的基础字段
+  // 其他字段应该由用户根据实际需要指定
+  return 'nodeId';
+}

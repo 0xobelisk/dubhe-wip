@@ -28,8 +28,10 @@ export class RealtimeSubscriptionServer {
 	private pgClient: PoolClient | null = null;
 	private clients: Map<WebSocket, ClientSubscription> = new Map();
 	private isListening = false;
+	private tableNames: string[];
 
-	constructor(port: number, dbUrl: string) {
+	constructor(port: number, dbUrl: string, tableNames: string[] = []) {
+		this.tableNames = tableNames;
 		this.pgPool = new Pool({
 			connectionString: dbUrl,
 			// 保持连接活跃
@@ -45,6 +47,7 @@ export class RealtimeSubscriptionServer {
 		wsLogger.info('🔥 实时订阅服务器启动', {
 			port,
 			perMessageDeflate: false,
+			tablesCount: tableNames.length,
 		});
 
 		this.setupWebSocketHandlers();
@@ -56,14 +59,15 @@ export class RealtimeSubscriptionServer {
 			// 创建专用的PostgreSQL连接用于监听
 			this.pgClient = await this.pgPool.connect();
 
-			// 监听所有相关通道
-			const channels = [
-				'store:all',
-				'table:store_encounter:change',
-				'table:store_accounts:change',
-				'table:store_position:change',
-				'table:store_map_config:change',
-			];
+			// 动态生成监听通道
+			const channels = ['store:all']; // 通用通道
+
+			// 为每个store表生成专用通道
+			this.tableNames
+				.filter(name => name.startsWith('store_'))
+				.forEach(tableName => {
+					channels.push(`table:${tableName}:change`);
+				});
 
 			for (const channel of channels) {
 				await this.pgClient.query(`LISTEN "${channel}"`);
@@ -86,6 +90,11 @@ export class RealtimeSubscriptionServer {
 						dbLogger.warn('通知payload解析失败，使用原始数据', {
 							payload: msg.payload,
 						});
+					}
+
+					// 修改数据中的表名，去掉store_前缀
+					if (data.table && data.table.startsWith('store_')) {
+						data.table = data.table.replace('store_', '');
 					}
 
 					// 广播给所有相关的客户端
@@ -111,6 +120,7 @@ export class RealtimeSubscriptionServer {
 			this.isListening = true;
 			dbLogger.info('✅ PostgreSQL 通知监听器设置完成', {
 				channelsCount: channels.length,
+				channels: channels,
 			});
 		} catch (error) {
 			dbLogger.error('设置PostgreSQL监听器失败', error);
@@ -271,11 +281,13 @@ export class RealtimeSubscriptionServer {
 
 				// 检查表订阅
 				if (message.data?.table) {
-					const tableName = message.data.table.replace('store_', '');
-					if (
-						subscription.tables.has(tableName) ||
-						subscription.tables.has(message.data.table)
-					) {
+					// 检查客户端是否订阅了这个表（不带前缀的名称）
+					if (subscription.tables.has(message.data.table)) {
+						shouldSend = true;
+					}
+					// 兼容旧的前缀形式
+					const prefixedTableName = `store_${message.data.table}`;
+					if (subscription.tables.has(prefixedTableName)) {
 						shouldSend = true;
 					}
 				}
@@ -286,8 +298,13 @@ export class RealtimeSubscriptionServer {
 					subscription.channels.size === 0
 				) {
 					if (
-						message.channel.startsWith('store:') ||
-						message.channel.startsWith('table:store_')
+						message.channel === 'store:all' ||
+						(message.channel?.startsWith('table:') &&
+							this.tableNames.some(
+								tableName =>
+									tableName.startsWith('store_') &&
+									message.channel?.includes(tableName)
+							))
 					) {
 						shouldSend = true;
 					}
@@ -307,20 +324,26 @@ export class RealtimeSubscriptionServer {
 	}
 
 	// 手动发送测试消息
-	public sendTestMessage(table: string = 'store_encounter') {
+	public sendTestMessage(table?: string) {
+		// 如果没有指定表，从可用的store表中选择第一个
+		const defaultTable =
+			table ||
+			this.tableNames.find(name => name.startsWith('store_')) ||
+			'store_test';
+
 		const testMessage: NotificationMessage = {
 			type: 'store_change',
-			channel: `table:${table}:change`,
+			channel: `table:${defaultTable}:change`,
 			data: {
 				event: 'test',
-				table: table,
+				table: defaultTable,
 				timestamp: new Date().toISOString(),
 				data: { test: true, message: '这是一个测试消息' },
 			},
 		};
 
 		this.broadcast(testMessage);
-		wsLogger.info('📤 发送测试消息', { table });
+		wsLogger.info('📤 发送测试消息', { table: defaultTable });
 	}
 
 	// 获取状态信息

@@ -32,7 +32,7 @@ async function init() {
   let balance = await dubhe.getBalance();
   console.log('balance', balance);
 
-  let i = 5580;
+  let i = 0;
   while (true) {
     const tx = new Transaction();
     await dubhe.tx.dapp_system.hello_encounter({
@@ -44,7 +44,7 @@ async function init() {
         tx.pure.address(`0x${i}`),
         tx.pure.bool(true),
         tx.pure.address('0x0'),
-        tx.pure.u256(123456),
+        tx.pure.u256(i),
       ],
       onSuccess: (res) => {
         console.log('success', res.digest);

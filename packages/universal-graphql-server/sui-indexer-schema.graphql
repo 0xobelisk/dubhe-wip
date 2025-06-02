@@ -18,7 +18,7 @@ type Query implements Node {
   ): Node
 
   """Reads and enables pagination through a set of `StoreAccount`."""
-  storeAccounts(
+  accounts(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -52,7 +52,7 @@ type Query implements Node {
   ): StoreAccountsConnection
 
   """Reads and enables pagination through a set of `StoreEncounter`."""
-  storeEncounters(
+  encounters(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -86,7 +86,7 @@ type Query implements Node {
   ): StoreEncountersConnection
 
   """Reads and enables pagination through a set of `StoreMapConfig`."""
-  storeMapConfigs(
+  mapConfigs(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -120,7 +120,7 @@ type Query implements Node {
   ): StoreMapConfigsConnection
 
   """Reads and enables pagination through a set of `StorePosition`."""
-  storePositions(
+  positions(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -186,13 +186,13 @@ type Query implements Node {
     """
     filter: TableFieldFilter
   ): TableFieldsConnection
-  storeAccountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
-  storeEncounterByPlayer(player: String!): StoreEncounter
-  storePositionByPlayer(player: String!): StorePosition
+  accountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
+  encounterByPlayer(player: String!): StoreEncounter
+  positionByPlayer(player: String!): StorePosition
   tableFieldByTableNameAndFieldName(tableName: String!, fieldName: String!): TableField
 
   """Reads a single `StoreAccount` using its globally unique `ID`."""
-  storeAccount(
+  account(
     """
     The globally unique `ID` to be used in selecting a single `StoreAccount`.
     """
@@ -200,7 +200,7 @@ type Query implements Node {
   ): StoreAccount
 
   """Reads a single `StoreEncounter` using its globally unique `ID`."""
-  storeEncounter(
+  encounter(
     """
     The globally unique `ID` to be used in selecting a single `StoreEncounter`.
     """
@@ -208,7 +208,7 @@ type Query implements Node {
   ): StoreEncounter
 
   """Reads a single `StorePosition` using its globally unique `ID`."""
-  storePosition(
+  position(
     """
     The globally unique `ID` to be used in selecting a single `StorePosition`.
     """
@@ -910,7 +910,7 @@ type Subscription {
   ): Node
 
   """Reads and enables pagination through a set of `StoreAccount`. (live)"""
-  storeAccounts(
+  accounts(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -944,7 +944,7 @@ type Subscription {
   ): StoreAccountsConnection
 
   """Reads and enables pagination through a set of `StoreEncounter`. (live)"""
-  storeEncounters(
+  encounters(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -978,7 +978,7 @@ type Subscription {
   ): StoreEncountersConnection
 
   """Reads and enables pagination through a set of `StoreMapConfig`. (live)"""
-  storeMapConfigs(
+  mapConfigs(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -1012,7 +1012,7 @@ type Subscription {
   ): StoreMapConfigsConnection
 
   """Reads and enables pagination through a set of `StorePosition`. (live)"""
-  storePositions(
+  positions(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -1080,19 +1080,19 @@ type Subscription {
   ): TableFieldsConnection
 
   """ (live)"""
-  storeAccountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
+  accountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
 
   """ (live)"""
-  storeEncounterByPlayer(player: String!): StoreEncounter
+  encounterByPlayer(player: String!): StoreEncounter
 
   """ (live)"""
-  storePositionByPlayer(player: String!): StorePosition
+  positionByPlayer(player: String!): StorePosition
 
   """ (live)"""
   tableFieldByTableNameAndFieldName(tableName: String!, fieldName: String!): TableField
 
   """Reads a single `StoreAccount` using its globally unique `ID`. (live)"""
-  storeAccount(
+  account(
     """
     The globally unique `ID` to be used in selecting a single `StoreAccount`.
     """
@@ -1100,7 +1100,7 @@ type Subscription {
   ): StoreAccount
 
   """Reads a single `StoreEncounter` using its globally unique `ID`. (live)"""
-  storeEncounter(
+  encounter(
     """
     The globally unique `ID` to be used in selecting a single `StoreEncounter`.
     """
@@ -1108,7 +1108,7 @@ type Subscription {
   ): StoreEncounter
 
   """Reads a single `StorePosition` using its globally unique `ID`. (live)"""
-  storePosition(
+  position(
     """
     The globally unique `ID` to be used in selecting a single `StorePosition`.
     """

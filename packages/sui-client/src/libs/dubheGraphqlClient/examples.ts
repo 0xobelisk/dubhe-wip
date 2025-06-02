@@ -26,29 +26,47 @@ export function createExampleClient(): DubheGraphqlClient {
 }
 
 /**
- * 示例：基础查询操作
+ * 示例：基础查询操作 - 使用新的API（已去掉store前缀）
  */
 export async function exampleBasicQuery() {
   const client = createExampleClient();
 
   try {
-    // 1. 查询Store表数据
-    const storeEncounters = await client.getAllStoreTables('StoreEncounter', {
+    // 1. 查询encounters表数据（之前是StoreEncounter，现在是encounters）
+    const encounters = await client.getAllTables('encounters', {
       first: 10,
       filter: {
-        isRemoved: { equalTo: false },
+        exists: { equalTo: true },
       },
       orderBy: [{ field: 'createdAt', direction: 'DESC' }],
     });
 
-    console.log('Store encounters:', storeEncounters);
+    console.log('Encounters:', encounters);
 
-    // 2. 根据ID查询单个记录
-    const encounter = await client.getStoreTableById(
-      'StoreEncounter',
-      'some-id'
-    );
-    console.log('Single encounter:', encounter);
+    // 2. 查询accounts表数据（之前是StoreAccount，现在是accounts）
+    const accounts = await client.getAllTables('accounts', {
+      first: 5,
+      filter: {
+        balance: { greaterThan: '0' },
+      },
+    });
+
+    console.log('Accounts:', accounts);
+
+    // 3. 根据条件查询单个记录
+    const specificAccount = await client.getTableByCondition('accounts', {
+      assetId: '0x123...',
+      account: '0xabc...',
+    });
+    console.log('Specific account:', specificAccount);
+
+    // 4. 查询positions表数据
+    const positions = await client.getAllTables('positions', {
+      first: 10,
+      orderBy: [{ field: 'x', direction: 'ASC' }],
+    });
+
+    console.log('Positions:', positions);
   } catch (error) {
     console.error('Query failed:', error);
   } finally {
@@ -57,13 +75,13 @@ export async function exampleBasicQuery() {
 }
 
 /**
- * 示例：实时数据订阅
+ * 示例：实时数据订阅 - 使用新的API
  */
 export function exampleSubscription() {
   const client = createExampleClient();
 
-  // 订阅Store表数据变更
-  const subscription = client.subscribeToStoreTableChanges('StoreEncounter', {
+  // 订阅encounters表数据变更
+  const subscription = client.subscribeToTableChanges('encounters', {
     onData: (data) => {
       console.log('Received real-time data:', data);
     },
@@ -92,4 +110,88 @@ export function exampleSubscription() {
     subscription.subscribe().unsubscribe();
     client.close();
   }, 5000);
+}
+
+/**
+ * 示例：批量查询多个表
+ */
+export async function exampleBatchQuery() {
+  const client = createExampleClient();
+
+  try {
+    const results = await client.batchQuery([
+      { key: 'encounters', tableName: 'encounters', params: { first: 5 } },
+      { key: 'accounts', tableName: 'accounts', params: { first: 5 } },
+      { key: 'positions', tableName: 'positions', params: { first: 5 } },
+    ]);
+
+    console.log('Batch query results:', results);
+  } catch (error) {
+    console.error('Batch query failed:', error);
+  } finally {
+    client.close();
+  }
+}
+
+/**
+ * 示例：实时数据流
+ */
+export function exampleRealTimeStream() {
+  const client = createExampleClient();
+
+  const stream = client.createRealTimeDataStream('encounters', {
+    first: 10,
+    filter: { exists: { equalTo: true } },
+  });
+
+  const subscription = stream.subscribe({
+    next: (data: any) => {
+      console.log('Real-time stream data:', data);
+    },
+    error: (error: any) => {
+      console.error('Stream error:', error);
+    },
+  });
+
+  // 30秒后停止流
+  setTimeout(() => {
+    subscription.unsubscribe();
+    client.close();
+  }, 30000);
+}
+
+/**
+ * 示例：自定义GraphQL查询 - 使用新的表名
+ */
+export async function exampleCustomQuery() {
+  const client = createExampleClient();
+
+  const CUSTOM_QUERY = gql`
+    query GetPlayerEncounters($player: String!) {
+      encounters(filter: { player: { equalTo: $player } }) {
+        edges {
+          node {
+            id
+            player
+            monster
+            catchAttempts
+            exists
+          }
+        }
+        totalCount
+      }
+    }
+  `;
+
+  try {
+    const result = await client.query(CUSTOM_QUERY, {
+      player: '0x123...',
+    });
+
+    console.log('Custom query result:', result.data);
+  } catch (error) {
+    console.error('Custom query failed:', error);
+  } finally {
+    client.close();
+  }
 }

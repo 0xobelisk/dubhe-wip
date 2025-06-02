@@ -126,22 +126,29 @@ export class ServerManager {
 	}
 
 	// 启动实时订阅服务器
-	async startRealtimeServer(): Promise<void> {
+	async startRealtimeServer(tableNames: string[] = []): Promise<void> {
 		try {
 			const realtimePort = parseInt(
 				(this.config.realtimePort as string) || '4001'
 			);
 
-			wsLogger.info('启动实时订阅服务器', { port: realtimePort });
+			wsLogger.info('启动实时订阅服务器', {
+				port: realtimePort,
+				tablesCount: tableNames.length,
+			});
 
 			this.realtimeServer = new RealtimeSubscriptionServer(
 				realtimePort,
-				this.config.databaseUrl
+				this.config.databaseUrl,
+				tableNames
 			);
 
 			wsLogger.info('🔥 实时推送服务已启动！', {
 				port: realtimePort,
 				webSocketUrl: `ws://localhost:${realtimePort}`,
+				monitoringTables: tableNames.filter(name =>
+					name.startsWith('store_')
+				).length,
 			});
 		} catch (error) {
 			wsLogger.error('启动实时订阅服务器失败', error, {
