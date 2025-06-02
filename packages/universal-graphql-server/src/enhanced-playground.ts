@@ -223,7 +223,7 @@ export function createEnhancedPlayground(
   <body>
     <!-- 欢迎横幅 -->
     <div class="welcome-banner">
-      🚀 ${title} | ${subtitle} | 支持实时查询、变更和订阅
+      🚀 ${title} | ${subtitle} | 支持实时查询和订阅
     </div>
     
     <!-- GraphiQL 容器 -->

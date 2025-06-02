@@ -47,6 +47,9 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		enableQueryBatching: true,
 		enableCors: enableCors === 'true',
 
+		// 禁用所有mutation功能 - 只保留查询和订阅
+		disableDefaultMutations: true,
+
 		// Schema 配置
 		dynamicJson: true,
 		setofFunctionsContainNulls: false,

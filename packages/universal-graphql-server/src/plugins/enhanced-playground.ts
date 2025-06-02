@@ -13,23 +13,7 @@ export interface PlaygroundOptions {
 export function createEnhancedPlayground(
 	options: PlaygroundOptions
 ): (req: IncomingMessage, res: ServerResponse, config?: any) => string {
-	return (req: IncomingMessage, res: ServerResponse, _config?: any) => {
-		const {
-			url,
-			subscriptionUrl,
-			title = 'Sui Indexer GraphQL Playground',
-			subtitle = '强大的GraphQL API，自动扫描数据库表结构',
-		} = options;
-
-		// 构建GraphiQL配置选项
-		const graphiqlOptions = {
-			url,
-			...(subscriptionUrl && { subscriptionUrl }),
-			headers: {
-				'Content-Type': 'application/json',
-			},
-		};
-
+	return (_req: IncomingMessage, _res: ServerResponse, _config?: any) => {
 		return `
     
             <!--
@@ -42,7 +26,7 @@ export function createEnhancedPlayground(
 <!doctype html>
 <html lang="en">
   <head>
-    <title>SubQuery Playground</title>
+    <title>Dubhe Playground</title>
     <style>
       body {
         height: 100%;
