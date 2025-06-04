@@ -240,7 +240,8 @@ export class DubheGraphqlClient {
         variables,
         fetchPolicy: options?.cachePolicy
           ? mapCachePolicyToFetchPolicy(options.cachePolicy)
-          : 'cache-first',
+          : 'no-cache',
+        // : 'cache-first',
         notifyOnNetworkStatusChange: options?.notifyOnNetworkStatusChange,
         pollInterval: options?.pollInterval,
       });
@@ -364,6 +365,13 @@ export class DubheGraphqlClient {
       filter: params?.filter,
       orderBy: orderByEnums,
     };
+
+    // // 添加调试日志
+    // console.log('queryParams:', JSON.stringify(queryParams, null, 2));
+
+    // const result = await this.query(query, queryParams, {
+    //   cachePolicy: 'no-cache',
+    // });
 
     const result = await this.query(query, queryParams);
 

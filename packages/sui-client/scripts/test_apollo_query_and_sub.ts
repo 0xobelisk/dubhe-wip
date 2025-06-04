@@ -404,6 +404,108 @@ class GraphQLTester {
     });
   }
 
+  // 测试查询单个数据
+  async testSingleDataQuery() {
+    console.log('\n🔍 === 测试单个数据查询 ===');
+
+    try {
+      // 方法1: 使用 getTableByCondition（推荐）
+      console.log(
+        '方法1: 使用 getTableByCondition 根据 player 查询单个 encounter...'
+      );
+
+      try {
+        const singleEncounter = await this.client.getTableByCondition(
+          'encounters',
+          {
+            player:
+              '0x0000000000000000000000000000000000000000000000000000000000000001',
+          },
+          ['nodeId', 'player', 'monster', 'catchAttempts', 'exists']
+        );
+
+        if (singleEncounter) {
+          console.log('✅ 找到单个记录:');
+          console.log(`  Player: ${singleEncounter.player}`);
+          console.log(`  Monster: ${singleEncounter.monster}`);
+          console.log(`  Catch Attempts: ${singleEncounter.catchAttempts}`);
+          console.log(`  NodeId: ${singleEncounter.nodeId}`);
+        } else {
+          console.log('❌ 未找到匹配记录');
+        }
+      } catch (error) {
+        console.log(
+          'ℹ️ getTableByCondition 可能不支持，错误:',
+          (error as Error).message
+        );
+      }
+
+      // 方法2: 使用 getAllTables 限制数量为 1
+      console.log('\n方法2: 使用 getAllTables first: 1 查询单个记录...');
+
+      const result = await this.client.getAllTables('encounters', {
+        first: 1,
+        filter: {
+          player: {
+            equalTo:
+              '0x0000000000000000000000000000000000000000000000000000000000000002',
+          },
+        },
+        fields: ['nodeId', 'player', 'monster', 'catchAttempts', 'exists'],
+      });
+
+      if (result.edges.length > 0) {
+        const encounter = result.edges[0].node;
+        console.log('✅ 通过 first: 1 查询到单个记录:');
+        console.log(`  Player: ${encounter.player}`);
+        console.log(`  Monster: ${encounter.monster}`);
+        console.log(`  Catch Attempts: ${encounter.catchAttempts}`);
+        console.log(`  NodeId: ${encounter.nodeId}`);
+      } else {
+        console.log('❌ 未找到匹配记录');
+      }
+
+      // 方法3: 测试查询不存在的记录
+      console.log('\n方法3: 测试查询不存在的记录...');
+
+      const notFound = await this.client.getAllTables('encounters', {
+        first: 1,
+        filter: {
+          player: { equalTo: '0xnonexistent' },
+        },
+        fields: ['nodeId', 'player'],
+      });
+
+      if (notFound.edges.length === 0) {
+        console.log('✅ 正确处理了不存在的记录，返回空结果');
+      } else {
+        console.log('⚠️ 意外找到了记录');
+      }
+
+      // 方法4: 测试精确查询（如果表支持其他字段查询）
+      console.log('\n方法4: 测试使用其他条件查询...');
+
+      const catchAttemptsResult = await this.client.getAllTables('encounters', {
+        first: 1,
+        filter: {
+          catchAttempts: { equalTo: '5' },
+        },
+        fields: ['nodeId', 'player', 'monster', 'catchAttempts'],
+      });
+
+      if (catchAttemptsResult.edges.length > 0) {
+        const encounter = catchAttemptsResult.edges[0].node;
+        console.log('✅ 通过 catchAttempts 查询到记录:');
+        console.log(`  Player: ${encounter.player}`);
+        console.log(`  Catch Attempts: ${encounter.catchAttempts}`);
+      } else {
+        console.log('ℹ️ 未找到 catchAttempts = 5 的记录');
+      }
+    } catch (error) {
+      console.error('❌ 单个数据查询测试异常:', error);
+    }
+  }
+
   // 执行所有测试
   async runAllTests() {
     console.log('🧪 === Dubhe GraphQL 客户端测试 ===');
@@ -420,6 +522,9 @@ class GraphQLTester {
       await this.testBasicQuery();
       await this.testParameterizedQuery();
       await this.testClientMethods();
+
+      // 测试单个数据查询
+      await this.testSingleDataQuery();
 
       // 只有在支持WebSocket时才测试订阅功能
       if (this.supportsSubscriptions) {
