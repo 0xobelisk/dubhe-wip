@@ -26,6 +26,50 @@ export function createExampleClient(): DubheGraphqlClient {
 }
 
 /**
+ * 使用示例：创建带重试功能的客户端
+ */
+export function createClientWithRetry(): DubheGraphqlClient {
+  const config: DubheClientConfig = {
+    endpoint: 'http://localhost:4000/graphql',
+    subscriptionEndpoint: 'ws://localhost:4000/graphql',
+    headers: {
+      Authorization: 'Bearer your-token-here',
+    },
+    // 配置重试选项
+    retryOptions: {
+      delay: {
+        initial: 500, // 初始延迟500ms
+        max: 10000, // 最大延迟10秒
+        jitter: true, // 启用随机抖动
+      },
+      attempts: {
+        max: 3, // 最多重试3次（加上初始请求共4次）
+        retryIf: (error, operation) => {
+          // 自定义重试条件：
+          // 1. 网络错误
+          // 2. 5xx服务器错误
+          // 3. 超时错误
+          console.log(
+            `❌ 请求失败，正在重试... 操作: ${operation.operationName}`,
+            error
+          );
+
+          return Boolean(
+            error &&
+              (error.networkError ||
+                (error.graphQLErrors && error.graphQLErrors.length === 0) ||
+                error.networkError?.statusCode >= 500)
+          );
+        },
+      },
+    },
+  };
+
+  console.log('🔄 创建了带重试功能的GraphQL客户端');
+  return createDubheGraphqlClient(config);
+}
+
+/**
  * 示例：基础查询操作 - 使用新的API（已去掉store前缀）
  */
 export async function exampleBasicQuery() {
@@ -194,4 +238,94 @@ export async function exampleCustomQuery() {
   } finally {
     client.close();
   }
+}
+
+/**
+ * 示例：网络不稳定环境下使用重试功能
+ */
+export async function exampleRetryInUnstableNetwork() {
+  // 创建带重试功能的客户端
+  const client = createClientWithRetry();
+
+  console.log('🌐 开始测试重试功能...');
+
+  try {
+    // 在网络不稳定的情况下查询数据
+    const startTime = Date.now();
+
+    const encounters = await client.getAllTables('encounters', {
+      first: 5,
+      filter: { exists: { equalTo: true } },
+    });
+
+    const endTime = Date.now();
+    console.log(`✅ 查询成功! 耗时: ${endTime - startTime}ms`);
+    console.log(`📊 获取到 ${encounters.edges.length} 条encounters数据`);
+
+    // 尝试查询可能失败的数据
+    const accounts = await client.getAllTables('accounts', {
+      first: 3,
+      orderBy: [{ field: 'balance', direction: 'DESC' }],
+    });
+
+    console.log(`💰 获取到 ${accounts.edges.length} 条accounts数据`);
+  } catch (error) {
+    console.error('❌ 重试后仍然失败:', error);
+  } finally {
+    console.log('🔚 关闭客户端连接');
+    client.close();
+  }
+}
+
+/**
+ * 示例：不同重试策略的对比
+ */
+export function createClientsWithDifferentRetryStrategies() {
+  // 1. 保守重试策略（适用于生产环境）
+  const conservativeClient = createDubheGraphqlClient({
+    endpoint: 'http://localhost:4000/graphql',
+    retryOptions: {
+      delay: { initial: 1000, max: 5000, jitter: true },
+      attempts: { max: 2 }, // 只重试2次
+    },
+  });
+
+  // 2. 积极重试策略（适用于开发环境）
+  const aggressiveClient = createDubheGraphqlClient({
+    endpoint: 'http://localhost:4000/graphql',
+    retryOptions: {
+      delay: { initial: 200, max: 2000, jitter: false },
+      attempts: { max: 5 }, // 重试5次
+    },
+  });
+
+  // 3. 自定义重试策略（只对特定错误重试）
+  const customClient = createDubheGraphqlClient({
+    endpoint: 'http://localhost:4000/graphql',
+    retryOptions: {
+      delay: { initial: 300, max: 3000 },
+      attempts: {
+        max: 3,
+        retryIf: (error, operation) => {
+          // 只对网络错误和超时错误重试
+          const isNetworkError = error?.networkError;
+          const isTimeout = error?.message?.includes('timeout');
+
+          if (isNetworkError || isTimeout) {
+            console.log(`🔄 重试${operation.operationName}: ${error.message}`);
+            return true;
+          }
+
+          console.log(`❌ 不重试${operation.operationName}: ${error.message}`);
+          return false;
+        },
+      },
+    },
+  });
+
+  return {
+    conservative: conservativeClient,
+    aggressive: aggressiveClient,
+    custom: customClient,
+  };
 }

@@ -14,6 +14,7 @@ import {
   FetchPolicy,
   OperationVariables,
 } from '@apollo/client';
+import { RetryLink } from '@apollo/client/link/retry';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
@@ -87,7 +88,39 @@ export class DubheGraphqlClient {
       fetch: (input, init) => fetch(input, { ...config.fetchOptions, ...init }),
     });
 
-    let link: ApolloLink = httpLink;
+    // 创建重试链接
+    const retryLink = new RetryLink({
+      delay: {
+        // 初始重试延迟时间（毫秒）
+        initial: config.retryOptions?.delay?.initial || 300,
+        // 最大重试延迟时间（毫秒）
+        max: config.retryOptions?.delay?.max || 5000,
+        // 是否添加随机抖动以避免雷击效应，默认开启
+        jitter: config.retryOptions?.delay?.jitter !== false,
+      },
+      attempts: {
+        // 最大尝试次数（包括初始请求）
+        max: config.retryOptions?.attempts?.max || 5,
+        // 自定义重试条件函数
+        retryIf:
+          config.retryOptions?.attempts?.retryIf ||
+          ((error, _operation) => {
+            // 默认重试策略：
+            // 1. 网络连接错误
+            // 2. 服务器错误但没有GraphQL错误（表示服务暂时不可用）
+            return Boolean(
+              error &&
+                (error.networkError ||
+                  (error.graphQLErrors && error.graphQLErrors.length === 0))
+            );
+          }),
+      },
+    });
+
+    // 组合HTTP链接和重试链接
+    const httpWithRetryLink = from([retryLink, httpLink]);
+
+    let link: ApolloLink = httpWithRetryLink;
 
     // 如果提供了订阅端点，创建WebSocket Link
     if (config.subscriptionEndpoint) {
@@ -142,7 +175,7 @@ export class DubheGraphqlClient {
           );
         },
         wsLink,
-        httpLink
+        httpWithRetryLink
       );
     }
 

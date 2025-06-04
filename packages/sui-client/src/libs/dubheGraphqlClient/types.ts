@@ -117,12 +117,27 @@ export interface TypedDocumentNode<TResult = any, TVariables = any>
   __variablesType?: TVariables;
 }
 
+// 重试配置选项
+export interface RetryOptions {
+  max?: number; // 最大重试次数，默认为3
+  delay?: {
+    initial?: number; // 初始延迟时间（毫秒），默认300ms
+    max?: number; // 最大延迟时间（毫秒），默认30000ms
+    jitter?: boolean; // 是否添加随机抖动，默认true
+  };
+  attempts?: {
+    max?: number; // 最大尝试次数（包括初始请求），默认5
+    retryIf?: (error: any, _operation: any) => boolean; // 自定义重试条件
+  };
+}
+
 // 客户端配置
 export interface DubheClientConfig {
   endpoint: string;
   subscriptionEndpoint?: string;
   headers?: Record<string, string>;
   fetchOptions?: RequestInit;
+  retryOptions?: RetryOptions; // 重试配置
 }
 
 // 查询缓存策略
