@@ -123,20 +123,4 @@ export class DatabaseIntrospector {
 			return false;
 		}
 	}
-
-	// 输出表结构信息到控制台
-	logTableInfo(tables: DynamicTable[]): void {
-		console.log('📊 发现的表：');
-		tables.forEach(table => {
-			const keyFields = table.fields
-				.filter(f => f.is_key)
-				.map(f => f.field_name);
-			const valueFields = table.fields
-				.filter(f => !f.is_key)
-				.map(f => f.field_name);
-			console.log(`  - ${table.table_name}`);
-			console.log(`    键字段: [${keyFields.join(', ')}]`);
-			console.log(`    值字段: [${valueFields.join(', ')}]`);
-		});
-	}
 }

@@ -1,6 +1,6 @@
 import { makeExtendSchemaPlugin, gql, embed } from 'postgraphile';
 import { GraphQLResolveInfo } from 'graphql';
-import { subscriptionLogger, gqlLogger } from './logger';
+import { subscriptionLogger, gqlLogger } from './utils/logger';
 
 interface SubscriptionContext {
 	pgClient?: any;

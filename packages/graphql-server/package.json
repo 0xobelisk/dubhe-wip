@@ -35,9 +35,10 @@
 		"graphql-subscriptions": "^2.0.0",
 		"graphql-ws": "^5.14.2",
 		"pg": "^8.11.3",
+		"pino": "^8.16.2",
+		"pino-pretty": "^10.2.3",
 		"postgraphile": "^4.13.0",
 		"postgraphile-plugin-connection-filter": "^2.3.0",
-		"winston": "^3.11.0",
 		"ws": "^8.14.2"
 	},
 	"devDependencies": {

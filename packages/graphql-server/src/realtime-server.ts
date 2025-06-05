@@ -8,7 +8,7 @@ import {
 	systemLogger,
 	logWebSocketEvent,
 	logDatabaseOperation,
-} from './logger';
+} from './utils/logger';
 
 interface ClientSubscription {
 	tables: Set<string>;

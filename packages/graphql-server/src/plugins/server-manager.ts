@@ -14,7 +14,7 @@ import {
 	wsLogger,
 	perfLogger,
 	logPerformance,
-} from '../logger';
+} from '../utils/logger';
 
 export interface ServerConfig {
 	port: string | number;

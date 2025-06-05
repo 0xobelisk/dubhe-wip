@@ -8,7 +8,7 @@ import {
 	subscriptionLogger,
 	logPerformance,
 	logDatabaseOperation,
-} from './logger';
+} from './utils/logger';
 import {
 	DatabaseIntrospector,
 	createPostGraphileConfig,
@@ -68,8 +68,6 @@ const startServer = async (): Promise<void> => {
 			tableNames: tableNames.slice(0, 10), // 只显示前10个表名
 		});
 
-		introspector.logTableInfo(allTables);
-
 		// 2. 配置和加载订阅插件
 		subscriptionLogger.info('配置订阅管理器', {
 			enableSubscriptions: ENABLE_SUBSCRIPTIONS,
@@ -83,7 +81,6 @@ const startServer = async (): Promise<void> => {
 
 		const { pluginHook, success: subscriptionSuccess } =
 			await subscriptionManager.loadSubscriptionPlugins();
-		subscriptionManager.logSubscriptionStatus(subscriptionSuccess);
 
 		// 3. 创建 PostGraphile 配置
 		const postgraphileConfigOptions: PostGraphileConfigOptions = {

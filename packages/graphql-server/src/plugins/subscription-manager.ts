@@ -35,9 +35,6 @@ export class SubscriptionManager {
 
 			const pluginHook = makePluginHook([PgPubsub, ...appendPlugins]);
 
-			console.log('✅ Subscription 插件加载成功');
-			console.log('✅ 自定义订阅插件已启用');
-
 			return { pluginHook, success: true };
 		} catch (error) {
 			console.warn(
@@ -50,17 +47,6 @@ export class SubscriptionManager {
 			process.env.ENABLE_SUBSCRIPTIONS = 'false';
 
 			return { pluginHook: null, success: false };
-		}
-	}
-
-	// 输出订阅功能状态信息
-	logSubscriptionStatus(success: boolean): void {
-		if (success) {
-			console.log('✅ 实时查询功能已启用 (live queries)');
-			console.log('   注意：使用实时查询而不是传统的 WebSocket 订阅');
-			console.log('   这提供了类似的实时数据更新功能');
-		} else {
-			console.log('⚠️ 订阅功能已禁用');
 		}
 	}
 }
