@@ -1,18 +1,15 @@
-import { DubheConfig, storage } from '@0xobelisk/sui-common';
+import { defineDapp } from '@0xobelisk/sui-common';
 
-export const dubheConfig = {
+export default defineDapp({
   name: 'counter',
   description: 'counter contract',
-  schemas: {
-    counter: storage('u32'),
-    counter_v2: storage('u32'),
-  },
-  events: {
-    Increment: {
-      value: 'u32'
+  tables: {
+    counter: {
+      schema: {
+        player: 'address',
+        value: 'u8'
+      },
+      key: ['player']
     }
-  },
-  errors: {
-    InvalidIncrement: "Number can't be incremented, must be more than 0"
   }
-} as DubheConfig;
+});

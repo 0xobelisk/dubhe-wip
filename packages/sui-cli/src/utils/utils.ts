@@ -9,15 +9,16 @@ import { spawn } from 'child_process';
 import { Dubhe, NetworkType, SuiMoveNormalizedModules } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
 import packageJson from '../../package.json';
+import { Component, MoveType, EmptyComponent } from '@0xobelisk/sui-common';
 
 export type DeploymentJsonType = {
   projectName: string;
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
   packageId: string;
-  schemaId: string;
+  dappHub: string;
   upgradeCap: string;
   version: number;
-  schemas: Record<string, string>;
+  components: Record<string, Component | MoveType | EmptyComponent>;
 };
 
 export function validatePrivateKey(privateKey: string): false | string {
@@ -76,43 +77,43 @@ export async function getDeploymentJson(
   }
 }
 
-export async function getDeploymentSchemaId(projectPath: string, network: string): Promise<string> {
+export async function getDeploymentDappHub(projectPath: string, network: string): Promise<string> {
   try {
     const data = await fsAsync.readFile(
       `${projectPath}/.history/sui_${network}/latest.json`,
       'utf8'
     );
     const deployment = JSON.parse(data) as DeploymentJsonType;
-    return deployment.schemaId;
+    return deployment.dappHub;
   } catch (error) {
     return '';
   }
 }
 
-export async function getDubheSchemaId(network: string) {
+export async function getDubheDappHub(network: string) {
   const path = process.cwd();
   const contractPath = `${path}/src/dubhe`;
 
   switch (network) {
     case 'mainnet':
-      return await getDeploymentSchemaId(contractPath, 'mainnet');
+      return await getDeploymentDappHub(contractPath, 'mainnet');
     case 'testnet':
-      return await getDeploymentSchemaId(contractPath, 'testnet');
+      return await getDeploymentDappHub(contractPath, 'testnet');
     case 'devnet':
-      return await getDeploymentSchemaId(contractPath, 'devnet');
+      return await getDeploymentDappHub(contractPath, 'devnet');
     case 'localnet':
-      return await getDeploymentSchemaId(contractPath, 'localnet');
+      return await getDeploymentDappHub(contractPath, 'localnet');
     default:
       throw new Error(`Invalid network: ${network}`);
   }
 }
 
-export async function getOnchainSchemas(
+export async function getOnchainComponents(
   projectPath: string,
   network: string
-): Promise<Record<string, string>> {
+): Promise<Record<string, Component | MoveType | EmptyComponent>> {
   const deployment = await getDeploymentJson(projectPath, network);
-  return deployment.schemas;
+  return deployment.components;
 }
 
 export async function getVersion(projectPath: string, network: string): Promise<number> {
@@ -133,9 +134,9 @@ export async function getOldPackageId(projectPath: string, network: string): Pro
   return deployment.packageId;
 }
 
-export async function getSchemaId(projectPath: string, network: string): Promise<string> {
+export async function getDappHub(projectPath: string, network: string): Promise<string> {
   const deployment = await getDeploymentJson(projectPath, network);
-  return deployment.schemaId;
+  return deployment.dappHub;
 }
 
 export async function getUpgradeCap(projectPath: string, network: string): Promise<string> {
@@ -147,17 +148,17 @@ export function saveContractData(
   projectName: string,
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
   packageId: string,
-  schemaId: string,
+  dappHub: string,
   upgradeCap: string,
   version: number,
-  schemas: Record<string, string>
+  components: Record<string, Component | MoveType | EmptyComponent>
 ) {
   const DeploymentData: DeploymentJsonType = {
     projectName,
     network,
     packageId,
-    schemaId,
-    schemas,
+    dappHub,
+    components,
     upgradeCap,
     version
   };
