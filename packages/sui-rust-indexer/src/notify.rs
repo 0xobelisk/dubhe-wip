@@ -1,6 +1,7 @@
 use diesel_async::RunQueryDsl;
 use serde_json::json;
 use anyhow::Result;
+use chrono;
 use crate::db::PgPoolConnection;
 
 #[derive(Clone)]
@@ -9,6 +10,7 @@ pub struct NotificationPayload {
     pub table: String,
     pub id: Option<serde_json::Value>,
     pub data: Option<serde_json::Value>,
+    pub timestamp: String,
 }
 
 impl NotificationPayload {
@@ -18,6 +20,7 @@ impl NotificationPayload {
             table: table.to_string(),
             id: None,
             data: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
         }
     }
 
@@ -37,6 +40,7 @@ impl NotificationPayload {
             "table": self.table,
             "id": self.id,
             "data": self.data,
+            "timestamp": self.timestamp,
         }).to_string()
     }
 }
@@ -67,7 +71,9 @@ pub async fn notify_store_change(
     key_values: &[(String, serde_json::Value)],
     value_values: &[(String, serde_json::Value)],
 ) -> Result<()> {
-    let channel = format!("store:{}", table_name);
+    // 修复通道名称格式，使其与GraphQL服务器监听的格式匹配
+    let table_name_with_prefix = format!("store_{}", table_name);
+    let channel = format!("table:{}:change", table_name_with_prefix);
     
     let mut data = json!({});
     
@@ -81,7 +87,7 @@ pub async fn notify_store_change(
         data[key] = value.clone();
     }
     
-    let payload = NotificationPayload::new(event, &format!("store_{}", table_name))
+    let payload = NotificationPayload::new(event, &table_name_with_prefix)
         .with_data(data);
     
     send_notification(conn, &channel, payload.clone()).await?;
@@ -94,7 +100,7 @@ pub async fn notify_store_change(
 
 // 创建触发器函数和触发器
 pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Result<()> {
-    // 创建更简单的触发器函数
+    // 创建更简单的触发器函数，修复时间戳格式
     let create_function = r#"
     CREATE OR REPLACE FUNCTION tg__graphql_subscription() RETURNS trigger AS $$
     DECLARE
@@ -120,13 +126,13 @@ pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Res
         -- 构建主题
         v_topic = format('table:%s:change', TG_TABLE_NAME);
         
-        -- 构建简化的 payload
+        -- 构建简化的 payload，使用ISO格式的时间戳
         v_payload = jsonb_build_object(
             'event', v_event,
             'table', TG_TABLE_NAME,
             'schema', TG_TABLE_SCHEMA,
             'data', v_record,
-            'timestamp', extract(epoch from current_timestamp)
+            'timestamp', current_timestamp::text
         );
         
         -- 发送通知
@@ -172,24 +178,16 @@ pub async fn create_table_trigger(
         .execute(conn)
         .await?;
     
-    // 创建新触发器
+    // 创建新触发器 - 修复触发器函数调用，不传递额外参数
     let create_trigger = format!(
         r#"CREATE TRIGGER {}
         AFTER {}
         ON {}
         FOR EACH ROW
-        EXECUTE FUNCTION tg__graphql_subscription(
-            '{}',  -- event (create/update/delete)
-            '{}',  -- topic template
-            NULL   -- attribute (可选)
-        )"#,
+        EXECUTE FUNCTION tg__graphql_subscription()"#,
         trigger_name,
         ops,
-        table_name,
-        if operations.contains(&"INSERT") { "create" } 
-        else if operations.contains(&"UPDATE") { "update" } 
-        else { "delete" },
-        format!("table:{}:change", table_name)
+        table_name
     );
     
     diesel::sql_query(&create_trigger)

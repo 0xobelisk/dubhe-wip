@@ -2,7 +2,18 @@ import { createEnhancedPlayground } from './enhanced-playground';
 import { QueryFilterPlugin } from './query-filter';
 import { SimpleNamingPlugin } from './simple-naming';
 import { AllFieldsFilterPlugin } from './all-fields-filter-plugin';
+import { createSimpleSubscriptionPlugin } from '../simple-subscriptions';
 import ConnectionFilterPlugin from 'postgraphile-plugin-connection-filter';
+import { makePluginHook } from 'postgraphile';
+
+// 为Live Queries和WebSocket支持创建插件钩子
+let PgPubsub: any;
+try {
+	PgPubsub = require('@graphile/pg-pubsub').default;
+} catch (error) {
+	console.warn('[@graphile/pg-pubsub] 插件未找到，WebSocket订阅功能将不可用');
+	PgPubsub = null;
+}
 
 export interface PostGraphileConfigOptions {
 	port: string | number;
@@ -33,7 +44,10 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 			? `ws://localhost:${port}${graphqlEndpoint}`
 			: undefined;
 
-	return {
+	// 创建插件钩子以支持WebSocket和Live Queries
+	const pluginHook = PgPubsub ? makePluginHook([PgPubsub]) : undefined;
+
+	const config = {
 		// 基础配置 - 关闭默认GraphiQL
 		graphiql: false,
 		enhanceGraphiql: false,
@@ -41,11 +55,15 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		extendedErrors:
 			nodeEnv === 'development' ? ['hint', 'detail', 'errcode'] : [],
 
-		// 功能配置
+		// 功能配置 - 启用live queries和subscriptions
 		subscriptions: enableSubscriptions === 'true',
-		live: enableSubscriptions === 'true',
+		live: enableSubscriptions === 'true', // 启用live queries - 这会自动添加@live指令
+		simpleSubscriptions: enableSubscriptions === 'true', // 启用简单订阅
 		enableQueryBatching: true,
 		enableCors: enableCors === 'true',
+
+		// 添加插件钩子以支持WebSocket
+		...(pluginHook && { pluginHook }),
 
 		// 禁用所有mutation功能 - 只保留查询和订阅
 		disableDefaultMutations: true,
@@ -75,12 +93,13 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		// GraphQL 端点
 		graphqlRoute: graphqlEndpoint,
 
-		// 添加自定义插件 - 包含官方的connection filter插件
+		// 添加自定义插件
 		appendPlugins: [
-			QueryFilterPlugin,
-			SimpleNamingPlugin,
+			QueryFilterPlugin, // 必须在SimpleNamingPlugin之前执行
+			SimpleNamingPlugin, // 已修复字段丢失问题
 			ConnectionFilterPlugin,
 			AllFieldsFilterPlugin,
+			...createSimpleSubscriptionPlugin(availableTables),
 		],
 
 		// Connection Filter 插件的高级配置选项
@@ -149,18 +168,6 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 			// 允许空输入和空对象输入
 			connectionFilterAllowNullInput: true,
 			connectionFilterAllowEmptyObjectInput: true,
-
-			// // 使用简化的操作符名称
-			// connectionFilterOperatorNames: {
-			// 	equalTo: 'eq',
-			// 	notEqualTo: 'ne',
-			// 	lessThan: 'lt',
-			// 	lessThanOrEqualTo: 'lte',
-			// 	greaterThan: 'gt',
-			// 	greaterThanOrEqualTo: 'gte',
-			// 	includesInsensitive: 'icontains',
-			// 	notIncludesInsensitive: 'nicontains',
-			// },
 		},
 
 		// 只包含检测到的表
@@ -181,23 +188,42 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 			nodeEnv === 'development'
 				? 'sui-indexer-schema.graphql'
 				: undefined,
+	};
 
-		// 重要：为订阅功能添加必要配置
-		...(enableSubscriptions === 'true' && {
-			// 使用非池化连接确保订阅正常工作
+	// 如果启用订阅，添加额外的live queries配置
+	if (enableSubscriptions === 'true') {
+		return {
+			...config,
+			// 使用专用数据库连接用于live queries
 			ownerConnectionString: options.databaseUrl,
-			// 启用订阅功能，但不使用简单模式
-			subscriptions: true,
-			// 启用实时查询
-			live: true,
-			// 配置WebSocket端点
+
+			// WebSocket配置
 			websocketMiddlewares: [],
-			// 启用查询缓存以支持实时更新
+
+			// PostgreSQL设置 - 为live queries优化
 			pgSettings: {
 				statement_timeout: '30s',
+				// 为live queries设置适当的事务隔离级别
+				default_transaction_isolation: 'repeatable read',
 			},
-		}),
-	};
+
+			// Live查询特定配置
+			simpleSubscriptions: true, // 启用简单订阅模式
+			retryOnInitFail: true, // 连接失败时重试
+
+			// 性能优化
+			pgDefaultRole: undefined,
+			jwtSecret: undefined,
+
+			// 开发环境的额外配置
+			...(nodeEnv === 'development' && {
+				queryCache: true,
+				allowExplain: true,
+			}),
+		};
+	}
+
+	return config;
 }
 
 // 导出增强版playground的HTML生成器

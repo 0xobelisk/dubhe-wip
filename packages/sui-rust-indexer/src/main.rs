@@ -17,6 +17,7 @@ mod worker;
 mod db;
 mod tls;
 mod notify;
+mod simple_notify;
 
 use crate::worker::DubheIndexerWorker;
 use crate::db::get_connection_pool;

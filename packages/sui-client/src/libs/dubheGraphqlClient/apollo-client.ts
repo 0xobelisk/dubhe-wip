@@ -389,6 +389,42 @@ export class DubheGraphqlClient {
       }
     `;
 
+    console.log(
+      'query:',
+      `
+      query GetAllTables(
+        $first: Int
+        $last: Int
+        $after: Cursor
+        $before: Cursor
+        $filter: ${this.getFilterTypeName(tableName)}
+        $orderBy: [${this.getOrderByTypeName(tableName)}!]
+      ) {
+        ${tableName}(
+          first: $first
+          last: $last
+          after: $after
+          before: $before
+          filter: $filter
+          orderBy: $orderBy
+        ) {
+          totalCount
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          edges {
+            cursor
+            node {
+              ${getTableFields(tableName, params?.fields)}
+            }
+          }
+        }
+      }
+    `
+    );
     // 构建查询参数，使用枚举值
     const queryParams = {
       first: params?.first,
@@ -400,7 +436,7 @@ export class DubheGraphqlClient {
     };
 
     // // 添加调试日志
-    // console.log('queryParams:', JSON.stringify(queryParams, null, 2));
+    console.log('queryParams:', JSON.stringify(queryParams, null, 2));
 
     // const result = await this.query(query, queryParams, {
     //   cachePolicy: 'no-cache',
@@ -585,7 +621,7 @@ export class DubheGraphqlClient {
       : tableName;
     const capitalizedName =
       singularName.charAt(0).toUpperCase() + singularName.slice(1);
-    return `Store${capitalizedName}Filter`;
+    return `${capitalizedName.toLowerCase()}Filter`;
   }
 
   private getOrderByTypeName(tableName: string): string {
@@ -595,7 +631,7 @@ export class DubheGraphqlClient {
     // 规则：tableName 首字母大写，加上Store前缀和OrderBy后缀
     const capitalizedName =
       tableName.charAt(0).toUpperCase() + tableName.slice(1);
-    return `Store${capitalizedName}OrderBy`;
+    return `${capitalizedName}OrderBy`;
   }
 
   private buildSingleQueryName(

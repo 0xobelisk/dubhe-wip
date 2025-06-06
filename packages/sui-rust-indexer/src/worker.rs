@@ -16,7 +16,7 @@ use crate::{
     events::{StorageSetRecord, StoreSetField},
     sql::{generate_update_sql, generate_insert_sql},
     db::PgConnectionPool,
-    notify::{notify_store_change, setup_notification_triggers, create_table_trigger},
+    simple_notify::{log_data_change, setup_simple_logging, create_realtime_trigger},
 };
 use crate::table::parse_table_tuple;
 use crate::table::parse_table_field;
@@ -65,8 +65,8 @@ impl DubheIndexerWorker {
             .execute(&mut conn)
             .await?;
         
-        // 设置通知触发器函数
-        setup_notification_triggers(&mut conn).await?;
+        // 设置简化的日志系统（可选）
+        setup_simple_logging(&mut conn).await?;
         
         for table in tables {
             println!("Creating table: {}", table.name);
@@ -87,9 +87,10 @@ impl DubheIndexerWorker {
                     .await?;
             }
             
-            // 为每个表创建触发器
+            // 为每个表创建统一实时引擎触发器
             let table_name_with_prefix = format!("store_{}", table.name);
-            create_table_trigger(&mut conn, &table_name_with_prefix, &["INSERT", "UPDATE", "DELETE"]).await?;
+            create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
+            println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table_name_with_prefix);
         }
         
         Ok(())
@@ -167,24 +168,9 @@ impl DubheIndexerWorker {
             }
         }
 
-        // 发送通知
-        let key_json_values: Vec<(String, serde_json::Value)> = key_fields.iter()
-            .map(|(name, _)| {
-                let value = key_values.get(name).unwrap_or(&serde_json::Value::Null);
-                (name.clone(), value.clone())
-            })
-            .collect();
-            
-        let value_json_values: Vec<(String, serde_json::Value)> = value_fields.iter()
-            .map(|(name, _)| {
-                let value = value_values.get(name).unwrap_or(&serde_json::Value::Null);
-                (name.clone(), value.clone())
-            })
-            .collect();
-            
-        if let Err(e) = notify_store_change(&mut conn, &table_name, "create", &key_json_values, &value_json_values).await {
-            eprintln!("Error sending notification: {:?}", e);
-            // Continue processing even if notification fails
+        // 记录数据变更（PostGraphile会自动检测）
+        if let Err(e) = log_data_change(&mut conn, &table_name, "INSERT", 1).await {
+            eprintln!("记录日志失败: {:?}", e);
         }
 
         Ok(())
@@ -252,19 +238,9 @@ impl DubheIndexerWorker {
             }
         }
         
-        // 发送通知
-        let key_json_values: Vec<(String, serde_json::Value)> = key_fields.iter()
-            .map(|(name, _)| {
-                let value = key_values.get(name).unwrap_or(&serde_json::Value::Null);
-                (name.clone(), value.clone())
-            })
-            .collect();
-            
-        let updated_value = vec![(field_name.clone(), value.clone())];
-        
-        if let Err(e) = notify_store_change(&mut conn, &table_name, "update", &key_json_values, &updated_value).await {
-            eprintln!("Error sending notification: {:?}", e);
-            // Continue processing even if notification fails
+        // 记录数据变更（PostGraphile会自动检测）
+        if let Err(e) = log_data_change(&mut conn, &table_name, "UPDATE", 1).await {
+            eprintln!("记录日志失败: {:?}", e);
         }
         
         Ok(())
