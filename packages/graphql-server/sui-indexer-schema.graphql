@@ -1,3 +1,238 @@
+"""The root query type which gives access points into the data universe."""
+type Query implements Node {
+  """
+  Exposes the root query type nested one level down. This is helpful for Relay 1
+  which can only query top level fields if they are in a particular form.
+  """
+  query: Query!
+
+  """
+  The root query type must be a `Node` to work well with Relay 1 mutations. This just resolves to `query`.
+  """
+  nodeId: ID!
+
+  """Fetches an object given its globally unique `ID`."""
+  node(
+    """The globally unique `ID`."""
+    nodeId: ID!
+  ): Node
+
+  """Reads and enables pagination through a set of `StoreAccount`."""
+  accounts(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreAccount`."""
+    orderBy: [StoreAccountsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreAccountCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreAccountFilter
+  ): StoreAccountsConnection
+
+  """Reads and enables pagination through a set of `StoreEncounter`."""
+  encounters(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreEncounter`."""
+    orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreEncounterCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreEncounterFilter
+  ): StoreEncountersConnection
+
+  """Reads and enables pagination through a set of `StoreMapConfig`."""
+  mapConfigs(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreMapConfig`."""
+    orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreMapConfigCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreMapConfigFilter
+  ): StoreMapConfigsConnection
+
+  """Reads and enables pagination through a set of `StorePosition`."""
+  positions(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StorePosition`."""
+    orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StorePositionCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StorePositionFilter
+  ): StorePositionsConnection
+
+  """Reads and enables pagination through a set of `TableField`."""
+  allTableFields(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `TableField`."""
+    orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TableFieldCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TableFieldFilter
+  ): TableFieldsConnection
+  accountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
+  encounterByPlayer(player: String!): StoreEncounter
+  positionByPlayer(player: String!): StorePosition
+  tableFieldByTableNameAndFieldName(tableName: String!, fieldName: String!): TableField
+
+  """Reads a single `StoreAccount` using its globally unique `ID`."""
+  account(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreAccount`.
+    """
+    nodeId: ID!
+  ): StoreAccount
+
+  """Reads a single `StoreEncounter` using its globally unique `ID`."""
+  encounter(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreEncounter`.
+    """
+    nodeId: ID!
+  ): StoreEncounter
+
+  """Reads a single `StorePosition` using its globally unique `ID`."""
+  position(
+    """
+    The globally unique `ID` to be used in selecting a single `StorePosition`.
+    """
+    nodeId: ID!
+  ): StorePosition
+
+  """Reads a single `TableField` using its globally unique `ID`."""
+  tableField(
+    """
+    The globally unique `ID` to be used in selecting a single `TableField`.
+    """
+    nodeId: ID!
+  ): TableField
+
+  """获取所有store表的Schema信息"""
+  storeSchema: JSON
+
+  """查询指定store表的数据"""
+  storeData(table: String!): JSON
+
+  """获取所有可用的store表名列表"""
+  availableStoreTables: [String!]!
+}
+
 """An object with a globally unique `ID`."""
 interface Node {
   """
@@ -6,24 +241,24 @@ interface Node {
   nodeId: ID!
 }
 
-"""A connection to a list of `accounts` values."""
-type AccountsConnection {
-  """A list of `accounts` objects."""
-  nodes: [accounts!]!
+"""A connection to a list of `StoreAccount` values."""
+type StoreAccountsConnection {
+  """A list of `StoreAccount` objects."""
+  nodes: [StoreAccount!]!
 
   """
-  A list of edges which contains the `accounts` and cursor to aid in pagination.
+  A list of edges which contains the `StoreAccount` and cursor to aid in pagination.
   """
-  edges: [AccountsEdge!]!
+  edges: [StoreAccountsEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `accounts` you could get from the connection."""
+  """The count of *all* `StoreAccount` you could get from the connection."""
   totalCount: Int!
 }
 
-type accounts implements Node {
+type StoreAccount implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
@@ -33,13 +268,13 @@ type accounts implements Node {
   balance: String
 }
 
-"""A `accounts` edge in the connection."""
-type AccountsEdge {
+"""A `StoreAccount` edge in the connection."""
+type StoreAccountsEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `accounts` at the end of the edge."""
-  node: accounts!
+  """The `StoreAccount` at the end of the edge."""
+  node: StoreAccount!
 }
 
 """A location in a connection that can be used for resuming pagination."""
@@ -60,8 +295,8 @@ type PageInfo {
   endCursor: Cursor
 }
 
-"""Methods to use when ordering `accounts`."""
-enum AccountsOrderBy {
+"""Methods to use when ordering `StoreAccount`."""
+enum StoreAccountsOrderBy {
   NATURAL
   ASSET_ID_ASC
   ASSET_ID_DESC
@@ -74,10 +309,10 @@ enum AccountsOrderBy {
 }
 
 """
-A condition to be used against `accounts` object types. All fields are tested
-for equality and combined with a logical ‘and.’
+A condition to be used against `StoreAccount` object types. All fields are
+tested for equality and combined with a logical ‘and.’
 """
-input AccountsCondition {
+input StoreAccountCondition {
   """Checks for equality with the object’s `assetId` field."""
   assetId: String
 
@@ -89,9 +324,9 @@ input AccountsCondition {
 }
 
 """
-A filter to be used against `accounts` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreAccount` object types. All fields are combined with a logical ‘and.’
 """
-input accountsFilter {
+input StoreAccountFilter {
   """Filter by the object’s `assetId` field."""
   assetId: StringFilter
 
@@ -102,13 +337,13 @@ input accountsFilter {
   balance: StringFilter
 
   """Checks for all expressions in this list."""
-  and: [accountsFilter!]
+  and: [StoreAccountFilter!]
 
   """Checks for any expressions in this list."""
-  or: [accountsFilter!]
+  or: [StoreAccountFilter!]
 
   """Negates the expression."""
-  not: accountsFilter
+  not: StoreAccountFilter
 }
 
 """
@@ -199,24 +434,24 @@ input StringFilter {
   notLike: String
 }
 
-"""A connection to a list of `encounter` values."""
-type EncountersConnection {
-  """A list of `encounter` objects."""
-  nodes: [encounter!]!
+"""A connection to a list of `StoreEncounter` values."""
+type StoreEncountersConnection {
+  """A list of `StoreEncounter` objects."""
+  nodes: [StoreEncounter!]!
 
   """
-  A list of edges which contains the `encounter` and cursor to aid in pagination.
+  A list of edges which contains the `StoreEncounter` and cursor to aid in pagination.
   """
-  edges: [EncountersEdge!]!
+  edges: [StoreEncountersEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `encounter` you could get from the connection."""
+  """The count of *all* `StoreEncounter` you could get from the connection."""
   totalCount: Int!
 }
 
-type encounter implements Node {
+type StoreEncounter implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
@@ -227,17 +462,17 @@ type encounter implements Node {
   catchAttempts: String
 }
 
-"""A `encounter` edge in the connection."""
-type EncountersEdge {
+"""A `StoreEncounter` edge in the connection."""
+type StoreEncountersEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `encounter` at the end of the edge."""
-  node: encounter!
+  """The `StoreEncounter` at the end of the edge."""
+  node: StoreEncounter!
 }
 
-"""Methods to use when ordering `encounter`."""
-enum EncountersOrderBy {
+"""Methods to use when ordering `StoreEncounter`."""
+enum StoreEncountersOrderBy {
   NATURAL
   PLAYER_ASC
   PLAYER_DESC
@@ -252,10 +487,10 @@ enum EncountersOrderBy {
 }
 
 """
-A condition to be used against `encounter` object types. All fields are tested
-for equality and combined with a logical ‘and.’
+A condition to be used against `StoreEncounter` object types. All fields are
+tested for equality and combined with a logical ‘and.’
 """
-input EncounterCondition {
+input StoreEncounterCondition {
   """Checks for equality with the object’s `player` field."""
   player: String
 
@@ -270,9 +505,9 @@ input EncounterCondition {
 }
 
 """
-A filter to be used against `encounter` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreEncounter` object types. All fields are combined with a logical ‘and.’
 """
-input encounterFilter {
+input StoreEncounterFilter {
   """Filter by the object’s `player` field."""
   player: StringFilter
 
@@ -286,13 +521,13 @@ input encounterFilter {
   catchAttempts: StringFilter
 
   """Checks for all expressions in this list."""
-  and: [encounterFilter!]
+  and: [StoreEncounterFilter!]
 
   """Checks for any expressions in this list."""
-  or: [encounterFilter!]
+  or: [StoreEncounterFilter!]
 
   """Negates the expression."""
-  not: encounterFilter
+  not: StoreEncounterFilter
 }
 
 """
@@ -337,39 +572,39 @@ input BooleanFilter {
   greaterThanOrEqualTo: Boolean
 }
 
-"""A connection to a list of `mapConfig` values."""
-type MapConfigsConnection {
-  """A list of `mapConfig` objects."""
-  nodes: [mapConfig!]!
+"""A connection to a list of `StoreMapConfig` values."""
+type StoreMapConfigsConnection {
+  """A list of `StoreMapConfig` objects."""
+  nodes: [StoreMapConfig!]!
 
   """
-  A list of edges which contains the `mapConfig` and cursor to aid in pagination.
+  A list of edges which contains the `StoreMapConfig` and cursor to aid in pagination.
   """
-  edges: [MapConfigsEdge!]!
+  edges: [StoreMapConfigsEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `mapConfig` you could get from the connection."""
+  """The count of *all* `StoreMapConfig` you could get from the connection."""
   totalCount: Int!
 }
 
-type mapConfig {
+type StoreMapConfig {
   width: String
   height: String
 }
 
-"""A `mapConfig` edge in the connection."""
-type MapConfigsEdge {
+"""A `StoreMapConfig` edge in the connection."""
+type StoreMapConfigsEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `mapConfig` at the end of the edge."""
-  node: mapConfig!
+  """The `StoreMapConfig` at the end of the edge."""
+  node: StoreMapConfig!
 }
 
-"""Methods to use when ordering `mapConfig`."""
-enum MapConfigsOrderBy {
+"""Methods to use when ordering `StoreMapConfig`."""
+enum StoreMapConfigsOrderBy {
   NATURAL
   WIDTH_ASC
   WIDTH_DESC
@@ -378,10 +613,10 @@ enum MapConfigsOrderBy {
 }
 
 """
-A condition to be used against `mapConfig` object types. All fields are tested
-for equality and combined with a logical ‘and.’
+A condition to be used against `StoreMapConfig` object types. All fields are
+tested for equality and combined with a logical ‘and.’
 """
-input MapConfigCondition {
+input StoreMapConfigCondition {
   """Checks for equality with the object’s `width` field."""
   width: String
 
@@ -390,9 +625,9 @@ input MapConfigCondition {
 }
 
 """
-A filter to be used against `mapConfig` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreMapConfig` object types. All fields are combined with a logical ‘and.’
 """
-input mapConfigFilter {
+input StoreMapConfigFilter {
   """Filter by the object’s `width` field."""
   width: StringFilter
 
@@ -400,33 +635,33 @@ input mapConfigFilter {
   height: StringFilter
 
   """Checks for all expressions in this list."""
-  and: [mapConfigFilter!]
+  and: [StoreMapConfigFilter!]
 
   """Checks for any expressions in this list."""
-  or: [mapConfigFilter!]
+  or: [StoreMapConfigFilter!]
 
   """Negates the expression."""
-  not: mapConfigFilter
+  not: StoreMapConfigFilter
 }
 
-"""A connection to a list of `position` values."""
-type PositionsConnection {
-  """A list of `position` objects."""
-  nodes: [position!]!
+"""A connection to a list of `StorePosition` values."""
+type StorePositionsConnection {
+  """A list of `StorePosition` objects."""
+  nodes: [StorePosition!]!
 
   """
-  A list of edges which contains the `position` and cursor to aid in pagination.
+  A list of edges which contains the `StorePosition` and cursor to aid in pagination.
   """
-  edges: [PositionsEdge!]!
+  edges: [StorePositionsEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `position` you could get from the connection."""
+  """The count of *all* `StorePosition` you could get from the connection."""
   totalCount: Int!
 }
 
-type position implements Node {
+type StorePosition implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
@@ -436,17 +671,17 @@ type position implements Node {
   y: String
 }
 
-"""A `position` edge in the connection."""
-type PositionsEdge {
+"""A `StorePosition` edge in the connection."""
+type StorePositionsEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `position` at the end of the edge."""
-  node: position!
+  """The `StorePosition` at the end of the edge."""
+  node: StorePosition!
 }
 
-"""Methods to use when ordering `position`."""
-enum PositionsOrderBy {
+"""Methods to use when ordering `StorePosition`."""
+enum StorePositionsOrderBy {
   NATURAL
   PLAYER_ASC
   PLAYER_DESC
@@ -459,10 +694,10 @@ enum PositionsOrderBy {
 }
 
 """
-A condition to be used against `position` object types. All fields are tested
-for equality and combined with a logical ‘and.’
+A condition to be used against `StorePosition` object types. All fields are
+tested for equality and combined with a logical ‘and.’
 """
-input PositionCondition {
+input StorePositionCondition {
   """Checks for equality with the object’s `player` field."""
   player: String
 
@@ -474,9 +709,9 @@ input PositionCondition {
 }
 
 """
-A filter to be used against `position` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StorePosition` object types. All fields are combined with a logical ‘and.’
 """
-input positionFilter {
+input StorePositionFilter {
   """Filter by the object’s `player` field."""
   player: StringFilter
 
@@ -487,33 +722,33 @@ input positionFilter {
   y: StringFilter
 
   """Checks for all expressions in this list."""
-  and: [positionFilter!]
+  and: [StorePositionFilter!]
 
   """Checks for any expressions in this list."""
-  or: [positionFilter!]
+  or: [StorePositionFilter!]
 
   """Negates the expression."""
-  not: positionFilter
+  not: StorePositionFilter
 }
 
-"""A connection to a list of `tableFields` values."""
+"""A connection to a list of `TableField` values."""
 type TableFieldsConnection {
-  """A list of `tableFields` objects."""
-  nodes: [tableFields!]!
+  """A list of `TableField` objects."""
+  nodes: [TableField!]!
 
   """
-  A list of edges which contains the `tableFields` and cursor to aid in pagination.
+  A list of edges which contains the `TableField` and cursor to aid in pagination.
   """
   edges: [TableFieldsEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `tableFields` you could get from the connection."""
+  """The count of *all* `TableField` you could get from the connection."""
   totalCount: Int!
 }
 
-type tableFields implements Node {
+type TableField implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
@@ -525,16 +760,16 @@ type tableFields implements Node {
   isKey: Boolean
 }
 
-"""A `tableFields` edge in the connection."""
+"""A `TableField` edge in the connection."""
 type TableFieldsEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `tableFields` at the end of the edge."""
-  node: tableFields!
+  """The `TableField` at the end of the edge."""
+  node: TableField!
 }
 
-"""Methods to use when ordering `tableFields`."""
+"""Methods to use when ordering `TableField`."""
 enum TableFieldsOrderBy {
   NATURAL
   TABLE_NAME_ASC
@@ -552,10 +787,10 @@ enum TableFieldsOrderBy {
 }
 
 """
-A condition to be used against `tableFields` object types. All fields are tested
+A condition to be used against `TableField` object types. All fields are tested
 for equality and combined with a logical ‘and.’
 """
-input TableFieldsCondition {
+input TableFieldCondition {
   """Checks for equality with the object’s `tableName` field."""
   tableName: String
 
@@ -573,9 +808,9 @@ input TableFieldsCondition {
 }
 
 """
-A filter to be used against `tableFields` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `TableField` object types. All fields are combined with a logical ‘and.’
 """
-input tableFieldsFilter {
+input TableFieldFilter {
   """Filter by the object’s `tableName` field."""
   tableName: StringFilter
 
@@ -592,13 +827,13 @@ input tableFieldsFilter {
   isKey: BooleanFilter
 
   """Checks for all expressions in this list."""
-  and: [tableFieldsFilter!]
+  and: [TableFieldFilter!]
 
   """Checks for any expressions in this list."""
-  or: [tableFieldsFilter!]
+  or: [TableFieldFilter!]
 
   """Negates the expression."""
-  not: tableFieldsFilter
+  not: TableFieldFilter
 }
 
 """
@@ -648,246 +883,6 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 """
 scalar JSON
 
-type ListenPayload {
-  """
-  Our root query field type. Allows us to run any query from our subscription payload.
-  """
-  query: Query
-  relatedNode: Node
-  relatedNodeId: ID
-}
-
-scalar LiveSchema
-
-"""The root query type which gives access points into the data universe."""
-type Query implements Node {
-  """
-  Exposes the root query type nested one level down. This is helpful for Relay 1
-  which can only query top level fields if they are in a particular form.
-  """
-  query: Query!
-
-  """
-  The root query type must be a `Node` to work well with Relay 1 mutations. This just resolves to `query`.
-  """
-  nodeId: ID!
-
-  """Fetches an object given its globally unique `ID`."""
-  node(
-    """The globally unique `ID`."""
-    nodeId: ID!
-  ): Node
-
-  """Reads and enables pagination through a set of `accounts`."""
-  accounts(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `accounts`."""
-    orderBy: [AccountsOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: AccountsCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: accountsFilter
-  ): AccountsConnection
-
-  """Reads and enables pagination through a set of `encounter`."""
-  encounters(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `encounter`."""
-    orderBy: [EncountersOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: EncounterCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: encounterFilter
-  ): EncountersConnection
-
-  """Reads and enables pagination through a set of `mapConfig`."""
-  mapConfigs(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `mapConfig`."""
-    orderBy: [MapConfigsOrderBy!] = [NATURAL]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: MapConfigCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: mapConfigFilter
-  ): MapConfigsConnection
-
-  """Reads and enables pagination through a set of `position`."""
-  positions(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `position`."""
-    orderBy: [PositionsOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: PositionCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: positionFilter
-  ): PositionsConnection
-
-  """Reads and enables pagination through a set of `tableFields`."""
-  allTableFields(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `tableFields`."""
-    orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: TableFieldsCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: tableFieldsFilter
-  ): TableFieldsConnection
-  accountByAssetIdAndAccount(assetId: String!, account: String!): accounts
-  encounterByPlayer(player: String!): encounter
-  positionByPlayer(player: String!): position
-  tableFieldByTableNameAndFieldName(tableName: String!, fieldName: String!): tableFields
-
-  """Reads a single `accounts` using its globally unique `ID`."""
-  account(
-    """The globally unique `ID` to be used in selecting a single `accounts`."""
-    nodeId: ID!
-  ): accounts
-
-  """Reads a single `encounter` using its globally unique `ID`."""
-  encounter(
-    """The globally unique `ID` to be used in selecting a single `encounter`."""
-    nodeId: ID!
-  ): encounter
-
-  """Reads a single `position` using its globally unique `ID`."""
-  position(
-    """The globally unique `ID` to be used in selecting a single `position`."""
-    nodeId: ID!
-  ): position
-
-  """Reads a single `tableFields` using its globally unique `ID`."""
-  tableField(
-    """
-    The globally unique `ID` to be used in selecting a single `tableFields`.
-    """
-    nodeId: ID!
-  ): tableFields
-
-  """获取所有store表的Schema信息"""
-  storeSchema: JSON
-
-  """查询指定store表的数据"""
-  storeData(table: String!): JSON
-
-  """获取所有可用的store表名列表"""
-  availableStoreTables: [String!]!
-}
-
 """
 The root subscription type: contains realtime events you can subscribe to with the `subscription` operation.
 """
@@ -900,4 +895,13 @@ type Subscription {
     """
     initialEvent: Boolean! = false
   ): ListenPayload!
+}
+
+type ListenPayload {
+  """
+  Our root query field type. Allows us to run any query from our subscription payload.
+  """
+  query: Query
+  relatedNode: Node
+  relatedNodeId: ID
 }

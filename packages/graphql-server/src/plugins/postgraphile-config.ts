@@ -1,8 +1,7 @@
-import { createEnhancedPlayground } from './enhanced-playground';
 import { QueryFilterPlugin } from './query-filter';
 import { SimpleNamingPlugin } from './simple-naming';
 import { AllFieldsFilterPlugin } from './all-fields-filter-plugin';
-import { createSimpleSubscriptionPlugin } from '../simple-subscriptions';
+import { createEnhancedPlayground } from './enhanced-playground';
 import ConnectionFilterPlugin from 'postgraphile-plugin-connection-filter';
 import { makePluginHook } from 'postgraphile';
 
@@ -44,7 +43,7 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 			? `ws://localhost:${port}${graphqlEndpoint}`
 			: undefined;
 
-	// 创建插件钩子以支持WebSocket和Live Queries
+	// 创建插件钩子以支持WebSocket和订阅
 	const pluginHook = PgPubsub ? makePluginHook([PgPubsub]) : undefined;
 
 	const config = {
@@ -55,10 +54,9 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		extendedErrors:
 			nodeEnv === 'development' ? ['hint', 'detail', 'errcode'] : [],
 
-		// 功能配置 - 启用live queries和subscriptions
+		// 功能配置 - 启用订阅
 		subscriptions: enableSubscriptions === 'true',
-		live: enableSubscriptions === 'true', // 启用live queries - 这会自动添加@live指令
-		simpleSubscriptions: enableSubscriptions === 'true', // 启用简单订阅
+		live: enableSubscriptions === 'true', // 启用live功能以支持订阅
 		enableQueryBatching: true,
 		enableCors: enableCors === 'true',
 
@@ -99,7 +97,6 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 			SimpleNamingPlugin, // 已修复字段丢失问题
 			ConnectionFilterPlugin,
 			AllFieldsFilterPlugin,
-			...createSimpleSubscriptionPlugin(availableTables),
 		],
 
 		// Connection Filter 插件的高级配置选项
@@ -190,26 +187,25 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 				: undefined,
 	};
 
-	// 如果启用订阅，添加额外的live queries配置
+	// 如果启用订阅，添加额外的PostgreSQL订阅配置
 	if (enableSubscriptions === 'true') {
 		return {
 			...config,
-			// 使用专用数据库连接用于live queries
+			// 使用专用数据库连接用于订阅
 			ownerConnectionString: options.databaseUrl,
 
 			// WebSocket配置
 			websocketMiddlewares: [],
 
-			// PostgreSQL设置 - 为live queries优化
+			// PostgreSQL设置 - 为订阅优化
 			pgSettings: {
 				statement_timeout: '30s',
-				// 为live queries设置适当的事务隔离级别
-				default_transaction_isolation: 'repeatable read',
+				// 为订阅设置适当的事务隔离级别
+				default_transaction_isolation: 'read committed',
 			},
 
-			// Live查询特定配置
-			simpleSubscriptions: true, // 启用简单订阅模式
-			retryOnInitFail: true, // 连接失败时重试
+			// 连接失败时重试
+			retryOnInitFail: true,
 
 			// 性能优化
 			pgDefaultRole: undefined,

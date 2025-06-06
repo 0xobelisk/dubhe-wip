@@ -621,7 +621,7 @@ export class DubheGraphqlClient {
       : tableName;
     const capitalizedName =
       singularName.charAt(0).toUpperCase() + singularName.slice(1);
-    return `${capitalizedName.toLowerCase()}Filter`;
+    return `Store${capitalizedName}Filter`;
   }
 
   private getOrderByTypeName(tableName: string): string {
@@ -631,7 +631,7 @@ export class DubheGraphqlClient {
     // 规则：tableName 首字母大写，加上Store前缀和OrderBy后缀
     const capitalizedName =
       tableName.charAt(0).toUpperCase() + tableName.slice(1);
-    return `${capitalizedName}OrderBy`;
+    return `Store${capitalizedName}OrderBy`;
   }
 
   private buildSingleQueryName(

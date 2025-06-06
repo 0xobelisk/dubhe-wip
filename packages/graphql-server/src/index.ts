@@ -33,7 +33,6 @@ const {
 	PG_SCHEMA = 'public',
 	ENABLE_CORS = 'true',
 	ENABLE_SUBSCRIPTIONS = 'true',
-	REALTIME_PORT = '4001',
 } = process.env;
 
 // 创建数据库连接池
@@ -75,27 +74,19 @@ const startServer = async (): Promise<void> => {
 		const config = subscriptionConfig.getConfig();
 		subscriptionLogger.info('📡 订阅系统配置状态', {
 			enableSubscriptions: config.enableSubscriptions,
-			capabilities: config.capabilities,
-			recommendedMethod:
-				subscriptionConfig.getRecommendedSubscriptionMethod(),
+			capabilities: {
+				pgSubscriptions: config.capabilities.pgSubscriptions,
+			},
+			recommendedMethod: 'pg-subscriptions',
 			walLevel: config.walLevel,
 		});
 
-		// 3. 预生成store表信息用于动态订阅
-		subscriptionLogger.info('预生成store表信息用于动态订阅...');
+		// 3. 预生成store表信息用于动态查询
+		subscriptionLogger.info('预生成store表信息用于工具查询...');
 		const storeTablesInfo = await generateStoreTablesInfo(pgPool);
 		const storeTableNames = Object.keys(storeTablesInfo);
 
 		subscriptionLogger.info(`发现store表: ${storeTableNames.join(', ')}`);
-		subscriptionLogger.info(
-			`将生成以下订阅字段: ${storeTableNames
-				.map(name =>
-					name.replace(/_([a-z])/g, (match, letter) =>
-						letter.toUpperCase()
-					)
-				)
-				.join(', ')}`
-		);
 
 		// 4. 创建 PostGraphile 配置
 		const postgraphileConfigOptions: PostGraphileConfigOptions = {
@@ -114,18 +105,17 @@ const startServer = async (): Promise<void> => {
 			enableSubscriptions: ENABLE_SUBSCRIPTIONS,
 		});
 
-		// 使用增强的配置管理器，并添加预生成的动态订阅插件
+		// 使用简化的配置
 		const postgraphileConfig = {
 			...createPostGraphileConfig(postgraphileConfigOptions),
 			...subscriptionConfig.generatePostGraphileConfig(),
 		};
 
-		// 添加动态生成的订阅插件
-		const dynamicSubscriptionPlugin =
-			createUniversalSubscriptionsPlugin(storeTablesInfo);
+		// 添加工具查询插件
+		const toolsPlugin = createUniversalSubscriptionsPlugin(storeTablesInfo);
 		postgraphileConfig.appendPlugins = [
 			...(postgraphileConfig.appendPlugins || []),
-			dynamicSubscriptionPlugin,
+			toolsPlugin,
 		];
 
 		// 5. 创建 PostGraphile 中间件
@@ -143,10 +133,10 @@ const startServer = async (): Promise<void> => {
 			enableSubscriptions: ENABLE_SUBSCRIPTIONS,
 		};
 
-		// 7. 创建增强服务器管理器
+		// 7. 创建简化服务器管理器
 		const serverManager = new EnhancedServerManager();
 
-		// 8. 创建增强服务器
+		// 8. 创建服务器
 		const httpServer = await serverManager.createEnhancedServer({
 			postgraphileMiddleware,
 			pgPool,
@@ -164,22 +154,27 @@ const startServer = async (): Promise<void> => {
 			port: PORT,
 			tableCount: allTables.length,
 			storeTableCount: storeTableNames.length,
-			generatedSubscriptionFields: storeTableNames.length,
 			nodeEnv: NODE_ENV,
-			capabilities: config.capabilities,
+			capabilities: {
+				pgSubscriptions: config.capabilities.pgSubscriptions,
+			},
 		});
 
-		// 10. 显示配置文档
+		// 10. 显示使用说明
 		if (NODE_ENV === 'development') {
 			console.log('\n' + '='.repeat(80));
-			console.log('📖 配置文档:');
+			console.log('📖 快速访问:');
+			console.log(`访问 http://localhost:${PORT}/ 查看主页`);
 			console.log(
-				`访问 http://localhost:${PORT}/subscription-docs 查看完整配置指南`
+				`访问 http://localhost:${PORT}/playground 使用GraphQL Playground`
 			);
+			console.log(`访问 http://localhost:${PORT}/health 查看服务器状态`);
 			console.log(
 				`访问 http://localhost:${PORT}/subscription-config 获取客户端配置`
 			);
-			console.log(`访问 http://localhost:${PORT}/health 查看服务器状态`);
+			console.log(
+				`访问 http://localhost:${PORT}/subscription-docs 查看配置指南`
+			);
 			console.log('='.repeat(80) + '\n');
 		}
 
@@ -206,7 +201,7 @@ const startServer = async (): Promise<void> => {
 			'2. 数据库中没有预期的表结构 - 确保 sui-rust-indexer 已运行'
 		);
 		systemLogger.info('3. 权限问题 - 确保数据库用户有足够权限');
-		systemLogger.info('4. 缺少 subscription 依赖 - 运行 pnpm install');
+		systemLogger.info('4. 缺少依赖 - 运行 npm install');
 
 		// 显示订阅配置帮助
 		console.log('\n' + subscriptionConfig.generateDocumentation());

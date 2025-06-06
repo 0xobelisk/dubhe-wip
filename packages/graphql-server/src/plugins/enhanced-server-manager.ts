@@ -1,4 +1,4 @@
-// 增强的服务器管理器 - 统一管理三种订阅模式
+// 简化的服务器管理器 - 只支持基本HTTP服务器和PostgreSQL listen订阅
 
 import {
 	createServer,
@@ -12,14 +12,7 @@ import {
 	subscriptionConfig,
 	SubscriptionConfig,
 } from '../config/subscription-config';
-import { RealtimeSubscriptionServer } from '../realtime-server';
-import { UnifiedRealtimeEngine } from '../realtime-engine';
-import {
-	systemLogger,
-	wsLogger,
-	serverLogger,
-	logPerformance,
-} from '../utils/logger';
+import { systemLogger, serverLogger, logPerformance } from '../utils/logger';
 import { createWelcomePage, WelcomePageConfig } from './welcome-page';
 import {
 	createPlaygroundHtml,
@@ -40,8 +33,6 @@ export interface EnhancedServerConfig {
 export class EnhancedServerManager {
 	private config: SubscriptionConfig;
 	private httpServer: HttpServer | null = null;
-	private realtimeServer: RealtimeSubscriptionServer | null = null;
-	private unifiedEngine: UnifiedRealtimeEngine | null = null;
 
 	constructor() {
 		this.config = subscriptionConfig.getConfig();
@@ -90,7 +81,7 @@ export class EnhancedServerManager {
 					return;
 				}
 
-				// 处理增强版 GraphQL Playground
+				// 处理GraphQL Playground
 				if (url.startsWith('/playground')) {
 					res.writeHead(200, {
 						'Content-Type': 'text/html; charset=utf-8',
@@ -154,16 +145,6 @@ export class EnhancedServerManager {
 					return;
 				}
 
-				// 测试数据插入端点（仅开发环境）
-				if (
-					url === '/test-data' &&
-					req.method === 'POST' &&
-					process.env.NODE_ENV === 'development'
-				) {
-					this.handleTestDataInsertion(req, res, serverConfig);
-					return;
-				}
-
 				// 404处理
 				res.writeHead(404, { 'Content-Type': 'text/plain' });
 				res.end('Not Found');
@@ -188,88 +169,31 @@ export class EnhancedServerManager {
 	async createEnhancedServer(
 		serverConfig: EnhancedServerConfig
 	): Promise<HttpServer> {
-		const { postgraphileMiddleware, pgPool, tableNames, databaseUrl } =
-			serverConfig;
+		const { postgraphileMiddleware } = serverConfig;
 
 		// 创建HTTP服务器
 		this.httpServer = createServer(this.createRequestHandler(serverConfig));
 
-		// 根据配置启用不同的订阅模式
-		await this.setupSubscriptionServices(serverConfig);
-
-		serverLogger.info('🚀 增强服务器创建完成', {
-			graphqlPort: this.config.graphqlPort,
-			capabilities: this.config.capabilities,
-			recommendedMethod:
-				subscriptionConfig.getRecommendedSubscriptionMethod(),
-		});
-
-		return this.httpServer;
-	}
-
-	// 设置订阅服务
-	private async setupSubscriptionServices(
-		serverConfig: EnhancedServerConfig
-	) {
-		const { postgraphileMiddleware, pgPool, tableNames, databaseUrl } =
-			serverConfig;
-
-		// 1. PostGraphile订阅增强（Live Queries + 传统订阅）
-		if (
-			this.config.capabilities.liveQueries ||
-			this.config.capabilities.pgSubscriptions
-		) {
+		// 只启用PostgreSQL订阅（listen）
+		if (this.config.capabilities.pgSubscriptions) {
 			enhanceHttpServerWithSubscriptions(
-				this.httpServer!,
+				this.httpServer,
 				postgraphileMiddleware
 			);
-			systemLogger.info('✅ PostGraphile WebSocket订阅已启用', {
-				liveQueries: this.config.capabilities.liveQueries,
+			systemLogger.info('✅ PostgreSQL listen订阅已启用', {
 				pgSubscriptions: this.config.capabilities.pgSubscriptions,
 			});
 		}
 
-		// 2. 原生WebSocket服务器（仅在指定独立端口时启动）
-		if (
-			this.config.capabilities.nativeWebSocket &&
-			this.config.websocketPort &&
-			this.config.websocketPort !== this.config.graphqlPort
-		) {
-			this.realtimeServer = new RealtimeSubscriptionServer(
-				this.config.websocketPort,
-				databaseUrl,
-				tableNames
-			);
+		serverLogger.info('🚀 简化服务器创建完成', {
+			graphqlPort: this.config.graphqlPort,
+			capabilities: {
+				pgSubscriptions: this.config.capabilities.pgSubscriptions,
+			},
+			recommendedMethod: 'pg-subscriptions',
+		});
 
-			wsLogger.info('✅ 原生WebSocket服务器已启动（独立端口）', {
-				port: this.config.websocketPort,
-				tablesCount: tableNames.length,
-			});
-		} else if (this.config.capabilities.nativeWebSocket) {
-			wsLogger.info(
-				'✅ 原生WebSocket将通过主HTTP服务器提供（共享端口）',
-				{
-					port: this.config.graphqlPort,
-					note: '通过PostGraphile的WebSocket功能提供',
-				}
-			);
-		}
-
-		// 3. 统一实时引擎（可选的高级模式）
-		if (process.env.ENABLE_UNIFIED_ENGINE === 'true') {
-			const engineConfig = {
-				port: this.config.websocketPort || this.config.graphqlPort + 1,
-				dbUrl: databaseUrl,
-				enableLiveQueries: this.config.capabilities.liveQueries,
-				enableNativeWebSocket: this.config.capabilities.nativeWebSocket,
-				tableNames,
-				maxConnections: this.config.maxConnections,
-				heartbeatInterval: this.config.heartbeatInterval,
-			};
-
-			this.unifiedEngine = new UnifiedRealtimeEngine(engineConfig);
-			systemLogger.info('✅ 统一实时引擎已启动', engineConfig);
-		}
+		return this.httpServer;
 	}
 
 	// 启动服务器
@@ -295,14 +219,13 @@ export class EnhancedServerManager {
 	private logServerStatus() {
 		const clientConfig = subscriptionConfig.generateClientConfig();
 
-		serverLogger.info('🎉 增强GraphQL服务器启动成功!', {
+		serverLogger.info('🎉 GraphQL服务器启动成功!', {
 			port: this.config.graphqlPort,
 			endpoints: {
 				home: `http://localhost:${this.config.graphqlPort}/`,
 				playground: `http://localhost:${this.config.graphqlPort}/playground`,
 				graphql: clientConfig.graphqlEndpoint,
 				subscription: clientConfig.subscriptionEndpoint,
-				nativeWebSocket: clientConfig.nativeWebSocketEndpoint,
 				health: `http://localhost:${this.config.graphqlPort}/health`,
 				config: `http://localhost:${this.config.graphqlPort}/subscription-config`,
 				docs: `http://localhost:${this.config.graphqlPort}/subscription-docs`,
@@ -318,17 +241,13 @@ export class EnhancedServerManager {
 			'🎮 Playground: ' +
 				`http://localhost:${this.config.graphqlPort}/playground`
 		);
+		console.log(
+			'🔗 GraphQL: ' +
+				`http://localhost:${this.config.graphqlPort}/graphql`
+		);
 		console.log('🌟'.repeat(30) + '\n');
 
-		// 显示能力状态
-		serverLogger.info('📡 订阅能力状态:', this.config.capabilities);
-
-		// 显示推荐使用方法
-		const recommendedMethod =
-			subscriptionConfig.getRecommendedSubscriptionMethod();
-		serverLogger.info(`💡 推荐使用: ${recommendedMethod}`);
-
-		// 显示示例用法
+		// 显示订阅使用示例
 		this.logUsageExamples();
 	}
 
@@ -338,18 +257,8 @@ export class EnhancedServerManager {
 		console.log('📚 订阅使用示例:');
 		console.log('='.repeat(80));
 
-		if (this.config.capabilities.liveQueries) {
-			console.log('\n🔥 Live Queries (推荐):');
-			console.log(`subscription {
-  encounters @live {
-    nodes { player monster exists }
-    totalCount
-  }
-}`);
-		}
-
 		if (this.config.capabilities.pgSubscriptions) {
-			console.log('\n⚡ PostgreSQL Subscriptions:');
+			console.log('\n⚡ PostgreSQL Listen Subscriptions:');
 			console.log(`subscription {
   listen(topic: "store_encounter") {
     relatedNodeId
@@ -358,17 +267,10 @@ export class EnhancedServerManager {
 }`);
 		}
 
-		if (this.config.capabilities.nativeWebSocket) {
-			console.log('\n🌐 Native WebSocket:');
-			console.log(`const ws = new WebSocket('${
-				subscriptionConfig.generateClientConfig()
-					.nativeWebSocketEndpoint
-			}');
-ws.send(JSON.stringify({
-  action: 'subscribe',
-  table: 'encounter'
-}));`);
-		}
+		console.log('\n💡 发送测试通知:');
+		console.log(
+			`psql ${process.env.DATABASE_URL} -c "NOTIFY store_encounter, 'test message';"`
+		);
 
 		console.log('\n' + '='.repeat(80) + '\n');
 	}
@@ -376,13 +278,26 @@ ws.send(JSON.stringify({
 	// 获取订阅状态
 	getSubscriptionStatus() {
 		return {
-			config: this.config,
+			config: {
+				enableSubscriptions: this.config.enableSubscriptions,
+				capabilities: {
+					liveQueries: false,
+					pgSubscriptions: this.config.capabilities.pgSubscriptions,
+					nativeWebSocket: false,
+				},
+				walLevel: this.config.walLevel,
+				pgVersion: this.config.pgVersion,
+				graphqlPort: this.config.graphqlPort,
+				maxConnections: this.config.maxConnections,
+				heartbeatInterval: this.config.heartbeatInterval,
+				enableNotificationLogging:
+					this.config.enableNotificationLogging,
+				enablePerformanceMetrics: this.config.enablePerformanceMetrics,
+			},
 			services: {
-				postgraphile:
-					this.config.capabilities.liveQueries ||
-					this.config.capabilities.pgSubscriptions,
-				realtimeServer: this.realtimeServer !== null,
-				unifiedEngine: this.unifiedEngine !== null,
+				postgraphile: this.config.capabilities.pgSubscriptions,
+				realtimeServer: false,
+				unifiedEngine: false,
 			},
 			clientConfig: subscriptionConfig.generateClientConfig(),
 		};
@@ -392,32 +307,15 @@ ws.send(JSON.stringify({
 	async gracefulShutdown(pgPool: Pool): Promise<void> {
 		systemLogger.info('🛑 开始优雅关闭服务器...');
 
-		const shutdownPromises: Promise<void>[] = [];
-
-		// 关闭原生WebSocket服务器
-		if (this.realtimeServer) {
-			shutdownPromises.push(this.realtimeServer.close());
-		}
-
-		// 关闭统一实时引擎
-		if (this.unifiedEngine) {
-			shutdownPromises.push(this.unifiedEngine.shutdown());
-		}
-
 		// 关闭HTTP服务器
 		if (this.httpServer) {
-			shutdownPromises.push(
-				new Promise(resolve => {
-					this.httpServer!.close(() => {
-						systemLogger.info('HTTP服务器已关闭');
-						resolve();
-					});
-				})
-			);
+			await new Promise<void>(resolve => {
+				this.httpServer!.close(() => {
+					systemLogger.info('HTTP服务器已关闭');
+					resolve();
+				});
+			});
 		}
-
-		// 等待所有服务关闭
-		await Promise.all(shutdownPromises);
 
 		// 关闭数据库连接池
 		await pgPool.end();
@@ -425,81 +323,5 @@ ws.send(JSON.stringify({
 
 		systemLogger.info('✅ 服务器优雅关闭完成');
 		process.exit(0);
-	}
-
-	// 发送测试消息（用于调试）
-	sendTestUpdate(table: string = 'encounter', data: any = { test: true }) {
-		if (this.realtimeServer) {
-			this.realtimeServer.sendTestMessage(table);
-		}
-
-		if (this.unifiedEngine) {
-			this.unifiedEngine.triggerTestUpdate(table, data);
-		}
-
-		systemLogger.info('📤 测试消息已发送', { table, data });
-	}
-
-	// 获取实时指标
-	getMetrics() {
-		const metrics: any = {
-			timestamp: new Date().toISOString(),
-			config: this.config,
-		};
-
-		if (this.realtimeServer) {
-			metrics.realtimeServer = this.realtimeServer.getStatus();
-		}
-
-		if (this.unifiedEngine) {
-			metrics.unifiedEngine = this.unifiedEngine.getStatus();
-		}
-
-		return metrics;
-	}
-
-	// 处理测试数据插入（仅开发环境）
-	private handleTestDataInsertion(
-		req: IncomingMessage,
-		res: ServerResponse,
-		serverConfig: EnhancedServerConfig
-	) {
-		try {
-			// 模拟数据插入，触发数据库通知
-			const testData = {
-				type: 'test_data_insertion',
-				timestamp: new Date().toISOString(),
-				message: '这是一个测试数据插入，用于触发订阅更新',
-			};
-
-			// 发送测试消息给所有活跃的订阅
-			if (this.realtimeServer) {
-				this.realtimeServer.sendTestMessage('encounter');
-			}
-
-			if (this.unifiedEngine) {
-				this.unifiedEngine.triggerTestUpdate('encounter', testData);
-			}
-
-			res.writeHead(200, { 'Content-Type': 'application/json' });
-			res.end(
-				JSON.stringify({
-					success: true,
-					message: '测试数据已插入，检查订阅客户端是否收到更新',
-					data: testData,
-					timestamp: new Date().toISOString(),
-				})
-			);
-
-			systemLogger.info('📤 手动触发测试数据插入', testData);
-		} catch (error) {
-			res.writeHead(500, { 'Content-Type': 'application/json' });
-			res.end(
-				JSON.stringify({
-					success: false,
-					error: error instanceof Error ? error.message : '未知错误',
-				})
-			);
-		}
 	}
 }
