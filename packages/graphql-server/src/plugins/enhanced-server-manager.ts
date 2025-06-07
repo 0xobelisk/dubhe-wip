@@ -251,33 +251,6 @@ export class EnhancedServerManager {
 				`http://localhost:${this.config.graphqlPort}/graphql`
 		);
 		console.log('🌟'.repeat(30) + '\n');
-
-		// 显示订阅使用示例
-		this.logUsageExamples();
-	}
-
-	// 记录使用示例
-	private logUsageExamples() {
-		console.log('\n' + '='.repeat(80));
-		console.log('📚 订阅使用示例:');
-		console.log('='.repeat(80));
-
-		if (this.config.capabilities.pgSubscriptions) {
-			console.log('\n⚡ PostgreSQL Listen Subscriptions:');
-			console.log(`subscription {
-  listen(topic: "store_encounter") {
-    relatedNodeId
-    relatedNode { nodeId }
-  }
-}`);
-		}
-
-		console.log('\n💡 发送测试通知:');
-		console.log(
-			`psql ${process.env.DATABASE_URL} -c "NOTIFY store_encounter, 'test message';"`
-		);
-
-		console.log('\n' + '='.repeat(80) + '\n');
 	}
 
 	// 获取订阅状态

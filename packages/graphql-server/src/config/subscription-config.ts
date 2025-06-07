@@ -196,36 +196,6 @@ ENABLE_SUBSCRIPTION_METRICS=false # 性能指标
 		}
 - WAL Level: ${this.config.walLevel}
 - 推荐方法: ${this.getRecommendedSubscriptionMethod()}
-
-## 使用示例:
-
-### PostgreSQL Listen订阅 (简化版本)
-${
-	this.config.capabilities.pgSubscriptions
-		? `
-# 监听所有store表的变更
-subscription {
-  listen(topic: "store_encounter") {
-    # 只使用基础字段，忽略relatedNode和relatedNodeId
-    __typename
-  }
-}
-
-# 或者监听特定操作
-subscription {
-  listen(topic: "store_encounter:INSERT") {
-    __typename  # 可获取变更类型
-  }
-}
-
-# 监听多个表
-subscription MultiTableListen {
-  encounterChanges: listen(topic: "store_encounter") { __typename }
-  accountChanges: listen(topic: "store_accounts") { __typename }
-}
-`
-		: '❌ 已禁用'
-}
 		`;
 	}
 }

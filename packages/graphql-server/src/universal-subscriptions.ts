@@ -112,10 +112,6 @@ export function createUniversalSubscriptionsPlugin(
 
 		const tableNames = Object.keys(cachedTables);
 		subscriptionLogger.info(`已发现store表: ${tableNames.join(', ')}`);
-		subscriptionLogger.info('💡 用户可以使用PostGraphile内置的listen订阅');
-		subscriptionLogger.info(
-			'💡 例如: subscription { listen(topic: "store_encounter") { relatedNodeId } }'
-		);
 
 		return {
 			typeDefs: gql`
