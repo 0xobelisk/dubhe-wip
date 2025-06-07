@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 
-//滑动指定位置的动画效果
+// Animation effect for sliding to specified position
 const visible = { opacity: 1, y: 0, transition: { duration: 0.5 } };
 
 const itemVariants = {

@@ -170,12 +170,12 @@ async function waitForNode(dubhe: Dubhe): Promise<string> {
   process.on('SIGINT', handleInterrupt);
 
   try {
-    // 第一阶段：等待获取 chainId
+    // Phase 1: Wait for getting chainId
     while (retryCount < MAX_RETRIES && !isInterrupted && !chainId) {
       try {
         chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
       } catch (error) {
-        // 忽略错误，继续重试
+        // Ignore errors, continue retrying
       }
 
       if (isInterrupted) break;
@@ -197,11 +197,11 @@ async function waitForNode(dubhe: Dubhe): Promise<string> {
       }
     }
 
-    // 显示 chainId
+    // Display chainId
     process.stdout.write('\r' + ' '.repeat(50) + '\r');
     console.log(`  ├─ ChainId: ${chainId}`);
 
-    // 第二阶段：检查部署账户余额
+    // Phase 2: Check deployer account balance
     retryCount = 0;
     while (retryCount < MAX_RETRIES && !isInterrupted) {
       try {
