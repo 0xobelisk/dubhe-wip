@@ -335,7 +335,7 @@ export class DubheGraphqlClient {
     const pluralTableName = this.getPluralTableName(tableName);
 
     // 转换OrderBy为枚举值
-    const orderByEnums = convertOrderByToEnum(tableName, params?.orderBy);
+    const orderByEnums = convertOrderByToEnum(params?.orderBy);
 
     // 动态构建查询
     const query = gql`
@@ -365,7 +365,7 @@ export class DubheGraphqlClient {
           edges {
             cursor
             node {
-              ${getTableFields(tableName, params?.fields)}
+              ${convertTableFields(params?.fields)}
             }
           }
         }
@@ -401,7 +401,7 @@ export class DubheGraphqlClient {
           edges {
             cursor
             node {
-              ${getTableFields(tableName, params?.fields)}
+              ${convertTableFields(params?.fields)}
             }
           }
         }
@@ -454,7 +454,7 @@ export class DubheGraphqlClient {
     const query = gql`
       query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
         ${queryFieldName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
-          ${getTableFields(tableName, fields)}
+          ${convertTableFields(fields)}
         }
       }
     `;
@@ -487,7 +487,7 @@ export class DubheGraphqlClient {
       : `store_${tableName}`;
 
     const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
-    const fields = getTableFields(tableName, options?.fields);
+    const fields = convertTableFields(options?.fields);
 
     const subscription = gql`
       subscription ListenToTableChanges($topic: String!, $initialEvent: Boolean) {
@@ -570,8 +570,8 @@ export class DubheGraphqlClient {
       : `store_${tableName}`;
 
     const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
-    const fields = getTableFields(tableName, options?.fields);
-    const orderByEnum = convertOrderByToEnum(tableName, options?.orderBy);
+    const fields = convertTableFields(options?.fields);
+    const orderByEnum = convertOrderByToEnum(options?.orderBy);
     const first = options?.first || 10;
 
     const subscription = gql`
@@ -751,14 +751,6 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 判断表名是否已经是复数形式（简化版本）
-   */
-  private isPlural(tableName: string): boolean {
-    // 简单判断：如果以's'结尾，认为是复数
-    return tableName.endsWith('s');
-  }
-
-  /**
    * 简化的单数转换逻辑 - 只判断最后的's'
    */
   private getSingularTableName(tableName: string): string {
@@ -778,41 +770,6 @@ export class DubheGraphqlClient {
       (key) => key.charAt(0).toUpperCase() + key.slice(1)
     );
     return `${tableName.charAt(0).toLowerCase() + tableName.slice(1)}By${capitalizedKeys.join('And')}`;
-  }
-
-  // 为了向后兼容，保留旧的方法名作为别名
-  /** @deprecated 请使用 getAllTables */
-  async getAllStoreTables<T extends StoreTableRow>(
-    tableName: string,
-    params?: BaseQueryParams & {
-      filter?: Record<string, any>;
-      orderBy?: OrderBy[];
-    }
-  ): Promise<Connection<T>> {
-    console.warn('getAllStoreTables is deprecated, please use getAllTables');
-    return this.getAllTables(tableName, params);
-  }
-
-  /** @deprecated 请使用 getTableByCondition */
-  async getStoreTableById<T extends StoreTableRow>(
-    tableName: string,
-    id: string
-  ): Promise<T | null> {
-    console.warn(
-      'getStoreTableById is deprecated, please use getTableByCondition'
-    );
-    return this.getTableByCondition(tableName, { id });
-  }
-
-  /** @deprecated 请使用 subscribeToTableChanges */
-  subscribeToStoreTableChanges<T extends StoreTableRow>(
-    tableName: string,
-    options?: SubscriptionOptions
-  ): Observable<SubscriptionResult<{ storeTableChanged: T }>> {
-    console.warn(
-      'subscribeToStoreTableChanges is deprecated, please use subscribeToTableChanges'
-    );
-    return this.subscribeToTableChanges(tableName, options) as any;
   }
 
   /**
@@ -858,7 +815,7 @@ export const QueryBuilders = {
   // 构建基础查询 - 已适配去掉store前缀的API
   basic: (
     tableName: string,
-    fields: string[] = ['id', 'createdAt', 'updatedAt']
+    fields: string[] = ['createdAt', 'updatedAt']
   ) => gql`
     query Basic${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Query(
       $first: Int
@@ -885,7 +842,6 @@ export const QueryBuilders = {
   subscription: (tableName: string) => gql`
     subscription ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Subscription {
       ${tableName.charAt(0).toLowerCase() + tableName.slice(1)}Changed {
-        id
         createdAt
         updatedAt
       }
@@ -894,10 +850,7 @@ export const QueryBuilders = {
 };
 
 // 辅助函数：转换OrderBy格式
-function convertOrderByToEnum(
-  tableName: string,
-  orderBy?: OrderBy[]
-): string[] {
+function convertOrderByToEnum(orderBy?: OrderBy[]): string[] {
   if (!orderBy || orderBy.length === 0) {
     return ['NATURAL'];
   }
@@ -912,7 +865,7 @@ function convertOrderByToEnum(
 }
 
 // 动态获取表字段的函数 - 真正通用化
-function getTableFields(tableName: string, customFields?: string[]): string {
+function convertTableFields(customFields?: string[]): string {
   if (customFields && customFields.length > 0) {
     // 如果用户指定了字段，使用用户指定的字段
     return customFields.join('\n    ');
