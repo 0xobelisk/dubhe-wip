@@ -1,0 +1,83 @@
+{
+  "projectName": "dubhe",
+  "network": "localnet",
+  "packageId": "0x2a031f7a4a34b6c8a9c627d999ef69d0692b029ce75587efbe6dd88d0a2a1a1a",
+  "dappHub": "0xe61c9a07c60b8827c99d203008f8570965d3b49b8756feaac4bb7e55e7e1f0cb",
+  "components": {
+    "config": {
+      "fields": {
+        "next_asset_id": "u256",
+        "swap_fee": "u256",
+        "fee_to": "address",
+        "max_swap_path_len": "u64"
+      },
+      "keys": []
+    },
+    "asset_metadata": {
+      "fields": {
+        "name": "vector<u8>",
+        "symbol": "vector<u8>",
+        "description": "vector<u8>",
+        "decimals": "u8",
+        "icon_url": "vector<u8>",
+        "owner": "address",
+        "supply": "u256",
+        "accounts": "u256",
+        "status": "AssetStatus",
+        "is_mintable": "bool",
+        "is_burnable": "bool",
+        "is_freezable": "bool",
+        "asset_type": "AssetType"
+      }
+    },
+    "asset_account": {
+      "fields": {
+        "asset_id": "address",
+        "account": "address",
+        "balance": "u256",
+        "status": "AccountStatus"
+      },
+      "keys": [
+        "asset_id",
+        "account"
+      ]
+    },
+    "pools": {
+      "fields": {
+        "asset0": "address",
+        "asset1": "address",
+        "pool_address": "address",
+        "lp_asset": "address",
+        "reserve0": "u128",
+        "reserve1": "u128",
+        "k_last": "u256"
+      },
+      "keys": [
+        "asset0",
+        "asset1"
+      ]
+    },
+    "bridge": {
+      "fields": {
+        "chain": "vector<u8>",
+        "min_amount": "u256",
+        "fee": "u256",
+        "opened": "bool"
+      },
+      "keys": [
+        "chain"
+      ]
+    },
+    "wrapper_assets": {
+      "fields": {
+        "coin_type": "vector<u8>",
+        "asset_id": "address"
+      },
+      "keys": [
+        "coin_type"
+      ]
+    }
+  },
+  "upgradeCap": "0x44e68b20baa93a318c5eac6b2fc2e8bddd43d97942b547b42fbcc26a1928c422",
+  "version": 1
+}

@@ -6,7 +6,7 @@ import {
   updateDubheDependency,
   switchEnv,
   delay,
-  getDubheSchemaId,
+  getDubheDappHub,
   initializeDubhe
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
@@ -365,8 +365,8 @@ async function publishContract(
   console.log('  ├─ Processing publication results...');
   let version = 1;
   let packageId = '';
-  let schemaId = '';
-  let schemas = dubheConfig.schemas;
+  let dappHub = '';
+  let components = dubheConfig.components;
   let upgradeCapId = '';
 
   let printObjects: any[] = [];
@@ -384,6 +384,13 @@ async function publishContract(
       console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
       upgradeCapId = object.objectId || '';
     }
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType.includes('dapp_hub::DappHub')
+    ) {
+      dappHub = object.objectId || '';
+    }
     if (object.type === 'created') {
       printObjects.push(object);
     }
@@ -398,10 +405,8 @@ async function publishContract(
 
   const deployHookTx = new Transaction();
   let args = [];
-  if (dubheConfig.name !== 'dubhe') {
-    let dubheSchemaId = await getDubheSchemaId(network);
-    args.push(deployHookTx.object(dubheSchemaId));
-  }
+  let dubheDappHub = dubheConfig.name === 'dubhe' ? dappHub : await getDubheDappHub(network);
+  args.push(deployHookTx.object(dubheDappHub));
   args.push(deployHookTx.object('0x6'));
   deployHookTx.moveCall({
     target: `${packageId}::${dubheConfig.name}_genesis::run`,
@@ -422,24 +427,6 @@ async function publishContract(
     console.log(`  ├─ Transaction: ${deployHookResult.digest}`);
 
     console.log('\n📋 Created Objects:');
-    deployHookResult.objectChanges?.map((object: ObjectChange) => {
-      if (
-        object.type === 'created' &&
-        object.objectType &&
-        object.objectType.includes('schema::Schema')
-      ) {
-        schemaId = object.objectId || '';
-      }
-      if (
-        object.type === 'created' &&
-        object.objectType &&
-        object.objectType.includes('schema') &&
-        !object.objectType.includes('dynamic_field')
-      ) {
-        printObjects.push(object);
-      }
-    });
-
     printObjects.map((object: ObjectChange) => {
       console.log(`  ├─ Type: ${object.objectType}`);
       console.log(`  └─ ID: ${object.objectId}`);
@@ -449,10 +436,10 @@ async function publishContract(
       dubheConfig.name,
       network,
       packageId,
-      schemaId,
+      dappHub,
       upgradeCapId,
       version,
-      schemas
+      components
     );
     console.log('\n✅ Contract Publication Complete\n');
   } else {
@@ -559,8 +546,8 @@ export async function publishDubheFramework(
 
   let version = 1;
   let packageId = '';
-  let schemaId = '';
-  let schemas: Record<string, string> = {};
+  let dappHub = '';
+  let components = {};
   let upgradeCapId = '';
 
   result.objectChanges!.map((object: ObjectChange) => {
@@ -574,14 +561,23 @@ export async function publishDubheFramework(
     ) {
       upgradeCapId = object.objectId || '';
     }
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType.includes('dapp_hub::DappHub')
+    ) {
+      dappHub = object.objectId || '';
+    }
   });
 
   await delay(3000);
-
   const deployHookTx = new Transaction();
   deployHookTx.moveCall({
     target: `${packageId}::dubhe_genesis::run`,
-    arguments: [deployHookTx.object('0x6')]
+    arguments: [
+      deployHookTx.object(dappHub),
+      deployHookTx.object('0x6')
+    ]
   });
 
   let deployHookResult;
@@ -592,23 +588,14 @@ export async function publishDubheFramework(
     console.error(error.message);
     process.exit(1);
   }
-
-  if (deployHookResult.effects?.status.status === 'success') {
-    deployHookResult.objectChanges?.map((object: ObjectChange) => {
-      if (
-        object.type === 'created' &&
-        object.objectType &&
-        object.objectType.includes('dubhe_schema::Schema')
-      ) {
-        schemaId = object.objectId || '';
-      }
-    });
+ 
+  if (deployHookResult.effects?.status.status !== 'success') {
+    throw new Error('Deploy hook execution failed');
   }
 
-  saveContractData('dubhe', network, packageId, schemaId, upgradeCapId, version, schemas);
+  saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, components);
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
-  await delay(1000);
 }
 
 export async function publishHandler(
@@ -622,12 +609,15 @@ export async function publishHandler(
     network
   });
 
-  if (network === 'localnet') {
-    await publishDubheFramework(dubhe, network);
-  }
-
   const path = process.cwd();
   const projectPath = `${path}/src/${dubheConfig.name}`;
-  await updateDubheDependency(`${projectPath}/Move.toml`, network);
+
+  if (network === 'localnet' && dubheConfig.name !== 'dubhe') {
+    await publishDubheFramework(dubhe, network);  
+  }
+
+  if (dubheConfig.name !== 'dubhe') {
+    await updateDubheDependency(`${projectPath}/Move.toml`, network);
+  }
   await publishContract(dubhe, dubheConfig, network, projectPath, gasBudget);
 }

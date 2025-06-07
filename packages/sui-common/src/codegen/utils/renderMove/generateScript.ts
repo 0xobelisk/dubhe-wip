@@ -9,14 +9,12 @@ function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export async function generateDeployHook(config: DubheConfig, srcPrefix: string) {
-  const path = `${srcPrefix}/src/${config.name}/sources/scripts/deploy_hook.move`;
+export async function generateDeployHook(config: DubheConfig, path: string) {
   if (!existsSync(path)) {
     const code = `module ${config.name}::${config.name}_deploy_hook {
-			  use ${config.name}::${config.name}_schema::Schema;
-        ${config.name !== 'dubhe' ? `use dubhe::dubhe_schema::Schema as DubheSchema;` : '' }
+			  use dubhe::dapp_hub::DappHub;
 
-  public(package) fun run(${config.name !== 'dubhe' ? `_dubhe_schema: &mut DubheSchema,` : ''}_schema: &mut Schema,  _ctx: &mut TxContext) {
+  public(package) fun run(_dapp_hub: &mut DappHub, _ctx: &mut TxContext) {
 
   }
 }`;

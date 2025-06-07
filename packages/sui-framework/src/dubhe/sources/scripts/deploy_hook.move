@@ -6,49 +6,46 @@
   
   module dubhe::dubhe_deploy_hook {
 
-  use dubhe::dubhe_schema::Schema;
-  use dubhe::custom_schema;
-  use std::ascii::String;
-  use std::ascii::string;
+  use dubhe::dapp_hub::DappHub;
+  use dubhe::dubhe_config;
+  use dubhe::dubhe_wrapper_system;
   use sui::sui::SUI;
   use dubhe::dubhe::DUBHE;
-  use dubhe::dubhe_bridge_config;
-  use dubhe::dubhe_wrapper_system;
-  use dubhe::dubhe_dapp_key::DappKey;
-  public(package) fun run(schema: &mut Schema, ctx: &mut TxContext) {
-    custom_schema::add_to_schema(schema, ctx);
+  use dubhe::dubhe_dapp_key;
 
-    schema.next_asset_id().set(0);
-    // 0.3% swap fee
-    schema.swap_fee().set(30);
-    schema.fee_to().set(ctx.sender());
-    schema.max_swap_path_len().set(6);
+  public(package) fun run(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+    let next_asset_id = 0;
+      // 0.3% swap fee
+    let swap_fee = 30;
+    let fee_to = ctx.sender();
+    let max_swap_path_len = 6;
+    dubhe_config::set(
+      dapp_hub, 
+      next_asset_id, 
+      swap_fee, 
+      fee_to, 
+      max_swap_path_len
+    );
 
-    // bridge
-    // to Dubhe_OS_Network => 1 DUBHE
-    schema.bridge().set(string(b"Dubhe OS"), dubhe_bridge_config::new(50000000, 2000000, true));
-    // to Aptos_Network => 1 DUBHE
-    schema.bridge().set(string(b"Aptos"), dubhe_bridge_config::new(50000000, 2000000, true));
-
-    dubhe_wrapper_system::do_register<SUI>(
-      schema,
-      string(b"Wrapped SUI"),
-      string(b"wSUI"),
-      string(b"Wrapped SUI"),
+    let sui_asset_id = dubhe_wrapper_system::do_register<SUI>(
+      dapp_hub,
+      b"Wrapped SUI",
+      b"wSUI",
+      b"Wrapped SUI",
     9,
-    string(b"https://cryptologos.cc/logos/sui-sui-logo.png?v=040"),
-    string(b"")
+    b"https://cryptologos.cc/logos/sui-sui-logo.png?v=040",
     );
-    let asset_id = dubhe_wrapper_system::do_register<DUBHE>(
-      schema,
-    string(b"Wrapped DUBHE"),
-      string(b"wDUBHE"),
-      string(b"Wrapped DUBHE"),
+    let dubhe_asset_id = dubhe_wrapper_system::do_register<DUBHE>(
+      dapp_hub,
+      b"Wrapped DUBHE",
+      b"wDUBHE",
+      b"Wrapped DUBHE",
       7,
-      string(b"https://raw.githubusercontent.com/0xobelisk/dubhe/refs/heads/main/assets/logo.jpg"),
-      string(b"")
+      b"https://raw.githubusercontent.com/0xobelisk/dubhe/refs/heads/main/assets/logo.jpg",
     );
 
-    dubhe::dubhe_assets_functions::add_package_asset<DappKey>(schema, asset_id);
+    std::debug::print(&sui_asset_id);
+    std::debug::print(&dubhe_asset_id);
+    
   }
 }

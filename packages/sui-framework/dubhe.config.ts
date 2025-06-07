@@ -1,89 +1,93 @@
-import {DubheConfig, storage} from '@0xobelisk/sui-common';
+import {DubheConfig } from '@0xobelisk/sui-common';
 
 export const dubheConfig = {
     name: 'dubhe',
     description: 'Dubhe Protocol',
-    data: {
+    enums: {
         AccountStatus: ['Liquid', 'Frozen', 'Blocked'],
         AssetStatus: ['Liquid', 'Frozen'],
         AssetType: ['Lp', 'Wrapped', 'Private', 'Package'],
-        Account: { balance: 'u256', status: 'AccountStatus' },
-        AssetMetadata: {
-            // The user friendly name of this asset. Limited in length by `StringLimit`.
-            name: 'String',
-            // The ticker symbol for this asset. Limited in length by `StringLimit`.
-            symbol: 'String',
-            // A short description of this asset.
-            description: 'String',
-            // The number of decimals this asset uses to represent one unit.
-            decimals: 'u8',
-            // Asset icon url
-            icon_url: 'String',
-            // Extra information about this asset. Generally used for display purposes.
-            extra_info: 'String',
-            // Can change `owner`, `issuer`, `freezer` and `admin` accounts.
-            owner: 'address',
-            // The total supply across all accounts.
-            supply: 'u256',
-            // The total number of accounts.
-            accounts: 'u256',
-            // The status of the asset
-            status: 'AssetStatus',
-            // Whether the asset is mintable.
-            is_mintable: 'bool',
-            // Whether the asset is burnable.
-            is_burnable: 'bool',
-            // Whether the asset is freezable.
-            is_freezable: 'bool',
-            // The type of the asset.
-            asset_type: 'AssetType',
-        },
-        Pool: {
-            pool_address: 'address',
-            lp_asset_id: 'u256',
-            reserve0: 'u128',
-            reserve1: 'u128',
-            k_last: 'u256',
-        },
-        BridgeConfig: {
-            min_amount: 'u256',
-            fee: 'u256',
-            opened: 'bool',
-        },
-        DappMetadata: {
-            name: 'String',
-            description: 'String',
-            cover_url: 'vector<String>',
-            website_url: 'String',
-            created_at: 'u64',
-            partners: 'vector<String>',
-        },
-        DappStats: {
-            remaining_set_count: 'u256',
-            per_set_fee: 'u256',
-            total_set_count: 'u256',
-            total_set_fees_paid: 'u256',
-        },
     },
-    schemas: {
-        next_asset_id: storage('u256'),
-        asset_metadata: storage('u256', 'AssetMetadata'),
-        account: storage('u256', 'address', 'Account'),
-        swap_fee: storage('u256'),
-        fee_to: storage('address'),
-        max_swap_path_len: storage('u64'),
-        pools: storage('u256', 'u256', 'Pool'),
-        bridge: storage('String', 'BridgeConfig'),
-
-        // Dapp management
-        dapp_admin: storage('address', 'address'),
-        dapp_version: storage('address', 'u32'),
-        dapp_pausable: storage('address', 'bool'),
-        dapp_metadata: storage('address', 'DappMetadata'),
-        dapp_package_id: storage('address', 'address'),
-        dapp_stats: storage('address', 'DappStats'),
+    components: {
+        config: {
+            fields: {
+                next_asset_id: 'u256',
+                swap_fee: 'u256',
+                fee_to: 'address',
+                max_swap_path_len: 'u64',
+            },
+            keys: []
+        },
+        asset_metadata: {
+            fields: {
+                // The user friendly name of this asset. Limited in length by `StringLimit`.
+                name: 'vector<u8>',
+                // The ticker symbol for this asset. Limited in length by `StringLimit`.
+                symbol: 'vector<u8>',
+                // A short description of this asset.
+                description: 'vector<u8>',
+                // The number of decimals this asset uses to represent one unit.
+                decimals: 'u8',
+                // Asset icon url 
+                icon_url: 'vector<u8>',
+                // Can change `owner`, `issuer`, `freezer` and `admin` accounts.
+                owner: 'address',
+                // The total supply across all accounts.
+                supply: 'u256',
+                // The total number of accounts.
+                accounts: 'u256',
+                // The status of the asset
+                status: 'AssetStatus',
+                // Whether the asset is mintable.
+                is_mintable: 'bool',
+                // Whether the asset is burnable.
+                is_burnable: 'bool',
+                // Whether the asset is freezable.
+                is_freezable: 'bool',
+                // The type of the asset.
+                asset_type: 'AssetType',
+            }
+        }, 
+        asset_account: {
+            fields: {
+                asset_id: 'address',
+                account: 'address',
+                balance: 'u256',
+                status: 'AccountStatus'
+            },
+            keys: ['asset_id', 'account']
+        },
+        pools: {
+            fields: {
+                asset0: 'address',
+                asset1: 'address',
+                pool_address: 'address',
+                lp_asset: 'address',
+                reserve0: 'u128',
+                reserve1: 'u128',
+                k_last: 'u256'
+            },
+            keys: ['asset0', 'asset1']
+        },
+        bridge: {
+            fields: {
+                chain: 'vector<u8>',
+                min_amount: 'u256',
+                fee: 'u256',
+                opened: 'bool'
+            },
+            keys: ['chain']
+        },
+        wrapper_assets: {
+            fields: {
+                coin_type: 'vector<u8>',
+                asset_id: 'address',
+            },
+            keys: ['coin_type']    
+        },
+        // dapp_admin: 'address',
     },
-    errors: {
+     errors: {
         asset_not_found: "Asset not found",
         asset_already_frozen: "Asset already frozen",
         asset_not_liquid: "Asset not liquid",
@@ -120,105 +124,4 @@ export const dubheConfig = {
         not_dapp_pausable: "Dapp is not pausable",
         dapp_already_exists: "Dapp already exists",
     },
-    events: {
-        asset_created: {
-            asset_id: 'u256',
-            name: 'String',
-            symbol: 'String',
-            owner: 'address',
-            is_mintable: 'bool',
-            is_burnable: 'bool',
-            is_freezable: 'bool',
-        },
-        asset_transferred: {
-            asset_id: 'u256',
-            from: 'address',
-            to: 'address',
-            amount: 'u256',
-        },
-        ownership_transferred: {
-            asset_id: 'u256',
-            from: 'address',
-            to: 'address',
-        },
-        pool_created: {
-            creator: 'address',
-            asset1_id: 'u256',
-            asset2_id: 'u256',
-            pool_address: 'address',
-            lp_asset_id: 'u256',
-            lp_asset_symbol: 'String',
-        },
-        liquidity_added: {
-            who: 'address',
-            asset1_id: 'u256',
-            asset2_id: 'u256',
-            asset1_amount: 'u256',
-            asset2_amount: 'u256',
-            lp_asset_id: 'u256',
-            lp_asset_minted: 'u256',
-        },
-        liquidity_removed: {
-            who: 'address',
-            asset1_id: 'u256',
-            asset2_id: 'u256',
-            asset1_amount: 'u256',
-            asset2_amount: 'u256',
-            lp_asset_id: 'u256',
-            lp_asset_burned: 'u256',
-        },
-        lp_minted: {
-            sender: 'address',
-            asset0: 'u256',
-            asset1: 'u256',
-            amount0: 'u256',
-            amount1: 'u256',
-            to: 'address',
-        },
-        lp_burned: {
-            sender: 'address',
-            asset0: 'u256',
-            asset1: 'u256',
-            amount0: 'u256',
-            amount1: 'u256',
-            to: 'address',
-        },
-        swap: {
-            sender: 'address',
-            asset0: 'u256',
-            asset1: 'u256',
-            amount0_in: 'u256',
-            amount1_in: 'u256',
-            amount0_out: 'u256',
-            amount1_out: 'u256',
-            to: 'address',
-        },
-        asset_wrapped: {
-            from: 'address',
-            asset_id: 'u256',
-            amount: 'u256',
-            beneficiary: 'address',
-        },
-        asset_unwrapped: {
-            from: 'address',
-            asset_id: 'u256',
-            amount: 'u256',
-            beneficiary: 'address',
-        },
-        bridge_withdraw: {
-            asset_id: 'u256',
-            from: 'address',
-            to: 'address',
-            to_chain: 'String',
-            amount: 'u256',
-            fee: 'u256',
-        },
-        bridge_deposit: {
-            asset_id: 'u256',
-            from: 'address',
-            to: 'address',
-            from_chain: 'String',
-            amount: 'u256',
-        }
-  },
 } as DubheConfig;

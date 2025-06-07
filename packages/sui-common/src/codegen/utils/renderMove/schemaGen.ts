@@ -1,4 +1,4 @@
-import { SchemaType, DubheConfig } from '../../types';
+import { DubheConfig } from '../../types';
 import { rmdirSync, existsSync } from 'fs';
 import { deleteFolderRecursive } from './common';
 import { generateToml } from './generateToml';
@@ -10,11 +10,15 @@ import { generateSystemsAndTests } from './generateSystem';
 import { generateSchemaHub } from './generateSchemaHub';
 import { generateSchemaError } from './generateError';
 import { generateDefaultSchema } from './generateDefaultSchema';
-import { generateInit } from './generateInit';
+import { generateInitTest } from './generateInitTest';
+import { generateComponents } from './generateComponents';
+import { generateGenesis } from './generateGenesis';
+import { generateEnums } from './generateEnums';
+import path from 'node:path';
 
 export async function schemaGen(
+  rootDir: string,
   config: DubheConfig,
-  srcPrefix?: string,
   network?: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
   console.log('\n🚀 Starting Schema Generation Process...');
@@ -23,43 +27,69 @@ export async function schemaGen(
   console.log(`     └─ Description: ${config.description || 'No description provided'}`);
   console.log(`     └─ Network: ${network || 'testnet'}`);
 
-  const path = srcPrefix ?? process.cwd();
+  console.log(rootDir)
+  const projectDir = path.join(rootDir, 'src', config.name);
 
-  if (existsSync(`${path}/src/${config.name}`)) {
-    deleteFolderRecursive(`${path}/src/${config.name}/sources/codegen`);
+  if (existsSync(`${projectDir}`)) {
+    deleteFolderRecursive(`${projectDir}/sources/codegen`);
   }
 
-  if (!existsSync(`${path}/src/${config.name}/Move.toml`)) {
-    await generateToml(config, path);
+  if (!existsSync(`${projectDir}/Move.toml`)) {
+    await generateToml(config, rootDir);
   }
 
-  if (!existsSync(`${path}/src/${config.name}/sources/script/deploy_hook.move`)) {
-    await generateDeployHook(config, path);
+  const genesisPath = path.join(projectDir, 'sources', 'codegen', 'genesis.move');
+  if (!existsSync(genesisPath)) {
+    await generateGenesis(config, genesisPath);
   }
 
-  if (config.events) {
-    if (config.data) {
-      await generateSchemaEvent(config.name, config.data, config.events, path);
-    } else {
-      await generateSchemaEvent(config.name, null, config.events, path);
-    }
+  const initTestPath = path.join(projectDir, 'sources', 'codegen', 'init_test.move');
+  if (!existsSync(initTestPath)) {
+    await generateInitTest(config, initTestPath);
   }
 
-  if (config.data) {
-    await generateSchemaData(config.name, config.data, path);
-    await generateSchemaStructure(config.name, config.data, config.schemas, path);
-  } else {
-    await generateSchemaStructure(config.name, null, config.schemas, path);
+  const dappKeyPath = path.join(projectDir, 'sources', 'codegen', 'dapp_key.move');
+  if (!existsSync(dappKeyPath)) {
+    await generateDappKey(config, dappKeyPath);
   }
+
+  const deployHookPath = path.join(projectDir, 'sources', 'scripts', 'deploy_hook.move');
+  if (!existsSync(deployHookPath)) {
+    await generateDeployHook(config, deployHookPath);
+  }
+
+  const componentsPath = path.join(projectDir, 'sources', 'codegen', 'components');
+  if (!existsSync(componentsPath)) {
+    await generateComponents(config, componentsPath);
+  }
+
+  const enumsPath = path.join(projectDir, 'sources', 'codegen', 'enums');
+  if (!existsSync(enumsPath)) {
+    await generateEnums(config, enumsPath);
+  }
+
+  // if (config.events) {
+  //   if (config.data) {
+  //     await generateSchemaEvent(config.name, config.data, config.events, rootDir);
+  //   } else {
+  //     await generateSchemaEvent(config.name, null, config.events, rootDir);
+  //   }
+  // }
+
+  // if (config.data) {
+  //   await generateSchemaData(config.name, config.data, rootDir);
+  //   await generateSchemaStructure(config.name, config.data, config.schemas, rootDir);
+  // } else {
+  //   await generateSchemaStructure(config.name, null, config.schemas, rootDir);
+  // }
 
   if (config.errors) {
-    await generateSchemaError(config.name, config.errors, path);
+    await generateSchemaError(config.name, config.errors, rootDir);
   }
 
-  // await generateDefaultSchema(config, path);
-  await generateInit(config, path);
-  await generateSystemsAndTests(config, path);
-  await generateMigrate(config, path);
-  await generateDappKey(config, path);
+  // await generateDefaultSchema(config, rootDir);
+  // await generateInit(config, rootDir);
+  // await generateSystemsAndTests(config, rootDir);
+  // await generateMigrate(config, rootDir);
   console.log('\n✅  Schema Generation Process Complete!\n');
 }
