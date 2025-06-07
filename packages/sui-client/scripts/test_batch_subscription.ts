@@ -27,6 +27,12 @@ class LatencyStats {
   private durations: number[] = []; // 30秒周期的数据
   private mediumTermDurations: number[] = []; // 10分钟周期的数据
   private longTermDurations: number[] = []; // 30分钟周期的数据
+
+  // 数据库到订阅延迟统计
+  private dbSubscriptionDurations: number[] = [];
+  private mediumTermDbSubscriptionDurations: number[] = [];
+  private longTermDbSubscriptionDurations: number[] = [];
+
   private totalTransactions: number = 0;
   private startTime: number;
   private logFilePath: string;
@@ -66,6 +72,12 @@ class LatencyStats {
     this.mediumTermDurations.push(duration);
     this.longTermDurations.push(duration);
     this.totalTransactions++;
+  }
+
+  addDbSubscriptionDuration(duration: number) {
+    this.dbSubscriptionDurations.push(duration);
+    this.mediumTermDbSubscriptionDurations.push(duration);
+    this.longTermDbSubscriptionDurations.push(duration);
   }
 
   private calculateStats(durations: number[]) {
@@ -123,16 +135,35 @@ class LatencyStats {
     };
   }
 
+  getDbSubscriptionStats(type: 'short' | 'medium' | 'long' = 'short') {
+    let durations;
+    switch (type) {
+      case 'medium':
+        durations = this.mediumTermDbSubscriptionDurations;
+        break;
+      case 'long':
+        durations = this.longTermDbSubscriptionDurations;
+        break;
+      default:
+        durations = this.dbSubscriptionDurations;
+    }
+
+    return this.calculateStats(durations);
+  }
+
   resetShort() {
     this.durations = [];
+    this.dbSubscriptionDurations = [];
   }
 
   resetMedium() {
     this.mediumTermDurations = [];
+    this.mediumTermDbSubscriptionDurations = [];
   }
 
   resetLong() {
     this.longTermDurations = [];
+    this.longTermDbSubscriptionDurations = [];
   }
 
   private writeToLog(
@@ -182,6 +213,7 @@ class LatencyStats {
 
   printShortStats() {
     const stats = this.getStats('short');
+    const dbStats = this.getDbSubscriptionStats('short');
     const uptimeMinutes = (stats.uptime / 1000 / 60).toFixed(2);
 
     console.log('\n🔹 =============== 小统计报告 (30秒) ===============');
@@ -190,6 +222,7 @@ class LatencyStats {
     console.log(`📋 本周期样本数: ${stats.count}`);
 
     if (stats.count > 0) {
+      console.log(`\n📊 总延迟统计 (交易开始到订阅接收):`);
       console.log(
         `⚡ 平均延迟: ${stats.avgLatency.toFixed(2)}ms (${(stats.avgLatency / 1000).toFixed(2)}秒)`
       );
@@ -211,6 +244,25 @@ class LatencyStats {
     } else {
       console.log('❌ 本周期内没有完成的交易');
     }
+
+    if (dbStats.count > 0) {
+      console.log(`\n📡 数据库到订阅延迟统计:`);
+      console.log(
+        `⚡ 平均延迟: ${dbStats.avgLatency.toFixed(2)}ms (${(dbStats.avgLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `🚀 最小延迟: ${dbStats.minLatency}ms (${(dbStats.minLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `🐌 最大延迟: ${dbStats.maxLatency}ms (${(dbStats.maxLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `📊 P95延迟: ${dbStats.p95}ms (${(dbStats.p95 / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `📊 P99延迟: ${dbStats.p99}ms (${(dbStats.p99 / 1000).toFixed(2)}秒)`
+      );
+    }
     console.log('=================================================\n');
 
     this.writeToLog(stats, 'small', '30秒周期');
@@ -218,6 +270,7 @@ class LatencyStats {
 
   printMediumStats() {
     const stats = this.getStats('medium');
+    const dbStats = this.getDbSubscriptionStats('medium');
     const uptimeMinutes = (stats.uptime / 1000 / 60).toFixed(2);
 
     console.log('\n🔸 =============== 中统计报告 (10分钟) ===============');
@@ -226,6 +279,7 @@ class LatencyStats {
     console.log(`📋 10分钟样本数: ${stats.count}`);
 
     if (stats.count > 0) {
+      console.log(`\n📊 总延迟统计 (交易开始到订阅接收):`);
       console.log(
         `⚡ 平均延迟: ${stats.avgLatency.toFixed(2)}ms (${(stats.avgLatency / 1000).toFixed(2)}秒)`
       );
@@ -247,6 +301,25 @@ class LatencyStats {
     } else {
       console.log('❌ 10分钟内没有完成的交易');
     }
+
+    if (dbStats.count > 0) {
+      console.log(`\n📡 数据库到订阅延迟统计:`);
+      console.log(
+        `⚡ 平均延迟: ${dbStats.avgLatency.toFixed(2)}ms (${(dbStats.avgLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `🚀 最小延迟: ${dbStats.minLatency}ms (${(dbStats.minLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `🐌 最大延迟: ${dbStats.maxLatency}ms (${(dbStats.maxLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `📊 P95延迟: ${dbStats.p95}ms (${(dbStats.p95 / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `📊 P99延迟: ${dbStats.p99}ms (${(dbStats.p99 / 1000).toFixed(2)}秒)`
+      );
+    }
     console.log('===================================================\n');
 
     this.writeToLog(stats, 'medium', '10分钟周期');
@@ -254,6 +327,7 @@ class LatencyStats {
 
   printLongStats() {
     const stats = this.getStats('long');
+    const dbStats = this.getDbSubscriptionStats('long');
     const uptimeMinutes = (stats.uptime / 1000 / 60).toFixed(2);
 
     console.log('\n🔶 =============== 大统计报告 (30分钟) ===============');
@@ -262,6 +336,7 @@ class LatencyStats {
     console.log(`📋 30分钟样本数: ${stats.count}`);
 
     if (stats.count > 0) {
+      console.log(`\n📊 总延迟统计 (交易开始到订阅接收):`);
       console.log(
         `⚡ 平均延迟: ${stats.avgLatency.toFixed(2)}ms (${(stats.avgLatency / 1000).toFixed(2)}秒)`
       );
@@ -282,6 +357,25 @@ class LatencyStats {
       console.log(`⚡ 平均TPS: ${tps.toFixed(2)}`);
     } else {
       console.log('❌ 30分钟内没有完成的交易');
+    }
+
+    if (dbStats.count > 0) {
+      console.log(`\n📡 数据库到订阅延迟统计:`);
+      console.log(
+        `⚡ 平均延迟: ${dbStats.avgLatency.toFixed(2)}ms (${(dbStats.avgLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `🚀 最小延迟: ${dbStats.minLatency}ms (${(dbStats.minLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `🐌 最大延迟: ${dbStats.maxLatency}ms (${(dbStats.maxLatency / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `📊 P95延迟: ${dbStats.p95}ms (${(dbStats.p95 / 1000).toFixed(2)}秒)`
+      );
+      console.log(
+        `📊 P99延迟: ${dbStats.p99}ms (${(dbStats.p99 / 1000).toFixed(2)}秒)`
+      );
     }
     console.log('====================================================\n');
 
@@ -439,8 +533,15 @@ async function init() {
                 ? endTime - txInfo.txSubmitTime
                 : totalDuration;
 
+              // 计算数据库插入到订阅接收的延迟
+              const updatedAtTime = new Date(encounter.updatedAt).getTime();
+              const dbToSubscriptionDelay = endTime - updatedAtTime;
+
               // 添加总延迟到统计数据中（保持原有统计功能）
               latencyStats.addDuration(totalDuration);
+
+              // 添加数据库到订阅延迟统计
+              latencyStats.addDbSubscriptionDuration(dbToSubscriptionDelay);
 
               console.log('✅ 匹配到交易记录!');
               console.log(`📊 分阶段时间统计:`);
@@ -453,6 +554,9 @@ async function init() {
               );
               console.log(
                 `   - 🔍 索引阶段: ${indexDuration}ms (${(indexDuration / 1000).toFixed(2)}秒)`
+              );
+              console.log(
+                `   - 📡 数据库到订阅延迟: ${dbToSubscriptionDelay}ms (${(dbToSubscriptionDelay / 1000).toFixed(2)}秒)`
               );
 
               // 计算阶段占比
