@@ -70,70 +70,169 @@ export function createClientWithRetry(): DubheGraphqlClient {
 }
 
 /**
- * 示例：基础查询操作 - 使用新的API（已去掉store前缀）
+ * 示例：基础查询操作 - 展示单数/复数自动转换
  */
 export async function exampleBasicQuery() {
   const client = createExampleClient();
 
   try {
-    // 1. 查询encounters表数据（之前是StoreEncounter，现在是encounters）
-    const encounters = await client.getAllTables('encounters', {
-      first: 10,
+    // ✅ 支持单数表名 - 自动转换为复数
+    console.log('🔄 使用单数表名查询...');
+
+    // 1. 使用单数 'encounter' - 自动转换为 'encounters'
+    const encountersFromSingular = await client.getAllTables('encounter', {
+      first: 5,
       filter: {
         exists: { equalTo: true },
       },
       orderBy: [{ field: 'createdAt', direction: 'DESC' }],
     });
+    console.log(
+      '✅ 单数 "encounter" 查询结果:',
+      encountersFromSingular.edges.length,
+      '条记录'
+    );
 
-    console.log('Encounters:', encounters);
+    // 2. 使用复数 'encounters' - 保持不变
+    const encountersFromPlural = await client.getAllTables('encounters', {
+      first: 5,
+      filter: {
+        exists: { equalTo: true },
+      },
+    });
+    console.log(
+      '✅ 复数 "encounters" 查询结果:',
+      encountersFromPlural.edges.length,
+      '条记录'
+    );
 
-    // 2. 查询accounts表数据（之前是StoreAccount，现在是accounts）
-    const accounts = await client.getAllTables('accounts', {
+    // 3. 使用单数 'account' - 自动转换为 'accounts'
+    const accountsFromSingular = await client.getAllTables('account', {
       first: 5,
       filter: {
         balance: { greaterThan: '0' },
       },
     });
+    console.log(
+      '✅ 单数 "account" 查询结果:',
+      accountsFromSingular.edges.length,
+      '条记录'
+    );
 
-    console.log('Accounts:', accounts);
-
-    // 3. 根据条件查询单个记录
-    const specificAccount = await client.getTableByCondition('accounts', {
+    // 5. 根据条件查询单个记录
+    const specificAccount = await client.getTableByCondition('account', {
       assetId: '0x123...',
       account: '0xabc...',
     });
-    console.log('Specific account:', specificAccount);
-
-    // 4. 查询positions表数据
-    const positions = await client.getAllTables('positions', {
-      first: 10,
-      orderBy: [{ field: 'x', direction: 'ASC' }],
-    });
-
-    console.log('Positions:', positions);
+    console.log(
+      '🔍 条件查询结果:',
+      specificAccount ? '找到记录' : '未找到记录'
+    );
   } catch (error) {
-    console.error('Query failed:', error);
+    console.error('❌ 查询失败:', error);
   } finally {
     client.close();
   }
 }
 
 /**
- * 示例：实时数据订阅 - 使用新的API
+ * 示例：实时数据订阅 - 使用新的PostGraphile Listen订阅
  */
-export function exampleSubscription() {
+export function exampleListenSubscription() {
   const client = createExampleClient();
 
-  // 订阅encounters表数据变更
-  const subscription = client.subscribeToTableChanges('encounters', {
+  console.log('🔔 开始使用PostGraphile Listen订阅...');
+
+  // 1. 基础listen订阅 - 支持单数表名自动转换
+  const basicSubscription = client.subscribeToTableChanges('encounter', {
+    // 单数形式
+    initialEvent: true, // 立即获取初始数据
+    fields: ['player', 'monster', 'catchAttempts', 'createdAt'],
+    topicPrefix: 'store_', // 自定义topic前缀，实际topic会是: postgraphile:game_encounter
     onData: (data) => {
-      console.log('Received real-time data:', data);
+      console.log(
+        '📨 Encounters实时数据（单数转复数）:',
+        data.listen.query.encounters
+      );
+      // 检查是否有relatedNode数据（单个变更记录）
+      if (data.listen.relatedNode) {
+        console.log('🎯 变更的具体记录:', data.listen.relatedNode);
+      }
     },
     onError: (error) => {
-      console.error('Subscription error:', error);
+      console.error('❌ Encounters订阅错误:', error);
+    },
+  });
+
+  // 2. 高级过滤订阅 - 只监听特定条件的数据
+  const filteredSubscription = client.subscribeToFilteredTableChanges(
+    'account', // 单数形式
+    { balance: { greaterThan: '1000' } }, // 只监听余额大于1000的账户
+    {
+      initialEvent: true,
+      fields: ['assetId', 'account', 'balance', 'updatedAt'],
+      orderBy: [{ field: 'balance', direction: 'DESC' }],
+      first: 5,
+      onData: (data) => {
+        console.log(
+          '💰 高余额账户实时更新（单数转复数）:',
+          data.listen.query.accounts
+        );
+      },
+    }
+  );
+
+  // 3. 自定义查询订阅
+  const customSubscription = client.subscribeWithListen(
+    'store_positions',
+    `positions(first: 10, filter: { x: { greaterThan: 0 } }) {
+      totalCount
+      nodes {
+        player
+        x
+        y
+        updatedAt
+      }
+    }`,
+    {
+      initialEvent: false,
+      onData: (data) => {
+        console.log('🗺️ 位置数据更新:', data.listen.query.positions);
+      },
+    }
+  );
+
+  // 订阅数据流
+  const subscriptions = [
+    basicSubscription.subscribe(),
+    filteredSubscription.subscribe(),
+    customSubscription.subscribe(),
+  ];
+
+  // 10秒后取消所有订阅
+  setTimeout(() => {
+    console.log('🛑 取消所有订阅...');
+    subscriptions.forEach((sub) => sub.unsubscribe());
+    client.close();
+  }, 10000);
+}
+
+/**
+ * 示例：实时数据订阅 - 使用旧版API（向后兼容）
+ */
+export function exampleLegacySubscription() {
+  const client = createExampleClient();
+
+  // 使用旧版API的订阅（仍然有效，但推荐使用新的listen订阅）
+  const subscription = client.subscribeToTableChanges('encounters', {
+    onData: (data) => {
+      console.log('📨 接收到实时数据（旧版API）:', data);
+    },
+    onError: (error) => {
+      console.error('❌ 订阅错误:', error);
     },
     onComplete: () => {
-      console.log('Subscription completed');
+      console.log('✅ 订阅完成');
     },
   });
 
@@ -141,11 +240,11 @@ export function exampleSubscription() {
   subscription.subscribe({
     next: (result: any) => {
       if (result.data) {
-        console.log('Subscription data:', result.data);
+        console.log('📊 订阅数据:', result.data);
       }
     },
     error: (error: any) => {
-      console.error('Subscription stream error:', error);
+      console.error('❌ 订阅流错误:', error);
     },
   });
 

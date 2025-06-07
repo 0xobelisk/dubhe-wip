@@ -1,4 +1,6 @@
-"""The root query type which gives access points into the data universe."""
+"""
+The root query type which gives access points into the data universe.
+"""
 type Query implements Node {
   """
   Exposes the root query type nested one level down. This is helpful for Relay 1
@@ -11,18 +13,28 @@ type Query implements Node {
   """
   nodeId: ID!
 
-  """Fetches an object given its globally unique `ID`."""
+  """
+  Fetches an object given its globally unique `ID`.
+  """
   node(
-    """The globally unique `ID`."""
+    """
+    The globally unique `ID`.
+    """
     nodeId: ID!
   ): Node
 
-  """Reads and enables pagination through a set of `StoreAccount`."""
+  """
+  Reads and enables pagination through a set of `StoreAccount`.
+  """
   accounts(
-    """Only read the first `n` values of the set."""
+    """
+    Only read the first `n` values of the set.
+    """
     first: Int
 
-    """Only read the last `n` values of the set."""
+    """
+    Only read the last `n` values of the set.
+    """
     last: Int
 
     """
@@ -31,13 +43,19 @@ type Query implements Node {
     """
     offset: Int
 
-    """Read all values in the set before (above) this cursor."""
+    """
+    Read all values in the set before (above) this cursor.
+    """
     before: Cursor
 
-    """Read all values in the set after (below) this cursor."""
+    """
+    Read all values in the set after (below) this cursor.
+    """
     after: Cursor
 
-    """The method to use when ordering `StoreAccount`."""
+    """
+    The method to use when ordering `StoreAccount`.
+    """
     orderBy: [StoreAccountsOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
@@ -51,12 +69,18 @@ type Query implements Node {
     filter: StoreAccountFilter
   ): StoreAccountsConnection
 
-  """Reads and enables pagination through a set of `StoreEncounter`."""
+  """
+  Reads and enables pagination through a set of `StoreEncounter`.
+  """
   encounters(
-    """Only read the first `n` values of the set."""
+    """
+    Only read the first `n` values of the set.
+    """
     first: Int
 
-    """Only read the last `n` values of the set."""
+    """
+    Only read the last `n` values of the set.
+    """
     last: Int
 
     """
@@ -65,13 +89,19 @@ type Query implements Node {
     """
     offset: Int
 
-    """Read all values in the set before (above) this cursor."""
+    """
+    Read all values in the set before (above) this cursor.
+    """
     before: Cursor
 
-    """Read all values in the set after (below) this cursor."""
+    """
+    Read all values in the set after (below) this cursor.
+    """
     after: Cursor
 
-    """The method to use when ordering `StoreEncounter`."""
+    """
+    The method to use when ordering `StoreEncounter`.
+    """
     orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
@@ -85,12 +115,18 @@ type Query implements Node {
     filter: StoreEncounterFilter
   ): StoreEncountersConnection
 
-  """Reads and enables pagination through a set of `StoreMapConfig`."""
+  """
+  Reads and enables pagination through a set of `StoreMapConfig`.
+  """
   mapConfigs(
-    """Only read the first `n` values of the set."""
+    """
+    Only read the first `n` values of the set.
+    """
     first: Int
 
-    """Only read the last `n` values of the set."""
+    """
+    Only read the last `n` values of the set.
+    """
     last: Int
 
     """
@@ -99,13 +135,19 @@ type Query implements Node {
     """
     offset: Int
 
-    """Read all values in the set before (above) this cursor."""
+    """
+    Read all values in the set before (above) this cursor.
+    """
     before: Cursor
 
-    """Read all values in the set after (below) this cursor."""
+    """
+    Read all values in the set after (below) this cursor.
+    """
     after: Cursor
 
-    """The method to use when ordering `StoreMapConfig`."""
+    """
+    The method to use when ordering `StoreMapConfig`.
+    """
     orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
 
     """
@@ -119,12 +161,18 @@ type Query implements Node {
     filter: StoreMapConfigFilter
   ): StoreMapConfigsConnection
 
-  """Reads and enables pagination through a set of `StorePosition`."""
+  """
+  Reads and enables pagination through a set of `StorePosition`.
+  """
   positions(
-    """Only read the first `n` values of the set."""
+    """
+    Only read the first `n` values of the set.
+    """
     first: Int
 
-    """Only read the last `n` values of the set."""
+    """
+    Only read the last `n` values of the set.
+    """
     last: Int
 
     """
@@ -133,13 +181,19 @@ type Query implements Node {
     """
     offset: Int
 
-    """Read all values in the set before (above) this cursor."""
+    """
+    Read all values in the set before (above) this cursor.
+    """
     before: Cursor
 
-    """Read all values in the set after (below) this cursor."""
+    """
+    Read all values in the set after (below) this cursor.
+    """
     after: Cursor
 
-    """The method to use when ordering `StorePosition`."""
+    """
+    The method to use when ordering `StorePosition`.
+    """
     orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
@@ -153,12 +207,18 @@ type Query implements Node {
     filter: StorePositionFilter
   ): StorePositionsConnection
 
-  """Reads and enables pagination through a set of `TableField`."""
+  """
+  Reads and enables pagination through a set of `TableField`.
+  """
   allTableFields(
-    """Only read the first `n` values of the set."""
+    """
+    Only read the first `n` values of the set.
+    """
     first: Int
 
-    """Only read the last `n` values of the set."""
+    """
+    Only read the last `n` values of the set.
+    """
     last: Int
 
     """
@@ -167,13 +227,19 @@ type Query implements Node {
     """
     offset: Int
 
-    """Read all values in the set before (above) this cursor."""
+    """
+    Read all values in the set before (above) this cursor.
+    """
     before: Cursor
 
-    """Read all values in the set after (below) this cursor."""
+    """
+    Read all values in the set after (below) this cursor.
+    """
     after: Cursor
 
-    """The method to use when ordering `TableField`."""
+    """
+    The method to use when ordering `TableField`.
+    """
     orderBy: [TableFieldsOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
@@ -189,9 +255,14 @@ type Query implements Node {
   accountByAssetIdAndAccount(assetId: String!, account: String!): StoreAccount
   encounterByPlayer(player: String!): StoreEncounter
   positionByPlayer(player: String!): StorePosition
-  tableFieldByTableNameAndFieldName(tableName: String!, fieldName: String!): TableField
+  tableFieldByTableNameAndFieldName(
+    tableName: String!
+    fieldName: String!
+  ): TableField
 
-  """Reads a single `StoreAccount` using its globally unique `ID`."""
+  """
+  Reads a single `StoreAccount` using its globally unique `ID`.
+  """
   account(
     """
     The globally unique `ID` to be used in selecting a single `StoreAccount`.
@@ -199,7 +270,9 @@ type Query implements Node {
     nodeId: ID!
   ): StoreAccount
 
-  """Reads a single `StoreEncounter` using its globally unique `ID`."""
+  """
+  Reads a single `StoreEncounter` using its globally unique `ID`.
+  """
   encounter(
     """
     The globally unique `ID` to be used in selecting a single `StoreEncounter`.
@@ -207,7 +280,9 @@ type Query implements Node {
     nodeId: ID!
   ): StoreEncounter
 
-  """Reads a single `StorePosition` using its globally unique `ID`."""
+  """
+  Reads a single `StorePosition` using its globally unique `ID`.
+  """
   position(
     """
     The globally unique `ID` to be used in selecting a single `StorePosition`.
@@ -215,7 +290,9 @@ type Query implements Node {
     nodeId: ID!
   ): StorePosition
 
-  """Reads a single `TableField` using its globally unique `ID`."""
+  """
+  Reads a single `TableField` using its globally unique `ID`.
+  """
   tableField(
     """
     The globally unique `ID` to be used in selecting a single `TableField`.
@@ -223,17 +300,25 @@ type Query implements Node {
     nodeId: ID!
   ): TableField
 
-  """获取所有store表的Schema信息"""
+  """
+  获取所有store表的Schema信息
+  """
   storeSchema: JSON
 
-  """查询指定store表的数据"""
+  """
+  查询指定store表的数据
+  """
   storeData(table: String!): JSON
 
-  """获取所有可用的store表名列表"""
+  """
+  获取所有可用的store表名列表
+  """
   availableStoreTables: [String!]!
 }
 
-"""An object with a globally unique `ID`."""
+"""
+An object with a globally unique `ID`.
+"""
 interface Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
@@ -241,9 +326,13 @@ interface Node {
   nodeId: ID!
 }
 
-"""A connection to a list of `StoreAccount` values."""
+"""
+A connection to a list of `StoreAccount` values.
+"""
 type StoreAccountsConnection {
-  """A list of `StoreAccount` objects."""
+  """
+  A list of `StoreAccount` objects.
+  """
   nodes: [StoreAccount!]!
 
   """
@@ -251,10 +340,14 @@ type StoreAccountsConnection {
   """
   edges: [StoreAccountsEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreAccount` you could get from the connection."""
+  """
+  The count of *all* `StoreAccount` you could get from the connection.
+  """
   totalCount: Int!
 }
 
@@ -276,34 +369,54 @@ A point in time as described by the [ISO
 """
 scalar Datetime
 
-"""A `StoreAccount` edge in the connection."""
+"""
+A `StoreAccount` edge in the connection.
+"""
 type StoreAccountsEdge {
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor
 
-  """The `StoreAccount` at the end of the edge."""
+  """
+  The `StoreAccount` at the end of the edge.
+  """
   node: StoreAccount!
 }
 
-"""A location in a connection that can be used for resuming pagination."""
+"""
+A location in a connection that can be used for resuming pagination.
+"""
 scalar Cursor
 
-"""Information about pagination in a connection."""
+"""
+Information about pagination in a connection.
+"""
 type PageInfo {
-  """When paginating forwards, are there more items?"""
+  """
+  When paginating forwards, are there more items?
+  """
   hasNextPage: Boolean!
 
-  """When paginating backwards, are there more items?"""
+  """
+  When paginating backwards, are there more items?
+  """
   hasPreviousPage: Boolean!
 
-  """When paginating backwards, the cursor to continue."""
+  """
+  When paginating backwards, the cursor to continue.
+  """
   startCursor: Cursor
 
-  """When paginating forwards, the cursor to continue."""
+  """
+  When paginating forwards, the cursor to continue.
+  """
   endCursor: Cursor
 }
 
-"""Methods to use when ordering `StoreAccount`."""
+"""
+Methods to use when ordering `StoreAccount`.
+"""
 enum StoreAccountsOrderBy {
   NATURAL
   ASSET_ID_ASC
@@ -325,19 +438,29 @@ A condition to be used against `StoreAccount` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
 input StoreAccountCondition {
-  """Checks for equality with the object’s `assetId` field."""
+  """
+  Checks for equality with the object’s `assetId` field.
+  """
   assetId: String
 
-  """Checks for equality with the object’s `account` field."""
+  """
+  Checks for equality with the object’s `account` field.
+  """
   account: String
 
-  """Checks for equality with the object’s `balance` field."""
+  """
+  Checks for equality with the object’s `balance` field.
+  """
   balance: String
 
-  """Checks for equality with the object’s `createdAt` field."""
+  """
+  Checks for equality with the object’s `createdAt` field.
+  """
   createdAt: Datetime
 
-  """Checks for equality with the object’s `updatedAt` field."""
+  """
+  Checks for equality with the object’s `updatedAt` field.
+  """
   updatedAt: Datetime
 }
 
@@ -345,28 +468,44 @@ input StoreAccountCondition {
 A filter to be used against `StoreAccount` object types. All fields are combined with a logical ‘and.’
 """
 input StoreAccountFilter {
-  """Filter by the object’s `assetId` field."""
+  """
+  Filter by the object’s `assetId` field.
+  """
   assetId: StringFilter
 
-  """Filter by the object’s `account` field."""
+  """
+  Filter by the object’s `account` field.
+  """
   account: StringFilter
 
-  """Filter by the object’s `balance` field."""
+  """
+  Filter by the object’s `balance` field.
+  """
   balance: StringFilter
 
-  """Filter by the object’s `createdAt` field."""
+  """
+  Filter by the object’s `createdAt` field.
+  """
   createdAt: DatetimeFilter
 
-  """Filter by the object’s `updatedAt` field."""
+  """
+  Filter by the object’s `updatedAt` field.
+  """
   updatedAt: DatetimeFilter
 
-  """Checks for all expressions in this list."""
+  """
+  Checks for all expressions in this list.
+  """
   and: [StoreAccountFilter!]
 
-  """Checks for any expressions in this list."""
+  """
+  Checks for any expressions in this list.
+  """
   or: [StoreAccountFilter!]
 
-  """Negates the expression."""
+  """
+  Negates the expression.
+  """
   not: StoreAccountFilter
 }
 
@@ -379,10 +518,14 @@ input StringFilter {
   """
   isNull: Boolean
 
-  """Equal to the specified value."""
+  """
+  Equal to the specified value.
+  """
   equalTo: String
 
-  """Not equal to the specified value."""
+  """
+  Not equal to the specified value.
+  """
   notEqualTo: String
 
   """
@@ -390,61 +533,99 @@ input StringFilter {
   """
   distinctFrom: String
 
-  """Equal to the specified value, treating null like an ordinary value."""
+  """
+  Equal to the specified value, treating null like an ordinary value.
+  """
   notDistinctFrom: String
 
-  """Included in the specified list."""
+  """
+  Included in the specified list.
+  """
   in: [String!]
 
-  """Not included in the specified list."""
+  """
+  Not included in the specified list.
+  """
   notIn: [String!]
 
-  """Less than the specified value."""
+  """
+  Less than the specified value.
+  """
   lessThan: String
 
-  """Less than or equal to the specified value."""
+  """
+  Less than or equal to the specified value.
+  """
   lessThanOrEqualTo: String
 
-  """Greater than the specified value."""
+  """
+  Greater than the specified value.
+  """
   greaterThan: String
 
-  """Greater than or equal to the specified value."""
+  """
+  Greater than or equal to the specified value.
+  """
   greaterThanOrEqualTo: String
 
-  """Contains the specified string (case-sensitive)."""
+  """
+  Contains the specified string (case-sensitive).
+  """
   includes: String
 
-  """Does not contain the specified string (case-sensitive)."""
+  """
+  Does not contain the specified string (case-sensitive).
+  """
   notIncludes: String
 
-  """Contains the specified string (case-insensitive)."""
+  """
+  Contains the specified string (case-insensitive).
+  """
   includesInsensitive: String
 
-  """Does not contain the specified string (case-insensitive)."""
+  """
+  Does not contain the specified string (case-insensitive).
+  """
   notIncludesInsensitive: String
 
-  """Starts with the specified string (case-sensitive)."""
+  """
+  Starts with the specified string (case-sensitive).
+  """
   startsWith: String
 
-  """Does not start with the specified string (case-sensitive)."""
+  """
+  Does not start with the specified string (case-sensitive).
+  """
   notStartsWith: String
 
-  """Starts with the specified string (case-insensitive)."""
+  """
+  Starts with the specified string (case-insensitive).
+  """
   startsWithInsensitive: String
 
-  """Does not start with the specified string (case-insensitive)."""
+  """
+  Does not start with the specified string (case-insensitive).
+  """
   notStartsWithInsensitive: String
 
-  """Ends with the specified string (case-sensitive)."""
+  """
+  Ends with the specified string (case-sensitive).
+  """
   endsWith: String
 
-  """Does not end with the specified string (case-sensitive)."""
+  """
+  Does not end with the specified string (case-sensitive).
+  """
   notEndsWith: String
 
-  """Ends with the specified string (case-insensitive)."""
+  """
+  Ends with the specified string (case-insensitive).
+  """
   endsWithInsensitive: String
 
-  """Does not end with the specified string (case-insensitive)."""
+  """
+  Does not end with the specified string (case-insensitive).
+  """
   notEndsWithInsensitive: String
 
   """
@@ -467,10 +648,14 @@ input DatetimeFilter {
   """
   isNull: Boolean
 
-  """Equal to the specified value."""
+  """
+  Equal to the specified value.
+  """
   equalTo: Datetime
 
-  """Not equal to the specified value."""
+  """
+  Not equal to the specified value.
+  """
   notEqualTo: Datetime
 
   """
@@ -478,31 +663,49 @@ input DatetimeFilter {
   """
   distinctFrom: Datetime
 
-  """Equal to the specified value, treating null like an ordinary value."""
+  """
+  Equal to the specified value, treating null like an ordinary value.
+  """
   notDistinctFrom: Datetime
 
-  """Included in the specified list."""
+  """
+  Included in the specified list.
+  """
   in: [Datetime!]
 
-  """Not included in the specified list."""
+  """
+  Not included in the specified list.
+  """
   notIn: [Datetime!]
 
-  """Less than the specified value."""
+  """
+  Less than the specified value.
+  """
   lessThan: Datetime
 
-  """Less than or equal to the specified value."""
+  """
+  Less than or equal to the specified value.
+  """
   lessThanOrEqualTo: Datetime
 
-  """Greater than the specified value."""
+  """
+  Greater than the specified value.
+  """
   greaterThan: Datetime
 
-  """Greater than or equal to the specified value."""
+  """
+  Greater than or equal to the specified value.
+  """
   greaterThanOrEqualTo: Datetime
 }
 
-"""A connection to a list of `StoreEncounter` values."""
+"""
+A connection to a list of `StoreEncounter` values.
+"""
 type StoreEncountersConnection {
-  """A list of `StoreEncounter` objects."""
+  """
+  A list of `StoreEncounter` objects.
+  """
   nodes: [StoreEncounter!]!
 
   """
@@ -510,10 +713,14 @@ type StoreEncountersConnection {
   """
   edges: [StoreEncountersEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreEncounter` you could get from the connection."""
+  """
+  The count of *all* `StoreEncounter` you could get from the connection.
+  """
   totalCount: Int!
 }
 
@@ -530,16 +737,24 @@ type StoreEncounter implements Node {
   updatedAt: Datetime
 }
 
-"""A `StoreEncounter` edge in the connection."""
+"""
+A `StoreEncounter` edge in the connection.
+"""
 type StoreEncountersEdge {
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor
 
-  """The `StoreEncounter` at the end of the edge."""
+  """
+  The `StoreEncounter` at the end of the edge.
+  """
   node: StoreEncounter!
 }
 
-"""Methods to use when ordering `StoreEncounter`."""
+"""
+Methods to use when ordering `StoreEncounter`.
+"""
 enum StoreEncountersOrderBy {
   NATURAL
   PLAYER_ASC
@@ -563,22 +778,34 @@ A condition to be used against `StoreEncounter` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
 input StoreEncounterCondition {
-  """Checks for equality with the object’s `player` field."""
+  """
+  Checks for equality with the object’s `player` field.
+  """
   player: String
 
-  """Checks for equality with the object’s `exists` field."""
+  """
+  Checks for equality with the object’s `exists` field.
+  """
   exists: Boolean
 
-  """Checks for equality with the object’s `monster` field."""
+  """
+  Checks for equality with the object’s `monster` field.
+  """
   monster: String
 
-  """Checks for equality with the object’s `catchAttempts` field."""
+  """
+  Checks for equality with the object’s `catchAttempts` field.
+  """
   catchAttempts: String
 
-  """Checks for equality with the object’s `createdAt` field."""
+  """
+  Checks for equality with the object’s `createdAt` field.
+  """
   createdAt: Datetime
 
-  """Checks for equality with the object’s `updatedAt` field."""
+  """
+  Checks for equality with the object’s `updatedAt` field.
+  """
   updatedAt: Datetime
 }
 
@@ -586,31 +813,49 @@ input StoreEncounterCondition {
 A filter to be used against `StoreEncounter` object types. All fields are combined with a logical ‘and.’
 """
 input StoreEncounterFilter {
-  """Filter by the object’s `player` field."""
+  """
+  Filter by the object’s `player` field.
+  """
   player: StringFilter
 
-  """Filter by the object’s `exists` field."""
+  """
+  Filter by the object’s `exists` field.
+  """
   exists: BooleanFilter
 
-  """Filter by the object’s `monster` field."""
+  """
+  Filter by the object’s `monster` field.
+  """
   monster: StringFilter
 
-  """Filter by the object’s `catchAttempts` field."""
+  """
+  Filter by the object’s `catchAttempts` field.
+  """
   catchAttempts: StringFilter
 
-  """Filter by the object’s `createdAt` field."""
+  """
+  Filter by the object’s `createdAt` field.
+  """
   createdAt: DatetimeFilter
 
-  """Filter by the object’s `updatedAt` field."""
+  """
+  Filter by the object’s `updatedAt` field.
+  """
   updatedAt: DatetimeFilter
 
-  """Checks for all expressions in this list."""
+  """
+  Checks for all expressions in this list.
+  """
   and: [StoreEncounterFilter!]
 
-  """Checks for any expressions in this list."""
+  """
+  Checks for any expressions in this list.
+  """
   or: [StoreEncounterFilter!]
 
-  """Negates the expression."""
+  """
+  Negates the expression.
+  """
   not: StoreEncounterFilter
 }
 
@@ -623,10 +868,14 @@ input BooleanFilter {
   """
   isNull: Boolean
 
-  """Equal to the specified value."""
+  """
+  Equal to the specified value.
+  """
   equalTo: Boolean
 
-  """Not equal to the specified value."""
+  """
+  Not equal to the specified value.
+  """
   notEqualTo: Boolean
 
   """
@@ -634,31 +883,49 @@ input BooleanFilter {
   """
   distinctFrom: Boolean
 
-  """Equal to the specified value, treating null like an ordinary value."""
+  """
+  Equal to the specified value, treating null like an ordinary value.
+  """
   notDistinctFrom: Boolean
 
-  """Included in the specified list."""
+  """
+  Included in the specified list.
+  """
   in: [Boolean!]
 
-  """Not included in the specified list."""
+  """
+  Not included in the specified list.
+  """
   notIn: [Boolean!]
 
-  """Less than the specified value."""
+  """
+  Less than the specified value.
+  """
   lessThan: Boolean
 
-  """Less than or equal to the specified value."""
+  """
+  Less than or equal to the specified value.
+  """
   lessThanOrEqualTo: Boolean
 
-  """Greater than the specified value."""
+  """
+  Greater than the specified value.
+  """
   greaterThan: Boolean
 
-  """Greater than or equal to the specified value."""
+  """
+  Greater than or equal to the specified value.
+  """
   greaterThanOrEqualTo: Boolean
 }
 
-"""A connection to a list of `StoreMapConfig` values."""
+"""
+A connection to a list of `StoreMapConfig` values.
+"""
 type StoreMapConfigsConnection {
-  """A list of `StoreMapConfig` objects."""
+  """
+  A list of `StoreMapConfig` objects.
+  """
   nodes: [StoreMapConfig!]!
 
   """
@@ -666,10 +933,14 @@ type StoreMapConfigsConnection {
   """
   edges: [StoreMapConfigsEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreMapConfig` you could get from the connection."""
+  """
+  The count of *all* `StoreMapConfig` you could get from the connection.
+  """
   totalCount: Int!
 }
 
@@ -680,16 +951,24 @@ type StoreMapConfig {
   updatedAt: Datetime
 }
 
-"""A `StoreMapConfig` edge in the connection."""
+"""
+A `StoreMapConfig` edge in the connection.
+"""
 type StoreMapConfigsEdge {
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor
 
-  """The `StoreMapConfig` at the end of the edge."""
+  """
+  The `StoreMapConfig` at the end of the edge.
+  """
   node: StoreMapConfig!
 }
 
-"""Methods to use when ordering `StoreMapConfig`."""
+"""
+Methods to use when ordering `StoreMapConfig`.
+"""
 enum StoreMapConfigsOrderBy {
   NATURAL
   WIDTH_ASC
@@ -707,16 +986,24 @@ A condition to be used against `StoreMapConfig` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
 input StoreMapConfigCondition {
-  """Checks for equality with the object’s `width` field."""
+  """
+  Checks for equality with the object’s `width` field.
+  """
   width: String
 
-  """Checks for equality with the object’s `height` field."""
+  """
+  Checks for equality with the object’s `height` field.
+  """
   height: String
 
-  """Checks for equality with the object’s `createdAt` field."""
+  """
+  Checks for equality with the object’s `createdAt` field.
+  """
   createdAt: Datetime
 
-  """Checks for equality with the object’s `updatedAt` field."""
+  """
+  Checks for equality with the object’s `updatedAt` field.
+  """
   updatedAt: Datetime
 }
 
@@ -724,31 +1011,49 @@ input StoreMapConfigCondition {
 A filter to be used against `StoreMapConfig` object types. All fields are combined with a logical ‘and.’
 """
 input StoreMapConfigFilter {
-  """Filter by the object’s `width` field."""
+  """
+  Filter by the object’s `width` field.
+  """
   width: StringFilter
 
-  """Filter by the object’s `height` field."""
+  """
+  Filter by the object’s `height` field.
+  """
   height: StringFilter
 
-  """Filter by the object’s `createdAt` field."""
+  """
+  Filter by the object’s `createdAt` field.
+  """
   createdAt: DatetimeFilter
 
-  """Filter by the object’s `updatedAt` field."""
+  """
+  Filter by the object’s `updatedAt` field.
+  """
   updatedAt: DatetimeFilter
 
-  """Checks for all expressions in this list."""
+  """
+  Checks for all expressions in this list.
+  """
   and: [StoreMapConfigFilter!]
 
-  """Checks for any expressions in this list."""
+  """
+  Checks for any expressions in this list.
+  """
   or: [StoreMapConfigFilter!]
 
-  """Negates the expression."""
+  """
+  Negates the expression.
+  """
   not: StoreMapConfigFilter
 }
 
-"""A connection to a list of `StorePosition` values."""
+"""
+A connection to a list of `StorePosition` values.
+"""
 type StorePositionsConnection {
-  """A list of `StorePosition` objects."""
+  """
+  A list of `StorePosition` objects.
+  """
   nodes: [StorePosition!]!
 
   """
@@ -756,10 +1061,14 @@ type StorePositionsConnection {
   """
   edges: [StorePositionsEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The count of *all* `StorePosition` you could get from the connection."""
+  """
+  The count of *all* `StorePosition` you could get from the connection.
+  """
   totalCount: Int!
 }
 
@@ -775,16 +1084,24 @@ type StorePosition implements Node {
   updatedAt: Datetime
 }
 
-"""A `StorePosition` edge in the connection."""
+"""
+A `StorePosition` edge in the connection.
+"""
 type StorePositionsEdge {
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor
 
-  """The `StorePosition` at the end of the edge."""
+  """
+  The `StorePosition` at the end of the edge.
+  """
   node: StorePosition!
 }
 
-"""Methods to use when ordering `StorePosition`."""
+"""
+Methods to use when ordering `StorePosition`.
+"""
 enum StorePositionsOrderBy {
   NATURAL
   PLAYER_ASC
@@ -806,19 +1123,29 @@ A condition to be used against `StorePosition` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
 input StorePositionCondition {
-  """Checks for equality with the object’s `player` field."""
+  """
+  Checks for equality with the object’s `player` field.
+  """
   player: String
 
-  """Checks for equality with the object’s `x` field."""
+  """
+  Checks for equality with the object’s `x` field.
+  """
   x: String
 
-  """Checks for equality with the object’s `y` field."""
+  """
+  Checks for equality with the object’s `y` field.
+  """
   y: String
 
-  """Checks for equality with the object’s `createdAt` field."""
+  """
+  Checks for equality with the object’s `createdAt` field.
+  """
   createdAt: Datetime
 
-  """Checks for equality with the object’s `updatedAt` field."""
+  """
+  Checks for equality with the object’s `updatedAt` field.
+  """
   updatedAt: Datetime
 }
 
@@ -826,34 +1153,54 @@ input StorePositionCondition {
 A filter to be used against `StorePosition` object types. All fields are combined with a logical ‘and.’
 """
 input StorePositionFilter {
-  """Filter by the object’s `player` field."""
+  """
+  Filter by the object’s `player` field.
+  """
   player: StringFilter
 
-  """Filter by the object’s `x` field."""
+  """
+  Filter by the object’s `x` field.
+  """
   x: StringFilter
 
-  """Filter by the object’s `y` field."""
+  """
+  Filter by the object’s `y` field.
+  """
   y: StringFilter
 
-  """Filter by the object’s `createdAt` field."""
+  """
+  Filter by the object’s `createdAt` field.
+  """
   createdAt: DatetimeFilter
 
-  """Filter by the object’s `updatedAt` field."""
+  """
+  Filter by the object’s `updatedAt` field.
+  """
   updatedAt: DatetimeFilter
 
-  """Checks for all expressions in this list."""
+  """
+  Checks for all expressions in this list.
+  """
   and: [StorePositionFilter!]
 
-  """Checks for any expressions in this list."""
+  """
+  Checks for any expressions in this list.
+  """
   or: [StorePositionFilter!]
 
-  """Negates the expression."""
+  """
+  Negates the expression.
+  """
   not: StorePositionFilter
 }
 
-"""A connection to a list of `TableField` values."""
+"""
+A connection to a list of `TableField` values.
+"""
 type TableFieldsConnection {
-  """A list of `TableField` objects."""
+  """
+  A list of `TableField` objects.
+  """
   nodes: [TableField!]!
 
   """
@@ -861,10 +1208,14 @@ type TableFieldsConnection {
   """
   edges: [TableFieldsEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The count of *all* `TableField` you could get from the connection."""
+  """
+  The count of *all* `TableField` you could get from the connection.
+  """
   totalCount: Int!
 }
 
@@ -880,16 +1231,24 @@ type TableField implements Node {
   isKey: Boolean
 }
 
-"""A `TableField` edge in the connection."""
+"""
+A `TableField` edge in the connection.
+"""
 type TableFieldsEdge {
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor
 
-  """The `TableField` at the end of the edge."""
+  """
+  The `TableField` at the end of the edge.
+  """
   node: TableField!
 }
 
-"""Methods to use when ordering `TableField`."""
+"""
+Methods to use when ordering `TableField`.
+"""
 enum TableFieldsOrderBy {
   NATURAL
   TABLE_NAME_ASC
@@ -911,19 +1270,29 @@ A condition to be used against `TableField` object types. All fields are tested
 for equality and combined with a logical ‘and.’
 """
 input TableFieldCondition {
-  """Checks for equality with the object’s `tableName` field."""
+  """
+  Checks for equality with the object’s `tableName` field.
+  """
   tableName: String
 
-  """Checks for equality with the object’s `fieldName` field."""
+  """
+  Checks for equality with the object’s `fieldName` field.
+  """
   fieldName: String
 
-  """Checks for equality with the object’s `fieldType` field."""
+  """
+  Checks for equality with the object’s `fieldType` field.
+  """
   fieldType: String
 
-  """Checks for equality with the object’s `fieldIndex` field."""
+  """
+  Checks for equality with the object’s `fieldIndex` field.
+  """
   fieldIndex: Int
 
-  """Checks for equality with the object’s `isKey` field."""
+  """
+  Checks for equality with the object’s `isKey` field.
+  """
   isKey: Boolean
 }
 
@@ -931,28 +1300,44 @@ input TableFieldCondition {
 A filter to be used against `TableField` object types. All fields are combined with a logical ‘and.’
 """
 input TableFieldFilter {
-  """Filter by the object’s `tableName` field."""
+  """
+  Filter by the object’s `tableName` field.
+  """
   tableName: StringFilter
 
-  """Filter by the object’s `fieldName` field."""
+  """
+  Filter by the object’s `fieldName` field.
+  """
   fieldName: StringFilter
 
-  """Filter by the object’s `fieldType` field."""
+  """
+  Filter by the object’s `fieldType` field.
+  """
   fieldType: StringFilter
 
-  """Filter by the object’s `fieldIndex` field."""
+  """
+  Filter by the object’s `fieldIndex` field.
+  """
   fieldIndex: IntFilter
 
-  """Filter by the object’s `isKey` field."""
+  """
+  Filter by the object’s `isKey` field.
+  """
   isKey: BooleanFilter
 
-  """Checks for all expressions in this list."""
+  """
+  Checks for all expressions in this list.
+  """
   and: [TableFieldFilter!]
 
-  """Checks for any expressions in this list."""
+  """
+  Checks for any expressions in this list.
+  """
   or: [TableFieldFilter!]
 
-  """Negates the expression."""
+  """
+  Negates the expression.
+  """
   not: TableFieldFilter
 }
 
@@ -965,10 +1350,14 @@ input IntFilter {
   """
   isNull: Boolean
 
-  """Equal to the specified value."""
+  """
+  Equal to the specified value.
+  """
   equalTo: Int
 
-  """Not equal to the specified value."""
+  """
+  Not equal to the specified value.
+  """
   notEqualTo: Int
 
   """
@@ -976,25 +1365,39 @@ input IntFilter {
   """
   distinctFrom: Int
 
-  """Equal to the specified value, treating null like an ordinary value."""
+  """
+  Equal to the specified value, treating null like an ordinary value.
+  """
   notDistinctFrom: Int
 
-  """Included in the specified list."""
+  """
+  Included in the specified list.
+  """
   in: [Int!]
 
-  """Not included in the specified list."""
+  """
+  Not included in the specified list.
+  """
   notIn: [Int!]
 
-  """Less than the specified value."""
+  """
+  Less than the specified value.
+  """
   lessThan: Int
 
-  """Less than or equal to the specified value."""
+  """
+  Less than or equal to the specified value.
+  """
   lessThanOrEqualTo: Int
 
-  """Greater than the specified value."""
+  """
+  Greater than the specified value.
+  """
   greaterThan: Int
 
-  """Greater than or equal to the specified value."""
+  """
+  Greater than or equal to the specified value.
+  """
   greaterThanOrEqualTo: Int
 }
 
@@ -1022,6 +1425,4 @@ type ListenPayload {
   Our root query field type. Allows us to run any query from our subscription payload.
   """
   query: Query
-  relatedNode: Node
-  relatedNodeId: ID
 }

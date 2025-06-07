@@ -38,26 +38,6 @@ import {
 } from './types';
 import { parseValue } from './utils';
 
-// GraphQL fragments - 通用化设计
-const CONNECTION_FIELDS = gql`
-  fragment ConnectionFields on Node {
-    pageInfo {
-      hasNextPage
-      hasPreviousPage
-      startCursor
-      endCursor
-    }
-    totalCount
-  }
-`;
-
-// 通用的表字段 fragment - 不硬编码具体类型
-const TABLE_FIELDS = gql`
-  fragment TableFields on Node {
-    nodeId
-  }
-`;
-
 // 转换缓存策略类型
 function mapCachePolicyToFetchPolicy(cachePolicy: CachePolicy): FetchPolicy {
   switch (cachePolicy) {
@@ -341,7 +321,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 获取表数据（通用查询方法）- 已适配去掉store前缀的API
+   * 查询所有表数据 - 已适配去掉store前缀的API
    */
   async getAllTables<T extends StoreTableRow>(
     tableName: string,
@@ -351,6 +331,9 @@ export class DubheGraphqlClient {
       fields?: string[]; // 允许用户指定需要查询的字段
     }
   ): Promise<Connection<T>> {
+    // 确保使用复数形式的表名
+    const pluralTableName = this.getPluralTableName(tableName);
+
     // 转换OrderBy为枚举值
     const orderByEnums = convertOrderByToEnum(tableName, params?.orderBy);
 
@@ -362,9 +345,9 @@ export class DubheGraphqlClient {
         $after: Cursor
         $before: Cursor
         $filter: ${this.getFilterTypeName(tableName)}
-        $orderBy: [${this.getOrderByTypeName(tableName)}!]
+        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
       ) {
-        ${tableName}(
+        ${pluralTableName}(
           first: $first
           last: $last
           after: $after
@@ -398,9 +381,9 @@ export class DubheGraphqlClient {
         $after: Cursor
         $before: Cursor
         $filter: ${this.getFilterTypeName(tableName)}
-        $orderBy: [${this.getOrderByTypeName(tableName)}!]
+        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
       ) {
-        ${tableName}(
+        ${pluralTableName}(
           first: $first
           last: $last
           after: $after
@@ -449,7 +432,7 @@ export class DubheGraphqlClient {
     }
 
     return (
-      (result.data as any)?.[tableName] || {
+      (result.data as any)?.[pluralTableName] || {
         edges: [],
         pageInfo: { hasNextPage: false, hasPreviousPage: false },
       }
@@ -486,26 +469,151 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 订阅表数据变更 - 已适配去掉store前缀的API
+   * 订阅表数据变更 - 使用PostGraphile的listen订阅功能
    */
   subscribeToTableChanges<T extends StoreTableRow>(
     tableName: string,
     options?: SubscriptionOptions & {
       fields?: string[]; // 允许用户指定需要订阅的字段
+      initialEvent?: boolean; // 是否立即触发初始事件
+      first?: number; // 限制返回的记录数
+      topicPrefix?: string; // 自定义topic前缀，默认使用表名
     }
-  ): Observable<SubscriptionResult<{ [key: string]: T }>> {
-    // 订阅字段名和查询字段名相同，不需要"Changed"后缀
-    const subscriptionName = tableName;
+  ): Observable<SubscriptionResult<{ listen: { query: any } }>> {
+    // PostGraphile会自动为所有topic添加 'postgraphile:' 前缀
+    // 所以这里我们使用更简洁的topic命名
+    const topic = options?.topicPrefix
+      ? `${options.topicPrefix}${tableName}`
+      : `store_${tableName}`;
+
+    const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
+    const fields = getTableFields(tableName, options?.fields);
 
     const subscription = gql`
-      subscription SubscribeToTableChanges {
-        ${subscriptionName} {
-          ${getTableFields(tableName, options?.fields)}
+      subscription ListenToTableChanges($topic: String!, $initialEvent: Boolean) {
+        listen(topic: $topic, initialEvent: $initialEvent) {
+          query {
+            ${pluralTableName}(first: ${options?.first || 10}, orderBy: UPDATED_AT_DESC) {
+              totalCount
+              nodes {
+                ${fields}
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+            }
+          }
         }
       }
     `;
 
-    return this.subscribe(subscription, {}, options);
+    return this.subscribe(
+      subscription,
+      {
+        topic,
+        initialEvent: options?.initialEvent || false,
+      },
+      options
+    );
+  }
+
+  /**
+   * 高级listen订阅 - 支持自定义查询
+   */
+  subscribeWithListen<T = any>(
+    topic: string,
+    query: string,
+    options?: SubscriptionOptions & {
+      initialEvent?: boolean;
+      variables?: Record<string, any>;
+    }
+  ): Observable<SubscriptionResult<{ listen: { query: T } }>> {
+    const subscription = gql`
+      subscription CustomListenSubscription($topic: String!, $initialEvent: Boolean) {
+        listen(topic: $topic, initialEvent: $initialEvent) {
+          query {
+            ${query}
+          }
+        }
+      }
+    `;
+
+    return this.subscribe(
+      subscription,
+      {
+        topic,
+        initialEvent: options?.initialEvent || false,
+        ...options?.variables,
+      },
+      options
+    );
+  }
+
+  /**
+   * 订阅特定条件的数据变更
+   */
+  subscribeToFilteredTableChanges<T extends StoreTableRow>(
+    tableName: string,
+    filter?: Record<string, any>,
+    options?: SubscriptionOptions & {
+      fields?: string[];
+      initialEvent?: boolean;
+      orderBy?: OrderBy[];
+      first?: number;
+      topicPrefix?: string; // 自定义topic前缀
+    }
+  ): Observable<SubscriptionResult<{ listen: { query: any } }>> {
+    // 改进topic命名，支持自定义前缀
+    const topic = options?.topicPrefix
+      ? `${options.topicPrefix}${tableName}`
+      : `store_${tableName}`;
+
+    const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
+    const fields = getTableFields(tableName, options?.fields);
+    const orderByEnum = convertOrderByToEnum(tableName, options?.orderBy);
+    const first = options?.first || 10;
+
+    const subscription = gql`
+      subscription FilteredListenSubscription(
+        $topic: String!, 
+        $initialEvent: Boolean,
+        $filter: ${this.getFilterTypeName(tableName)},
+        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!],
+        $first: Int
+      ) {
+        listen(topic: $topic, initialEvent: $initialEvent) {
+          query {
+            ${pluralTableName}(
+              first: $first, 
+              filter: $filter, 
+              orderBy: $orderBy
+            ) {
+              totalCount
+              nodes {
+                ${fields}
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    return this.subscribe(
+      subscription,
+      {
+        topic,
+        initialEvent: options?.initialEvent || false,
+        filter,
+        orderBy: orderByEnum,
+        first,
+      },
+      options
+    );
   }
 
   /**
@@ -521,6 +629,7 @@ export class DubheGraphqlClient {
       after?: string;
     }
   ): TypedDocumentNode {
+    const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
     const fieldSelection = fields.join('\n        ');
 
     return gql`
@@ -528,9 +637,9 @@ export class DubheGraphqlClient {
         $first: Int
         $after: Cursor
         $filter: ${this.getFilterTypeName(tableName)}
-        $orderBy: [${this.getOrderByTypeName(tableName)}!]
+        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
       ) {
-        ${tableName}(
+        ${pluralTableName}(
           first: $first
           after: $after
           filter: $filter
@@ -610,28 +719,55 @@ export class DubheGraphqlClient {
     });
   }
 
-  // 私有辅助方法 - 通用化处理
+  // 改进的表名处理方法
   private getFilterTypeName(tableName: string): string {
-    // 动态推断Filter类型名
-    // 将 encounters -> StoreEncounterFilter
-    // 将 accounts -> StoreAccountFilter
-    // 规则：tableName 去掉复数形式，首字母大写，加上Store前缀和Filter后缀
-    const singularName = tableName.endsWith('s')
-      ? tableName.slice(0, -1)
-      : tableName;
+    // 简化的单数处理逻辑
+    const singularName = this.getSingularTableName(tableName);
     const capitalizedName =
       singularName.charAt(0).toUpperCase() + singularName.slice(1);
     return `Store${capitalizedName}Filter`;
   }
 
   private getOrderByTypeName(tableName: string): string {
-    // 动态推断OrderBy类型名
-    // 将 encounters -> StoreEncountersOrderBy
-    // 将 accounts -> StoreAccountsOrderBy
-    // 规则：tableName 首字母大写，加上Store前缀和OrderBy后缀
+    // 简化的复数形式用于OrderBy类型
+    const pluralName = this.getPluralTableName(tableName);
     const capitalizedName =
-      tableName.charAt(0).toUpperCase() + tableName.slice(1);
+      pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
     return `Store${capitalizedName}OrderBy`;
+  }
+
+  /**
+   * 将单数表名转换为复数形式（与PostGraphile的命名规则对齐）
+   */
+  private getPluralTableName(tableName: string): string {
+    // PostGraphile的规则很简单：直接加's'
+    // 如果已经以's'结尾，认为已经是复数
+    if (tableName.endsWith('s')) {
+      return tableName; // 已经是复数或以s结尾的单词
+    }
+
+    // 简单加's'，与PostGraphile的生成规则一致
+    return tableName + 's';
+  }
+
+  /**
+   * 判断表名是否已经是复数形式（简化版本）
+   */
+  private isPlural(tableName: string): boolean {
+    // 简单判断：如果以's'结尾，认为是复数
+    return tableName.endsWith('s');
+  }
+
+  /**
+   * 简化的单数转换逻辑 - 只判断最后的's'
+   */
+  private getSingularTableName(tableName: string): string {
+    // 简单判断：如果以's'结尾，去掉's'变成单数
+    if (tableName.endsWith('s')) {
+      return tableName.slice(0, -1); // accounts -> account
+    }
+
+    return tableName; // 已经是单数
   }
 
   private buildSingleQueryName(

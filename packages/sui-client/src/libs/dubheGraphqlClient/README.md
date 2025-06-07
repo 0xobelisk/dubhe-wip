@@ -1,269 +1,271 @@
-# Dubhe GraphQL Client
+# DubheGraphqlClient
 
-基于Apollo Client的TypeScript GraphQL客户端，用于查询Sui Rust Indexer数据。
+强大的GraphQL客户端，专为Dubhe索引器设计，支持完整的CRUD操作和实时订阅功能。
 
-## 重要更新 ⚠️
+## ✨ 主要特性
 
-**API 变更通知：**从版本 2.0 开始，服务器端已去掉所有 "store" 前缀，客户端API相应更新：
+- 🔄 **实时订阅**: 支持PostGraphile的`listen`订阅功能
+- 📊 **高级过滤**: 强大的过滤和排序功能
+- 🚀 **性能优化**: 内置重试机制和缓存策略
+- 📱 **跨平台**: 支持浏览器和Node.js环境
+- 🛡️ **类型安全**: 完整的TypeScript支持
 
-- `storeAccounts` → `accounts`
-- `storeEncounters` → `encounters` 
-- `storePositions` → `positions`
-- `storeMapConfigs` → `mapConfigs`
+## 🚀 快速开始
 
-旧方法仍然可用但已标记为废弃，建议尽快迁移到新API。
-
-## 特性
-
-- ✅ **类型安全**：完整的TypeScript支持
-- ✅ **智能缓存**：Apollo Client强大的缓存系统
-- ✅ **实时订阅**：支持WebSocket实时数据订阅
-- ✅ **自动重试**：网络错误自动重试机制
-- ✅ **分页支持**：完整的GraphQL Connection分页
-- ✅ **过滤查询**：强大的数据过滤和排序
-- ✅ **批量操作**：支持批量查询多个表
-- ✅ **实时数据流**：结合查询和订阅的实时数据流
-- ✅ **向后兼容**：支持旧版API并提供迁移路径
-
-## 安装
-
-确保您已安装必要的依赖：
+### 安装
 
 ```bash
-npm install @apollo/client graphql graphql-ws
+npm install @0xobelisk/sui-client
 ```
 
-## 快速开始
-
-### 1. 创建客户端
+### 基础使用
 
 ```typescript
-import { createDubheGraphqlClient } from './libs/dubheGraphqlClient';
+import { createDubheGraphqlClient } from '@0xobelisk/sui-client';
 
 const client = createDubheGraphqlClient({
   endpoint: 'http://localhost:4000/graphql',
   subscriptionEndpoint: 'ws://localhost:4000/graphql',
-  headers: {
-    'Authorization': 'Bearer your-token',
-  },
 });
+
+// 查询数据
+const accounts = await client.getAllTables('accounts', {
+  first: 10,
+  filter: { balance: { greaterThan: '1000' } },
+  orderBy: [{ field: 'balance', direction: 'DESC' }],
+});
+
+console.log(accounts);
 ```
 
-### 2. 基础查询（新API）
+## 📡 实时订阅功能（重要更新）
+
+### PostGraphile Listen订阅
+
+我们现在支持PostGraphile的高级`listen`订阅功能，这是推荐的实时数据监听方式：
 
 ```typescript
-// 查询encounters表数据（之前是StoreEncounter）
-const encounters = await client.getAllTables('encounters', {
-  first: 10,
-  filter: {
-    exists: { equalTo: true },
+// 1. 基础listen订阅
+const subscription = client.subscribeToTableChanges('encounters', {
+  initialEvent: true, // 立即获取初始数据
+  fields: ['player', 'monster', 'catchAttempts'],
+  topicPrefix: 'store_xxxxxx', // 自定义topic前缀 (可选)
+  onData: (data) => {
+    // data.listen.query.encounters 包含实时数据
+    console.log('实时数据:', data.listen.query.encounters);
+    
+    // 检查是否有单个变更记录
+    if (data.listen.relatedNode) {
+      console.log('变更的具体记录:', data.listen.relatedNode);
+    }
   },
-  orderBy: [
-    { field: 'createdAt', direction: 'DESC' },
-  ],
 });
 
-console.log('Encounters:', encounters.edges);
+// 2. 带过滤的高级订阅
+const filteredSub = client.subscribeToFilteredTableChanges('accounts', 
+  { balance: { greaterThan: '1000' } }, 
+  {
+    initialEvent: true,
+    orderBy: [{ field: 'balance', direction: 'DESC' }],
+    first: 5,
+    topicPrefix: 'wallet_', // 自定义前缀
+  }
+);
 
-// 查询accounts表数据（之前是StoreAccount）
-const accounts = await client.getAllTables('accounts', {
-  first: 5,
+// 3. 自定义查询订阅
+const customSub = client.subscribeWithListen(
+  'store_positions',
+  `positions(first: 10) { nodes { player x y } }`,
+  { initialEvent: false }
+);
+```
+
+### 订阅特性
+
+- **🔄 实时更新**: 数据库变更时自动通知
+- **⚡ 初始事件**: 可选择订阅时立即获取当前数据
+- **🎯 精确过滤**: 只监听符合条件的数据变更
+- **📊 结构化数据**: 返回完整的GraphQL查询结果
+
+## 🔍 查询功能
+
+### 基础查询
+
+```typescript
+// 查询所有账户（支持单数表名）
+const accounts = await client.getAllTables('account');
+
+// 带分页和过滤的查询
+const filteredAccounts = await client.getAllTables('account', {
+  first: 20,
+  after: 'cursor_string',
   filter: {
     balance: { greaterThan: '0' },
+    assetId: { startsWith: '0x' }
   },
+  orderBy: [{ field: 'createdAt', direction: 'DESC' }]
 });
+```
 
-// 根据条件查询单个记录
-const account = await client.getTableByCondition('accounts', {
+### 条件查询
+
+```typescript
+// 根据特定条件查询单条记录（支持单数表名）
+const account = await client.getTableByCondition('account', {
   assetId: '0x123...',
   account: '0xabc...'
 });
 ```
 
-### 3. 实时订阅（新API）
-
-```typescript
-// 订阅encounters表数据变更
-const subscription = client.subscribeToTableChanges('encounters', {
-  onData: (data) => {
-    console.log('数据更新:', data);
-  },
-  onError: (error) => {
-    console.error('订阅错误:', error);
-  },
-});
-```
-
-### 4. 自定义GraphQL查询（新表名）
-
-```typescript
-import { gql } from '@apollo/client';
-
-const CUSTOM_QUERY = gql`
-  query GetPlayerData($player: String!) {
-    encounters(filter: { player: { equalTo: $player } }) {
-      edges {
-        node {
-          id
-          player
-          monster
-          catchAttempts
-          exists
-        }
-      }
-      totalCount
-    }
-  }
-`;
-
-const result = await client.query(CUSTOM_QUERY, {
-  player: '0x123...',
-});
-```
-
-## API 参考
-
-### DubheGraphqlClient
-
-主要的GraphQL客户端类。
-
-#### 新方法（推荐使用）
-
-##### `getAllTables<T>(tableName, params?)`
-查询表的所有数据。
-
-```typescript
-const data = await client.getAllTables('encounters', {
-  first: 20,
-  after: 'cursor',
-  filter: { /* 过滤条件 */ },
-  orderBy: [{ field: 'createdAt', direction: 'DESC' }],
-});
-```
-
-##### `getTableByCondition<T>(tableName, condition)`
-根据条件查询单个记录。
-
-```typescript
-const item = await client.getTableByCondition('accounts', {
-  assetId: '0x123...',
-  account: '0xabc...'
-});
-```
-
-##### `subscribeToTableChanges<T>(tableName, options?)`
-订阅表数据变更。
-
-```typescript
-const subscription = client.subscribeToTableChanges('encounters', {
-  onData: (data) => console.log(data),
-  onError: (error) => console.error(error),
-});
-```
-
-#### 废弃方法（向后兼容）
-
-以下方法仍然可用但已废弃，请迁移到新API：
-
-- `getAllStoreTables()` → 使用 `getAllTables()`
-- `getStoreTableById()` → 使用 `getTableByCondition()`
-- `subscribeToStoreTableChanges()` → 使用 `subscribeToTableChanges()`
-
-### 表名映射
-
-| 旧名称 (v1.x) | 新名称 (v2.x) |
-|--------------|--------------|
-| `StoreAccount` / `storeAccounts` | `accounts` |
-| `StoreEncounter` / `storeEncounters` | `encounters` |
-| `StorePosition` / `storePositions` | `positions` |
-| `StoreMapConfig` / `storeMapConfigs` | `mapConfigs` |
-
-## 迁移指南
-
-### 从 v1.x 迁移到 v2.x
-
-```typescript
-// ❌ 旧写法（v1.x）
-const encounters = await client.getAllStoreTables('StoreEncounter', { first: 10 });
-const account = await client.getStoreTableById('StoreAccount', 'some-id');
-const sub = client.subscribeToStoreTableChanges('StoreEncounter');
-
-// ✅ 新写法（v2.x）
-const encounters = await client.getAllTables('encounters', { first: 10 });
-const account = await client.getTableByCondition('accounts', { id: 'some-id' });
-const sub = client.subscribeToTableChanges('encounters');
-```
-
-### GraphQL 查询迁移
-
-```graphql
-# ❌ 旧查询
-query OldQuery {
-  allStoreEncounters {
-    nodes {
-      id
-      player
-    }
-  }
-}
-
-# ✅ 新查询
-query NewQuery {
-  encounters {
-    nodes {
-      id
-      player
-    }
-  }
-}
-```
-
-## 最佳实践
-
-### 1. 使用新API
-
-```typescript
-// 推荐：使用新的去掉前缀的API
-const data = await client.getAllTables('encounters');
-
-// 不推荐：使用废弃的API（虽然仍然可用）
-const data = await client.getAllStoreTables('StoreEncounter');
-```
-
-### 2. 错误处理
-
-```typescript
-try {
-  const result = await client.getAllTables('encounters');
-  // 处理结果
-} catch (error) {
-  if (error.message.includes('Network')) {
-    console.log('网络错误，正在重试...');
-  } else {
-    console.error('查询错误:', error.message);
-  }
-}
-```
-
-### 3. 批量查询
+### 批量查询
 
 ```typescript
 const results = await client.batchQuery([
   { key: 'encounters', tableName: 'encounters', params: { first: 5 } },
-  { key: 'accounts', tableName: 'accounts', params: { first: 5 } },
-  { key: 'positions', tableName: 'positions', params: { first: 5 } },
+  { key: 'accounts', tableName: 'accounts', params: { first: 10 } },
+  { key: 'positions', tableName: 'positions', params: { first: 15 } }
 ]);
 ```
 
-## 注意事项
+## ⚙️ 配置选项
 
-1. **API变更**：从v2.0开始，所有表名都去掉了"Store"前缀
-2. **向后兼容**：旧API仍可用但会打印废弃警告
-3. **只支持查询和订阅**：服务器已禁用mutation功能
-4. **连接管理**：记得在使用完毕后调用`client.close()`
-5. **订阅限制**：确保WebSocket端点可用且正确配置
-6. **类型安全**：尽量使用TypeScript获得更好的开发体验
+### 客户端配置
 
-## 示例
+```typescript
+const client = createDubheGraphqlClient({
+  endpoint: 'http://localhost:4000/graphql',
+  subscriptionEndpoint: 'ws://localhost:4000/graphql',
+  headers: {
+    'Authorization': 'Bearer token',
+    'X-Custom-Header': 'value'
+  },
+  retryOptions: {
+    delay: { initial: 500, max: 10000 },
+    attempts: { max: 3 }
+  }
+});
+```
 
-查看 `examples.ts` 文件获取更多使用示例，包括新API的完整用法。 
+### 重试机制
+
+```typescript
+const clientWithRetry = createDubheGraphqlClient({
+  endpoint: 'http://localhost:4000/graphql',
+  retryOptions: {
+    delay: {
+      initial: 500,    // 初始延迟500ms
+      max: 10000,      // 最大延迟10秒
+      jitter: true     // 启用随机抖动
+    },
+    attempts: {
+      max: 3,          // 最多重试3次
+      retryIf: (error) => {
+        // 自定义重试条件
+        return error.networkError || error.networkError?.statusCode >= 500;
+      }
+    }
+  }
+});
+```
+
+## 🆕 API变更说明
+
+### 表名处理简化
+
+我们采用简单的复数/单数转换逻辑，与PostGraphile保持一致：
+
+```typescript
+// ✅ 简单转换规则 - 只判断最后的's'
+'account' → 'accounts'     // 单数加's'变复数
+'accounts' → 'account'     // 复数去's'变单数
+'encounter' → 'encounters' // 单数加's'变复数
+'encounters' → 'encounter' // 复数去's'变单数
+
+// 已经以's'结尾的保持不变
+'accounts' → 'accounts'    // 已经是复数
+'positions' → 'positions'  // 已经是复数
+```
+
+### 订阅API升级
+
+```typescript
+// ✅ 推荐：使用新的listen订阅
+client.subscribeToTableChanges('encounters', {
+  initialEvent: true,
+  fields: ['player', 'monster']
+});
+
+// ✅ 仍然支持：旧版订阅API（向后兼容）
+client.subscribeToStoreTableChanges('encounters', options);
+```
+
+## 🔧 最佳实践
+
+### 1. 使用listen订阅进行实时更新
+
+```typescript
+// 推荐做法
+const subscription = client.subscribeToTableChanges('encounters', {
+  initialEvent: true,  // 获取初始数据
+  fields: ['player', 'monster', 'catchAttempts'],
+  onData: (data) => {
+    updateGameState(data.listen.query.encounters.nodes);
+  }
+});
+```
+
+### 2. 合理使用过滤和分页
+
+```typescript
+// 只监听相关数据
+const filteredSub = client.subscribeToFilteredTableChanges('accounts',
+  { account: { equalTo: currentUserAddress } },
+  { 
+    initialEvent: true,
+    first: 50  // 限制数据量
+  }
+);
+```
+
+### 3. 错误处理和重连
+
+```typescript
+const subscription = client.subscribeToTableChanges('encounters', {
+  onError: (error) => {
+    console.error('订阅错误:', error);
+    // 可以实现自动重连逻辑
+    setTimeout(() => restartSubscription(), 5000);
+  }
+});
+```
+
+## 📚 完整示例
+
+查看 `examples.ts` 文件获取更多完整的使用示例，包括：
+
+- 基础查询和过滤
+- 实时订阅和数据流
+- 批量操作
+- 错误处理
+- 重试机制
+
+## 🔄 迁移指南
+
+从旧版本迁移到新版本：
+
+1. **订阅API**: 推荐使用新的`subscribeToTableChanges`，支持`initialEvent`选项
+2. **数据结构**: listen订阅返回`data.listen.query.tableName`结构
+3. **表名**: 继续使用去掉store前缀的表名（如`accounts`而不是`store_accounts`）
+
+## 🛠️ 开发指南
+
+```bash
+# 开发
+npm run dev
+
+# 构建
+npm run build
+
+# 测试
+npm run test
+``` 

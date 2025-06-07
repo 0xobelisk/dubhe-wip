@@ -107,6 +107,33 @@ export interface SubscriptionOptions {
   onComplete?: () => void;
 }
 
+// PostGraphile Listen订阅相关类型
+export interface ListenPayload<T = any> {
+  query: T;
+  relatedNode?: any;
+  relatedNodeId?: string;
+}
+
+export interface ListenSubscriptionResult<T = any> {
+  listen: ListenPayload<T>;
+}
+
+// 高级订阅选项
+export interface AdvancedSubscriptionOptions extends SubscriptionOptions {
+  initialEvent?: boolean; // 是否立即触发初始事件
+  variables?: Record<string, any>; // 订阅变量
+}
+
+// Listen订阅配置
+export interface ListenSubscriptionConfig {
+  topic: string;
+  initialEvent?: boolean;
+  filter?: Record<string, any>;
+  orderBy?: OrderBy[];
+  first?: number;
+  fields?: string[];
+}
+
 // 查询操作类型
 export type QueryOperation = 'query' | 'subscription';
 
