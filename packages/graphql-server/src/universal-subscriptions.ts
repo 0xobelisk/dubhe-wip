@@ -135,6 +135,8 @@ export function createUniversalSubscriptionsPlugin(
 					"""
 					availableStoreTables: [String!]!
 				}
+
+				# 移除了自定义的订阅类型，现在只使用PostGraphile内置的listen订阅
 			`,
 
 			resolvers: {
@@ -432,3 +434,7 @@ function buildWhereCondition(tableInfo: TableInfo): string {
 	// 4. 最后的fallback - 返回所有行（无过滤）
 	return 'true';
 }
+
+// 移除了getLatestInsertedData函数，现在只使用listen订阅
+
+// 移除了getLatestInsertedDataSince函数，现在只使用简单的listen订阅

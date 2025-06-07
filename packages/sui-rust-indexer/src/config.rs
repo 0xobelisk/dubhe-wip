@@ -86,6 +86,10 @@ impl TableSchema {
             fields.push(format!("{} {}", name, self.get_sql_type(type_)));
         }
         
+        // Always add created_at and updated_at fields
+        fields.push("created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
+        fields.push("updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
+        
         // Add primary key constraint only if there are key fields
         if !self.key_fields.is_empty() {
             let key_names: Vec<String> = self.key_fields.iter()
@@ -124,6 +128,19 @@ impl TableSchema {
             ));
             value_index += 1;
         }
+
+        // Add timestamp fields to metadata
+        sql_statements.push(format!(
+            "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) \
+            VALUES ('{}', 'created_at', 'timestamptz', NULL, false)",
+            self.name
+        ));
+        
+        sql_statements.push(format!(
+            "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) \
+            VALUES ('{}', 'updated_at', 'timestamptz', NULL, false)",
+            self.name
+        ));
 
         sql_statements
     }

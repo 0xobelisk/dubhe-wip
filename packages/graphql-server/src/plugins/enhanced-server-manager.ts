@@ -174,14 +174,19 @@ export class EnhancedServerManager {
 		// 创建HTTP服务器
 		this.httpServer = createServer(this.createRequestHandler(serverConfig));
 
-		// 只启用PostgreSQL订阅（listen）
+		// 启用PostgreSQL订阅和WebSocket支持
 		if (this.config.capabilities.pgSubscriptions) {
 			enhanceHttpServerWithSubscriptions(
 				this.httpServer,
-				postgraphileMiddleware
+				postgraphileMiddleware,
+				{
+					// 启用WebSocket传输
+					graphqlRoute: '/graphql',
+				}
 			);
-			systemLogger.info('✅ PostgreSQL listen订阅已启用', {
+			systemLogger.info('✅ PostgreSQL订阅和WebSocket已启用', {
 				pgSubscriptions: this.config.capabilities.pgSubscriptions,
+				webSocket: true,
 			});
 		}
 
@@ -303,25 +308,82 @@ export class EnhancedServerManager {
 		};
 	}
 
-	// 优雅关闭
+	// 快速关闭（不等待数据库连接池）
+	async quickShutdown(): Promise<void> {
+		console.log('🔥 快速关闭HTTP服务器...');
+
+		// 只关闭HTTP服务器，不等待数据库连接池
+		if (this.httpServer) {
+			try {
+				await new Promise<void>(resolve => {
+					this.httpServer!.close(() => {
+						console.log('✅ HTTP服务器已关闭');
+						resolve();
+					});
+					// 如果1秒内没有关闭，直接resolve
+					setTimeout(resolve, 1000);
+				});
+			} catch (error) {
+				console.log('⚡ HTTP服务器关闭时出错，继续退出');
+			}
+		}
+	}
+
+	// 优雅关闭（保留以备不时之需）
 	async gracefulShutdown(pgPool: Pool): Promise<void> {
 		systemLogger.info('🛑 开始优雅关闭服务器...');
 
+		const shutdownTasks: Promise<void>[] = [];
+
 		// 关闭HTTP服务器
 		if (this.httpServer) {
-			await new Promise<void>(resolve => {
-				this.httpServer!.close(() => {
-					systemLogger.info('HTTP服务器已关闭');
-					resolve();
+			const serverShutdown = new Promise<void>((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					reject(new Error('HTTP服务器关闭超时'));
+				}, 5000);
+
+				this.httpServer!.close(error => {
+					clearTimeout(timeout);
+					if (error) {
+						systemLogger.error('HTTP服务器关闭出错', error);
+						reject(error);
+					} else {
+						systemLogger.info('HTTP服务器已关闭');
+						resolve();
+					}
 				});
 			});
+			shutdownTasks.push(serverShutdown);
 		}
 
 		// 关闭数据库连接池
-		await pgPool.end();
-		systemLogger.info('数据库连接池已关闭');
+		const poolShutdown = new Promise<void>((resolve, reject) => {
+			const timeout = setTimeout(() => {
+				reject(new Error('数据库连接池关闭超时'));
+			}, 5000);
 
-		systemLogger.info('✅ 服务器优雅关闭完成');
-		process.exit(0);
+			pgPool
+				.end()
+				.then(() => {
+					clearTimeout(timeout);
+					systemLogger.info('数据库连接池已关闭');
+					resolve();
+				})
+				.catch(error => {
+					clearTimeout(timeout);
+					systemLogger.error('数据库连接池关闭出错', error);
+					reject(error);
+				});
+		});
+		shutdownTasks.push(poolShutdown);
+
+		// 等待所有关闭任务完成
+		try {
+			await Promise.all(shutdownTasks);
+			systemLogger.info('✅ 服务器优雅关闭完成');
+		} catch (error) {
+			systemLogger.error('关闭过程中出现错误', error);
+			throw error; // 让上层处理错误
+		}
 	}
 }

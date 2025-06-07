@@ -41,7 +41,7 @@ export class SubscriptionConfigManager {
 	private parseEnvironmentVariables(
 		env: Record<string, string>
 	): SubscriptionConfig {
-		const enableSubscriptions = env.ENABLE_SUBSCRIPTIONS === 'true';
+		const enableSubscriptions = env.ENABLE_SUBSCRIPTIONS !== 'false'; // 默认启用，除非明确设置为false
 
 		// 自动检测WAL级别（实际应用中通过数据库查询）
 		const walLevel = this.detectWalLevel(env.DATABASE_URL);
@@ -139,20 +139,18 @@ export class SubscriptionConfigManager {
 		};
 	}
 
-	// 生成PostGraphile配置
+	// 生成PostGraphile配置 - 简化版本，只保留listen订阅
 	generatePostGraphileConfig() {
 		return {
 			subscriptions: this.config.enableSubscriptions,
-			live: this.config.capabilities.liveQueries,
+			live: false, // 禁用live queries，只使用listen订阅
 			simpleSubscriptions: this.config.capabilities.pgSubscriptions,
 
-			// 性能配置
-			pgSettings: this.config.capabilities.liveQueries
-				? {
-						statement_timeout: '30s',
-						default_transaction_isolation: 'repeatable read',
-				  }
-				: {},
+			// 性能配置 - 为listen订阅优化
+			pgSettings: {
+				statement_timeout: '30s',
+				default_transaction_isolation: 'read committed',
+			},
 
 			// 监控配置
 			allowExplain: this.config.enablePerformanceMetrics,
@@ -166,7 +164,7 @@ export class SubscriptionConfigManager {
 # 📡 订阅系统配置指南
 
 ## 基础配置
-ENABLE_SUBSCRIPTIONS=true          # 启用订阅功能（默认启用所有子功能）
+ENABLE_SUBSCRIPTIONS=false         # 禁用订阅功能（默认启用，设置为false禁用）
 
 ## 能力配置 (可选，默认自动检测)
 ENABLE_LIVE_QUERIES=true           # 启用@live指令 (需要wal_level=logical)
@@ -201,43 +199,30 @@ ENABLE_SUBSCRIPTION_METRICS=false # 性能指标
 
 ## 使用示例:
 
-### 1. Live Queries (推荐)
-${
-	this.config.capabilities.liveQueries
-		? `
-subscription {
-  encounters @live {
-    nodes { player monster exists }
-    totalCount
-  }
-}
-`
-		: '❌ 需要设置 wal_level=logical'
-}
-
-### 2. PostgreSQL Subscriptions
+### PostgreSQL Listen订阅 (简化版本)
 ${
 	this.config.capabilities.pgSubscriptions
 		? `
+# 监听所有store表的变更
 subscription {
   listen(topic: "store_encounter") {
-    relatedNodeId
-    relatedNode { nodeId }
+    # 只使用基础字段，忽略relatedNode和relatedNodeId
+    __typename
   }
 }
-`
-		: '❌ 已禁用'
+
+# 或者监听特定操作
+subscription {
+  listen(topic: "store_encounter:INSERT") {
+    __typename  # 可获取变更类型
+  }
 }
 
-### 3. Native WebSocket
-${
-	this.config.capabilities.nativeWebSocket
-		? `
-const ws = new WebSocket('ws://localhost:${this.config.websocketPort}');
-ws.send(JSON.stringify({
-  action: 'subscribe',
-  table: 'encounter'
-}));
+# 监听多个表
+subscription MultiTableListen {
+  encounterChanges: listen(topic: "store_encounter") { __typename }
+  accountChanges: listen(topic: "store_accounts") { __typename }
+}
 `
 		: '❌ 已禁用'
 }

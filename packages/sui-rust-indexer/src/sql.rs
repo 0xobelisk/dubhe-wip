@@ -35,10 +35,18 @@ pub fn generate_insert_sql(
         values.push(format_sql_value(&key_values[field_name], field_type));
     }
     
-    // Add value fields
+    // Add value fields (including timestamp fields from config.rs)
     for (field_name, field_type) in value_fields {
         fields.push(field_name.clone());
-        values.push(format_sql_value(&value_values[field_name], field_type));
+        
+        // Handle timestamp fields specially
+        if field_name == "created_at" {
+            values.push("DEFAULT".to_string());  // Use table default for created_at
+        } else if field_name == "updated_at" {
+            values.push("CURRENT_TIMESTAMP".to_string());  // Set current time for updated_at
+        } else {
+            values.push(format_sql_value(&value_values[field_name], field_type));
+        }
     }
     
     // Generate conflict columns (primary key columns)
@@ -46,14 +54,22 @@ pub fn generate_insert_sql(
         .map(|(field_name, _)| field_name.clone())
         .collect();
     
-    // Generate update clauses for value fields
+    // Generate update clauses for value fields (excluding created_at, handling updated_at specially)
     let mut update_clauses = Vec::new();
     for (field_name, field_type) in value_fields {
-        update_clauses.push(format!(
-            "{} = {}",
-            field_name,
-            format_sql_value(&value_values[field_name], field_type)
-        ));
+        if field_name == "created_at" {
+            // Don't update created_at on conflict - keep original value
+            continue;
+        } else if field_name == "updated_at" {
+            // Always update updated_at to current timestamp on conflict
+            update_clauses.push("updated_at = CURRENT_TIMESTAMP".to_string());
+        } else {
+            update_clauses.push(format!(
+                "{} = {}",
+                field_name,
+                format_sql_value(&value_values[field_name], field_type)
+            ));
+        }
     }
     
     let base_sql = format!(
@@ -63,20 +79,13 @@ pub fn generate_insert_sql(
         values.join(", ")
     );
     
-    // Add ON CONFLICT clause if there are key fields and value fields to update
-    if !conflict_columns.is_empty() && !update_clauses.is_empty() {
+    // Add ON CONFLICT clause if there are key fields
+    if !conflict_columns.is_empty() {
         format!(
             "{} ON CONFLICT ({}) DO UPDATE SET {}",
             base_sql,
             conflict_columns.join(", "),
             update_clauses.join(", ")
-        )
-    } else if !conflict_columns.is_empty() {
-        // If no value fields to update, just ignore conflicts
-        format!(
-            "{} ON CONFLICT ({}) DO NOTHING",
-            base_sql,
-            conflict_columns.join(", ")
         )
     } else {
         base_sql
@@ -94,16 +103,16 @@ pub fn generate_update_sql(
     let mut where_clause = Vec::new();
     
     // Add key fields to where clause
-    for (field_name, field_type) in key_fields {
+    for (key_field_name, key_field_type) in key_fields {
         where_clause.push(format!(
             "{} = {}",
-            field_name,
-            format_sql_value(&key_values[field_name], field_type)
+            key_field_name,
+            format_sql_value(&key_values[key_field_name], key_field_type)
         ));
     }
     
     format!(
-        "UPDATE store_{} SET {} = {} WHERE {}",
+        "UPDATE store_{} SET {} = {}, updated_at = CURRENT_TIMESTAMP WHERE {}",
         table_name,
         field_name,
         format_sql_value(value, field_type),

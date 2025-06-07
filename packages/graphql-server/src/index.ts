@@ -32,8 +32,11 @@ const {
 	GRAPHQL_ENDPOINT = '/graphql',
 	PG_SCHEMA = 'public',
 	ENABLE_CORS = 'true',
-	ENABLE_SUBSCRIPTIONS = 'true',
 } = process.env;
+
+// 订阅功能默认启用，除非明确设置为false
+const ENABLE_SUBSCRIPTIONS =
+	process.env.ENABLE_SUBSCRIPTIONS !== 'false' ? 'true' : 'false';
 
 // 创建数据库连接池
 const pgPool = new Pool({
@@ -178,15 +181,40 @@ const startServer = async (): Promise<void> => {
 			console.log('='.repeat(80) + '\n');
 		}
 
-		// 11. 设置优雅关闭处理
-		process.on('SIGINT', async () => {
-			systemLogger.info('收到 SIGINT 信号，开始优雅关闭服务器...');
-			await serverManager.gracefulShutdown(pgPool);
+		// 11. 设置简单直接的关闭处理
+		let isShuttingDown = false;
+		const quickShutdown = (signal: string) => {
+			if (isShuttingDown) {
+				console.log(`\n⚡ 强制退出进程...`);
+				process.exit(0);
+			}
+
+			isShuttingDown = true;
+			console.log(`\n🛑 收到 ${signal} 信号，快速关闭服务器...`);
+
+			// 设置1秒强制退出超时
+			setTimeout(() => {
+				console.log('⚡ 快速退出');
+				process.exit(0);
+			}, 1000);
+
+			// 尝试快速关闭HTTP服务器
+			serverManager.quickShutdown().finally(() => {
+				process.exit(0);
+			});
+		};
+
+		process.on('SIGINT', () => quickShutdown('SIGINT'));
+		process.on('SIGTERM', () => quickShutdown('SIGTERM'));
+
+		// 简化异常处理
+		process.on('unhandledRejection', reason => {
+			console.error('❌ 未处理的Promise拒绝:', reason);
 		});
 
-		process.on('SIGTERM', async () => {
-			systemLogger.info('收到 SIGTERM 信号，开始优雅关闭服务器...');
-			await serverManager.gracefulShutdown(pgPool);
+		process.on('uncaughtException', error => {
+			console.error('❌ 未捕获的异常:', error.message);
+			process.exit(1);
 		});
 	} catch (error) {
 		systemLogger.error('启动服务器失败', error, {
