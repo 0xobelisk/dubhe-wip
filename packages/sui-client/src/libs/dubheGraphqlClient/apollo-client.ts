@@ -1,3 +1,42 @@
+/**
+ * DubheGraphqlClient - 支持动态缓存配置的GraphQL客户端
+ *
+ * 使用示例：
+ *
+ * // 基础配置 - 不启用任何分页缓存
+ * const client = new DubheGraphqlClient({
+ *   endpoint: 'http://localhost:5000/graphql',
+ * });
+ *
+ * // 配置特定表的分页缓存
+ * const client = new DubheGraphqlClient({
+ *   endpoint: 'http://localhost:5000/graphql',
+ *   cacheConfig: {
+ *     paginatedTables: ['account', 'encounter', 'position', 'mapConfig'],
+ *   },
+ * });
+ *
+ * // 使用自定义缓存策略
+ * const client = new DubheGraphqlClient({
+ *   endpoint: 'http://localhost:5000/graphql',
+ *   cacheConfig: {
+ *     paginatedTables: ['account', 'encounter'],
+ *     customMergeStrategies: {
+ *       accounts: {
+ *         keyArgs: ['filter'], // 只根据filter缓存，忽略orderBy
+ *         merge: (existing, incoming) => {
+ *           // 自定义合并逻辑
+ *           return {
+ *             ...incoming,
+ *             edges: [...(existing?.edges || []), ...incoming.edges],
+ *           };
+ *         },
+ *       },
+ *     },
+ *   },
+ * });
+ */
+
 import {
   ApolloClient,
   InMemoryCache,
@@ -162,68 +201,18 @@ export class DubheGraphqlClient {
     // 创建Apollo Client实例
     this.apolloClient = new ApolloClient({
       link,
-      cache: new InMemoryCache({
-        typePolicies: {
-          // 为Connection类型配置缓存策略
-          Query: {
-            fields: {
-              // 支持分页查询的缓存合并（适配新的表名）
-              accounts: {
-                keyArgs: ['filter', 'orderBy'],
-                merge(existing = { edges: [] }, incoming) {
-                  // 安全检查，确保incoming有edges属性
-                  if (!incoming || !Array.isArray(incoming.edges)) {
-                    return existing;
-                  }
-                  return {
-                    ...incoming,
-                    edges: [...(existing.edges || []), ...incoming.edges],
-                  };
+      cache:
+        config.cacheConfig?.paginatedTables &&
+        config.cacheConfig.paginatedTables.length > 0
+          ? new InMemoryCache({
+              typePolicies: {
+                // 为Connection类型配置缓存策略
+                Query: {
+                  fields: this.buildCacheFields(config.cacheConfig),
                 },
               },
-              encounters: {
-                keyArgs: ['filter', 'orderBy'],
-                merge(existing = { edges: [] }, incoming) {
-                  // 安全检查，确保incoming有edges属性
-                  if (!incoming || !Array.isArray(incoming.edges)) {
-                    return existing;
-                  }
-                  return {
-                    ...incoming,
-                    edges: [...(existing.edges || []), ...incoming.edges],
-                  };
-                },
-              },
-              positions: {
-                keyArgs: ['filter', 'orderBy'],
-                merge(existing = { edges: [] }, incoming) {
-                  // 安全检查，确保incoming有edges属性
-                  if (!incoming || !Array.isArray(incoming.edges)) {
-                    return existing;
-                  }
-                  return {
-                    ...incoming,
-                    edges: [...(existing.edges || []), ...incoming.edges],
-                  };
-                },
-              },
-              mapConfigs: {
-                keyArgs: ['filter', 'orderBy'],
-                merge(existing = { edges: [] }, incoming) {
-                  // 安全检查，确保incoming有edges属性
-                  if (!incoming || !Array.isArray(incoming.edges)) {
-                    return existing;
-                  }
-                  return {
-                    ...incoming,
-                    edges: [...(existing.edges || []), ...incoming.edges],
-                  };
-                },
-              },
-            },
-          },
-        },
-      }),
+            })
+          : new InMemoryCache(), // 默认使用简单缓存
       defaultOptions: {
         watchQuery: {
           errorPolicy: 'all',
@@ -372,42 +361,42 @@ export class DubheGraphqlClient {
       }
     `;
 
-    console.log(
-      'query:',
-      `
-      query GetAllTables(
-        $first: Int
-        $last: Int
-        $after: Cursor
-        $before: Cursor
-        $filter: ${this.getFilterTypeName(tableName)}
-        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
-      ) {
-        ${pluralTableName}(
-          first: $first
-          last: $last
-          after: $after
-          before: $before
-          filter: $filter
-          orderBy: $orderBy
-        ) {
-          totalCount
-          pageInfo {
-            hasNextPage
-            hasPreviousPage
-            startCursor
-            endCursor
-          }
-          edges {
-            cursor
-            node {
-              ${convertTableFields(params?.fields)}
-            }
-          }
-        }
-      }
-    `
-    );
+    // console.log(
+    //   'query:',
+    //   `
+    //   query GetAllTables(
+    //     $first: Int
+    //     $last: Int
+    //     $after: Cursor
+    //     $before: Cursor
+    //     $filter: ${this.getFilterTypeName(tableName)}
+    //     $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
+    //   ) {
+    //     ${pluralTableName}(
+    //       first: $first
+    //       last: $last
+    //       after: $after
+    //       before: $before
+    //       filter: $filter
+    //       orderBy: $orderBy
+    //     ) {
+    //       totalCount
+    //       pageInfo {
+    //         hasNextPage
+    //         hasPreviousPage
+    //         startCursor
+    //         endCursor
+    //       }
+    //       edges {
+    //         cursor
+    //         node {
+    //           ${convertTableFields(params?.fields)}
+    //         }
+    //       }
+    //     }
+    //   }
+    // `
+    // );
     // 构建查询参数，使用枚举值
     const queryParams = {
       first: params?.first,
@@ -419,7 +408,7 @@ export class DubheGraphqlClient {
     };
 
     // // 添加调试日志
-    console.log('queryParams:', JSON.stringify(queryParams, null, 2));
+    // console.log('queryParams:', JSON.stringify(queryParams, null, 2));
 
     // const result = await this.query(query, queryParams, {
     //   cachePolicy: 'no-cache',
@@ -801,6 +790,68 @@ export class DubheGraphqlClient {
       this.subscriptionClient.dispose();
     }
   }
+
+  /**
+   * 构建动态缓存字段配置
+   */
+  private buildCacheFields(
+    cacheConfig?: DubheClientConfig['cacheConfig']
+  ): Record<string, any> {
+    const fields: Record<string, any> = {};
+
+    // 如果没有配置，返回空的字段配置
+    if (!cacheConfig) {
+      return fields;
+    }
+
+    // 为每个配置的表创建分页缓存策略
+    if (cacheConfig.paginatedTables) {
+      cacheConfig.paginatedTables.forEach((tableName) => {
+        // 确保使用复数形式的表名
+        const pluralTableName = this.getPluralTableName(tableName);
+
+        // 检查是否有自定义合并策略
+        const customStrategy =
+          cacheConfig.customMergeStrategies?.[pluralTableName];
+
+        fields[pluralTableName] = {
+          keyArgs: customStrategy?.keyArgs || ['filter', 'orderBy'],
+          merge: customStrategy?.merge || this.defaultMergeStrategy,
+        };
+      });
+    }
+
+    // 应用自定义合并策略（如果有的话）
+    if (cacheConfig.customMergeStrategies) {
+      Object.entries(cacheConfig.customMergeStrategies).forEach(
+        ([tableName, strategy]) => {
+          // 如果表名还没有被配置过，添加它
+          if (!fields[tableName]) {
+            fields[tableName] = {
+              keyArgs: strategy.keyArgs || ['filter', 'orderBy'],
+              merge: strategy.merge || this.defaultMergeStrategy,
+            };
+          }
+        }
+      );
+    }
+
+    return fields;
+  }
+
+  /**
+   * 默认的分页合并策略
+   */
+  private defaultMergeStrategy(existing = { edges: [] }, incoming: any) {
+    // 安全检查，确保incoming有edges属性
+    if (!incoming || !Array.isArray(incoming.edges)) {
+      return existing;
+    }
+    return {
+      ...incoming,
+      edges: [...(existing.edges || []), ...incoming.edges],
+    };
+  }
 }
 
 // 导出便利函数
@@ -809,6 +860,11 @@ export function createDubheGraphqlClient(
 ): DubheGraphqlClient {
   return new DubheGraphqlClient(config);
 }
+
+/**
+ * 导出类型以便外部使用
+ */
+export type { DubheClientConfig } from './types';
 
 // 导出常用的GraphQL查询构建器
 export const QueryBuilders = {

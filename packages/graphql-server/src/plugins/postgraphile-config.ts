@@ -4,15 +4,7 @@ import { AllFieldsFilterPlugin } from './all-fields-filter-plugin';
 import { createEnhancedPlayground } from './enhanced-playground';
 import ConnectionFilterPlugin from 'postgraphile-plugin-connection-filter';
 import { makePluginHook } from 'postgraphile';
-
-// 为Live Queries和WebSocket支持创建插件钩子
-let PgPubsub: any;
-try {
-	PgPubsub = require('@graphile/pg-pubsub').default;
-} catch (error) {
-	console.warn('[@graphile/pg-pubsub] 插件未找到，WebSocket订阅功能将不可用');
-	PgPubsub = null;
-}
+import PgPubSub from '@graphile/pg-pubsub';
 
 export interface PostGraphileConfigOptions {
 	port: string | number;
@@ -44,7 +36,7 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 			: undefined;
 
 	// 创建插件钩子以支持WebSocket和订阅
-	const pluginHook = PgPubsub ? makePluginHook([PgPubsub]) : undefined;
+	const pluginHook = makePluginHook([PgPubSub]);
 
 	const config = {
 		// 基础配置 - 关闭默认GraphiQL
@@ -61,7 +53,7 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		enableCors: enableCors === 'true',
 
 		// 添加插件钩子以支持WebSocket
-		...(pluginHook && { pluginHook }),
+		pluginHook,
 
 		// 禁用所有mutation功能 - 只保留查询和订阅
 		disableDefaultMutations: true,
@@ -88,8 +80,9 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		// GraphQL查询超时设置
 		queryTimeout: parseInt(process.env.QUERY_TIMEOUT || '30000'),
 
-		// GraphQL 端点
+		// GraphQL 端点 - 明确指定路由
 		graphqlRoute: graphqlEndpoint,
+		graphiqlRoute: '/graphiql', // GraphiQL界面路由
 
 		// 添加自定义插件
 		appendPlugins: [

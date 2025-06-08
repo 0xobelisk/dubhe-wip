@@ -158,15 +158,6 @@ export interface RetryOptions {
   };
 }
 
-// 客户端配置
-export interface DubheClientConfig {
-  endpoint: string;
-  subscriptionEndpoint?: string;
-  headers?: Record<string, string>;
-  fetchOptions?: RequestInit;
-  retryOptions?: RetryOptions; // 重试配置
-}
-
 // 查询缓存策略
 export type CachePolicy =
   | 'cache-first'
@@ -174,6 +165,13 @@ export type CachePolicy =
   | 'cache-only'
   | 'no-cache'
   | 'standby';
+
+// 分页缓存策略
+export type PaginationCacheStrategy =
+  | 'none' // 不启用分页缓存合并（Apollo默认行为）
+  | 'filter-only' // 只根据过滤条件缓存
+  | 'filter-orderby' // 根据过滤条件和排序缓存
+  | 'table-level'; // 表级别缓存
 
 // 查询选项
 export interface QueryOptions {
@@ -207,4 +205,27 @@ export interface SubscriptionResult<TData = any> {
   data?: TData;
   loading: boolean;
   error?: Error;
+}
+
+// 客户端配置
+export interface DubheClientConfig {
+  endpoint: string;
+  subscriptionEndpoint?: string;
+  headers?: Record<string, string>;
+  fetchOptions?: RequestInit;
+  retryOptions?: RetryOptions; // 重试配置
+  cacheConfig?: {
+    // 需要分页缓存策略的表名列表
+    paginatedTables?: string[];
+    // 分页缓存策略
+    strategy?: PaginationCacheStrategy;
+    // 自定义缓存合并策略（可选）
+    customMergeStrategies?: Record<
+      string,
+      {
+        keyArgs?: string[];
+        merge?: (existing: any, incoming: any) => any;
+      }
+    >;
+  };
 }

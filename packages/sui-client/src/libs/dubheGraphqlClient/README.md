@@ -268,4 +268,120 @@ npm run build
 
 # 测试
 npm run test
-``` 
+```
+
+# DubheGraphqlClient 动态缓存配置
+
+`DubheGraphqlClient` 现在支持动态配置缓存策略，不再需要硬编码表名。
+
+## 基础用法
+
+### 不启用缓存（默认）
+```typescript
+const client = new DubheGraphqlClient({
+  endpoint: 'http://localhost:5000/graphql',
+});
+```
+
+### 启用特定表的分页缓存
+```typescript
+const client = new DubheGraphqlClient({
+  endpoint: 'http://localhost:5000/graphql', 
+  cacheConfig: {
+    // 指定需要分页缓存的表名（使用单数形式）
+    paginatedTables: ['account', 'encounter', 'position', 'mapConfig'],
+  },
+});
+```
+
+## 高级用法
+
+### 自定义缓存策略
+```typescript
+const client = new DubheGraphqlClient({
+  endpoint: 'http://localhost:5000/graphql',
+  cacheConfig: {
+    paginatedTables: ['account', 'encounter'],
+    customMergeStrategies: {
+      // 表名使用复数形式（与GraphQL schema一致）
+      accounts: {
+        keyArgs: ['filter'], // 只根据filter缓存，忽略orderBy
+        merge: (existing, incoming) => {
+          // 自定义合并逻辑
+          if (!incoming || !Array.isArray(incoming.edges)) {
+            return existing;
+          }
+          return {
+            ...incoming,
+            edges: [...(existing?.edges || []), ...incoming.edges],
+          };
+        },
+      },
+      encounters: {
+        keyArgs: ['filter', 'orderBy'], // 默认缓存键
+        // 使用默认合并策略
+      },
+    },
+  },
+});
+```
+
+## 配置选项
+
+### `cacheConfig.paginatedTables`
+- 类型: `string[]`
+- 说明: 需要启用分页缓存的表名列表（使用单数形式）
+- 示例: `['account', 'user', 'order']`
+
+### `cacheConfig.customMergeStrategies`
+- 类型: `Record<string, { keyArgs?: string[]; merge?: Function }>`
+- 说明: 自定义缓存合并策略
+- 表名使用复数形式（与GraphQL schema一致）
+
+#### `keyArgs`
+- 类型: `string[]`
+- 默认值: `['filter', 'orderBy']`
+- 说明: 用于生成缓存键的参数名
+
+#### `merge`
+- 类型: `(existing: any, incoming: any) => any`
+- 说明: 自定义的缓存合并函数
+- 参数:
+  - `existing`: 现有的缓存数据
+  - `incoming`: 新获取的数据
+
+## 注意事项
+
+1. **表名格式**: 
+   - `paginatedTables` 中使用单数形式：`'account'`
+   - `customMergeStrategies` 中使用复数形式：`'accounts'`
+
+2. **默认合并策略**: 会将新的 edges 追加到现有的 edges 后面，适用于分页查询
+
+3. **性能考虑**: 只为真正需要分页缓存的表启用此功能，避免不必要的内存占用
+
+## 迁移指南
+
+### 从硬编码配置迁移
+
+**之前（硬编码）:**
+```typescript
+// 无法配置，固定支持 accounts, encounters, positions, mapConfigs
+const client = new DubheGraphqlClient({ endpoint: '...' });
+```
+
+**现在（动态配置）:**
+```typescript
+const client = new DubheGraphqlClient({
+  endpoint: '...',
+  cacheConfig: {
+    paginatedTables: ['account', 'encounter', 'position', 'mapConfig'],
+  },
+});
+```
+
+这样的设计提供了：
+- ✅ 更好的灵活性 - 用户可以选择需要缓存的表
+- ✅ 更好的性能 - 不会为不需要的表创建缓存策略  
+- ✅ 更好的可扩展性 - 支持自定义缓存策略
+- ✅ 向后兼容 - 不配置时不会启用任何缓存策略 

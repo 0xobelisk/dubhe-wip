@@ -122,9 +122,14 @@ const startServer = async (): Promise<void> => {
 		];
 
 		// 5. 创建 PostGraphile 中间件
+		console.log('🔧 创建PostGraphile中间件...');
 		const postgraphileMiddleware = postgraphile(pgPool, PG_SCHEMA, {
 			...postgraphileConfig,
 		});
+		console.log(
+			'✅ PostGraphile中间件创建完成:',
+			typeof postgraphileMiddleware
+		);
 
 		// 6. 配置欢迎页面
 		const welcomeConfig: WelcomePageConfig = {
@@ -136,11 +141,11 @@ const startServer = async (): Promise<void> => {
 			enableSubscriptions: ENABLE_SUBSCRIPTIONS,
 		};
 
-		// 7. 创建简化服务器管理器
+		// 7. 创建Express服务器管理器
 		const serverManager = new EnhancedServerManager();
 
-		// 8. 创建服务器
-		const httpServer = await serverManager.createEnhancedServer({
+		// 8. 创建Express服务器
+		await serverManager.createEnhancedServer({
 			postgraphileMiddleware,
 			pgPool,
 			tableNames,
@@ -150,14 +155,15 @@ const startServer = async (): Promise<void> => {
 			postgraphileConfigOptions,
 		});
 
-		// 9. 启动服务器
+		// 9. 启动Express服务器
 		await serverManager.startServer();
 
-		logPerformance('服务器启动', startTime, {
+		logPerformance('Express服务器启动', startTime, {
 			port: PORT,
 			tableCount: allTables.length,
 			storeTableCount: storeTableNames.length,
 			nodeEnv: NODE_ENV,
+			framework: 'Express',
 			capabilities: {
 				pgSubscriptions: config.capabilities.pgSubscriptions,
 			},
@@ -166,7 +172,7 @@ const startServer = async (): Promise<void> => {
 		// 10. 显示使用说明
 		if (NODE_ENV === 'development') {
 			console.log('\n' + '='.repeat(80));
-			console.log('📖 快速访问:');
+			console.log('📖 快速访问 (Express架构):');
 			console.log(`访问 http://localhost:${PORT}/ 查看主页`);
 			console.log(
 				`访问 http://localhost:${PORT}/playground 使用GraphQL Playground`
@@ -185,20 +191,22 @@ const startServer = async (): Promise<void> => {
 		let isShuttingDown = false;
 		const quickShutdown = (signal: string) => {
 			if (isShuttingDown) {
-				console.log(`\n⚡ 强制退出进程...`);
+				systemLogger.info('⚡ 强制退出进程...');
 				process.exit(0);
 			}
 
 			isShuttingDown = true;
-			console.log(`\n🛑 收到 ${signal} 信号，快速关闭服务器...`);
+			systemLogger.info(
+				`🛑 收到 ${signal} 信号，正在关闭Express服务器...`
+			);
 
 			// 设置1秒强制退出超时
 			setTimeout(() => {
-				console.log('⚡ 快速退出');
+				systemLogger.info('⚡ 快速退出');
 				process.exit(0);
 			}, 1000);
 
-			// 尝试快速关闭HTTP服务器
+			// 尝试快速关闭Express服务器
 			serverManager.quickShutdown().finally(() => {
 				process.exit(0);
 			});
@@ -217,7 +225,7 @@ const startServer = async (): Promise<void> => {
 			process.exit(1);
 		});
 	} catch (error) {
-		systemLogger.error('启动服务器失败', error, {
+		systemLogger.error('启动Express服务器失败', error, {
 			databaseUrl: DATABASE_URL.replace(/:[^:]*@/, ':****@'),
 			schema: PG_SCHEMA,
 			port: PORT,
@@ -229,7 +237,7 @@ const startServer = async (): Promise<void> => {
 			'2. 数据库中没有预期的表结构 - 确保 sui-rust-indexer 已运行'
 		);
 		systemLogger.info('3. 权限问题 - 确保数据库用户有足够权限');
-		systemLogger.info('4. 缺少依赖 - 运行 npm install');
+		systemLogger.info('4. 缺少依赖 - 运行 pnpm install');
 
 		// 显示订阅配置帮助
 		console.log('\n' + subscriptionConfig.generateDocumentation());
@@ -239,7 +247,7 @@ const startServer = async (): Promise<void> => {
 };
 
 // 启动应用
-systemLogger.info('🚀 启动 Sui Indexer GraphQL 服务器...', {
+systemLogger.info('🚀 启动 Sui Indexer GraphQL 服务器 (Express架构)...', {
 	nodeVersion: process.version,
 	platform: process.platform,
 	pid: process.pid,
