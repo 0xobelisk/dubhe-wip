@@ -1,6 +1,4 @@
-// ECS模块主入口
-
-// 导出类型定义
+// ECS类型定义
 export type {
   EntityId,
   ComponentType,
@@ -17,32 +15,23 @@ export type {
   EntityChangeEvent,
   QueryOptions,
   SubscriptionOptions,
-  ECSWorld,
-  ECSQueryBuilder,
-  ECSWorldConfig,
-  ComponentDiscoveryConfig,
   ComponentDiscoveryStrategy,
+  ComponentDiscoveryConfig,
   ComponentMetadata,
   ComponentField,
   ComponentDiscoveryResult,
-  ComponentDiscoverer,
+  ECSWorldConfig,
+  ECSWorld,
+  ECSQueryBuilder,
 } from './types';
 
-// 导出核心类
-export { ECSQuery, QueryBuilder } from './query';
+// 主要类导出
+export { DubheECSWorld } from './world';
+export { ECSQuery } from './query';
 export { ECSSubscription } from './subscription';
-export {
-  DubheECSWorld,
-  createECSWorld,
-  createECSWorldWithComponents,
-} from './world';
-export {
-  ECSComponentDiscoverer,
-  createComponentDiscoverer,
-  createDiscovererWithComponents,
-  createDiscovererWithDubheConfig,
-  DEFAULT_DISCOVERY_CONFIG,
-} from './discovery';
+
+// 工厂函数导出
+export { createECSWorld, createECSWorldWithComponents } from './world';
 
 // 导出工具函数
 export {

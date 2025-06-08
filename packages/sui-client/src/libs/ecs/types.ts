@@ -88,32 +88,16 @@ export type ComponentDiscoveryStrategy =
   | 'manual' // 手动指定
   | 'dubhe-config'; // 🆕 从dubhe配置自动发现
 
-// 导入dubhe配置类型
-import type { DubheConfig } from '../dubheGraphqlClient/types';
+// 导入sui-common的dubhe配置类型，更通用
+import type { DubheConfig } from '@0xobelisk/sui-common';
 
-// 组件发现配置
+// 组件发现配置 - 自动策略版本
 export interface ComponentDiscoveryConfig {
-  strategy: ComponentDiscoveryStrategy;
+  // 手动指定组件名称列表（manual模式）
+  componentNames?: ComponentType[];
 
-  // 手动指定组件列表（strategy = 'manual'）
-  componentTypes?: ComponentType[];
-
-  // 配置文件路径（strategy = 'configuration'）
-  configPath?: string;
-
-  // 候选表名列表（strategy = 'cache-analysis'）
-  candidateTableNames?: string[];
-
-  // 🆕 Dubhe配置（strategy = 'dubhe-config'）
+  // Dubhe配置（dubhe-config模式）
   dubheConfig?: DubheConfig;
-
-  // 组件名称过滤器
-  includePatterns?: string[]; // 包含的模式，如 ['*_component', 'player*']
-  excludePatterns?: string[]; // 排除的模式，如 ['_*', 'internal_*']
-
-  // 缓存设置
-  cacheTTL?: number; // 缓存时间（秒），默认300秒
-  autoRefresh?: boolean; // 是否自动刷新，默认false
 }
 
 // 组件元数据
@@ -148,18 +132,13 @@ export interface ComponentDiscoveryResult {
   fromDubheConfig?: boolean; // 🆕 是否来自dubhe配置
 }
 
-// 组件发现器接口
+// 组件发现器接口 - 简化版本
 export interface ComponentDiscoverer {
   discover(): Promise<ComponentDiscoveryResult>;
-  refresh(): Promise<ComponentDiscoveryResult>;
   getComponentTypes(): Promise<ComponentType[]>;
   getComponentMetadata(
     componentType: ComponentType
   ): Promise<ComponentMetadata | null>;
-
-  // 🆕 新增方法
-  setDubheConfig?(dubheConfig: DubheConfig): void;
-  getDubheConfig?(): DubheConfig | null;
 }
 
 // ECS世界配置
@@ -192,13 +171,12 @@ export interface ECSWorld {
   configure(config: Partial<ECSWorldConfig>): Promise<void>;
   initialize(): Promise<void>;
 
-  // 组件发现
+  // 组件发现 - 简化版本
   discoverComponents(): Promise<ComponentType[]>;
   getAvailableComponents(): Promise<ComponentType[]>;
   getComponentMetadata(
     componentType: ComponentType
   ): Promise<ComponentMetadata | null>;
-  refreshComponentCache(): Promise<void>;
 
   // ============ 标准ECS接口（驼峰命名） ============
 
@@ -280,6 +258,18 @@ export interface ECSWorld {
     callback: QueryChangeCallback,
     options?: SubscriptionOptions
   ): QueryWatcher;
+
+  // ============ 全局配置查询（无主键表）============
+
+  /**
+   * 查询全局配置表（无主键表）
+   */
+  getGlobalConfig<T>(configType: string): Promise<T | null>;
+
+  /**
+   * 获取所有全局配置表的列表
+   */
+  getGlobalConfigTables(): string[];
 }
 
 // 查询构建器接口

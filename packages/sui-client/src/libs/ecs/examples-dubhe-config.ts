@@ -2,7 +2,7 @@
 
 import { createDubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
 import { createECSWorld } from './world';
-import type { DubheConfig } from '../dubheGraphqlClient/types';
+import { DubheConfig } from '@0xobelisk/sui-common';
 
 /**
  * 示例dubhe配置
@@ -15,41 +15,41 @@ const exampleDubheConfig: DubheConfig = {
     player: {
       keys: ['id'], // 单主键
       fields: {
-        name: { type: 'string' },
-        level: { type: 'u32' },
-        experience: { type: 'u64' },
-        is_active: { type: 'bool' },
-        player_type: { type: 'PlayerType' }, // 引用枚举类型
+        name: 'string',
+        level: 'u32',
+        experience: 'u64',
+        is_active: 'bool',
+        player_type: 'PlayerType', // 引用枚举类型
       },
     },
     // 位置组件
     position: {
       keys: ['entity_id'], // 外键
       fields: {
-        entity_id: { type: 'string' },
-        x: { type: 'u32' },
-        y: { type: 'u32' },
-        map_id: { type: 'string' },
+        entity_id: 'string',
+        x: 'u32',
+        y: 'u32',
+        map_id: 'string',
       },
     },
     // 物品组件
     item: {
       keys: ['id'],
       fields: {
-        name: { type: 'string' },
-        item_type: { type: 'ItemType' }, // 引用枚举类型
-        quantity: { type: 'u32' },
-        owner_id: { type: 'string' },
+        name: 'string',
+        item_type: 'ItemType', // 引用枚举类型
+        quantity: 'u32',
+        owner_id: 'string',
       },
     },
     // 复合主键示例
     inventory: {
       keys: ['player_id', 'item_id'], // 复合主键
       fields: {
-        player_id: { type: 'string' },
-        item_id: { type: 'string' },
-        quantity: { type: 'u32' },
-        slot_index: { type: 'u32' },
+        player_id: 'string',
+        item_id: 'string',
+        quantity: 'u32',
+        slot_index: 'u32',
       },
     },
   },
@@ -123,10 +123,7 @@ export async function advancedDubheConfigExample() {
   const world = createECSWorld(client, {
     dubheConfig: exampleDubheConfig,
     componentDiscovery: {
-      strategy: 'dubhe-config',
       dubheConfig: exampleDubheConfig,
-      includePatterns: ['player*', 'item*'], // 只包含特定组件
-      excludePatterns: ['*_internal'],
     },
     queryConfig: {
       enableAutoFieldResolution: true,

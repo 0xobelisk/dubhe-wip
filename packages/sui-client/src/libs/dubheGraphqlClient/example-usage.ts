@@ -6,7 +6,7 @@
  */
 
 import { DubheGraphqlClient, createDubheGraphqlClient } from './apollo-client';
-import { DubheConfig } from './types';
+import { DubheConfig } from '@0xobelisk/sui-common';
 
 // 示例 dubhe config
 const exampleDubheConfig: DubheConfig = {

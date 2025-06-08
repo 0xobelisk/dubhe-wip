@@ -1,13 +1,9 @@
-// ECS世界主类实现
+// ECS世界主类实现 - 简化版本，内置组件发现
 
 import { DubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
-import type { DubheConfig } from '../dubheGraphqlClient/types';
+import { DubheConfig } from '@0xobelisk/sui-common';
 import { ECSQuery } from './query';
 import { ECSSubscription } from './subscription';
-import {
-  createComponentDiscoverer,
-  DEFAULT_DISCOVERY_CONFIG,
-} from './discovery';
 import {
   EntityId,
   ComponentType,
@@ -20,19 +16,424 @@ import {
   ECSWorld,
   PagedResult,
   ECSWorldConfig,
-  ComponentDiscoverer,
   ComponentMetadata,
+  ComponentDiscoveryResult,
+  ComponentField,
 } from './types';
 import { formatError } from './utils';
 
 /**
- * ECS世界 - 统一的ECS系统入口，支持dubhe config自动配置
+ * 简化的组件发现器 - 自动策略判断
+ */
+class SimpleComponentDiscoverer {
+  private graphqlClient: DubheGraphqlClient;
+  private componentNames: ComponentType[] = [];
+  private dubheConfig: DubheConfig | null = null;
+  private strategy: 'manual' | 'dubhe-config' = 'manual';
+
+  constructor(
+    graphqlClient: DubheGraphqlClient,
+    componentNames?: ComponentType[],
+    dubheConfig?: DubheConfig
+  ) {
+    this.graphqlClient = graphqlClient;
+
+    // 验证参数：不能两个都不传
+    if (!componentNames?.length && !dubheConfig) {
+      throw new Error(
+        '组件发现配置错误：必须提供 componentNames（手动模式）或 dubheConfig（自动模式）中的一个'
+      );
+    }
+
+    // 自动判断策略：优先使用 dubheConfig
+    if (dubheConfig) {
+      this.dubheConfig = dubheConfig;
+      this.strategy = 'dubhe-config';
+      console.log('🎯 自动选择策略：dubhe-config（从配置文件自动发现组件）');
+    } else if (componentNames?.length) {
+      this.componentNames = componentNames;
+      this.strategy = 'manual';
+      console.log('🔧 自动选择策略：manual（使用指定的组件名称列表）');
+    }
+  }
+
+  async discover(): Promise<ComponentDiscoveryResult> {
+    const components: ComponentMetadata[] = [];
+    const errors: string[] = [];
+
+    if (this.strategy === 'dubhe-config' && this.dubheConfig) {
+      console.log('🎯 使用dubhe配置自动发现组件...');
+
+      if (!this.dubheConfig.components) {
+        throw new Error('dubhe配置中没有找到components部分');
+      }
+
+      for (const [componentName, componentConfig] of Object.entries(
+        this.dubheConfig.components
+      )) {
+        const componentType = this.tableNameToComponentName(componentName);
+
+        try {
+          // 验证组件是否存在
+          await this.graphqlClient.getAllTables(componentType, { first: 1 });
+
+          // 构建字段信息
+          const fields: ComponentField[] = [];
+          const primaryKeys: string[] = [];
+          const enumFields: string[] = [];
+
+          console.log(`🔧 解析组件 ${componentName}:`, {
+            type: typeof componentConfig,
+            keys:
+              typeof componentConfig === 'object' &&
+              componentConfig !== null &&
+              'keys' in componentConfig
+                ? componentConfig.keys
+                : 'N/A',
+            hasFields:
+              typeof componentConfig === 'object' &&
+              componentConfig !== null &&
+              'fields' in componentConfig,
+            fieldCount:
+              typeof componentConfig === 'object' &&
+              componentConfig !== null &&
+              'fields' in componentConfig &&
+              componentConfig.fields
+                ? Object.keys(componentConfig.fields).length
+                : 0,
+          });
+
+          // 处理不同类型的组件
+          if (typeof componentConfig === 'string') {
+            // MoveType字符串，如 owned_by: "address"
+            console.log(`  📝 MoveType字符串: ${componentConfig}`);
+            fields.push(
+              {
+                name: 'id',
+                type: 'String',
+                nullable: false,
+                isPrimaryKey: true,
+                isEnum: false,
+              },
+              {
+                name: 'value',
+                type: this.dubheTypeToGraphQLType(componentConfig),
+                nullable: true,
+                isPrimaryKey: false,
+                isEnum: this.isEnumType(componentConfig),
+              }
+            );
+            primaryKeys.push('id');
+          } else if (
+            typeof componentConfig === 'object' &&
+            componentConfig !== null &&
+            Object.keys(componentConfig).length === 0
+          ) {
+            // EmptyComponent，如 player: {}
+            console.log(`  📝 EmptyComponent，添加默认id字段`);
+            fields.push({
+              name: 'id',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: true,
+              isEnum: false,
+            });
+            primaryKeys.push('id');
+          } else if (
+            typeof componentConfig === 'object' &&
+            componentConfig !== null &&
+            'fields' in componentConfig &&
+            componentConfig.fields
+          ) {
+            // Component类型，有fields定义
+            console.log(
+              `  📝 Component类型，有${Object.keys(componentConfig.fields).length}个字段`
+            );
+
+            // 分析主键配置
+            let keyStrategy: 'custom' | 'default' | 'none' = 'default';
+            if ('keys' in componentConfig) {
+              if (Array.isArray(componentConfig.keys)) {
+                if (componentConfig.keys.length > 0) {
+                  keyStrategy = 'custom';
+                  console.log(
+                    `  🔑 使用自定义主键: [${componentConfig.keys.join(', ')}]`
+                  );
+                } else {
+                  keyStrategy = 'none';
+                  console.log(`  🚫 明确指定无主键 (keys: [])`);
+                }
+              }
+            } else {
+              console.log(`  📝 keys未定义，将添加默认id主键`);
+            }
+
+            // 首先处理业务字段
+            for (const [fieldName, fieldType] of Object.entries(
+              componentConfig.fields
+            )) {
+              // 根据sui-common定义，fieldType应该是MoveType（字符串）
+              const camelFieldName = this.snakeToCamel(fieldName);
+              const typeStr = String(fieldType);
+
+              console.log(
+                `    - ${fieldName} (${camelFieldName}): ${typeStr} -> ${this.dubheTypeToGraphQLType(typeStr)}`
+              );
+
+              // 检查该字段是否是自定义主键之一
+              const isCustomKey =
+                keyStrategy === 'custom' &&
+                componentConfig.keys!.includes(fieldName);
+
+              fields.push({
+                name: camelFieldName,
+                type: this.dubheTypeToGraphQLType(typeStr),
+                nullable: !isCustomKey, // 主键字段不可为空
+                isPrimaryKey: isCustomKey,
+                isEnum: this.isEnumType(typeStr),
+              });
+
+              if (isCustomKey) {
+                primaryKeys.push(camelFieldName);
+                console.log(`    🔑 ${camelFieldName} 设置为主键字段`);
+              }
+
+              // 检查是否是枚举类型（检查dubheConfig.enums中是否存在）
+              if (this.isEnumType(typeStr)) {
+                enumFields.push(camelFieldName);
+                console.log(
+                  `    ✨ ${camelFieldName} 识别为枚举类型: ${typeStr}`
+                );
+              }
+            }
+
+            // 根据主键策略添加默认id字段
+            if (keyStrategy === 'default') {
+              console.log(`  📝 添加默认id主键字段`);
+              fields.unshift({
+                name: 'id',
+                type: 'String',
+                nullable: false,
+                isPrimaryKey: true,
+                isEnum: false,
+              });
+              primaryKeys.push('id');
+            } else if (keyStrategy === 'none') {
+              console.log(`  ⚠️ 该组件没有主键字段`);
+            }
+          }
+
+          // 添加系统字段
+          fields.push(
+            {
+              name: 'createdAt',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
+            },
+            {
+              name: 'updatedAt',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
+            }
+          );
+
+          console.log(`  📊 最终字段解析结果:`);
+          console.log(`    主键: [${primaryKeys.join(', ')}]`);
+          console.log(`    字段 (${fields.length}个):`);
+          fields.forEach((field) => {
+            const tags = [];
+            if (field.isPrimaryKey) tags.push('主键');
+            if (field.isEnum) tags.push('枚举');
+            if (!field.nullable) tags.push('必填');
+            else tags.push('可空');
+            console.log(
+              `      - ${field.name}: ${field.type} (${tags.join(', ')})`
+            );
+          });
+          if (enumFields.length > 0) {
+            console.log(`    枚举字段: [${enumFields.join(', ')}]`);
+          }
+
+          // 检查是否应该作为ECS组件
+          if (primaryKeys.length === 0) {
+            console.log(
+              `⚠️ ${componentType} 无主键，跳过ECS组件注册（建议使用专门的配置查询接口）`
+            );
+            continue; // 跳过无主键的表，不作为ECS组件
+          }
+
+          const metadata: ComponentMetadata = {
+            name: componentType,
+            tableName: componentName,
+            fields,
+            primaryKeys,
+            hasDefaultId:
+              typeof componentConfig !== 'object' ||
+              componentConfig === null ||
+              !('keys' in componentConfig) ||
+              !componentConfig.keys ||
+              componentConfig.keys.length === 0,
+            enumFields,
+            lastUpdated: Date.now(),
+            description: `从dubhe配置自动发现的组件: ${componentName}`,
+          };
+
+          components.push(metadata);
+          console.log(`✅ 发现组件 ${componentType} (表: ${componentName})`);
+        } catch (error) {
+          const errorMsg = `组件 ${componentType} 验证失败: ${formatError(error)}`;
+          errors.push(errorMsg);
+          console.warn(`⚠️ ${errorMsg}`);
+        }
+      }
+    } else {
+      // 手动模式
+      console.log('🔧 使用手动模式发现组件...');
+      console.log('📋 指定的组件类型:', this.componentNames);
+
+      for (const componentType of this.componentNames) {
+        try {
+          // 验证组件是否存在
+          await this.graphqlClient.getAllTables(componentType, { first: 1 });
+
+          const metadata: ComponentMetadata = {
+            name: componentType,
+            tableName: this.componentNameToTableName(componentType),
+            fields: [
+              {
+                name: 'id',
+                type: 'String',
+                nullable: false,
+                isPrimaryKey: true,
+                isEnum: false,
+              },
+              {
+                name: 'createdAt',
+                type: 'String',
+                nullable: false,
+                isPrimaryKey: false,
+                isEnum: false,
+              },
+              {
+                name: 'updatedAt',
+                type: 'String',
+                nullable: false,
+                isPrimaryKey: false,
+                isEnum: false,
+              },
+            ],
+            primaryKeys: [],
+            hasDefaultId: true,
+            enumFields: [],
+            lastUpdated: Date.now(),
+            description: `手动配置的组件: ${componentType}`,
+          };
+
+          components.push(metadata);
+          console.log(`✅ 确认组件 ${componentType} 可用`);
+        } catch (error) {
+          const errorMsg = `组件 ${componentType} 验证失败: ${formatError(error)}`;
+          errors.push(errorMsg);
+          console.warn(`⚠️ ${errorMsg}`);
+        }
+      }
+    }
+
+    return {
+      components,
+      discoveredAt: Date.now(),
+      strategy: this.strategy,
+      errors: errors.length > 0 ? errors : undefined,
+      totalDiscovered: components.length,
+      fromDubheConfig: this.strategy === 'dubhe-config',
+    };
+  }
+
+  async getComponentTypes(): Promise<ComponentType[]> {
+    const result = await this.discover();
+    return result.components.map((comp) => comp.name);
+  }
+
+  async getComponentMetadata(
+    componentType: ComponentType
+  ): Promise<ComponentMetadata | null> {
+    const result = await this.discover();
+    return (
+      result.components.find((comp) => comp.name === componentType) || null
+    );
+  }
+
+  private snakeToCamel(str: string): string {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  }
+
+  private dubheTypeToGraphQLType(dubheType: string): string {
+    // 处理向量类型 vector<T>
+    if (dubheType.startsWith('vector<') && dubheType.endsWith('>')) {
+      return 'String'; // GraphQL通常将复杂类型序列化为JSON字符串
+    }
+
+    switch (dubheType) {
+      case 'u8':
+      case 'u16':
+      case 'u32':
+      case 'u64':
+      case 'u128':
+      case 'i8':
+      case 'i16':
+      case 'i32':
+      case 'i64':
+      case 'i128':
+        return 'Int';
+      case 'address':
+      case 'string':
+        return 'String';
+      case 'bool':
+        return 'Boolean';
+      case 'enum':
+        return 'String';
+      default:
+        // 如果不是已知的基本类型，可能是枚举或自定义类型
+        // 对于未知类型，默认使用String
+        console.log(`⚠️ 未知类型: ${dubheType}，使用String作为GraphQL类型`);
+        return 'String';
+    }
+  }
+
+  private componentNameToTableName(componentName: string): string {
+    if (!componentName.endsWith('s')) {
+      return componentName + 's';
+    }
+    return componentName;
+  }
+
+  private tableNameToComponentName(tableName: string): string {
+    if (tableName.endsWith('s') && tableName.length > 1) {
+      return tableName.slice(0, -1);
+    }
+    return tableName;
+  }
+
+  /**
+   * 检查是否是枚举类型
+   */
+  private isEnumType(typeStr: string): boolean {
+    return !!(this.dubheConfig?.enums && this.dubheConfig.enums[typeStr]);
+  }
+}
+
+/**
+ * ECS世界 - 简化版本，内置组件发现
  */
 export class DubheECSWorld implements ECSWorld {
   private graphqlClient: DubheGraphqlClient;
   private querySystem: ECSQuery;
   private subscriptionSystem: ECSSubscription;
-  private componentDiscoverer: ComponentDiscoverer;
+  private componentDiscoverer: SimpleComponentDiscoverer;
   private config: ECSWorldConfig;
   private isInitialized = false;
 
@@ -42,34 +443,23 @@ export class DubheECSWorld implements ECSWorld {
   ) {
     this.graphqlClient = graphqlClient;
 
-    // 🆕 检查GraphQL client是否包含dubhe config
+    // 检查GraphQL client是否包含dubhe config
     const clientDubheConfig = (this.graphqlClient as any).getDubheConfig?.();
     const configDubheConfig = config?.dubheConfig;
     const dubheConfig = configDubheConfig || clientDubheConfig;
 
-    // 设置默认配置，如果有dubhe config则自动配置组件发现
-    let componentDiscoveryConfig = DEFAULT_DISCOVERY_CONFIG;
-
-    if (dubheConfig) {
-      console.log('🎯 检测到dubhe配置，自动配置组件发现策略为 dubhe-config');
-      componentDiscoveryConfig = {
-        strategy: 'dubhe-config',
-        dubheConfig,
-        cacheTTL: 300,
-        autoRefresh: false,
-        includePatterns: ['*'],
-        excludePatterns: ['_*', '__*', 'internal_*'],
-      };
-    }
-
+    // 设置默认配置
     this.config = {
-      componentDiscovery: componentDiscoveryConfig,
+      componentDiscovery: {
+        componentNames: config?.componentDiscovery?.componentNames || [],
+        dubheConfig,
+      },
       dubheConfig,
       queryConfig: {
         defaultCacheTimeout: 5000,
         maxConcurrentQueries: 10,
         enableBatchOptimization: true,
-        enableAutoFieldResolution: !!dubheConfig, // 🆕 有dubhe config时启用自动字段解析
+        enableAutoFieldResolution: !!dubheConfig,
       },
       subscriptionConfig: {
         defaultDebounceMs: 100,
@@ -79,20 +469,12 @@ export class DubheECSWorld implements ECSWorld {
       ...config,
     };
 
-    // 如果config覆盖了componentDiscovery但没有dubheConfig，则使用传入的dubheConfig
-    if (
-      config?.componentDiscovery &&
-      !config.componentDiscovery.dubheConfig &&
-      dubheConfig
-    ) {
-      this.config.componentDiscovery.dubheConfig = dubheConfig;
-    }
-
     this.querySystem = new ECSQuery(graphqlClient);
     this.subscriptionSystem = new ECSSubscription(graphqlClient);
-    this.componentDiscoverer = createComponentDiscoverer(
+    this.componentDiscoverer = new SimpleComponentDiscoverer(
       graphqlClient,
-      this.config.componentDiscovery
+      this.config.componentDiscovery.componentNames,
+      this.config.componentDiscovery.dubheConfig
     );
   }
 
@@ -106,15 +488,11 @@ export class DubheECSWorld implements ECSWorld {
 
     // 重新创建组件发现器如果配置改变
     if (config.componentDiscovery) {
-      this.componentDiscoverer = createComponentDiscoverer(
+      this.componentDiscoverer = new SimpleComponentDiscoverer(
         this.graphqlClient,
-        this.config.componentDiscovery
+        this.config.componentDiscovery.componentNames,
+        this.config.componentDiscovery.dubheConfig
       );
-    }
-
-    // 🆕 如果设置了新的dubhe config，则更新组件发现器
-    if (config.dubheConfig && this.componentDiscoverer.setDubheConfig) {
-      this.componentDiscoverer.setDubheConfig(config.dubheConfig);
     }
   }
 
@@ -125,8 +503,10 @@ export class DubheECSWorld implements ECSWorld {
     try {
       console.log('🚀 初始化ECS世界...');
 
-      // 🆕 显示使用的发现策略
-      const strategy = this.config.componentDiscovery.strategy;
+      // 自动判断策略类型用于日志
+      const strategy = this.config.componentDiscovery.dubheConfig
+        ? 'dubhe-config'
+        : 'manual';
       console.log(`📋 组件发现策略: ${strategy}`);
 
       if (strategy === 'dubhe-config') {
@@ -152,7 +532,6 @@ export class DubheECSWorld implements ECSWorld {
         discoveryResult.components.map((comp) => comp.name)
       );
 
-      // 🆕 如果启用了自动字段解析，显示提示
       if (this.config.queryConfig?.enableAutoFieldResolution) {
         console.log('🔧 已启用自动字段解析，查询将自动使用正确的字段');
       }
@@ -188,21 +567,6 @@ export class DubheECSWorld implements ECSWorld {
     componentType: ComponentType
   ): Promise<ComponentMetadata | null> {
     return this.componentDiscoverer.getComponentMetadata(componentType);
-  }
-
-  /**
-   * 刷新组件缓存
-   */
-  async refreshComponentCache(): Promise<void> {
-    console.log('🔄 刷新组件缓存...');
-    const result = await this.componentDiscoverer.refresh();
-
-    // 更新查询系统
-    this.querySystem.setAvailableComponents(
-      result.components.map((comp) => comp.name)
-    );
-
-    console.log(`✅ 组件缓存已刷新，发现 ${result.components.length} 个组件`);
   }
 
   // ============ 实体查询 ============
@@ -690,13 +1054,6 @@ export class DubheECSWorld implements ECSWorld {
   }
 
   /**
-   * 获取组件发现器
-   */
-  getComponentDiscoverer(): ComponentDiscoverer {
-    return this.componentDiscoverer;
-  }
-
-  /**
    * 获取ECS世界配置
    */
   getConfig(): ECSWorldConfig {
@@ -721,7 +1078,7 @@ export class DubheECSWorld implements ECSWorld {
    * 🆕 检查是否使用dubhe配置
    */
   isUsingDubheConfig(): boolean {
-    return this.config.componentDiscovery.strategy === 'dubhe-config';
+    return !!this.config.componentDiscovery.dubheConfig;
   }
 
   /**
@@ -729,6 +1086,60 @@ export class DubheECSWorld implements ECSWorld {
    */
   isAutoFieldResolutionEnabled(): boolean {
     return !!this.config.queryConfig?.enableAutoFieldResolution;
+  }
+
+  // ============ 全局配置查询 ============
+
+  /**
+   * 查询全局配置表（无主键表）
+   */
+  async getGlobalConfig<T>(configType: string): Promise<T | null> {
+    try {
+      console.log(`🌐 查询全局配置: ${configType}`);
+      const result = await this.graphqlClient.getAllTables(configType, {
+        first: 1,
+      });
+      const record = result.edges[0]?.node;
+
+      if (record) {
+        console.log(`✅ 找到${configType}配置`);
+        return record as T;
+      } else {
+        console.log(`⚠️ 未找到${configType}配置`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`❌ 查询${configType}配置失败:`, formatError(error));
+      return null;
+    }
+  }
+
+  /**
+   * 获取所有全局配置表的列表
+   */
+  getGlobalConfigTables(): string[] {
+    if (!this.config.dubheConfig?.components) {
+      return [];
+    }
+
+    const globalTables: string[] = [];
+
+    Object.entries(this.config.dubheConfig.components).forEach(
+      ([componentName, component]) => {
+        // 检查是否是无主键的配置表
+        if (
+          typeof component === 'object' &&
+          component !== null &&
+          'keys' in component
+        ) {
+          if (Array.isArray(component.keys) && component.keys.length === 0) {
+            globalTables.push(componentName);
+          }
+        }
+      }
+    );
+
+    return globalTables;
   }
 }
 
@@ -743,22 +1154,17 @@ export function createECSWorld(
 }
 
 /**
- * 便利函数：创建带预设组件的ECS世界
+ * 便利函数：创建带预设组件名称的ECS世界（手动模式）
  */
 export function createECSWorldWithComponents(
   graphqlClient: DubheGraphqlClient,
-  componentTypes: ComponentType[],
+  componentNames: ComponentType[],
   config?: Partial<ECSWorldConfig>
 ): DubheECSWorld {
   return new DubheECSWorld(graphqlClient, {
     ...config,
     componentDiscovery: {
-      strategy: 'manual',
-      componentTypes,
-      cacheTTL: 300,
-      autoRefresh: false,
-      includePatterns: ['*'],
-      excludePatterns: ['_*', '__*', 'internal_*'],
+      componentNames,
       ...config?.componentDiscovery,
     },
   });

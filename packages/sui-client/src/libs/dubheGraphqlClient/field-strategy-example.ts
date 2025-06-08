@@ -3,11 +3,12 @@
  */
 
 import { createDubheGraphqlClient } from './apollo-client';
-import { DubheConfig } from './types';
+import { DubheConfig } from '@0xobelisk/sui-common';
 
 // 示例dubhe config，包含不同类型的表
 const dubheConfig: DubheConfig = {
   name: 'field_strategy_demo',
+  description: 'description demo',
   components: {
     // 1. 有默认id字段的表
     Player: {

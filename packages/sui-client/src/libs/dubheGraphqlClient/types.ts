@@ -1,4 +1,5 @@
 import { DocumentNode } from '@apollo/client';
+import { DubheConfig } from '@0xobelisk/sui-common';
 
 // 基础分页信息
 export interface PageInfo {
@@ -244,14 +245,6 @@ export interface DubheComponentField {
 export interface DubheComponent {
   fields?: Record<string, string | DubheComponentField>; // 字段定义
   keys?: string[]; // 主键字段列表，[] 表示没有主键，undefined 表示默认id主键
-}
-
-export interface DubheConfig {
-  name: string;
-  description?: string;
-  enums?: Record<string, string[]>; // 枚举定义
-  errors?: Record<string, string>; // 错误定义
-  components: Record<string, DubheComponent>; // 组件/表定义
 }
 
 // 自动解析的字段信息

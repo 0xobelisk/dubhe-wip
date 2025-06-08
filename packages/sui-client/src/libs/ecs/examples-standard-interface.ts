@@ -3,7 +3,6 @@
 import { createDubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
 import { createECSWorld } from './world';
 import { exampleDubheConfig } from './examples-dubhe-config';
-import type { DubheConfig } from '../dubheGraphqlClient/types';
 
 /**
  * 标准ECS接口规范示例
