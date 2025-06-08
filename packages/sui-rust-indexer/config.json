@@ -1,44 +1,100 @@
 {
       "tables" : [
             {
-                  "accounts": {
+                  "player": {
                         "schemas": [
-                              { "asset_id": "u256" },
-                              { "account": "address" },
-                              { "balance": "u256" }
+                              { "id": "address" }
                         ],
-                        "key" : ["asset_id", "account"]
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "movable": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "obstruction": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "encounterable": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "encounter_trigger": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
                   }
             },
             {
                   "position": {
                         "schemas": [
-                              { "player": "address" },
+                              { "id": "address" },
                               { "x": "u64" },
                               { "y": "u64" }
                         ],
-                        "key" : ["player"]
+                        "key" : ["id"]
                   }
             },
             {
-                  "encounter": {
+                  "monster": {
                         "schemas": [
-                              { "player": "address" },
-                              { "exists": "bool" },
+                              { "id": "address" },
+                              { "monster_type": "u32" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "owned_by": {
+                        "schemas": [
+                              { "id": "address" },
+                              { "value": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {      "encounter": {
+                        "schemas": [
+                              { "id": "address" },
                               { "monster": "address" },
                               { "catch_attempts": "u256" }
                         ],
-                        "key" : ["player"]
+                        "key" : ["id"]
                   }
             },
             {
                   "map_config": {
                         "schemas": [
                               { "width": "u64" },
-                              { "height": "u64" }
+                              { "height": "u64" },
+                              { "terrain": "vector<u32>" }
                         ],
                         "key" : []
                   }
-            }         
+            } ,
+            {
+                  "monster_catch_attempt": {
+                        "schemas": [
+                              { "monster": "address" },
+                              { "result": "u32" }
+                        ],
+                        "key" : ["monster"]
+                  }
+            }        
       ]
 } 

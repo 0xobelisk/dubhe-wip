@@ -264,7 +264,7 @@ impl Worker for DubheIndexerWorker {
                         println!("Event: {:?}", event);
                         println!("================================================");
                         
-                        if event.type_.name.to_string() == "StoreSetRecord" {
+                        if event.type_.name.to_string() == "Store_SetRecord" {
                             let set_record: StorageSetRecord = bcs::from_bytes(event.contents.as_slice())
                                 .expect("Failed to parse set record");
                             println!("Set record: {:?}", set_record);
@@ -274,7 +274,7 @@ impl Worker for DubheIndexerWorker {
                             set_record_count += 1;
                         }
 
-                        if event.type_.name.to_string() == "StoreSetField" {
+                        if event.type_.name.to_string() == "Store_SetField" {
                             let set_field: StoreSetField = bcs::from_bytes(event.contents.as_slice())
                                 .expect("Failed to parse set field");
                             
