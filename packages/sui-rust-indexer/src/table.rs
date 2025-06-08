@@ -69,6 +69,54 @@ pub fn parse_table_field(field_name: &[u8], field_type: &[u8], field_value: &[u8
             let v: Vec<u8> = bcs::from_bytes(field_value).unwrap();
             serde_json::json!({ field_name_str: v })
         },
+        "vector<u16>" => {
+            let v: Vec<u16> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<u32>" => {
+            let v: Vec<u32> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<u64>" => {
+            let v: Vec<u64> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<u128>" => {
+            let v: Vec<u128> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<u256>" => {
+            let v: Vec<U256> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<address>" => {  
+            let v: Vec<SuiAddress> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<bool>" => {
+            let v: Vec<bool> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<vector<u8>>" => {
+            let v: Vec<Vec<u8>> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<vector<u16>>" => {
+            let v: Vec<Vec<u16>> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<vector<u32>>" => {
+            let v: Vec<Vec<u32>> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<vector<u64>>" => {
+            let v: Vec<Vec<u64>> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
+        "vector<vector<u128>>" => {
+            let v: Vec<Vec<u128>> = bcs::from_bytes(field_value).unwrap();
+            serde_json::json!({ field_name_str: v })
+        },
         _ => {
             let v: Vec<u8> = bcs::from_bytes(field_value).unwrap();
             serde_json::json!({ field_name_str: v })

@@ -9,6 +9,35 @@ fn format_sql_value(value: &Value, field_type: &str) -> String {
                 "false".to_string()
             }
         },
+        "u8" | "u16" | "u32" | "u64" | "u128" | "u256" => {
+            if value.is_number() {
+                value.to_string()
+            } else {
+                "0".to_string()
+            }
+        },
+        "vector<u8>" | "vector<u16>" | "vector<u32>" | "vector<u64>" | "vector<u128>" | "vector<u256>" => {
+            if value.is_array() {
+                let array = value.as_array().unwrap();
+                let values: Vec<String> = array.iter()
+                    .map(|v| v.to_string())
+                    .collect();
+                format!("ARRAY[{}]", values.join(", "))
+            } else {
+                "ARRAY[]".to_string()
+            }
+        },
+        "vector<address>" => {
+            if value.is_array() {
+                let array = value.as_array().unwrap();
+                let values: Vec<String> = array.iter()
+                    .map(|v| format!("'{}'", v.as_str().unwrap_or("")))
+                    .collect();
+                format!("ARRAY[{}]", values.join(", "))
+            } else {
+                "ARRAY[]".to_string()
+            }
+        },
         _ => {
             if value.is_string() {
                 format!("'{}'", value.as_str().unwrap_or(""))

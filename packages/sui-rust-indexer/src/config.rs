@@ -147,6 +147,19 @@ impl TableSchema {
 
     fn get_sql_type(&self, type_: &str) -> String {
         match type_ {
+            "u8" => "SMALLINT",
+            "u16" => "INTEGER",
+            "u32" => "BIGINT",
+            "u64" => "BIGINT",
+            "u128" => "NUMERIC",
+            "u256" => "NUMERIC",
+            "vector<u8>" => "SMALLINT[]",
+            "vector<u16>" => "INTEGER[]",
+            "vector<u32>" => "BIGINT[]",
+            "vector<u64>" => "BIGINT[]",
+            "vector<u128>" => "NUMERIC[]",
+            "vector<u256>" => "NUMERIC[]",
+            "vector<address>" => "TEXT[]",
             "bool" => "BOOLEAN",
             _ => "TEXT",
         }.to_string()

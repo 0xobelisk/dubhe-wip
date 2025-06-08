@@ -48,8 +48,14 @@ async fn main() -> Result<()> {
 
     let client = Client::new_testnet();
     let checkpoint = client.checkpoint(None, None).await?.unwrap();
-    println!("Checkpoint: {:?}", checkpoint.sequence_number);
-    let start_checkpoint: u64 = checkpoint.sequence_number;
+    // println!("Checkpoint: {:?}", checkpoint.sequence_number);
+
+    let mut start_checkpoint: u64 = checkpoint.sequence_number;
+    if let Some(checkpoint_id) = env::var("START_CHECKPOINT").ok() {
+        start_checkpoint = checkpoint_id.parse::<u64>().unwrap_or(0);
+    }
+
+    println!("Checkpoint: {:?}", start_checkpoint);
 
     let dubhe_indexer_worker = DubheIndexerWorker {
         pg_pool: get_connection_pool().await,
