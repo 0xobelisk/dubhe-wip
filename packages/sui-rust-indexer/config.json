@@ -9,7 +9,7 @@
                   }
             },
             {
-                  "movable": {
+                  "moveable": {
                         "schemas": [
                               { "id": "address" }
                         ],
