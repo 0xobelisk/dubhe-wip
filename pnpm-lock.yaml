@@ -960,6 +960,9 @@ importers:
       '@suchipi/femver':
         specifier: ^1.0.0
         version: 1.0.0
+      '@types/pluralize':
+        specifier: ^0.0.33
+        version: 0.0.33
       assert:
         specifier: ^2.1.0
         version: 2.1.0
@@ -981,6 +984,9 @@ importers:
       keccak256:
         specifier: ^1.0.6
         version: 1.0.6
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
       process:
         specifier: ^0.11.10
         version: 0.11.10
@@ -3656,6 +3662,9 @@ packages:
   '@types/pino@7.0.5':
     resolution: {integrity: sha512-wKoab31pknvILkxAF8ss+v9iNyhw5Iu/0jLtRkUD74cNfOOLJNnqfFKAv0r7wVaTQxRZtWrMpGfShwwBjOcgcg==}
     deprecated: This is a stub types definition. pino provides its own type definitions, so you do not need this installed.
+
+  '@types/pluralize@0.0.33':
+    resolution: {integrity: sha512-JOqsl+ZoCpP4e8TDke9W79FDcSgPAR0l6pixx2JHkhnRjvShyYiAYw2LVsnA7K08Y6DeOnaU6ujmENO4os/cYg==}
 
   '@types/prettier@2.7.3':
     resolution: {integrity: sha512-+68kP9yzs4LMp7VNh8gdzMSPZFL44MLGqiHWvttYJe+6qnuVr4Ek9wSBQoveqY/r+LwjCcU29kNVkidwim+kYA==}
@@ -7602,6 +7611,10 @@ packages:
 
   pluralize@7.0.0:
     resolution: {integrity: sha512-ARhBOdzS3e41FbkW/XWrTEtukqqLoK5+Z/4UeDaLuSW+39JPeFgs4gCGqsrJHVZX0fUrx//4OF0K1CUGwlIFow==}
+    engines: {node: '>=4'}
+
+  pluralize@8.0.0:
+    resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
     engines: {node: '>=4'}
 
   portscanner@2.2.0:
@@ -12255,6 +12268,8 @@ snapshots:
   '@types/pino@7.0.5':
     dependencies:
       pino: 9.7.0
+
+  '@types/pluralize@0.0.33': {}
 
   '@types/prettier@2.7.3': {}
 
@@ -17230,6 +17245,8 @@ snapshots:
       pathe: 2.0.3
 
   pluralize@7.0.0: {}
+
+  pluralize@8.0.0: {}
 
   portscanner@2.2.0:
     dependencies:

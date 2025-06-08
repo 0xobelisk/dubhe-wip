@@ -207,6 +207,35 @@ export interface SubscriptionResult<TData = any> {
   error?: Error;
 }
 
+// 多表订阅配置
+export interface MultiTableSubscriptionConfig {
+  tableName: string;
+  options?: SubscriptionOptions & {
+    fields?: string[]; // 允许用户指定需要订阅的字段
+    filter?: Record<string, any>; // 过滤条件
+    initialEvent?: boolean; // 是否立即触发初始事件
+    first?: number; // 限制返回的记录数
+    orderBy?: OrderBy[]; // 排序条件
+    topicPrefix?: string; // 自定义topic前缀，默认使用表名
+  };
+}
+
+// 多表订阅结果
+export interface MultiTableSubscriptionResult {
+  [tableName: string]: SubscriptionResult<{ listen: { query: any } }>;
+}
+
+// 多表订阅数据结果
+export interface MultiTableSubscriptionData {
+  [tableName: string]: {
+    listen: {
+      query: any;
+      relatedNode?: any;
+      relatedNodeId?: string;
+    };
+  };
+}
+
 // 客户端配置
 export interface DubheClientConfig {
   endpoint: string;

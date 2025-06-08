@@ -385,3 +385,146 @@ const client = new DubheGraphqlClient({
 - ✅ 更好的性能 - 不会为不需要的表创建缓存策略  
 - ✅ 更好的可扩展性 - 支持自定义缓存策略
 - ✅ 向后兼容 - 不配置时不会启用任何缓存策略 
+
+## 多表订阅 (新功能)
+
+DubheGraphqlClient 现在支持同时订阅多个表的数据变更！
+
+### 方式1：详细配置多表订阅
+
+```typescript
+import { createDubheGraphqlClient } from './dubhe-graphql-client';
+
+const client = createDubheGraphqlClient({
+  endpoint: 'http://localhost:4000/graphql',
+  subscriptionEndpoint: 'ws://localhost:4000/graphql'
+});
+
+// 同时订阅多个表，每个表有独立配置
+const multiTableSubscription = client.subscribeToMultipleTables([
+  {
+    tableName: 'encounter',
+    options: {
+      initialEvent: true,
+      fields: ['player', 'monster', 'catchAttempts', 'createdAt'],
+      filter: { exists: { equalTo: true } },
+      first: 5,
+      onData: (data) => {
+        console.log('Encounters更新:', data.listen.query.encounters);
+      }
+    }
+  },
+  {
+    tableName: 'account', 
+    options: {
+      initialEvent: true,
+      fields: ['assetId', 'account', 'balance'],
+      filter: { balance: { greaterThan: '0' } },
+      first: 3,
+      orderBy: [{ field: 'balance', direction: 'DESC' }],
+      onData: (data) => {
+        console.log('Accounts更新:', data.listen.query.accounts);
+      }
+    }
+  },
+  {
+    tableName: 'position',
+    options: {
+      initialEvent: true,
+      fields: ['player', 'x', 'y'],
+      first: 10,
+      onData: (data) => {
+        console.log('Positions更新:', data.listen.query.positions);
+      }
+    }
+  }
+], {
+  // 全局回调 - 接收所有表的数据
+  onData: (allData) => {
+    console.log('所有表的最新数据:', {
+      encounters: allData.encounter?.listen.query.encounters,
+      accounts: allData.account?.listen.query.accounts, 
+      positions: allData.position?.listen.query.positions
+    });
+  },
+  onError: (error) => {
+    console.error('多表订阅错误:', error);
+  }
+});
+
+// 开始订阅
+const subscription = multiTableSubscription.subscribe({
+  next: (data) => {
+    console.log('接收到数据，包含的表:', Object.keys(data));
+  },
+  error: (error) => {
+    console.error('订阅流错误:', error);
+  }
+});
+
+// 取消订阅
+// subscription.unsubscribe();
+```
+
+### 方式2：简化的表名列表订阅
+
+```typescript
+// 使用相同配置订阅多个表
+const tableListSubscription = client.subscribeToTableList(
+  ['encounter', 'account', 'position'],
+  {
+    initialEvent: true,
+    fields: ['id', 'createdAt', 'updatedAt'], // 所有表共用的字段
+    first: 5,
+    onData: (allData) => {
+      console.log('表列表订阅数据更新:', {
+        tablesCount: Object.keys(allData).length,
+        data: allData
+      });
+    },
+    onError: (error) => {
+      console.error('表列表订阅错误:', error);
+    }
+  }
+);
+
+const subscription = tableListSubscription.subscribe();
+```
+
+### 特性
+
+- ✅ **支持表名列表批量订阅**
+- ✅ **每个表可独立配置过滤条件、字段、排序等**
+- ✅ **支持表级别和全局级别的回调函数**
+- ✅ **自动单数/复数表名转换**
+- ✅ **基于PostGraphile Listen的实时推送**
+- ✅ **统一的错误处理和订阅管理**
+
+### API 参考
+
+#### `subscribeToMultipleTables(tableConfigs, globalOptions)`
+
+**参数：**
+- `tableConfigs`: `MultiTableSubscriptionConfig[]` - 表配置数组
+- `globalOptions`: `SubscriptionOptions` - 全局订阅选项
+
+**返回：**
+- `Observable<MultiTableSubscriptionData>` - 包含所有表数据的Observable
+
+#### `subscribeToTableList(tableNames, options)`
+
+**参数：**
+- `tableNames`: `string[]` - 表名数组
+- `options`: `SubscriptionOptions & { fields?, filter?, initialEvent?, first?, topicPrefix? }` - 统一配置
+
+**返回：**
+- `Observable<MultiTableSubscriptionData>` - 包含所有表数据的Observable
+
+### 使用场景
+
+1. **游戏实时数据监控** - 同时监听玩家位置、遭遇战、账户余额
+2. **业务数据仪表板** - 实时展示多个业务表的关键指标
+3. **数据同步** - 将多个表的变更同步到缓存或其他系统
+4. **实时分析** - 对多表数据进行实时统计和分析
+
+// ... existing code ...

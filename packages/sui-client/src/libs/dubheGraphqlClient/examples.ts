@@ -263,14 +263,157 @@ export async function exampleBatchQuery() {
 
   try {
     const results = await client.batchQuery([
-      { key: 'encounters', tableName: 'encounters', params: { first: 5 } },
-      { key: 'accounts', tableName: 'accounts', params: { first: 5 } },
-      { key: 'positions', tableName: 'positions', params: { first: 5 } },
+      {
+        key: 'encounters',
+        tableName: 'encounters',
+        params: {
+          first: 5,
+          fields: ['player', 'monster', 'catchAttempts', 'updatedAt'], // 指定需要的字段
+        },
+      },
+      {
+        key: 'accounts',
+        tableName: 'accounts',
+        params: {
+          first: 5,
+          fields: ['account', 'assetId', 'balance', 'updatedAt'], // 指定需要的字段
+          filter: { balance: { greaterThan: '0' } }, // 添加过滤条件
+        },
+      },
+      {
+        key: 'positions',
+        tableName: 'positions',
+        params: {
+          first: 5,
+          fields: ['player', 'x', 'y', 'updatedAt'], // 指定需要的字段
+          orderBy: [{ field: 'updatedAt', direction: 'DESC' }], // 添加排序
+        },
+      },
     ]);
 
-    console.log('Batch query results:', results);
+    console.log('✅ 批量查询结果:');
+    console.log(`🔍 Encounters: ${results.encounters.edges.length} 条记录`);
+    console.log(`💰 Accounts: ${results.accounts.edges.length} 条记录`);
+    console.log(`🗺️ Positions: ${results.positions.edges.length} 条记录`);
+
+    // 访问具体数据
+    results.encounters.edges.forEach((edge, index) => {
+      console.log(`Encounter ${index + 1}:`, edge.node);
+    });
   } catch (error) {
-    console.error('Batch query failed:', error);
+    console.error('❌ 批量查询失败:', error);
+  } finally {
+    client.close();
+  }
+}
+
+/**
+ * 示例：高级批量查询 - 展示 fields、filter、orderBy 的完整用法
+ */
+export async function exampleAdvancedBatchQuery() {
+  const client = createExampleClient();
+
+  try {
+    console.log('🚀 开始高级批量查询示例...');
+
+    const results = await client.batchQuery([
+      {
+        key: 'activeEncounters',
+        tableName: 'encounter', // 支持单数形式
+        params: {
+          first: 10,
+          fields: ['player', 'monster', 'catchAttempts', 'exists', 'updatedAt'],
+          filter: {
+            exists: { equalTo: true },
+            catchAttempts: { greaterThan: 0 },
+          },
+          orderBy: [{ field: 'updatedAt', direction: 'DESC' }],
+        },
+      },
+      {
+        key: 'wealthyAccounts',
+        tableName: 'account', // 支持单数形式
+        params: {
+          first: 5,
+          fields: ['account', 'assetId', 'balance', 'updatedAt'],
+          filter: {
+            balance: { greaterThan: '1000' },
+          },
+          orderBy: [{ field: 'balance', direction: 'DESC' }],
+        },
+      },
+      {
+        key: 'recentPositions',
+        tableName: 'position', // 支持单数形式
+        params: {
+          first: 15,
+          fields: ['player', 'x', 'y', 'updatedAt'],
+          filter: {
+            x: { greaterThan: 0 },
+            y: { greaterThan: 0 },
+          },
+          orderBy: [{ field: 'updatedAt', direction: 'DESC' }],
+        },
+      },
+      {
+        key: 'defaultFields',
+        tableName: 'encounters',
+        params: {
+          first: 3,
+          // 不指定 fields，将使用默认的 updatedAt 字段
+        },
+      },
+    ]);
+
+    console.log('✅ 高级批量查询完成!');
+
+    // 详细展示结果
+    console.log('\n📊 查询结果统计:');
+    console.log(
+      `⚔️ 活跃遭遇: ${results.activeEncounters.totalCount || results.activeEncounters.edges.length} 条`
+    );
+    console.log(
+      `💰 富有账户: ${results.wealthyAccounts.totalCount || results.wealthyAccounts.edges.length} 条`
+    );
+    console.log(
+      `🗺️ 最新位置: ${results.recentPositions.totalCount || results.recentPositions.edges.length} 条`
+    );
+    console.log(`📋 默认字段: ${results.defaultFields.edges.length} 条`);
+
+    // 展示富有账户的详细信息
+    if (results.wealthyAccounts.edges.length > 0) {
+      console.log('\n💎 富有账户详情:');
+      results.wealthyAccounts.edges.forEach((edge, index) => {
+        const account = edge.node;
+        console.log(
+          `  ${index + 1}. 账户: ${account.account}, 余额: ${account.balance}`
+        );
+      });
+    }
+
+    // 展示最新位置信息
+    if (results.recentPositions.edges.length > 0) {
+      console.log('\n🎯 最新位置详情:');
+      results.recentPositions.edges.slice(0, 5).forEach((edge, index) => {
+        const pos = edge.node;
+        console.log(
+          `  ${index + 1}. 玩家: ${pos.player}, 位置: (${pos.x}, ${pos.y})`
+        );
+      });
+    }
+
+    // 展示默认字段查询结果
+    if (results.defaultFields.edges.length > 0) {
+      console.log('\n📝 默认字段查询结果 (只有 updatedAt):');
+      results.defaultFields.edges.forEach((edge, index) => {
+        console.log(`  ${index + 1}. updatedAt: ${edge.node.updatedAt}`);
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error('❌ 高级批量查询失败:', error);
+    throw error;
   } finally {
     client.close();
   }
@@ -427,4 +570,218 @@ export function createClientsWithDifferentRetryStrategies() {
     aggressive: aggressiveClient,
     custom: customClient,
   };
+}
+
+/**
+ * 示例：多表订阅 - 同时订阅多个表的数据变更
+ */
+export function exampleMultiTableSubscription() {
+  const client = createExampleClient();
+
+  console.log('🔔 开始多表订阅示例...');
+
+  // 方式1: 使用详细配置订阅多个表
+  const multiTableSubscription = client.subscribeToMultipleTables(
+    [
+      {
+        tableName: 'encounter',
+        options: {
+          initialEvent: true,
+          fields: ['player', 'monster', 'catchAttempts', 'createdAt'],
+          filter: { exists: { equalTo: true } },
+          first: 5,
+          onData: (data: any) => {
+            console.log(
+              '📊 Encounters表数据更新:',
+              data.listen.query.encounters
+            );
+          },
+        },
+      },
+      {
+        tableName: 'account',
+        options: {
+          initialEvent: true,
+          fields: ['assetId', 'account', 'balance', 'updatedAt'],
+          filter: { balance: { greaterThan: '0' } },
+          first: 3,
+          orderBy: [{ field: 'balance', direction: 'DESC' }],
+          onData: (data: any) => {
+            console.log('💰 Accounts表数据更新:', data.listen.query.accounts);
+          },
+        },
+      },
+      {
+        tableName: 'position',
+        options: {
+          initialEvent: true,
+          fields: ['player', 'x', 'y', 'updatedAt'],
+          first: 10,
+          onData: (data: any) => {
+            console.log('🗺️ Positions表数据更新:', data.listen.query.positions);
+          },
+        },
+      },
+    ],
+    {
+      onData: (allData) => {
+        console.log('🎯 所有表的最新数据:', {
+          encounters: allData.encounter?.listen.query.encounters,
+          accounts: allData.account?.listen.query.accounts,
+          positions: allData.position?.listen.query.positions,
+        });
+      },
+      onError: (error) => {
+        console.error('❌ 多表订阅错误:', error);
+      },
+    }
+  );
+
+  // 方式2: 使用简化API订阅表名列表
+  const tableListSubscription = client.subscribeToTableList(
+    ['encounter', 'account', 'position'],
+    {
+      initialEvent: true,
+      fields: ['id', 'createdAt', 'updatedAt'], // 所有表共用的字段
+      first: 5,
+      onData: (allData) => {
+        console.log('📦 表列表订阅数据更新:', {
+          tablesCount: Object.keys(allData).length,
+          data: allData,
+        });
+      },
+      onError: (error) => {
+        console.error('❌ 表列表订阅错误:', error);
+      },
+    }
+  );
+
+  // 订阅数据流
+  const subscription1 = multiTableSubscription.subscribe({
+    next: (data: any) => {
+      console.log('✅ 多表订阅数据接收成功:', Object.keys(data));
+    },
+    error: (error: any) => {
+      console.error('❌ 多表订阅流错误:', error);
+    },
+  });
+
+  const subscription2 = tableListSubscription.subscribe({
+    next: (data: any) => {
+      console.log('✅ 表列表订阅数据接收成功:', Object.keys(data));
+    },
+    error: (error: any) => {
+      console.error('❌ 表列表订阅流错误:', error);
+    },
+  });
+
+  // 15秒后取消所有订阅
+  setTimeout(() => {
+    console.log('🛑 取消多表订阅...');
+    subscription1.unsubscribe();
+    subscription2.unsubscribe();
+    client.close();
+  }, 15000);
+
+  return {
+    multiTableSubscription,
+    tableListSubscription,
+    subscriptions: [subscription1, subscription2],
+  };
+}
+
+/**
+ * 示例：高级多表订阅 - 不同表使用不同的订阅策略
+ */
+export function exampleAdvancedMultiTableSubscription() {
+  const client = createExampleClient();
+
+  console.log('🚀 开始高级多表订阅示例...');
+
+  const advancedSubscription = client.subscribeToMultipleTables(
+    [
+      // 高频更新的表 - 实时获取最新数据
+      {
+        tableName: 'position',
+        options: {
+          initialEvent: true,
+          fields: ['player', 'x', 'y', 'updatedAt'],
+          first: 20,
+          topicPrefix: 'realtime_',
+          onData: (data) => {
+            console.log(
+              '⚡ 位置实时更新:',
+              data.listen.query.positions.nodes.length,
+              '个位置'
+            );
+          },
+        },
+      },
+      // 中频更新的表 - 监听特定条件
+      {
+        tableName: 'encounter',
+        options: {
+          initialEvent: true,
+          fields: ['player', 'monster', 'catchAttempts', 'exists'],
+          filter: {
+            catchAttempts: { greaterThan: 0 },
+            exists: { equalTo: true },
+          },
+          first: 10,
+          orderBy: [{ field: 'createdAt', direction: 'DESC' }],
+          onData: (data) => {
+            console.log(
+              '⚔️ 活跃遭遇更新:',
+              data.listen.query.encounters.totalCount,
+              '个遭遇'
+            );
+          },
+        },
+      },
+      // 低频更新的表 - 只关注大额变动
+      {
+        tableName: 'account',
+        options: {
+          initialEvent: false, // 不获取初始数据，只监听变更
+          fields: ['account', 'assetId', 'balance'],
+          filter: { balance: { greaterThan: '10000' } }, // 只监听大额账户
+          first: 5,
+          orderBy: [{ field: 'balance', direction: 'DESC' }],
+          onData: (data) => {
+            console.log('💎 大额账户变动:', data.listen.query.accounts);
+            // 可以在这里触发特殊业务逻辑
+          },
+        },
+      },
+    ],
+    {
+      onData: (allData) => {
+        const summary = {
+          positions: allData.position?.listen.query.positions?.totalCount || 0,
+          encounters:
+            allData.encounter?.listen.query.encounters?.totalCount || 0,
+          accounts: allData.account?.listen.query.accounts?.totalCount || 0,
+          timestamp: new Date().toISOString(),
+        };
+        console.log('📊 多表数据摘要:', summary);
+      },
+      onError: (error) => {
+        console.error('❌ 高级多表订阅错误:', error);
+      },
+      onComplete: () => {
+        console.log('✅ 高级多表订阅完成');
+      },
+    }
+  );
+
+  const subscription = advancedSubscription.subscribe();
+
+  // 30秒后停止订阅
+  setTimeout(() => {
+    console.log('🔚 停止高级多表订阅');
+    subscription.unsubscribe();
+    client.close();
+  }, 30000);
+
+  return { subscription, client };
 }

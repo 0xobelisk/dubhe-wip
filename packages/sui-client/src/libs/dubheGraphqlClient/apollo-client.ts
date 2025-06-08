@@ -57,6 +57,7 @@ import { RetryLink } from '@apollo/client/link/retry';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
+import * as pluralize from 'pluralize';
 
 import {
   DubheClientConfig,
@@ -74,6 +75,9 @@ import {
   StoreTableRow,
   TypedDocumentNode,
   CachePolicy,
+  MultiTableSubscriptionConfig,
+  MultiTableSubscriptionResult,
+  MultiTableSubscriptionData,
 } from './types';
 import { parseValue } from './utils';
 
@@ -334,7 +338,7 @@ export class DubheGraphqlClient {
         $after: Cursor
         $before: Cursor
         $filter: ${this.getFilterTypeName(tableName)}
-        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
+        $orderBy: [${this.getOrderByTypeName(tableName)}!]
       ) {
         ${pluralTableName}(
           first: $first
@@ -361,42 +365,42 @@ export class DubheGraphqlClient {
       }
     `;
 
-    // console.log(
-    //   'query:',
-    //   `
-    //   query GetAllTables(
-    //     $first: Int
-    //     $last: Int
-    //     $after: Cursor
-    //     $before: Cursor
-    //     $filter: ${this.getFilterTypeName(tableName)}
-    //     $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
-    //   ) {
-    //     ${pluralTableName}(
-    //       first: $first
-    //       last: $last
-    //       after: $after
-    //       before: $before
-    //       filter: $filter
-    //       orderBy: $orderBy
-    //     ) {
-    //       totalCount
-    //       pageInfo {
-    //         hasNextPage
-    //         hasPreviousPage
-    //         startCursor
-    //         endCursor
-    //       }
-    //       edges {
-    //         cursor
-    //         node {
-    //           ${convertTableFields(params?.fields)}
-    //         }
-    //       }
-    //     }
-    //   }
-    // `
-    // );
+    console.log(
+      'query:',
+      `
+      query GetAllTables(
+        $first: Int
+        $last: Int
+        $after: Cursor
+        $before: Cursor
+        $filter: ${this.getFilterTypeName(tableName)}
+        $orderBy: [${this.getOrderByTypeName(tableName)}!]
+      ) {
+        ${pluralTableName}(
+          first: $first
+          last: $last
+          after: $after
+          before: $before
+          filter: $filter
+          orderBy: $orderBy
+        ) {
+          totalCount
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          edges {
+            cursor
+            node {
+              ${convertTableFields(params?.fields)}
+            }
+          }
+        }
+      }
+    `
+    );
     // 构建查询参数，使用枚举值
     const queryParams = {
       first: params?.first,
@@ -568,7 +572,7 @@ export class DubheGraphqlClient {
         $topic: String!, 
         $initialEvent: Boolean,
         $filter: ${this.getFilterTypeName(tableName)},
-        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!],
+        $orderBy: [${this.getOrderByTypeName(tableName)}!],
         $first: Int
       ) {
         listen(topic: $topic, initialEvent: $initialEvent) {
@@ -606,6 +610,109 @@ export class DubheGraphqlClient {
   }
 
   /**
+   * 订阅多个表的数据变更 - 支持表名列表批量订阅
+   */
+  subscribeToMultipleTables<T extends StoreTableRow>(
+    tableConfigs: MultiTableSubscriptionConfig[],
+    globalOptions?: SubscriptionOptions
+  ): Observable<MultiTableSubscriptionData> {
+    return new Observable((observer: any) => {
+      const subscriptions: Array<{ tableName: string; subscription: any }> = [];
+      const latestData: MultiTableSubscriptionData = {};
+
+      // 为每个表创建独立的订阅
+      tableConfigs.forEach(({ tableName, options }) => {
+        const subscription = this.subscribeToFilteredTableChanges<T>(
+          tableName,
+          options?.filter,
+          {
+            ...options,
+            onData: (data) => {
+              // 更新该表的最新数据
+              latestData[tableName] = data;
+
+              // 调用表级别的回调
+              if (options?.onData) {
+                options.onData(data);
+              }
+
+              // 调用全局回调
+              if (globalOptions?.onData) {
+                globalOptions.onData(latestData);
+              }
+
+              // 发送完整的多表数据
+              observer.next({ ...latestData });
+            },
+            onError: (error) => {
+              // 调用表级别的错误回调
+              if (options?.onError) {
+                options.onError(error);
+              }
+
+              // 调用全局错误回调
+              if (globalOptions?.onError) {
+                globalOptions.onError(error);
+              }
+
+              // 发送错误
+              observer.error(error);
+            },
+          }
+        );
+
+        subscriptions.push({ tableName, subscription });
+      });
+
+      // 启动所有订阅
+      const activeSubscriptions = subscriptions.map(({ subscription }) =>
+        subscription.subscribe()
+      );
+
+      // 返回清理函数
+      return () => {
+        activeSubscriptions.forEach((sub) => sub.unsubscribe());
+
+        // 调用完成回调
+        if (globalOptions?.onComplete) {
+          globalOptions.onComplete();
+        }
+      };
+    });
+  }
+
+  /**
+   * 简化版多表订阅 - 支持表名数组和统一配置
+   */
+  subscribeToTableList<T extends StoreTableRow>(
+    tableNames: string[],
+    options?: SubscriptionOptions & {
+      fields?: string[];
+      filter?: Record<string, any>;
+      initialEvent?: boolean;
+      first?: number;
+      topicPrefix?: string;
+    }
+  ): Observable<MultiTableSubscriptionData> {
+    const tableConfigs: MultiTableSubscriptionConfig[] = tableNames.map(
+      (tableName) => ({
+        tableName,
+        options: {
+          ...options,
+          // 为每个表使用相同的配置
+          fields: options?.fields,
+          filter: options?.filter,
+          initialEvent: options?.initialEvent,
+          first: options?.first,
+          topicPrefix: options?.topicPrefix,
+        },
+      })
+    );
+
+    return this.subscribeToMultipleTables<T>(tableConfigs, options);
+  }
+
+  /**
    * 构建动态查询 - 已适配去掉store前缀的API
    */
   buildQuery(
@@ -626,7 +733,7 @@ export class DubheGraphqlClient {
         $first: Int
         $after: Cursor
         $filter: ${this.getFilterTypeName(tableName)}
-        $orderBy: [${this.getOrderByTypeName(pluralTableName)}!]
+        $orderBy: [${this.getOrderByTypeName(tableName)}!]
       ) {
         ${pluralTableName}(
           first: $first
@@ -657,7 +764,11 @@ export class DubheGraphqlClient {
     queries: Array<{
       key: string;
       tableName: string;
-      params?: BaseQueryParams & { filter?: Record<string, any> };
+      params?: BaseQueryParams & {
+        filter?: Record<string, any>;
+        orderBy?: OrderBy[];
+        fields?: string[]; // 允许用户指定需要查询的字段
+      };
     }>
   ): Promise<Record<string, Connection<StoreTableRow>>> {
     const batchPromises = queries.map(async ({ key, tableName, params }) => {
@@ -710,55 +821,78 @@ export class DubheGraphqlClient {
 
   // 改进的表名处理方法
   private getFilterTypeName(tableName: string): string {
-    // 简化的单数处理逻辑
+    // 转换为单数形式并应用PascalCase转换
     const singularName = this.getSingularTableName(tableName);
-    const capitalizedName =
-      singularName.charAt(0).toUpperCase() + singularName.slice(1);
-    return `Store${capitalizedName}Filter`;
+    const pascalCaseName = this.toPascalCase(singularName);
+
+    // 如果已经以Store开头，就不再添加Store前缀
+    if (pascalCaseName.startsWith('Store')) {
+      return `${pascalCaseName}Filter`;
+    }
+
+    return `Store${pascalCaseName}Filter`;
   }
 
   private getOrderByTypeName(tableName: string): string {
-    // 简化的复数形式用于OrderBy类型
+    // 转换为复数形式并应用PascalCase转换
     const pluralName = this.getPluralTableName(tableName);
-    const capitalizedName =
-      pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
-    return `Store${capitalizedName}OrderBy`;
+    const pascalCaseName = this.toPascalCase(pluralName);
+
+    // 如果已经以Store开头，就不再添加Store前缀
+    if (pascalCaseName.startsWith('Store')) {
+      return `${pascalCaseName}OrderBy`;
+    }
+
+    return `Store${pascalCaseName}OrderBy`;
   }
 
   /**
-   * 将单数表名转换为复数形式（与PostGraphile的命名规则对齐）
+   * 将单数表名转换为复数形式（使用pluralize库确保正确性）
    */
   private getPluralTableName(tableName: string): string {
-    // PostGraphile的规则很简单：直接加's'
-    // 如果已经以's'结尾，认为已经是复数
-    if (tableName.endsWith('s')) {
-      return tableName; // 已经是复数或以s结尾的单词
-    }
+    // 先转换为camelCase
+    const camelCaseName = this.toCamelCase(tableName);
 
-    // 简单加's'，与PostGraphile的生成规则一致
-    return tableName + 's';
+    // 使用pluralize库进行复数化
+    return pluralize.plural(camelCaseName);
   }
 
   /**
-   * 简化的单数转换逻辑 - 只判断最后的's'
+   * 将复数表名转换为单数形式（使用pluralize库确保正确性）
    */
   private getSingularTableName(tableName: string): string {
-    // 简单判断：如果以's'结尾，去掉's'变成单数
-    if (tableName.endsWith('s')) {
-      return tableName.slice(0, -1); // accounts -> account
-    }
+    // 先转换为camelCase
+    const camelCaseName = this.toCamelCase(tableName);
 
-    return tableName; // 已经是单数
+    // 使用pluralize库进行单数化
+    return pluralize.singular(camelCaseName);
+  }
+
+  /**
+   * 转换snake_case到camelCase
+   */
+  private toCamelCase(str: string): string {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  }
+
+  /**
+   * 转换snake_case到PascalCase
+   */
+  private toPascalCase(str: string): string {
+    const camelCase = this.toCamelCase(str);
+    return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
   }
 
   private buildSingleQueryName(
     tableName: string,
     conditionKeys: string[]
   ): string {
+    // 使用camelCase转换
+    const camelCaseTableName = this.toCamelCase(tableName);
     const capitalizedKeys = conditionKeys.map(
       (key) => key.charAt(0).toUpperCase() + key.slice(1)
     );
-    return `${tableName.charAt(0).toLowerCase() + tableName.slice(1)}By${capitalizedKeys.join('And')}`;
+    return `${camelCaseTableName}By${capitalizedKeys.join('And')}`;
   }
 
   /**
@@ -927,7 +1061,7 @@ function convertTableFields(customFields?: string[]): string {
     return customFields.join('\n    ');
   }
 
-  // 默认只查询 nodeId，这是所有表都应该有的基础字段
+  // 默认只查询 updatedAt，因为 nodeId 不是所有表都有
   // 其他字段应该由用户根据实际需要指定
-  return 'nodeId';
+  return 'updatedAt';
 }

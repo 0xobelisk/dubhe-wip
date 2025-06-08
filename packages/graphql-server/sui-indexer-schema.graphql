@@ -223,8 +223,8 @@ type Query implements Node {
     filter: StoreMonsterCatchAttemptFilter
   ): StoreMonsterCatchAttemptsConnection
 
-  """Reads and enables pagination through a set of `StoreMovable`."""
-  movables(
+  """Reads and enables pagination through a set of `StoreMoveable`."""
+  moveables(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -243,19 +243,19 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreMovable`."""
-    orderBy: [StoreMovablesOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreMoveable`."""
+    orderBy: [StoreMoveablesOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreMovableCondition
+    condition: StoreMoveableCondition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreMovableFilter
-  ): StoreMovablesConnection
+    filter: StoreMoveableFilter
+  ): StoreMoveablesConnection
 
   """Reads and enables pagination through a set of `StoreObstruction`."""
   obstructions(
@@ -431,7 +431,7 @@ type Query implements Node {
   encounterableById(id: String!): StoreEncounterable
   monsterById(id: String!): StoreMonster
   monsterCatchAttemptByMonster(monster: String!): StoreMonsterCatchAttempt
-  movableById(id: String!): StoreMovable
+  moveableById(id: String!): StoreMoveable
   obstructionById(id: String!): StoreObstruction
   ownedByById(id: String!): StoreOwnedBy
   playerById(id: String!): StorePlayer
@@ -480,13 +480,13 @@ type Query implements Node {
     nodeId: ID!
   ): StoreMonsterCatchAttempt
 
-  """Reads a single `StoreMovable` using its globally unique `ID`."""
-  movable(
+  """Reads a single `StoreMoveable` using its globally unique `ID`."""
+  moveable(
     """
-    The globally unique `ID` to be used in selecting a single `StoreMovable`.
+    The globally unique `ID` to be used in selecting a single `StoreMoveable`.
     """
     nodeId: ID!
-  ): StoreMovable
+  ): StoreMoveable
 
   """Reads a single `StoreObstruction` using its globally unique `ID`."""
   obstruction(
@@ -1288,24 +1288,24 @@ input StoreMonsterCatchAttemptFilter {
   result: StringFilter
 }
 
-"""A connection to a list of `StoreMovable` values."""
-type StoreMovablesConnection {
-  """A list of `StoreMovable` objects."""
-  nodes: [StoreMovable!]!
+"""A connection to a list of `StoreMoveable` values."""
+type StoreMoveablesConnection {
+  """A list of `StoreMoveable` objects."""
+  nodes: [StoreMoveable!]!
 
   """
-  A list of edges which contains the `StoreMovable` and cursor to aid in pagination.
+  A list of edges which contains the `StoreMoveable` and cursor to aid in pagination.
   """
-  edges: [StoreMovablesEdge!]!
+  edges: [StoreMoveablesEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreMovable` you could get from the connection."""
+  """The count of *all* `StoreMoveable` you could get from the connection."""
   totalCount: Int!
 }
 
-type StoreMovable implements Node {
+type StoreMoveable implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
@@ -1315,17 +1315,17 @@ type StoreMovable implements Node {
   updatedAt: Datetime
 }
 
-"""A `StoreMovable` edge in the connection."""
-type StoreMovablesEdge {
+"""A `StoreMoveable` edge in the connection."""
+type StoreMoveablesEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreMovable` at the end of the edge."""
-  node: StoreMovable!
+  """The `StoreMoveable` at the end of the edge."""
+  node: StoreMoveable!
 }
 
-"""Methods to use when ordering `StoreMovable`."""
-enum StoreMovablesOrderBy {
+"""Methods to use when ordering `StoreMoveable`."""
+enum StoreMoveablesOrderBy {
   NATURAL
   ID_ASC
   ID_DESC
@@ -1338,10 +1338,10 @@ enum StoreMovablesOrderBy {
 }
 
 """
-A condition to be used against `StoreMovable` object types. All fields are
+A condition to be used against `StoreMoveable` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StoreMovableCondition {
+input StoreMoveableCondition {
   """Checks for equality with the object’s `id` field."""
   id: String
 
@@ -1353,9 +1353,9 @@ input StoreMovableCondition {
 }
 
 """
-A filter to be used against `StoreMovable` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreMoveable` object types. All fields are combined with a logical ‘and.’
 """
-input StoreMovableFilter {
+input StoreMoveableFilter {
   """Filter by the object’s `id` field."""
   id: StringFilter
 
@@ -1366,13 +1366,13 @@ input StoreMovableFilter {
   updatedAt: DatetimeFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreMovableFilter!]
+  and: [StoreMoveableFilter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreMovableFilter!]
+  or: [StoreMoveableFilter!]
 
   """Negates the expression."""
-  not: StoreMovableFilter
+  not: StoreMoveableFilter
 }
 
 """A connection to a list of `StoreObstruction` values."""
