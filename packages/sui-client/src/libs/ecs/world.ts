@@ -1,6 +1,7 @@
 // ECS世界主类实现
 
 import { DubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
+import type { DubheConfig } from '../dubheGraphqlClient/types';
 import { ECSQuery } from './query';
 import { ECSSubscription } from './subscription';
 import {
@@ -25,7 +26,7 @@ import {
 import { formatError } from './utils';
 
 /**
- * ECS世界 - 统一的ECS系统入口
+ * ECS世界 - 统一的ECS系统入口，支持dubhe config自动配置
  */
 export class DubheECSWorld implements ECSWorld {
   private graphqlClient: DubheGraphqlClient;
@@ -41,13 +42,34 @@ export class DubheECSWorld implements ECSWorld {
   ) {
     this.graphqlClient = graphqlClient;
 
-    // 设置默认配置
+    // 🆕 检查GraphQL client是否包含dubhe config
+    const clientDubheConfig = (this.graphqlClient as any).getDubheConfig?.();
+    const configDubheConfig = config?.dubheConfig;
+    const dubheConfig = configDubheConfig || clientDubheConfig;
+
+    // 设置默认配置，如果有dubhe config则自动配置组件发现
+    let componentDiscoveryConfig = DEFAULT_DISCOVERY_CONFIG;
+
+    if (dubheConfig) {
+      console.log('🎯 检测到dubhe配置，自动配置组件发现策略为 dubhe-config');
+      componentDiscoveryConfig = {
+        strategy: 'dubhe-config',
+        dubheConfig,
+        cacheTTL: 300,
+        autoRefresh: false,
+        includePatterns: ['*'],
+        excludePatterns: ['_*', '__*', 'internal_*'],
+      };
+    }
+
     this.config = {
-      componentDiscovery: DEFAULT_DISCOVERY_CONFIG,
+      componentDiscovery: componentDiscoveryConfig,
+      dubheConfig,
       queryConfig: {
         defaultCacheTimeout: 5000,
         maxConcurrentQueries: 10,
         enableBatchOptimization: true,
+        enableAutoFieldResolution: !!dubheConfig, // 🆕 有dubhe config时启用自动字段解析
       },
       subscriptionConfig: {
         defaultDebounceMs: 100,
@@ -56,6 +78,15 @@ export class DubheECSWorld implements ECSWorld {
       },
       ...config,
     };
+
+    // 如果config覆盖了componentDiscovery但没有dubheConfig，则使用传入的dubheConfig
+    if (
+      config?.componentDiscovery &&
+      !config.componentDiscovery.dubheConfig &&
+      dubheConfig
+    ) {
+      this.config.componentDiscovery.dubheConfig = dubheConfig;
+    }
 
     this.querySystem = new ECSQuery(graphqlClient);
     this.subscriptionSystem = new ECSSubscription(graphqlClient);
@@ -80,6 +111,11 @@ export class DubheECSWorld implements ECSWorld {
         this.config.componentDiscovery
       );
     }
+
+    // 🆕 如果设置了新的dubhe config，则更新组件发现器
+    if (config.dubheConfig && this.componentDiscoverer.setDubheConfig) {
+      this.componentDiscoverer.setDubheConfig(config.dubheConfig);
+    }
   }
 
   /**
@@ -89,11 +125,23 @@ export class DubheECSWorld implements ECSWorld {
     try {
       console.log('🚀 初始化ECS世界...');
 
+      // 🆕 显示使用的发现策略
+      const strategy = this.config.componentDiscovery.strategy;
+      console.log(`📋 组件发现策略: ${strategy}`);
+
+      if (strategy === 'dubhe-config') {
+        console.log('🎯 使用dubhe配置自动发现组件，这是推荐的方式');
+      }
+
       // 发现可用组件
       const discoveryResult = await this.componentDiscoverer.discover();
       console.log(
         `📦 发现 ${discoveryResult.components.length} 个组件 (策略: ${discoveryResult.strategy})`
       );
+
+      if (discoveryResult.fromDubheConfig) {
+        console.log('✨ 组件信息来自dubhe配置，包含完整的字段和类型信息');
+      }
 
       if (discoveryResult.errors?.length) {
         console.warn('⚠️ 组件发现过程中遇到错误:', discoveryResult.errors);
@@ -103,6 +151,11 @@ export class DubheECSWorld implements ECSWorld {
       this.querySystem.setAvailableComponents(
         discoveryResult.components.map((comp) => comp.name)
       );
+
+      // 🆕 如果启用了自动字段解析，显示提示
+      if (this.config.queryConfig?.enableAutoFieldResolution) {
+        console.log('🔧 已启用自动字段解析，查询将自动使用正确的字段');
+      }
 
       this.isInitialized = true;
       console.log('✅ ECS世界初始化完成');
@@ -174,6 +227,68 @@ export class DubheECSWorld implements ECSWorld {
   async getEntityCount(): Promise<number> {
     return this.querySystem.getEntityCount();
   }
+
+  // ============ 标准ECS接口规范（驼峰命名） ============
+
+  /**
+   * 获取单个实体的完整数据
+   * @param id 实体ID
+   * @returns 实体的完整组件数据，如果实体不存在则返回null
+   */
+  async getEntity(id: EntityId): Promise<any | null> {
+    try {
+      // 首先检查实体是否存在
+      const exists = await this.hasEntity(id);
+      if (!exists) {
+        return null;
+      }
+
+      // 获取实体的所有组件
+      const componentTypes = await this.getComponents(id);
+      if (componentTypes.length === 0) {
+        return null;
+      }
+
+      // 获取所有组件的数据
+      const entityData: Record<string, any> = {
+        id: id,
+        components: {},
+      };
+
+      for (const componentType of componentTypes) {
+        const componentData = await this.getComponent(id, componentType);
+        if (componentData) {
+          entityData.components[componentType] = componentData;
+        }
+      }
+
+      return entityData;
+    } catch (error) {
+      console.error(`获取实体 ${id} 失败:`, formatError(error));
+      return null;
+    }
+  }
+
+  /**
+   * 获取所有实体ID列表
+   * @returns 所有实体的ID数组
+   */
+  async getEntities(): Promise<EntityId[]> {
+    return this.getAllEntities();
+  }
+
+  /**
+   * 获取拥有特定组件的所有实体
+   * @param componentType 组件类型
+   * @returns 拥有该组件的实体ID数组
+   */
+  async getEntitiesByComponent(
+    componentType: ComponentType
+  ): Promise<EntityId[]> {
+    return this.queryWith(componentType);
+  }
+
+  // 注意：getComponent, getComponents, hasComponent 方法已在下方定义
 
   // ============ 组件查询 ============
 
@@ -593,6 +708,27 @@ export class DubheECSWorld implements ECSWorld {
    */
   isReady(): boolean {
     return this.isInitialized;
+  }
+
+  /**
+   * 🆕 获取dubhe配置信息
+   */
+  getDubheConfig(): DubheConfig | null {
+    return this.config.dubheConfig || null;
+  }
+
+  /**
+   * 🆕 检查是否使用dubhe配置
+   */
+  isUsingDubheConfig(): boolean {
+    return this.config.componentDiscovery.strategy === 'dubhe-config';
+  }
+
+  /**
+   * 🆕 获取自动字段解析状态
+   */
+  isAutoFieldResolutionEnabled(): boolean {
+    return !!this.config.queryConfig?.enableAutoFieldResolution;
   }
 }
 

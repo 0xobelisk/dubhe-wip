@@ -236,6 +236,39 @@ export interface MultiTableSubscriptionData {
   };
 }
 
+// Dubhe Config 相关类型定义
+export interface DubheComponentField {
+  type: string; // 字段类型，如 'u64', 'address', 'MonsterType' 等
+}
+
+export interface DubheComponent {
+  fields?: Record<string, string | DubheComponentField>; // 字段定义
+  keys?: string[]; // 主键字段列表，[] 表示没有主键，undefined 表示默认id主键
+}
+
+export interface DubheConfig {
+  name: string;
+  description?: string;
+  enums?: Record<string, string[]>; // 枚举定义
+  errors?: Record<string, string>; // 错误定义
+  components: Record<string, DubheComponent>; // 组件/表定义
+}
+
+// 自动解析的字段信息
+export interface ParsedTableInfo {
+  tableName: string; // 表名
+  fields: string[]; // 所有字段名（包括自动添加的 createdAt, updatedAt）
+  primaryKeys: string[]; // 主键字段
+  hasDefaultId: boolean; // 是否有默认的id字段
+  enumFields: Record<string, string[]>; // 枚举字段及其可能的值
+}
+
+// 表字段配置策略
+export type FieldStrategy =
+  | 'strict' // 严格模式：只使用dubhe config中定义的字段
+  | 'safe' // 安全模式：默认只查询系统字段
+  | 'legacy'; // 兼容模式：默认包含id字段（向后兼容）
+
 // 客户端配置
 export interface DubheClientConfig {
   endpoint: string;
@@ -243,6 +276,7 @@ export interface DubheClientConfig {
   headers?: Record<string, string>;
   fetchOptions?: RequestInit;
   retryOptions?: RetryOptions; // 重试配置
+  dubheConfig?: DubheConfig; // Dubhe配置，用于自动解析字段
   cacheConfig?: {
     // 需要分页缓存策略的表名列表
     paginatedTables?: string[];

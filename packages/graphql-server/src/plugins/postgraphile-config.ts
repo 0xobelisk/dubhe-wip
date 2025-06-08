@@ -3,6 +3,7 @@ import { SimpleNamingPlugin } from './simple-naming';
 import { AllFieldsFilterPlugin } from './all-fields-filter-plugin';
 import { createEnhancedPlayground } from './enhanced-playground';
 import ConnectionFilterPlugin from 'postgraphile-plugin-connection-filter';
+import PgSimplifyInflectorPlugin from '@graphile-contrib/pg-simplify-inflector';
 import { makePluginHook } from 'postgraphile';
 import PgPubSub from '@graphile/pg-pubsub';
 
@@ -87,6 +88,7 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 		// 添加自定义插件
 		appendPlugins: [
 			QueryFilterPlugin, // 必须在SimpleNamingPlugin之前执行
+			PgSimplifyInflectorPlugin, // 简化字段名，去掉ByXxxAndYyy后缀
 			SimpleNamingPlugin, // 已修复字段丢失问题
 			ConnectionFilterPlugin,
 			AllFieldsFilterPlugin,

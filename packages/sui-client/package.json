@@ -57,6 +57,7 @@
     "validate": "pnpm format:check && pnpm type-check"
   },
   "dependencies": {
+    "@0xobelisk/sui-common": "workspace:*",
     "@apollo/client": "^3.13.8",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@mysten/bcs": "^1.2.1",

@@ -35,6 +35,16 @@
  *     },
  *   },
  * });
+ *
+ * // OrderBy 字段名兼容性示例：
+ * // 支持 camelCase 和 snake_case 字段名，都会转换为正确的 GraphQL 枚举值
+ * const data = await client.getAllTables('account', {
+ *   orderBy: [
+ *     { field: 'updatedAt', direction: 'DESC' },    // camelCase → UPDATED_AT_DESC
+ *     { field: 'created_at', direction: 'ASC' },    // snake_case → CREATED_AT_ASC
+ *     { field: 'assetId', direction: 'DESC' }       // camelCase → ASSET_ID_DESC
+ *   ]
+ * });
  */
 
 import {
@@ -78,6 +88,8 @@ import {
   MultiTableSubscriptionConfig,
   MultiTableSubscriptionResult,
   MultiTableSubscriptionData,
+  DubheConfig,
+  ParsedTableInfo,
 } from './types';
 import { parseValue } from './utils';
 
@@ -102,8 +114,18 @@ function mapCachePolicyToFetchPolicy(cachePolicy: CachePolicy): FetchPolicy {
 export class DubheGraphqlClient {
   private apolloClient: ApolloClient<NormalizedCacheObject>;
   private subscriptionClient?: any;
+  private dubheConfig?: DubheConfig;
+  private parsedTables: Map<string, ParsedTableInfo> = new Map();
 
   constructor(config: DubheClientConfig) {
+    // 保存dubhe配置
+    this.dubheConfig = config.dubheConfig;
+
+    // 如果提供了dubhe配置，解析表信息
+    if (this.dubheConfig) {
+      this.parseTableInfoFromConfig();
+    }
+
     // 创建HTTP Link
     const httpLink = createHttpLink({
       uri: config.endpoint,
@@ -315,13 +337,38 @@ export class DubheGraphqlClient {
 
   /**
    * 查询所有表数据 - 已适配去掉store前缀的API
+   *
+   * OrderBy字段名支持：
+   * - camelCase: { field: 'updatedAt', direction: 'DESC' } → UPDATED_AT_DESC
+   * - snake_case: { field: 'updated_at', direction: 'DESC' } → UPDATED_AT_DESC
+   *
+   * 使用示例：
+   * ```ts
+   * // 使用 camelCase 字段名
+   * const result = await client.getAllTables('account', {
+   *   orderBy: [{ field: 'updatedAt', direction: 'DESC' }]
+   * });
+   *
+   * // 使用 snake_case 字段名
+   * const result = await client.getAllTables('account', {
+   *   orderBy: [{ field: 'updated_at', direction: 'DESC' }]
+   * });
+   *
+   * // 混合使用
+   * const result = await client.getAllTables('account', {
+   *   orderBy: [
+   *     { field: 'updatedAt', direction: 'DESC' },
+   *     { field: 'created_at', direction: 'ASC' }
+   *   ]
+   * });
+   * ```
    */
   async getAllTables<T extends StoreTableRow>(
     tableName: string,
     params?: BaseQueryParams & {
       filter?: Record<string, any>;
       orderBy?: OrderBy[];
-      fields?: string[]; // 允许用户指定需要查询的字段
+      fields?: string[]; // 允许用户指定需要查询的字段，如果不指定则自动从dubhe config解析
     }
   ): Promise<Connection<T>> {
     // 确保使用复数形式的表名
@@ -358,7 +405,7 @@ export class DubheGraphqlClient {
           edges {
             cursor
             node {
-              ${convertTableFields(params?.fields)}
+              ${this.convertTableFields(tableName, params?.fields)}
             }
           }
         }
@@ -394,7 +441,7 @@ export class DubheGraphqlClient {
           edges {
             cursor
             node {
-              ${convertTableFields(params?.fields)}
+              ${this.convertTableFields(tableName, params?.fields)}
             }
           }
         }
@@ -447,7 +494,7 @@ export class DubheGraphqlClient {
     const query = gql`
       query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
         ${queryFieldName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
-          ${convertTableFields(fields)}
+          ${this.convertTableFields(tableName, fields)}
         }
       }
     `;
@@ -480,7 +527,7 @@ export class DubheGraphqlClient {
       : `store_${tableName}`;
 
     const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
-    const fields = convertTableFields(options?.fields);
+    const fields = this.convertTableFields(tableName, options?.fields);
 
     const subscription = gql`
       subscription ListenToTableChanges($topic: String!, $initialEvent: Boolean) {
@@ -563,7 +610,7 @@ export class DubheGraphqlClient {
       : `store_${tableName}`;
 
     const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
-    const fields = convertTableFields(options?.fields);
+    const fields = this.convertTableFields(tableName, options?.fields);
     const orderByEnum = convertOrderByToEnum(options?.orderBy);
     const first = options?.first || 10;
 
@@ -883,6 +930,24 @@ export class DubheGraphqlClient {
     return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
   }
 
+  /**
+   * 转换camelCase或snake_case到SNAKE_CASE（用于GraphQL枚举值）
+   * 例如：updatedAt -> UPDATED_AT, updated_at -> UPDATED_AT
+   */
+  private toSnakeCase(str: string): string {
+    // 如果已经是snake_case，直接转大写
+    if (str.includes('_')) {
+      return str.toUpperCase();
+    }
+
+    // 如果是camelCase，先转换为snake_case再转大写
+    return str
+      .replace(/([A-Z])/g, '_$1') // 在大写字母前添加下划线
+      .toLowerCase() // 转小写
+      .replace(/^_/, '') // 移除开头的下划线
+      .toUpperCase(); // 转大写
+  }
+
   private buildSingleQueryName(
     tableName: string,
     conditionKeys: string[]
@@ -986,6 +1051,158 @@ export class DubheGraphqlClient {
       edges: [...(existing.edges || []), ...incoming.edges],
     };
   }
+
+  /**
+   * 从dubhe配置中解析表信息
+   */
+  private parseTableInfoFromConfig(): void {
+    if (!this.dubheConfig?.components) {
+      return;
+    }
+
+    const { components, enums = {} } = this.dubheConfig;
+
+    Object.entries(components).forEach(([componentName, component]) => {
+      const tableName = this.toSnakeCase(componentName); // 转换为snake_case表名
+
+      // 获取字段列表
+      const fields: string[] = [];
+      const enumFields: Record<string, string[]> = {};
+
+      // 添加基础字段
+      if (component.keys === undefined) {
+        // undefined 表示有默认id字段
+        fields.push('id');
+      }
+
+      // 添加用户定义的字段
+      if (component.fields) {
+        Object.entries(component.fields).forEach(([fieldName, fieldType]) => {
+          const fieldNameCamelCase = this.toCamelCase(fieldName);
+          fields.push(fieldNameCamelCase);
+
+          // 检查是否是枚举类型
+          const typeStr =
+            typeof fieldType === 'string' ? fieldType : fieldType.type;
+          if (enums[typeStr]) {
+            enumFields[fieldNameCamelCase] = enums[typeStr];
+          }
+        });
+      }
+
+      // 添加系统字段
+      fields.push('createdAt', 'updatedAt');
+
+      // 确定主键
+      let primaryKeys: string[] = [];
+      let hasDefaultId = false;
+
+      if (component.keys === undefined) {
+        primaryKeys = ['id'];
+        hasDefaultId = true;
+      } else if (component.keys.length > 0) {
+        primaryKeys = component.keys.map((key) => this.toCamelCase(key));
+      }
+      // 如果 keys 是空数组 []，则没有主键
+
+      const tableInfo: ParsedTableInfo = {
+        tableName,
+        fields: [...new Set(fields)], // 去重
+        primaryKeys,
+        hasDefaultId,
+        enumFields,
+      };
+
+      this.parsedTables.set(tableName, tableInfo);
+      // 同时用camelCase版本作为key存储，方便查找
+      this.parsedTables.set(this.toCamelCase(tableName), tableInfo);
+    });
+  }
+
+  /**
+   * 获取表的字段信息
+   */
+  getTableFields(tableName: string): string[] {
+    // 直接使用getMinimalFields，逻辑更清晰
+    return this.getMinimalFields(tableName);
+  }
+
+  /**
+   * 获取表的主键信息
+   */
+  getTablePrimaryKeys(tableName: string): string[] {
+    const tableInfo =
+      this.parsedTables.get(tableName) ||
+      this.parsedTables.get(this.toSnakeCase(tableName));
+    return tableInfo?.primaryKeys || [];
+  }
+
+  /**
+   * 获取表的枚举字段信息
+   */
+  getTableEnumFields(tableName: string): Record<string, string[]> {
+    const tableInfo =
+      this.parsedTables.get(tableName) ||
+      this.parsedTables.get(this.toSnakeCase(tableName));
+    return tableInfo?.enumFields || {};
+  }
+
+  /**
+   * 获取所有解析的表信息
+   */
+  getAllTableInfo(): Map<string, ParsedTableInfo> {
+    return new Map(this.parsedTables);
+  }
+
+  /**
+   * 检查表是否有默认id字段
+   */
+  hasDefaultId(tableName: string): boolean {
+    const tableInfo =
+      this.parsedTables.get(tableName) ||
+      this.parsedTables.get(this.toSnakeCase(tableName));
+    return tableInfo?.hasDefaultId || false;
+  }
+
+  /**
+   * 获取表的最小字段集（用于fallback）
+   */
+  getMinimalFields(tableName: string): string[] {
+    // 如果有配置，使用配置中的字段
+    const tableInfo =
+      this.parsedTables.get(tableName) ||
+      this.parsedTables.get(this.toSnakeCase(tableName));
+
+    if (tableInfo) {
+      return tableInfo.fields;
+    }
+
+    // 如果没有配置，返回最保守的字段集
+    // 只包含系统字段，因为不确定表结构
+    return ['createdAt', 'updatedAt'];
+  }
+
+  /**
+   * 转换表字段为GraphQL查询字符串
+   */
+  private convertTableFields(
+    tableName: string,
+    customFields?: string[]
+  ): string {
+    if (customFields && customFields.length > 0) {
+      // 如果用户指定了字段，使用用户指定的字段
+      return customFields.join('\n    ');
+    }
+
+    // 尝试从dubhe配置中获取字段
+    const autoFields = this.getTableFields(tableName);
+    if (autoFields.length > 0) {
+      return autoFields.join('\n    ');
+    }
+
+    // 默认字段
+    return 'createdAt\n    updatedAt';
+  }
 }
 
 // 导出便利函数
@@ -1039,19 +1256,42 @@ export const QueryBuilders = {
   `,
 };
 
-// 辅助函数：转换OrderBy格式
+/**
+ * 辅助函数：转换OrderBy格式
+ * 支持camelCase和snake_case字段名转换为GraphQL枚举值
+ * 例如：updatedAt -> UPDATED_AT_ASC, updated_at -> UPDATED_AT_ASC
+ */
 function convertOrderByToEnum(orderBy?: OrderBy[]): string[] {
   if (!orderBy || orderBy.length === 0) {
     return ['NATURAL'];
   }
 
   return orderBy.map((order) => {
-    const field = order.field.toUpperCase();
+    // 使用统一的转换函数处理字段名
+    const field = toSnakeCaseForEnum(order.field);
     const direction = order.direction === 'DESC' ? 'DESC' : 'ASC';
 
     // 将字段名和方向组合成枚举值
     return `${field}_${direction}`;
   });
+}
+
+/**
+ * 转换camelCase或snake_case到SNAKE_CASE（用于GraphQL枚举值）
+ * 例如：updatedAt -> UPDATED_AT, updated_at -> UPDATED_AT
+ */
+function toSnakeCaseForEnum(str: string): string {
+  // 如果已经是snake_case，直接转大写
+  if (str.includes('_')) {
+    return str.toUpperCase();
+  }
+
+  // 如果是camelCase，先转换为snake_case再转大写
+  return str
+    .replace(/([A-Z])/g, '_$1') // 在大写字母前添加下划线
+    .toLowerCase() // 转小写
+    .replace(/^_/, '') // 移除开头的下划线
+    .toUpperCase(); // 转大写
 }
 
 // 动态获取表字段的函数 - 真正通用化

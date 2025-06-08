@@ -527,4 +527,245 @@ const subscription = tableListSubscription.subscribe();
 3. **数据同步** - 将多个表的变更同步到缓存或其他系统
 4. **实时分析** - 对多表数据进行实时统计和分析
 
-// ... existing code ...
+# DubheGraphqlClient - 自动字段解析功能
+
+## 概述
+
+DubheGraphqlClient 现在支持自动解析 dubhe config 中的组件信息，无需手动指定表字段。这大大简化了开发者的使用体验。
+
+## 新功能特性
+
+### 🚀 自动字段解析
+- 从 dubhe config 自动解析表结构
+- 自动识别字段类型和主键配置
+- 支持枚举类型识别
+- 自动添加系统字段（createdAt, updatedAt）
+
+### 🔧 智能字段管理
+- 查询时自动使用解析的字段
+- 仍支持手动指定字段（覆盖自动解析）
+- 提供字段信息查询API
+
+### 📊 主键支持
+- 支持默认 id 主键
+- 支持自定义单一主键
+- 支持复合主键
+- 支持无主键表
+
+## 使用方法
+
+### 1. 基础配置
+
+```typescript
+import { createDubheGraphqlClient, DubheConfig } from '@dubhe/sui-client';
+
+// 定义你的 dubhe config
+const dubheConfig: DubheConfig = {
+  name: "my_game",
+  description: "My awesome game",
+  enums: {
+    MonsterType: ["Fire", "Water", "Grass"],
+    Direction: ["North", "South", "East", "West"]
+  },
+  components: {
+    // 有默认 id 字段的表
+    Player: {
+      fields: {
+        name: "string",
+        level: "u32",
+        experience: "u64"
+      }
+      // keys 未定义 = 有默认 id 字段
+    },
+    
+    // 自定义主键
+    Position: {
+      fields: {
+        x: "u32",
+        y: "u32",
+        player_id: "string"
+      },
+      keys: ["player_id"] // 使用 player_id 作为主键
+    },
+    
+    // 复合主键
+    Monster: {
+      fields: {
+        monster_type: "MonsterType", // 枚举类型
+        level: "u32",
+        hp: "u32",
+        owner_id: "string"
+      },
+      keys: ["owner_id", "monster_type"] // 复合主键
+    },
+    
+    // 无主键表
+    GameEvent: {
+      fields: {
+        event_type: "string",
+        description: "string"
+      },
+      keys: [] // 空数组 = 无主键
+    }
+  }
+};
+
+// 创建客户端，传入 dubhe config
+const client = createDubheGraphqlClient({
+  endpoint: 'http://localhost:4000/graphql',
+  subscriptionEndpoint: 'ws://localhost:4000/graphql',
+  dubheConfig: dubheConfig, // 🎉 传入配置，启用自动解析
+});
+```
+
+### 2. 自动字段查询
+
+```typescript
+// ✨ 不需要指定 fields，自动使用解析的字段
+const players = await client.getAllTables('player');
+// 自动查询: id, name, level, experience, createdAt, updatedAt
+
+const monsters = await client.getAllTables('monster', {
+  filter: { level: { greaterThan: 10 } }
+});
+// 自动查询: ownerId, monsterType, level, hp, createdAt, updatedAt
+```
+
+### 3. 手动字段覆盖
+
+```typescript
+// 🔧 仍然可以手动指定字段
+const playersWithCustomFields = await client.getAllTables('player', {
+  fields: ['id', 'name'] // 只查询这两个字段
+});
+```
+
+### 4. 字段信息查询
+
+```typescript
+// 📊 查询解析的字段信息
+const playerFields = client.getTableFields('player');
+// 返回: ['id', 'name', 'level', 'experience', 'createdAt', 'updatedAt']
+
+const monsterPrimaryKeys = client.getTablePrimaryKeys('monster');
+// 返回: ['ownerId', 'monsterType']
+
+const monsterEnumFields = client.getTableEnumFields('monster');
+// 返回: { monsterType: ['Fire', 'Water', 'Grass'] }
+
+// 获取所有表信息
+const allTableInfo = client.getAllTableInfo();
+```
+
+### 5. 订阅自动字段
+
+```typescript
+// 🔔 订阅时也会自动使用解析的字段
+const subscription = client.subscribeToTableChanges('player', {
+  initialEvent: true,
+  // 不指定 fields，自动使用解析的字段
+});
+```
+
+## 字段解析规则
+
+### 字段名转换
+- dubhe config 中的字段名（snake_case）→ GraphQL 字段名（camelCase）
+- 例如：`player_id` → `playerId`
+
+### 主键配置
+| keys 值 | 说明 | 示例 |
+|---------|------|------|
+| `undefined` | 有默认 id 字段 | `['id']` |
+| `["field1"]` | 单一自定义主键 | `['playerId']` |
+| `["field1", "field2"]` | 复合主键 | `['ownerId', 'monsterType']` |
+| `[]` | 无主键 | `[]` |
+
+### 系统字段
+所有表自动添加：
+- `createdAt` - 创建时间
+- `updatedAt` - 更新时间
+
+### 枚举字段识别
+- 自动识别 dubhe config 中定义的枚举类型
+- 提供枚举值查询功能
+
+## 兼容性
+
+### 向后兼容
+- 不传入 `dubheConfig` 时，行为与之前完全一致
+- 手动指定 `fields` 时，优先使用手动指定的字段
+
+### 渐进式采用
+- 可以部分表使用自动解析，部分表手动指定
+- 可以在自动解析基础上进行字段覆盖
+
+## 最佳实践
+
+### 1. 推荐配置方式
+```typescript
+// ✅ 推荐：集中管理 dubhe config
+import { dubheConfig } from './config/dubhe.config';
+
+const client = createDubheGraphqlClient({
+  endpoint: process.env.GRAPHQL_ENDPOINT,
+  dubheConfig: dubheConfig,
+});
+```
+
+### 2. 字段查询优化
+```typescript
+// ✅ 推荐：让系统自动解析字段
+const data = await client.getAllTables('player');
+
+// ⚠️ 仅在需要优化性能时手动指定
+const lightData = await client.getAllTables('player', {
+  fields: ['id', 'name'] // 只查询必要字段
+});
+```
+
+### 3. 类型安全
+```typescript
+// ✅ 推荐：使用 TypeScript 类型
+interface Player {
+  id: string;
+  name: string;
+  level: number;
+  experience: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const players = await client.getAllTables<Player>('player');
+```
+
+## 错误处理
+
+### 配置错误
+```typescript
+// 如果 dubhe config 中没有对应的表配置
+const unknownTable = client.getTableFields('unknown_table');
+// 返回默认字段: ['id', 'createdAt', 'updatedAt']
+```
+
+### 字段冲突
+```typescript
+// 手动字段优先级更高
+const customFields = await client.getAllTables('player', {
+  fields: ['custom_field'] // 即使配置中没有，也会使用这个字段
+});
+```
+
+## 示例项目
+
+查看 `example-usage.ts` 文件获取完整的使用示例。
+
+## 更新日志
+
+### v2.0.0
+- ✨ 新增 dubhe config 自动解析功能
+- ✨ 新增字段信息查询 API
+- ✨ 新增枚举字段识别
+- ✨ 新增主键配置支持
+- 🔧 优化字段名转换逻辑
+- 📚 新增详细文档和示例

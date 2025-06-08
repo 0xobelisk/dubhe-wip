@@ -40,15 +40,9 @@ export {
   ECSComponentDiscoverer,
   createComponentDiscoverer,
   createDiscovererWithComponents,
-  createDiscovererWithCandidates,
+  createDiscovererWithDubheConfig,
   DEFAULT_DISCOVERY_CONFIG,
 } from './discovery';
-export {
-  ApolloCacheAnalyzer,
-  createCacheAnalyzer,
-  extractTableFieldsFromApollo,
-  analyzeApolloCache,
-} from './cache-helper';
 
 // 导出工具函数
 export {
@@ -70,27 +64,6 @@ export {
   limitArray,
   paginateArray,
 } from './utils';
-
-export {
-  basicExample as basicDynamicExample,
-  manualConfigExample,
-  paginationCacheExample,
-  dynamicRefreshExample,
-  dynamicQueryExample,
-  dynamicSubscriptionExample,
-  errorHandlingExample as errorHandlingDynamicExample,
-  performanceExample as performanceDynamicExample,
-  convenienceFunctionExample,
-  runAllExamples as runDynamicExamples,
-} from './examples-new';
-
-export {
-  completeExample,
-  minimalExample,
-  advancedExample as advancedCompleteExample,
-  errorHandlingExample as errorHandlingCompleteExample,
-  runCompleteExamples,
-} from './examples-complete';
 
 // 默认导出主要类
 export { DubheECSWorld as default } from './world';

@@ -85,11 +85,11 @@ export interface SubscriptionOptions {
 
 // 组件发现策略
 export type ComponentDiscoveryStrategy =
-  | 'introspection' // 从GraphQL schema自省
-  | 'configuration' // 从配置文件
-  | 'cache-analysis' // 从Apollo缓存分析
   | 'manual' // 手动指定
-  | 'auto-schema'; // 使用自动schema查询
+  | 'dubhe-config'; // 🆕 从dubhe配置自动发现
+
+// 导入dubhe配置类型
+import type { DubheConfig } from '../dubheGraphqlClient/types';
 
 // 组件发现配置
 export interface ComponentDiscoveryConfig {
@@ -103,6 +103,9 @@ export interface ComponentDiscoveryConfig {
 
   // 候选表名列表（strategy = 'cache-analysis'）
   candidateTableNames?: string[];
+
+  // 🆕 Dubhe配置（strategy = 'dubhe-config'）
+  dubheConfig?: DubheConfig;
 
   // 组件名称过滤器
   includePatterns?: string[]; // 包含的模式，如 ['*_component', 'player*']
@@ -119,6 +122,9 @@ export interface ComponentMetadata {
   tableName: string; // 对应的数据库表名
   description?: string; // 组件描述
   fields: ComponentField[]; // 字段信息
+  primaryKeys: string[]; // 🆕 主键字段列表
+  hasDefaultId: boolean; // 🆕 是否有默认ID字段
+  enumFields: string[]; // 🆕 枚举字段列表
   lastUpdated: number; // 最后更新时间
 }
 
@@ -128,6 +134,8 @@ export interface ComponentField {
   type: string; // GraphQL类型
   nullable: boolean;
   description?: string;
+  isEnum?: boolean; // 🆕 是否为枚举字段
+  isPrimaryKey?: boolean; // 🆕 是否为主键字段
 }
 
 // 组件发现结果
@@ -136,6 +144,8 @@ export interface ComponentDiscoveryResult {
   discoveredAt: number;
   strategy: ComponentDiscoveryStrategy;
   errors?: string[];
+  totalDiscovered?: number; // 🆕 发现的组件总数
+  fromDubheConfig?: boolean; // 🆕 是否来自dubhe配置
 }
 
 // 组件发现器接口
@@ -146,6 +156,10 @@ export interface ComponentDiscoverer {
   getComponentMetadata(
     componentType: ComponentType
   ): Promise<ComponentMetadata | null>;
+
+  // 🆕 新增方法
+  setDubheConfig?(dubheConfig: DubheConfig): void;
+  getDubheConfig?(): DubheConfig | null;
 }
 
 // ECS世界配置
@@ -153,11 +167,15 @@ export interface ECSWorldConfig {
   // 组件发现配置
   componentDiscovery: ComponentDiscoveryConfig;
 
+  // 🆕 Dubhe配置（可选，如果提供则自动配置组件发现）
+  dubheConfig?: DubheConfig;
+
   // 查询配置
   queryConfig?: {
     defaultCacheTimeout?: number; // 默认缓存超时时间
     maxConcurrentQueries?: number; // 最大并发查询数
     enableBatchOptimization?: boolean; // 启用批量查询优化
+    enableAutoFieldResolution?: boolean; // 🆕 启用自动字段解析
   };
 
   // 订阅配置
@@ -182,27 +200,36 @@ export interface ECSWorld {
   ): Promise<ComponentMetadata | null>;
   refreshComponentCache(): Promise<void>;
 
-  // 实体查询
-  hasEntity(entityId: EntityId): Promise<boolean>;
-  getAllEntities(): Promise<EntityId[]>;
-  getEntityCount(): Promise<number>;
+  // ============ 标准ECS接口（驼峰命名） ============
 
-  // 组件查询
-  hasComponent(
-    entityId: EntityId,
-    componentType: ComponentType
-  ): Promise<boolean>;
+  // 实体查询接口
+  getEntity(id: EntityId): Promise<any | null>; // 获取单个实体完整数据（新增）
+  getEntities(): Promise<EntityId[]>; // 等同于 getAllEntities()
+  getEntitiesByComponent(componentType: ComponentType): Promise<EntityId[]>; // 等同于 queryWith()
+
+  // 组件查询接口
   getComponent<T>(
     entityId: EntityId,
     componentType: ComponentType
-  ): Promise<T | null>;
-  getComponents(entityId: EntityId): Promise<ComponentType[]>;
+  ): Promise<T | null>; // 现有方法
+  getComponents(entityId: EntityId): Promise<ComponentType[]>; // 现有方法
+  hasComponent(
+    entityId: EntityId,
+    componentType: ComponentType
+  ): Promise<boolean>; // 现有方法
+
+  // ============ 完整API集合 ============
+
+  // 实体查询
+  hasEntity(entityId: EntityId): Promise<boolean>;
+  getAllEntities(): Promise<EntityId[]>; // 别名：getEntities()
+  getEntityCount(): Promise<number>;
 
   // 世界查询
   queryWith(
     componentType: ComponentType,
     options?: QueryOptions
-  ): Promise<EntityId[]>;
+  ): Promise<EntityId[]>; // 别名：getEntitiesByComponent()
   queryWithAll(
     componentTypes: ComponentType[],
     options?: QueryOptions

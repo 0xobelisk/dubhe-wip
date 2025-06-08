@@ -31,6 +31,7 @@
 	"author": "Dubhe Team",
 	"license": "MIT",
 	"dependencies": {
+		"@graphile-contrib/pg-simplify-inflector": "^6.1.0",
 		"@graphile/pg-pubsub": "^4.14.1",
 		"@graphile/subscriptions-lds": "^4.14.1",
 		"apollo-server-express": "^3.13.0",

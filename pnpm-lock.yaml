@@ -399,6 +399,9 @@ importers:
 
   packages/graphql-server:
     dependencies:
+      '@graphile-contrib/pg-simplify-inflector':
+        specifier: ^6.1.0
+        version: 6.1.0
       '@graphile/pg-pubsub':
         specifier: ^4.14.1
         version: 4.14.1(graphile-build@4.14.1(graphql@15.10.1))(graphql@15.10.1)(postgraphile@4.14.1)
@@ -933,6 +936,9 @@ importers:
 
   packages/sui-client:
     dependencies:
+      '@0xobelisk/sui-common':
+        specifier: workspace:*
+        version: link:../sui-common
       '@apollo/client':
         specifier: ^3.13.8
         version: 3.13.8(graphql-ws@6.0.5(graphql@15.10.1)(ws@8.18.2))(graphql@15.10.1)(react@18.3.1)(subscriptions-transport-ws@0.9.19(graphql@15.10.1))
@@ -2810,6 +2816,9 @@ packages:
     peerDependencies:
       graphql: ^15.8.0
       typescript: ^5.0.0
+
+  '@graphile-contrib/pg-simplify-inflector@6.1.0':
+    resolution: {integrity: sha512-3eI2FP4ulu/fxwkJBNXhR6XEzqVz4wJWFr4LfeyUNNArUtLFx0DpP6YdcARCYgwLExFcIQNE8fnul3JKiciYIw==}
 
   '@graphile/lds@4.14.1':
     resolution: {integrity: sha512-JDsQ8Z05kkO6GGPDZ3nCkNLLvd1BR83/ps9Ipu17+nMKJqQLXgmcLvl8J9Xc9EKvPBNS5zL+dG06pXc7TWau5w==}
@@ -10977,6 +10986,8 @@ snapshots:
       '@0no-co/graphql.web': 1.1.2(graphql@15.10.1)
       graphql: 15.10.1
       typescript: 5.8.3
+
+  '@graphile-contrib/pg-simplify-inflector@6.1.0': {}
 
   '@graphile/lds@4.14.1':
     dependencies:
