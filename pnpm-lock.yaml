@@ -1163,15 +1163,6 @@ importers:
 
   packages/sui-client:
     dependencies:
-      '@0xobelisk/sui-common':
-        specifier: workspace:*
-        version: link:../sui-common
-      '@apollo/client':
-        specifier: ^3.13.8
-        version: 3.13.8(graphql-ws@6.0.5(graphql@15.10.1)(ws@8.18.2))(graphql@15.10.1)(react@18.3.1)(subscriptions-transport-ws@0.9.19(graphql@15.10.1))
-      '@graphql-typed-document-node/core':
-        specifier: ^3.2.0
-        version: 3.2.0(graphql@15.10.1)
       '@mysten/bcs':
         specifier: ^1.2.1
         version: 1.6.1
@@ -1205,12 +1196,6 @@ importers:
       colorts:
         specifier: ^0.1.63
         version: 0.1.63
-      gql.tada:
-        specifier: ^1.7.0
-        version: 1.8.10(graphql@15.10.1)(typescript@5.8.3)
-      graphql:
-        specifier: ^15.8.0
-        version: 15.10.1
       husky:
         specifier: ^8.0.3
         version: 8.0.3
@@ -1238,9 +1223,6 @@ importers:
       valibot:
         specifier: 0.36.0
         version: 0.36.0
-      ws:
-        specifier: ^8.18.0
-        version: 8.18.2
     devDependencies:
       '@commitlint/cli':
         specifier: ^18.0.0
@@ -1260,9 +1242,6 @@ importers:
       '@types/tmp':
         specifier: ^0.2.5
         version: 0.2.6
-      '@types/ws':
-        specifier: ^8.5.14
-        version: 8.18.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.8.0
         version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.8.3))(eslint@8.57.1)(typescript@5.8.3)
@@ -1281,9 +1260,6 @@ importers:
       eslint-plugin-prettier:
         specifier: ^5.0.1
         version: 5.4.0(eslint-config-prettier@9.1.0(eslint@8.57.1))(eslint@8.57.1)(prettier@3.3.3)
-      graphql-ws:
-        specifier: ^6.0.2
-        version: 6.0.5(graphql@15.10.1)(ws@8.18.2)
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.17.50)(ts-node@10.9.2(@types/node@20.17.50)(typescript@5.8.3))

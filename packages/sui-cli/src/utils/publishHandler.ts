@@ -432,7 +432,7 @@ async function publishContract(
       console.log(`  └─ ID: ${object.objectId}`);
     });
 
-    saveContractData(
+    await saveContractData(
       dubheConfig.name,
       network,
       packageId,
@@ -462,9 +462,7 @@ async function checkDubheFramework(projectPath: string): Promise<boolean> {
         '  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe contracts/dubhe'
       )
     );
-    console.log(
-      chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe')
-    );
+    console.log(chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe'));
     console.log(chalk.yellow('  └─ After setup, restart the local node'));
     return false;
   }
@@ -574,10 +572,7 @@ export async function publishDubheFramework(
   const deployHookTx = new Transaction();
   deployHookTx.moveCall({
     target: `${packageId}::dubhe_genesis::run`,
-    arguments: [
-      deployHookTx.object(dappHub),
-      deployHookTx.object('0x6')
-    ]
+    arguments: [deployHookTx.object(dappHub), deployHookTx.object('0x6')]
   });
 
   let deployHookResult;
@@ -588,12 +583,12 @@ export async function publishDubheFramework(
     console.error(error.message);
     process.exit(1);
   }
- 
+
   if (deployHookResult.effects?.status.status !== 'success') {
     throw new Error('Deploy hook execution failed');
   }
 
-  saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, components);
+  await saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, components);
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
 }
@@ -613,7 +608,7 @@ export async function publishHandler(
   const projectPath = `${path}/src/${dubheConfig.name}`;
 
   if (network === 'localnet' && dubheConfig.name !== 'dubhe') {
-    await publishDubheFramework(dubhe, network);  
+    await publishDubheFramework(dubhe, network);
   }
 
   if (dubheConfig.name !== 'dubhe') {
