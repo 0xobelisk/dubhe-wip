@@ -370,13 +370,6 @@ export class DubheGraphqlClient {
       fields?: string[]; // 允许用户指定需要查询的字段，如果不指定则自动从dubhe config解析
     }
   ): Promise<Connection<T>> {
-    console.log(`🔍 GraphQL查询 - 表: ${tableName}`, {
-      first: params?.first,
-      fields: params?.fields?.length || '自动解析',
-      hasFilter: !!params?.filter,
-      hasOrderBy: !!params?.orderBy,
-    });
-
     // 确保使用复数形式的表名
     const pluralTableName = this.getPluralTableName(tableName);
 
@@ -506,17 +499,6 @@ export class DubheGraphqlClient {
         }
       }
     `;
-
-    console.log(
-      'query:',
-      `
-      query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
-        ${singularTableName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
-          ${this.convertTableFields(tableName, fields)}
-        }
-      }
-    `
-    );
 
     const result = await this.query(query, condition);
 
@@ -1260,11 +1242,7 @@ export class DubheGraphqlClient {
       }
     }
 
-    console.log(`  📋 字段解析 - 表: ${tableName}`, {
-      source,
-      fields: fields.join(', '),
-      count: fields.length,
-    });
+    // Field resolution debug logging disabled for cleaner output
 
     return fields.join('\n      ');
   }
@@ -1357,16 +1335,4 @@ function toSnakeCaseForEnum(str: string): string {
     .toLowerCase() // 转小写
     .replace(/^_/, '') // 移除开头的下划线
     .toUpperCase(); // 转大写
-}
-
-// 动态获取表字段的函数 - 真正通用化
-function convertTableFields(customFields?: string[]): string {
-  if (customFields && customFields.length > 0) {
-    // 如果用户指定了字段，使用用户指定的字段
-    return customFields.join('\n    ');
-  }
-
-  // 默认只查询 updatedAt，因为 nodeId 不是所有表都有
-  // 其他字段应该由用户根据实际需要指定
-  return 'updatedAt';
 }

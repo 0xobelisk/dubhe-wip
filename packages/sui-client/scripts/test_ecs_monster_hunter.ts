@@ -170,7 +170,7 @@ async function testMonsterHunterECS() {
 
     const mapConfigData = await world.getGlobalConfig('map_config');
     if (mapConfigData) {
-      console.log('✅ 地图配置数据:', JSON.stringify(mapConfigData, null, 2));
+      console.log('✅ 地图配置数据:', mapConfigData);
     } else {
       console.log('⚠️ 未找到地图配置数据');
     }

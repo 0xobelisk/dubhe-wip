@@ -8,6 +8,8 @@ import {
   PagedResult,
   ECSQueryBuilder,
   ECSWorld,
+  ComponentMetadata,
+  ComponentDiscoverer,
 } from './types';
 import {
   extractEntityIds,
@@ -32,9 +34,14 @@ export class ECSQuery {
   >();
   private cacheTimeout = 5000; // 5秒缓存超时
   private availableComponents: ComponentType[] = [];
+  private componentDiscoverer: ComponentDiscoverer | null = null;
 
-  constructor(graphqlClient: DubheGraphqlClient) {
+  constructor(
+    graphqlClient: DubheGraphqlClient,
+    componentDiscoverer?: ComponentDiscoverer
+  ) {
     this.graphqlClient = graphqlClient;
+    this.componentDiscoverer = componentDiscoverer || null;
   }
 
   /**
@@ -42,6 +49,76 @@ export class ECSQuery {
    */
   setAvailableComponents(componentTypes: ComponentType[]): void {
     this.availableComponents = componentTypes;
+  }
+
+  /**
+   * 设置组件发现器
+   */
+  setComponentDiscoverer(discoverer: ComponentDiscoverer): void {
+    this.componentDiscoverer = discoverer;
+  }
+
+  /**
+   * 获取组件的字段信息
+   */
+  private async getComponentFields(
+    componentType: ComponentType
+  ): Promise<string[]> {
+    if (this.componentDiscoverer) {
+      try {
+        const metadata =
+          await this.componentDiscoverer.getComponentMetadata(componentType);
+        if (metadata) {
+          return metadata.fields.map((field) => field.name);
+        }
+      } catch (error) {
+        console.warn(`获取${componentType}字段信息失败: ${formatError(error)}`);
+      }
+    }
+
+    // 无法自动解析时抛出错误，要求用户显式指定
+    throw new Error(
+      `无法获取组件${componentType}的字段信息，请在QueryOptions中显式指定fields，或确保组件发现器已正确配置`
+    );
+  }
+
+  /**
+   * 获取组件的主键字段
+   */
+  private async getComponentPrimaryKeys(
+    componentType: ComponentType
+  ): Promise<string[]> {
+    if (this.componentDiscoverer) {
+      try {
+        const metadata =
+          await this.componentDiscoverer.getComponentMetadata(componentType);
+        if (metadata && metadata.primaryKeys.length > 0) {
+          return metadata.primaryKeys;
+        }
+      } catch (error) {
+        console.warn(`获取${componentType}主键信息失败: ${formatError(error)}`);
+      }
+    }
+
+    // 无法自动解析时抛出错误，要求用户显式指定
+    throw new Error(
+      `无法获取组件${componentType}的主键信息，请在QueryOptions中显式指定idFields，或确保组件发现器已正确配置`
+    );
+  }
+
+  /**
+   * 获取查询时应该使用的字段（优先级：用户指定 > dubhe配置自动解析）
+   */
+  private async getQueryFields(
+    componentType: ComponentType,
+    userFields?: string[]
+  ): Promise<string[]> {
+    if (userFields && userFields.length > 0) {
+      return userFields;
+    }
+
+    // 使用dubhe配置自动解析的字段，如果失败会抛出错误要求用户显式指定
+    return this.getComponentFields(componentType);
   }
 
   /**
@@ -78,34 +155,35 @@ export class ECSQuery {
       const tables = await this.getAvailableTables();
       const entitySets: EntityId[][] = [];
 
-      // 并行查询所有表
-      const queries = tables.map((table) => ({
-        key: table,
-        tableName: table,
-        params: {
-          fields: ['updatedAt'],
-          filter: {},
-        },
-      }));
+      // 并行查询所有表，使用智能字段解析
+      const queries = await Promise.all(
+        tables.map(async (table) => {
+          const primaryKeys = await this.getComponentPrimaryKeys(table);
+          const fields = await this.getQueryFields(table);
 
-      const batchResult = await this.graphqlClient.batchQuery(queries);
+          return {
+            key: table,
+            tableName: table,
+            params: {
+              fields: fields,
+              filter: {},
+            },
+            primaryKeys, // 传递主键信息以供后续使用
+          };
+        })
+      );
 
-      // 收集所有实体ID
-      tables.forEach((table) => {
-        const connection = batchResult[table];
-        if (connection) {
-          entitySets.push(
-            extractEntityIds(connection, {
-              idFields: ['updatedAt'], // 使用updatedAt作为临时ID，用于计算集合
-              composite: false,
-            })
-          );
-        }
-      });
+      const batchResult = await this.graphqlClient.batchQuery(
+        queries.map((q) => ({
+          key: q.key,
+          tableName: q.tableName,
+          params: q.params,
+        }))
+      );
 
-      // 返回所有实体的并集
+      // 使用正确的主键字段提取实体ID
       return extractUnionFromBatchResult(batchResult, tables, {
-        idFields: ['updatedAt'], // 使用updatedAt作为临时ID，用于计算集合
+        idFields: undefined, // 让extractEntityIds自动推断
         composite: false,
       });
     } catch (error) {
@@ -209,14 +287,21 @@ export class ECSQuery {
     if (cached && options?.cache !== false) return cached;
 
     try {
+      // 智能获取查询字段和主键信息
+      const queryFields = await this.getQueryFields(
+        componentType,
+        options?.fields
+      );
+      const primaryKeys = await this.getComponentPrimaryKeys(componentType);
+
       const connection = await this.graphqlClient.getAllTables(componentType, {
         first: options?.limit,
-        fields: options?.fields ? options.fields : ['updatedAt'],
+        fields: queryFields,
         orderBy: options?.orderBy,
       });
 
       const result = extractEntityIds(connection, {
-        idFields: options?.idFields,
+        idFields: options?.idFields || primaryKeys,
         composite: options?.compositeId,
       });
       this.setCachedResult(cacheKey, result);
@@ -246,23 +331,39 @@ export class ECSQuery {
     if (cached && options?.cache !== false) return cached;
 
     try {
-      // 批量查询所有组件表
-      const queries = validTypes.map((type) => ({
-        key: type,
-        tableName: type,
-        params: {
-          fields: options?.fields ? options.fields : ['updatedAt'],
-          first: options?.limit,
-          orderBy: options?.orderBy,
-        },
-      }));
+      // 批量查询所有组件表，使用智能字段解析
+      const queries = await Promise.all(
+        validTypes.map(async (type) => {
+          const queryFields = await this.getQueryFields(type, options?.fields);
+          return {
+            key: type,
+            tableName: type,
+            params: {
+              fields: queryFields,
+              first: options?.limit,
+              orderBy: options?.orderBy,
+            },
+          };
+        })
+      );
 
       const batchResult = await this.graphqlClient.batchQuery(queries);
+
+      // 如果用户没有指定idFields，尝试使用第一个组件的主键
+      let idFields = options?.idFields;
+      if (!idFields && validTypes.length > 0) {
+        try {
+          idFields = await this.getComponentPrimaryKeys(validTypes[0]);
+        } catch (error) {
+          // 如果无法获取主键，保持idFields为undefined，让extractEntityIds自动推断
+        }
+      }
+
       const result = extractIntersectionFromBatchResult(
         batchResult,
         validTypes,
         {
-          idFields: options?.idFields,
+          idFields,
           composite: options?.compositeId,
         }
       );
@@ -294,19 +395,36 @@ export class ECSQuery {
     if (cached && options?.cache !== false) return cached;
 
     try {
-      const queries = validTypes.map((type) => ({
-        key: type,
-        tableName: type,
-        params: {
-          fields: options?.fields ? options.fields : ['updatedAt'],
-          first: options?.limit,
-          orderBy: options?.orderBy,
-        },
-      }));
+      // 批量查询所有组件表，使用智能字段解析
+      const queries = await Promise.all(
+        validTypes.map(async (type) => {
+          const queryFields = await this.getQueryFields(type, options?.fields);
+          return {
+            key: type,
+            tableName: type,
+            params: {
+              fields: queryFields,
+              first: options?.limit,
+              orderBy: options?.orderBy,
+            },
+          };
+        })
+      );
 
       const batchResult = await this.graphqlClient.batchQuery(queries);
+
+      // 如果用户没有指定idFields，尝试使用第一个组件的主键
+      let idFields = options?.idFields;
+      if (!idFields && validTypes.length > 0) {
+        try {
+          idFields = await this.getComponentPrimaryKeys(validTypes[0]);
+        } catch (error) {
+          // 如果无法获取主键，保持idFields为undefined，让extractEntityIds自动推断
+        }
+      }
+
       const result = extractUnionFromBatchResult(batchResult, validTypes, {
-        idFields: options?.idFields,
+        idFields,
         composite: options?.compositeId,
       });
 
@@ -357,15 +475,22 @@ export class ECSQuery {
     if (!isValidComponentType(componentType)) return [];
 
     try {
+      // 智能获取查询字段和主键信息
+      const queryFields = await this.getQueryFields(
+        componentType,
+        options?.fields
+      );
+      const primaryKeys = await this.getComponentPrimaryKeys(componentType);
+
       const connection = await this.graphqlClient.getAllTables(componentType, {
         filter: predicate,
         first: options?.limit,
-        fields: options?.fields ? options.fields : ['updatedAt'],
+        fields: queryFields,
         orderBy: options?.orderBy,
       });
 
       return extractEntityIds(connection, {
-        idFields: options?.idFields,
+        idFields: options?.idFields || primaryKeys,
         composite: options?.compositeId,
       });
     } catch (error) {

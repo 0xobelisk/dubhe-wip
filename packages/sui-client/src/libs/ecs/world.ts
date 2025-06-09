@@ -38,22 +38,20 @@ class SimpleComponentDiscoverer {
   ) {
     this.graphqlClient = graphqlClient;
 
-    // 验证参数：不能两个都不传
+    // Validate parameters: cannot have both empty
     if (!componentNames?.length && !dubheConfig) {
       throw new Error(
-        '组件发现配置错误：必须提供 componentNames（手动模式）或 dubheConfig（自动模式）中的一个'
+        'Component discovery configuration error: must provide either componentNames (manual mode) or dubheConfig (auto mode)'
       );
     }
 
-    // 自动判断策略：优先使用 dubheConfig
+    // Auto-determine strategy: prioritize dubheConfig
     if (dubheConfig) {
       this.dubheConfig = dubheConfig;
       this.strategy = 'dubhe-config';
-      console.log('🎯 自动选择策略：dubhe-config（从配置文件自动发现组件）');
     } else if (componentNames?.length) {
       this.componentNames = componentNames;
       this.strategy = 'manual';
-      console.log('🔧 自动选择策略：manual（使用指定的组件名称列表）');
     }
   }
 
@@ -62,10 +60,8 @@ class SimpleComponentDiscoverer {
     const errors: string[] = [];
 
     if (this.strategy === 'dubhe-config' && this.dubheConfig) {
-      console.log('🎯 使用dubhe配置自动发现组件...');
-
       if (!this.dubheConfig.components) {
-        throw new Error('dubhe配置中没有找到components部分');
+        throw new Error('Components section not found in dubhe configuration');
       }
 
       for (const [componentName, componentConfig] of Object.entries(
@@ -74,39 +70,17 @@ class SimpleComponentDiscoverer {
         const componentType = this.tableNameToComponentName(componentName);
 
         try {
-          // 验证组件是否存在
+          // Verify component exists
           await this.graphqlClient.getAllTables(componentType, { first: 1 });
 
-          // 构建字段信息
+          // Build field information
           const fields: ComponentField[] = [];
           const primaryKeys: string[] = [];
           const enumFields: string[] = [];
 
-          console.log(`🔧 解析组件 ${componentName}:`, {
-            type: typeof componentConfig,
-            keys:
-              typeof componentConfig === 'object' &&
-              componentConfig !== null &&
-              'keys' in componentConfig
-                ? componentConfig.keys
-                : 'N/A',
-            hasFields:
-              typeof componentConfig === 'object' &&
-              componentConfig !== null &&
-              'fields' in componentConfig,
-            fieldCount:
-              typeof componentConfig === 'object' &&
-              componentConfig !== null &&
-              'fields' in componentConfig &&
-              componentConfig.fields
-                ? Object.keys(componentConfig.fields).length
-                : 0,
-          });
-
-          // 处理不同类型的组件
+          // Handle different component types
           if (typeof componentConfig === 'string') {
-            // MoveType字符串，如 owned_by: "address"
-            console.log(`  📝 MoveType字符串: ${componentConfig}`);
+            // MoveType string, e.g. owned_by: "address"
             fields.push(
               {
                 name: 'id',
@@ -129,8 +103,7 @@ class SimpleComponentDiscoverer {
             componentConfig !== null &&
             Object.keys(componentConfig).length === 0
           ) {
-            // EmptyComponent，如 player: {}
-            console.log(`  📝 EmptyComponent，添加默认id字段`);
+            // EmptyComponent, e.g. player: {}
             fields.push({
               name: 'id',
               type: 'String',
@@ -145,42 +118,29 @@ class SimpleComponentDiscoverer {
             'fields' in componentConfig &&
             componentConfig.fields
           ) {
-            // Component类型，有fields定义
-            console.log(
-              `  📝 Component类型，有${Object.keys(componentConfig.fields).length}个字段`
-            );
+            // Component type with fields definition
 
-            // 分析主键配置
+            // Analyze primary key configuration
             let keyStrategy: 'custom' | 'default' | 'none' = 'default';
             if ('keys' in componentConfig) {
               if (Array.isArray(componentConfig.keys)) {
                 if (componentConfig.keys.length > 0) {
                   keyStrategy = 'custom';
-                  console.log(
-                    `  🔑 使用自定义主键: [${componentConfig.keys.join(', ')}]`
-                  );
                 } else {
                   keyStrategy = 'none';
-                  console.log(`  🚫 明确指定无主键 (keys: [])`);
                 }
               }
-            } else {
-              console.log(`  📝 keys未定义，将添加默认id主键`);
             }
 
-            // 首先处理业务字段
+            // First handle business fields
             for (const [fieldName, fieldType] of Object.entries(
               componentConfig.fields
             )) {
-              // 根据sui-common定义，fieldType应该是MoveType（字符串）
+              // According to sui-common definition, fieldType should be MoveType (string)
               const camelFieldName = this.snakeToCamel(fieldName);
               const typeStr = String(fieldType);
 
-              console.log(
-                `    - ${fieldName} (${camelFieldName}): ${typeStr} -> ${this.dubheTypeToGraphQLType(typeStr)}`
-              );
-
-              // 检查该字段是否是自定义主键之一
+              // Check if this field is one of the custom primary keys
               const isCustomKey =
                 keyStrategy === 'custom' &&
                 componentConfig.keys!.includes(fieldName);
@@ -195,21 +155,16 @@ class SimpleComponentDiscoverer {
 
               if (isCustomKey) {
                 primaryKeys.push(camelFieldName);
-                console.log(`    🔑 ${camelFieldName} 设置为主键字段`);
               }
 
-              // 检查是否是枚举类型（检查dubheConfig.enums中是否存在）
+              // Check if it's an enum type (check if exists in dubheConfig.enums)
               if (this.isEnumType(typeStr)) {
                 enumFields.push(camelFieldName);
-                console.log(
-                  `    ✨ ${camelFieldName} 识别为枚举类型: ${typeStr}`
-                );
               }
             }
 
-            // 根据主键策略添加默认id字段
+            // Add default id field based on primary key strategy
             if (keyStrategy === 'default') {
-              console.log(`  📝 添加默认id主键字段`);
               fields.unshift({
                 name: 'id',
                 type: 'String',
@@ -218,12 +173,10 @@ class SimpleComponentDiscoverer {
                 isEnum: false,
               });
               primaryKeys.push('id');
-            } else if (keyStrategy === 'none') {
-              console.log(`  ⚠️ 该组件没有主键字段`);
             }
           }
 
-          // 添加系统字段
+          // Add system fields
           fields.push(
             {
               name: 'createdAt',
@@ -241,29 +194,29 @@ class SimpleComponentDiscoverer {
             }
           );
 
-          console.log(`  📊 最终字段解析结果:`);
-          console.log(`    主键: [${primaryKeys.join(', ')}]`);
-          console.log(`    字段 (${fields.length}个):`);
-          fields.forEach((field) => {
-            const tags = [];
-            if (field.isPrimaryKey) tags.push('主键');
-            if (field.isEnum) tags.push('枚举');
-            if (!field.nullable) tags.push('必填');
-            else tags.push('可空');
-            console.log(
-              `      - ${field.name}: ${field.type} (${tags.join(', ')})`
-            );
-          });
-          if (enumFields.length > 0) {
-            console.log(`    枚举字段: [${enumFields.join(', ')}]`);
-          }
+          // console.log(`  📊 最终字段解析结果:`);
+          // console.log(`    主键: [${primaryKeys.join(', ')}]`);
+          // console.log(`    字段 (${fields.length}个):`);
+          // fields.forEach((field) => {
+          //   const tags = [];
+          //   if (field.isPrimaryKey) tags.push('主键');
+          //   if (field.isEnum) tags.push('枚举');
+          //   if (!field.nullable) tags.push('必填');
+          //   else tags.push('可空');
+          //   console.log(
+          //     `      - ${field.name}: ${field.type} (${tags.join(', ')})`
+          //   );
+          // });
+          // if (enumFields.length > 0) {
+          //   console.log(`    枚举字段: [${enumFields.join(', ')}]`);
+          // }
 
-          // 检查是否应该作为ECS组件
+          // Check if should be registered as ECS component
           if (primaryKeys.length === 0) {
             console.log(
-              `⚠️ ${componentType} 无主键，跳过ECS组件注册（建议使用专门的配置查询接口）`
+              `⚠️ ${componentType} has no primary key, skipping ECS component registration (recommend using dedicated config query interface)`
             );
-            continue; // 跳过无主键的表，不作为ECS组件
+            continue; // Skip tables without primary keys
           }
 
           const metadata: ComponentMetadata = {
@@ -279,25 +232,25 @@ class SimpleComponentDiscoverer {
               componentConfig.keys.length === 0,
             enumFields,
             lastUpdated: Date.now(),
-            description: `从dubhe配置自动发现的组件: ${componentName}`,
+            description: `Auto-discovered component from dubhe config: ${componentName}`,
           };
 
           components.push(metadata);
-          console.log(`✅ 发现组件 ${componentType} (表: ${componentName})`);
+          console.log(
+            `✅ Discovered component ${componentType} (table: ${componentName})`
+          );
         } catch (error) {
-          const errorMsg = `组件 ${componentType} 验证失败: ${formatError(error)}`;
+          const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
           errors.push(errorMsg);
           console.warn(`⚠️ ${errorMsg}`);
         }
       }
     } else {
-      // 手动模式
-      console.log('🔧 使用手动模式发现组件...');
-      console.log('📋 指定的组件类型:', this.componentNames);
+      // Manual mode
 
       for (const componentType of this.componentNames) {
         try {
-          // 验证组件是否存在
+          // Verify component exists
           await this.graphqlClient.getAllTables(componentType, { first: 1 });
 
           const metadata: ComponentMetadata = {
@@ -330,13 +283,13 @@ class SimpleComponentDiscoverer {
             hasDefaultId: true,
             enumFields: [],
             lastUpdated: Date.now(),
-            description: `手动配置的组件: ${componentType}`,
+            description: `Manually configured component: ${componentType}`,
           };
 
           components.push(metadata);
-          console.log(`✅ 确认组件 ${componentType} 可用`);
+          console.log(`✅ Confirmed component ${componentType} available`);
         } catch (error) {
-          const errorMsg = `组件 ${componentType} 验证失败: ${formatError(error)}`;
+          const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
           errors.push(errorMsg);
           console.warn(`⚠️ ${errorMsg}`);
         }
@@ -397,9 +350,8 @@ class SimpleComponentDiscoverer {
       case 'enum':
         return 'String';
       default:
-        // 如果不是已知的基本类型，可能是枚举或自定义类型
-        // 对于未知类型，默认使用String
-        console.log(`⚠️ 未知类型: ${dubheType}，使用String作为GraphQL类型`);
+        // If not a known basic type, might be enum or custom type
+        // For unknown types, default to String
         return 'String';
     }
   }
@@ -419,7 +371,7 @@ class SimpleComponentDiscoverer {
   }
 
   /**
-   * 检查是否是枚举类型
+   * Check if type is enum
    */
   private isEnumType(typeStr: string): boolean {
     return !!(this.dubheConfig?.enums && this.dubheConfig.enums[typeStr]);
@@ -427,7 +379,7 @@ class SimpleComponentDiscoverer {
 }
 
 /**
- * ECS世界 - 简化版本，内置组件发现
+ * ECS World - Simplified version with built-in component discovery
  */
 export class DubheECSWorld implements ECSWorld {
   private graphqlClient: DubheGraphqlClient;
@@ -443,12 +395,12 @@ export class DubheECSWorld implements ECSWorld {
   ) {
     this.graphqlClient = graphqlClient;
 
-    // 检查GraphQL client是否包含dubhe config
+    // Check if GraphQL client contains dubhe config
     const clientDubheConfig = (this.graphqlClient as any).getDubheConfig?.();
     const configDubheConfig = config?.dubheConfig;
     const dubheConfig = configDubheConfig || clientDubheConfig;
 
-    // 设置默认配置
+    // Set default configuration
     this.config = {
       componentDiscovery: {
         componentNames: config?.componentDiscovery?.componentNames || [],
@@ -469,24 +421,24 @@ export class DubheECSWorld implements ECSWorld {
       ...config,
     };
 
-    this.querySystem = new ECSQuery(graphqlClient);
-    this.subscriptionSystem = new ECSSubscription(graphqlClient);
     this.componentDiscoverer = new SimpleComponentDiscoverer(
       graphqlClient,
       this.config.componentDiscovery.componentNames,
       this.config.componentDiscovery.dubheConfig
     );
+    this.querySystem = new ECSQuery(graphqlClient, this.componentDiscoverer);
+    this.subscriptionSystem = new ECSSubscription(graphqlClient);
   }
 
-  // ============ 配置和初始化 ============
+  // ============ Configuration and Initialization ============
 
   /**
-   * 配置ECS世界
+   * Configure ECS world
    */
   async configure(config: Partial<ECSWorldConfig>): Promise<void> {
     this.config = { ...this.config, ...config };
 
-    // 重新创建组件发现器如果配置改变
+    // Recreate component discoverer if configuration changed
     if (config.componentDiscovery) {
       this.componentDiscoverer = new SimpleComponentDiscoverer(
         this.graphqlClient,
@@ -497,71 +449,52 @@ export class DubheECSWorld implements ECSWorld {
   }
 
   /**
-   * 初始化ECS世界
+   * Initialize ECS world
    */
   async initialize(): Promise<void> {
     try {
-      console.log('🚀 初始化ECS世界...');
+      console.log('🚀 Initializing ECS world...');
 
-      // 自动判断策略类型用于日志
-      const strategy = this.config.componentDiscovery.dubheConfig
-        ? 'dubhe-config'
-        : 'manual';
-      console.log(`📋 组件发现策略: ${strategy}`);
-
-      if (strategy === 'dubhe-config') {
-        console.log('🎯 使用dubhe配置自动发现组件，这是推荐的方式');
-      }
-
-      // 发现可用组件
+      // Discover available components
       const discoveryResult = await this.componentDiscoverer.discover();
-      console.log(
-        `📦 发现 ${discoveryResult.components.length} 个组件 (策略: ${discoveryResult.strategy})`
-      );
 
-      if (discoveryResult.fromDubheConfig) {
-        console.log('✨ 组件信息来自dubhe配置，包含完整的字段和类型信息');
-      }
-
-      if (discoveryResult.errors?.length) {
-        console.warn('⚠️ 组件发现过程中遇到错误:', discoveryResult.errors);
-      }
-
-      // 更新查询系统的可用组件列表
+      // Update query system's available components list
       this.querySystem.setAvailableComponents(
         discoveryResult.components.map((comp) => comp.name)
       );
 
       if (this.config.queryConfig?.enableAutoFieldResolution) {
-        console.log('🔧 已启用自动字段解析，查询将自动使用正确的字段');
+        console.log(
+          '🔧 Auto field resolution enabled, queries will use correct fields automatically'
+        );
       }
 
       this.isInitialized = true;
-      console.log('✅ ECS世界初始化完成');
+      console.log('✅ ECS world initialization completed');
     } catch (error) {
-      console.error('❌ ECS世界初始化失败:', formatError(error));
+      console.error('❌ ECS world initialization failed:', formatError(error));
       throw error;
     }
   }
 
-  // ============ 组件发现 ============
+  // ============ Component Discovery ============
 
   /**
-   * 发现组件
+   * Discover components
    */
   async discoverComponents(): Promise<ComponentType[]> {
     return this.componentDiscoverer.getComponentTypes();
   }
 
   /**
-   * 获取可用组件列表
+   * Get available components list
    */
   async getAvailableComponents(): Promise<ComponentType[]> {
     return this.componentDiscoverer.getComponentTypes();
   }
 
   /**
-   * 获取组件元数据
+   * Get component metadata
    */
   async getComponentMetadata(
     componentType: ComponentType
@@ -569,51 +502,51 @@ export class DubheECSWorld implements ECSWorld {
     return this.componentDiscoverer.getComponentMetadata(componentType);
   }
 
-  // ============ 实体查询 ============
+  // ============ Entity Queries ============
 
   /**
-   * 检查实体是否存在
+   * Check if entity exists
    */
   async hasEntity(entityId: EntityId): Promise<boolean> {
     return this.querySystem.hasEntity(entityId);
   }
 
   /**
-   * 获取所有实体ID
+   * Get all entity IDs
    */
   async getAllEntities(): Promise<EntityId[]> {
     return this.querySystem.getAllEntities();
   }
 
   /**
-   * 获取实体总数
+   * Get entity count
    */
   async getEntityCount(): Promise<number> {
     return this.querySystem.getEntityCount();
   }
 
-  // ============ 标准ECS接口规范（驼峰命名） ============
+  // ============ Standard ECS Interface (camelCase naming) ============
 
   /**
-   * 获取单个实体的完整数据
-   * @param id 实体ID
-   * @returns 实体的完整组件数据，如果实体不存在则返回null
+   * Get complete data of a single entity
+   * @param id Entity ID
+   * @returns Complete component data of the entity, or null if entity doesn't exist
    */
   async getEntity(id: EntityId): Promise<any | null> {
     try {
-      // 首先检查实体是否存在
+      // First check if entity exists
       const exists = await this.hasEntity(id);
       if (!exists) {
         return null;
       }
 
-      // 获取实体的所有组件
+      // Get all components of the entity
       const componentTypes = await this.getComponents(id);
       if (componentTypes.length === 0) {
         return null;
       }
 
-      // 获取所有组件的数据
+      // Get data for all components
       const entityData: Record<string, any> = {
         id: id,
         components: {},
@@ -628,23 +561,23 @@ export class DubheECSWorld implements ECSWorld {
 
       return entityData;
     } catch (error) {
-      console.error(`获取实体 ${id} 失败:`, formatError(error));
+      console.error(`Failed to get entity ${id}:`, formatError(error));
       return null;
     }
   }
 
   /**
-   * 获取所有实体ID列表
-   * @returns 所有实体的ID数组
+   * Get all entity ID list
+   * @returns Array of all entity IDs
    */
   async getEntities(): Promise<EntityId[]> {
     return this.getAllEntities();
   }
 
   /**
-   * 获取拥有特定组件的所有实体
-   * @param componentType 组件类型
-   * @returns 拥有该组件的实体ID数组
+   * Get all entities that have a specific component
+   * @param componentType Component type
+   * @returns Array of entity IDs that have this component
    */
   async getEntitiesByComponent(
     componentType: ComponentType
@@ -652,12 +585,12 @@ export class DubheECSWorld implements ECSWorld {
     return this.queryWith(componentType);
   }
 
-  // 注意：getComponent, getComponents, hasComponent 方法已在下方定义
+  // Note: getComponent, getComponents, hasComponent methods are defined below
 
-  // ============ 组件查询 ============
+  // ============ Component Queries ============
 
   /**
-   * 检查实体是否拥有特定组件
+   * Check if entity has specific component
    */
   async hasComponent(
     entityId: EntityId,
@@ -667,7 +600,7 @@ export class DubheECSWorld implements ECSWorld {
   }
 
   /**
-   * 获取实体的特定组件数据
+   * Get specific component data of entity
    */
   async getComponent<T>(
     entityId: EntityId,
@@ -677,7 +610,7 @@ export class DubheECSWorld implements ECSWorld {
   }
 
   /**
-   * 获取实体拥有的所有组件类型
+   * Get all component types that entity has
    */
   async getComponents(entityId: EntityId): Promise<ComponentType[]> {
     return this.querySystem.getComponents(entityId);
@@ -949,7 +882,7 @@ export class DubheECSWorld implements ECSWorld {
 
       return { entityId, components };
     } catch (error) {
-      console.error(`获取实体状态失败: ${formatError(error)}`);
+      console.error(`Failed to get entity state: ${formatError(error)}`);
       return null;
     }
   }
@@ -979,7 +912,7 @@ export class DubheECSWorld implements ECSWorld {
 
       return stats;
     } catch (error) {
-      console.error(`获取组件统计失败: ${formatError(error)}`);
+      console.error(`Failed to get component stats: ${formatError(error)}`);
       return {};
     }
   }
@@ -1001,7 +934,7 @@ export class DubheECSWorld implements ECSWorld {
 
       return orphanEntities;
     } catch (error) {
-      console.error(`查找孤儿实体失败: ${formatError(error)}`);
+      console.error(`Failed to find orphan entities: ${formatError(error)}`);
       return [];
     }
   }
@@ -1068,54 +1001,57 @@ export class DubheECSWorld implements ECSWorld {
   }
 
   /**
-   * 🆕 获取dubhe配置信息
+   * Get dubhe configuration info
    */
   getDubheConfig(): DubheConfig | null {
     return this.config.dubheConfig || null;
   }
 
   /**
-   * 🆕 检查是否使用dubhe配置
+   * Check if using dubhe configuration
    */
   isUsingDubheConfig(): boolean {
     return !!this.config.componentDiscovery.dubheConfig;
   }
 
   /**
-   * 🆕 获取自动字段解析状态
+   * Get auto field resolution status
    */
   isAutoFieldResolutionEnabled(): boolean {
     return !!this.config.queryConfig?.enableAutoFieldResolution;
   }
 
-  // ============ 全局配置查询 ============
+  // ============ Global Config Queries ============
 
   /**
-   * 查询全局配置表（无主键表）
+   * Query global config table (table without primary key)
    */
   async getGlobalConfig<T>(configType: string): Promise<T | null> {
     try {
-      console.log(`🌐 查询全局配置: ${configType}`);
+      console.log(`🌐 Querying global config: ${configType}`);
       const result = await this.graphqlClient.getAllTables(configType, {
         first: 1,
       });
       const record = result.edges[0]?.node;
 
       if (record) {
-        console.log(`✅ 找到${configType}配置`);
+        console.log(`✅ Found ${configType} config`);
         return record as T;
       } else {
-        console.log(`⚠️ 未找到${configType}配置`);
+        console.log(`⚠️ ${configType} config not found`);
         return null;
       }
     } catch (error) {
-      console.error(`❌ 查询${configType}配置失败:`, formatError(error));
+      console.error(
+        `❌ Failed to query ${configType} config:`,
+        formatError(error)
+      );
       return null;
     }
   }
 
   /**
-   * 获取所有全局配置表的列表
+   * Get list of all global config tables
    */
   getGlobalConfigTables(): string[] {
     if (!this.config.dubheConfig?.components) {
@@ -1126,7 +1062,7 @@ export class DubheECSWorld implements ECSWorld {
 
     Object.entries(this.config.dubheConfig.components).forEach(
       ([componentName, component]) => {
-        // 检查是否是无主键的配置表
+        // Check if it's a config table without primary key
         if (
           typeof component === 'object' &&
           component !== null &&
@@ -1144,7 +1080,7 @@ export class DubheECSWorld implements ECSWorld {
 }
 
 /**
- * 创建ECS世界实例的工厂函数
+ * Factory function to create ECS world instance
  */
 export function createECSWorld(
   graphqlClient: DubheGraphqlClient,
@@ -1154,7 +1090,7 @@ export function createECSWorld(
 }
 
 /**
- * 便利函数：创建带预设组件名称的ECS世界（手动模式）
+ * Convenience function: Create ECS world with preset component names (manual mode)
  */
 export function createECSWorldWithComponents(
   graphqlClient: DubheGraphqlClient,
