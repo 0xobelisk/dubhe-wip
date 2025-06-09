@@ -1,6 +1,6 @@
 // ECS查询系统实现
 
-import { DubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
+import { DubheGraphqlClient } from '@0xobelisk/graphql-client';
 import {
   EntityId,
   ComponentType,
@@ -35,6 +35,8 @@ export class ECSQuery {
   private cacheTimeout = 5000; // 5秒缓存超时
   private availableComponents: ComponentType[] = [];
   private componentDiscoverer: ComponentDiscoverer | null = null;
+  // 🆕 组件主键信息缓存 - 在初始化时预先解析
+  private componentPrimaryKeys = new Map<ComponentType, string>();
 
   constructor(
     graphqlClient: DubheGraphqlClient,
@@ -52,6 +54,42 @@ export class ECSQuery {
   }
 
   /**
+   * 🆕 预先解析并缓存所有组件的主键信息
+   */
+  async initializeComponentMetadata(
+    componentMetadataList: Array<{ name: ComponentType; primaryKeys: string[] }>
+  ): Promise<void> {
+    console.log('🔧 Initializing component primary key cache...');
+
+    this.componentPrimaryKeys.clear();
+
+    for (const metadata of componentMetadataList) {
+      // 只处理ECS规范的组件（单主键）
+      if (metadata.primaryKeys.length === 1) {
+        this.componentPrimaryKeys.set(metadata.name, metadata.primaryKeys[0]);
+        console.log(
+          `   📋 ${metadata.name} -> primary key: ${metadata.primaryKeys[0]}`
+        );
+      } else {
+        console.warn(
+          `⚠️ Skipping ${metadata.name}: invalid primary key count (${metadata.primaryKeys.length})`
+        );
+      }
+    }
+
+    console.log(
+      `✅ Component primary key cache initialized with ${this.componentPrimaryKeys.size} components`
+    );
+  }
+
+  /**
+   * 🆕 获取组件的主键字段名（从缓存中快速获取）
+   */
+  getComponentPrimaryKeyField(componentType: ComponentType): string {
+    return this.componentPrimaryKeys.get(componentType) || 'id';
+  }
+
+  /**
    * 设置组件发现器
    */
   setComponentDiscoverer(discoverer: ComponentDiscoverer): void {
@@ -66,8 +104,9 @@ export class ECSQuery {
   ): Promise<string[]> {
     if (this.componentDiscoverer) {
       try {
-        const metadata =
-          await this.componentDiscoverer.getComponentMetadata(componentType);
+        const metadata = await this.componentDiscoverer.getComponentMetadata(
+          componentType
+        );
         if (metadata) {
           return metadata.fields.map((field) => field.name);
         }
@@ -90,8 +129,9 @@ export class ECSQuery {
   ): Promise<string[]> {
     if (this.componentDiscoverer) {
       try {
-        const metadata =
-          await this.componentDiscoverer.getComponentMetadata(componentType);
+        const metadata = await this.componentDiscoverer.getComponentMetadata(
+          componentType
+        );
         if (metadata && metadata.primaryKeys.length > 0) {
           return metadata.primaryKeys;
         }
@@ -134,10 +174,20 @@ export class ECSQuery {
 
       for (const table of tables.slice(0, 3)) {
         // 只检查前3个表避免过多查询
-        const component = await this.graphqlClient.getTableByCondition(table, {
-          id: entityId,
-        });
-        if (component) return true;
+        try {
+          const condition = this.buildEntityCondition(table, entityId);
+          const component = await this.graphqlClient.getTableByCondition(
+            table,
+            condition
+          );
+          if (component) return true;
+        } catch (error) {
+          // 如果某个表查询失败，继续检查下一个表
+          console.warn(
+            `Failed to check entity ${entityId} in table ${table}:`,
+            formatError(error)
+          );
+        }
       }
 
       return false;
@@ -153,13 +203,12 @@ export class ECSQuery {
   async getAllEntities(): Promise<EntityId[]> {
     try {
       const tables = await this.getAvailableTables();
-      const entitySets: EntityId[][] = [];
 
-      // 并行查询所有表，使用智能字段解析
+      // 并行查询所有表，使用缓存的字段信息
       const queries = await Promise.all(
         tables.map(async (table) => {
-          const primaryKeys = await this.getComponentPrimaryKeys(table);
           const fields = await this.getQueryFields(table);
+          const primaryKey = this.componentPrimaryKeys.get(table) || 'id';
 
           return {
             key: table,
@@ -168,7 +217,7 @@ export class ECSQuery {
               fields: fields,
               filter: {},
             },
-            primaryKeys, // 传递主键信息以供后续使用
+            primaryKey, // 使用缓存的主键信息
           };
         })
       );
@@ -181,7 +230,7 @@ export class ECSQuery {
         }))
       );
 
-      // 使用正确的主键字段提取实体ID
+      // 使用缓存的主键字段提取实体ID
       return extractUnionFromBatchResult(batchResult, tables, {
         idFields: undefined, // 让extractEntityIds自动推断
         composite: false,
@@ -211,10 +260,19 @@ export class ECSQuery {
       return false;
     }
 
+    // 验证是否为ECS规范的组件
+    if (!this.isECSComponent(componentType)) {
+      console.warn(
+        `⚠️ Component '${componentType}' is not a valid ECS component. Only single-primary-key tables are supported for ECS queries.`
+      );
+      return false;
+    }
+
     try {
+      const condition = this.buildEntityCondition(componentType, entityId);
       const component = await this.graphqlClient.getTableByCondition(
         componentType,
-        { id: entityId }
+        condition
       );
       return component !== null;
     } catch (error) {
@@ -234,10 +292,19 @@ export class ECSQuery {
       return null;
     }
 
+    // 验证是否为ECS规范的组件
+    if (!this.isECSComponent(componentType)) {
+      console.warn(
+        `⚠️ Component '${componentType}' is not a valid ECS component. Only single-primary-key tables are supported for ECS queries.`
+      );
+      return null;
+    }
+
     try {
+      const condition = this.buildEntityCondition(componentType, entityId);
       const component = await this.graphqlClient.getTableByCondition(
         componentType,
-        { id: entityId }
+        condition
       );
       return component as T;
     } catch (error) {
@@ -274,6 +341,58 @@ export class ECSQuery {
   }
 
   /**
+   * 验证组件类型是否为ECS规范的组件
+   */
+  private isECSComponent(componentType: ComponentType): boolean {
+    return this.availableComponents.includes(componentType);
+  }
+
+  /**
+   * 构建实体查询条件（使用缓存的主键字段名）
+   */
+  private buildEntityCondition(
+    componentType: ComponentType,
+    entityId: EntityId
+  ): Record<string, any> {
+    // 从缓存中获取主键字段名
+    const primaryKeyField = this.componentPrimaryKeys.get(componentType);
+
+    if (primaryKeyField) {
+      return { [primaryKeyField]: entityId };
+    } else {
+      // 如果缓存中没有，回退到默认的'id'字段
+      console.warn(
+        `⚠️ No cached primary key for ${componentType}, falling back to 'id' field`
+      );
+      return { id: entityId };
+    }
+  }
+
+  /**
+   * 过滤并验证组件类型列表，只保留ECS规范的组件
+   */
+  private filterValidECSComponents(
+    componentTypes: ComponentType[]
+  ): ComponentType[] {
+    const validComponents = componentTypes.filter((componentType) => {
+      if (!isValidComponentType(componentType)) {
+        return false;
+      }
+
+      if (!this.isECSComponent(componentType)) {
+        console.warn(
+          `⚠️ Component '${componentType}' is not a valid ECS component. Only single-primary-key tables are supported for ECS queries.`
+        );
+        return false;
+      }
+
+      return true;
+    });
+
+    return validComponents;
+  }
+
+  /**
    * 查询拥有特定组件的所有实体
    */
   async queryWith(
@@ -281,6 +400,14 @@ export class ECSQuery {
     options?: QueryOptions
   ): Promise<EntityId[]> {
     if (!isValidComponentType(componentType)) return [];
+
+    // 验证是否为ECS规范的组件
+    if (!this.isECSComponent(componentType)) {
+      console.warn(
+        `⚠️ Component '${componentType}' is not a valid ECS component. Only single-primary-key tables are supported for ECS queries.`
+      );
+      return [];
+    }
 
     const cacheKey = createCacheKey('queryWith', [componentType], options);
     const cached = this.getCachedResult(cacheKey);
@@ -323,7 +450,7 @@ export class ECSQuery {
     if (componentTypes.length === 1)
       return this.queryWith(componentTypes[0], options);
 
-    const validTypes = componentTypes.filter(isValidComponentType);
+    const validTypes = this.filterValidECSComponents(componentTypes);
     if (validTypes.length === 0) return [];
 
     const cacheKey = createCacheKey('queryWithAll', validTypes, options);
@@ -387,7 +514,7 @@ export class ECSQuery {
     if (componentTypes.length === 1)
       return this.queryWith(componentTypes[0], options);
 
-    const validTypes = componentTypes.filter(isValidComponentType);
+    const validTypes = this.filterValidECSComponents(componentTypes);
     if (validTypes.length === 0) return [];
 
     const cacheKey = createCacheKey('queryWithAny', validTypes, options);
@@ -446,14 +573,24 @@ export class ECSQuery {
   ): Promise<EntityId[]> {
     if (includeTypes.length === 0) return [];
 
+    // 验证包含类型都是ECS规范的组件
+    const validIncludeTypes = this.filterValidECSComponents(includeTypes);
+    if (validIncludeTypes.length === 0) return [];
+
+    // 验证排除类型都是ECS规范的组件
+    const validExcludeTypes = this.filterValidECSComponents(excludeTypes);
+
     try {
       // 先获取拥有所有包含组件的实体
-      const includedEntities = await this.queryWithAll(includeTypes, options);
+      const includedEntities = await this.queryWithAll(
+        validIncludeTypes,
+        options
+      );
 
-      if (excludeTypes.length === 0) return includedEntities;
+      if (validExcludeTypes.length === 0) return includedEntities;
 
       // 获取拥有任意排除组件的实体
-      const excludedEntities = await this.queryWithAny(excludeTypes);
+      const excludedEntities = await this.queryWithAny(validExcludeTypes);
       const excludedSet = new Set(excludedEntities);
 
       // 从包含实体中移除排除实体
@@ -473,6 +610,14 @@ export class ECSQuery {
     options?: QueryOptions
   ): Promise<EntityId[]> {
     if (!isValidComponentType(componentType)) return [];
+
+    // 验证是否为ECS规范的组件
+    if (!this.isECSComponent(componentType)) {
+      console.warn(
+        `⚠️ Component '${componentType}' is not a valid ECS component. Only single-primary-key tables are supported for ECS queries.`
+      );
+      return [];
+    }
 
     try {
       // 智能获取查询字段和主键信息
@@ -510,6 +655,14 @@ export class ECSQuery {
     options?: QueryOptions
   ): Promise<EntityId[]> {
     if (!isValidComponentType(componentType)) return [];
+
+    // 验证是否为ECS规范的组件
+    if (!this.isECSComponent(componentType)) {
+      console.warn(
+        `⚠️ Component '${componentType}' is not a valid ECS component. Only single-primary-key tables are supported for ECS queries.`
+      );
+      return [];
+    }
 
     const predicate = {
       [field]: {

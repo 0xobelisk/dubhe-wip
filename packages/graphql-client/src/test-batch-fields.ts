@@ -1,4 +1,4 @@
-import { createDubheGraphqlClient } from './apollo-client';
+import { createDubheGraphqlClient } from './client';
 
 /**
  * 测试 batchQuery 的 fields 功能和默认字段

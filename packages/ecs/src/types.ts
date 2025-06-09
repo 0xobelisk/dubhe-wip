@@ -270,6 +270,40 @@ export interface ECSWorld {
    * 获取所有全局配置表的列表
    */
   getGlobalConfigTables(): string[];
+
+  // ============ 资源查询（复合主键表）============
+
+  /**
+   * 查询资源表（复合主键表）
+   */
+  getResource<T>(
+    resourceType: string,
+    keyValues: Record<string, any>,
+    options?: QueryOptions
+  ): Promise<T | null>;
+
+  /**
+   * 查询多个资源（复合主键表）
+   */
+  getResources<T>(
+    resourceType: string,
+    filters?: Record<string, any>,
+    options?: QueryOptions
+  ): Promise<T[]>;
+
+  /**
+   * 获取所有资源表的列表（复合主键表）
+   */
+  getResourceTables(): string[];
+
+  /**
+   * 获取资源表元数据
+   */
+  getResourceMetadata(resourceType: string): Promise<{
+    tableName: string;
+    primaryKeys: string[];
+    fields: ComponentField[];
+  } | null>;
 }
 
 // 查询构建器接口

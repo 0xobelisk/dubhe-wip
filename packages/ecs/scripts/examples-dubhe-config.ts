@@ -1,7 +1,7 @@
 // ECS + Dubhe Config 集成示例
 
-import { createDubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
-import { createECSWorld } from './world';
+import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
+import { createECSWorld } from '../src/world';
 import { DubheConfig } from '@0xobelisk/sui-common';
 
 /**

@@ -53,11 +53,6 @@ const subscription = client.subscribeToTableChanges('encounters', {
   onData: (data) => {
     // data.listen.query.encounters 包含实时数据
     console.log('实时数据:', data.listen.query.encounters);
-    
-    // 检查是否有单个变更记录
-    if (data.listen.relatedNode) {
-      console.log('变更的具体记录:', data.listen.relatedNode);
-    }
   },
 });
 

@@ -397,6 +397,233 @@ importers:
         specifier: ^2.0.4
         version: 2.0.4
 
+  packages/ecs:
+    dependencies:
+      '@0xobelisk/graphql-client':
+        specifier: workspace:*
+        version: link:../graphql-client
+      '@0xobelisk/sui-common':
+        specifier: workspace:*
+        version: link:../sui-common
+      '@apollo/client':
+        specifier: ^3.13.8
+        version: 3.13.8(graphql-ws@6.0.5(graphql@15.10.1)(ws@8.18.2))(graphql@15.10.1)(react@18.3.1)(subscriptions-transport-ws@0.9.19(graphql@15.10.1))
+      '@graphql-typed-document-node/core':
+        specifier: ^3.2.0
+        version: 3.2.0(graphql@15.10.1)
+      '@types/pluralize':
+        specifier: ^0.0.33
+        version: 0.0.33
+      gql.tada:
+        specifier: ^1.7.0
+        version: 1.8.10(graphql@15.10.1)(typescript@5.8.3)
+      graphql:
+        specifier: ^15.8.0
+        version: 15.10.1
+      husky:
+        specifier: ^8.0.3
+        version: 8.0.3
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
+      process:
+        specifier: ^0.11.10
+        version: 0.11.10
+      superstruct:
+        specifier: ^1.0.3
+        version: 1.0.4
+      tmp:
+        specifier: ^0.2.1
+        version: 0.2.3
+      tweetnacl:
+        specifier: ^1.0.3
+        version: 1.0.3
+      valibot:
+        specifier: 0.36.0
+        version: 0.36.0
+      ws:
+        specifier: ^8.18.0
+        version: 8.18.2
+    devDependencies:
+      '@commitlint/cli':
+        specifier: ^18.0.0
+        version: 18.6.1(@types/node@20.17.50)(typescript@5.8.3)
+      '@commitlint/config-conventional':
+        specifier: ^18.0.0
+        version: 18.6.3
+      '@commitlint/prompt-cli':
+        specifier: ^18.0.0
+        version: 18.6.1(@types/node@20.17.50)(typescript@5.8.3)
+      '@types/jest':
+        specifier: ^29.5.14
+        version: 29.5.14
+      '@types/node':
+        specifier: ^20.8.7
+        version: 20.17.50
+      '@types/tmp':
+        specifier: ^0.2.5
+        version: 0.2.6
+      '@types/ws':
+        specifier: ^8.5.14
+        version: 8.18.1
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.8.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.8.3))(eslint@8.57.1)(typescript@5.8.3)
+      '@typescript-eslint/parser':
+        specifier: ^6.8.0
+        version: 6.21.0(eslint@8.57.1)(typescript@5.8.3)
+      dotenv:
+        specifier: ^16.3.1
+        version: 16.5.0
+      eslint:
+        specifier: ^8.56.0
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.0(eslint@8.57.1)
+      eslint-plugin-prettier:
+        specifier: ^5.0.1
+        version: 5.4.0(eslint-config-prettier@9.1.0(eslint@8.57.1))(eslint@8.57.1)(prettier@3.3.3)
+      graphql-ws:
+        specifier: ^6.0.2
+        version: 6.0.5(graphql@15.10.1)(ws@8.18.2)
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@20.17.50)(ts-node@10.9.2(@types/node@20.17.50)(typescript@5.8.3))
+      lint-staged:
+        specifier: ^15.0.2
+        version: 15.5.2
+      prettier:
+        specifier: 3.3.3
+        version: 3.3.3
+      ts-node:
+        specifier: ^10.9.1
+        version: 10.9.2(@types/node@20.17.50)(typescript@5.8.3)
+      tsconfig-paths:
+        specifier: ^4.2.0
+        version: 4.2.0
+      tsup:
+        specifier: ^7.1.0
+        version: 7.3.0(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.50)(typescript@5.8.3))(typescript@5.8.3)
+      typedoc:
+        specifier: ^0.25.2
+        version: 0.25.13(typescript@5.8.3)
+      typescript:
+        specifier: ^5.2.2
+        version: 5.8.3
+
+  packages/graphql-client:
+    dependencies:
+      '@0xobelisk/sui-common':
+        specifier: workspace:*
+        version: link:../sui-common
+      '@apollo/client':
+        specifier: ^3.13.8
+        version: 3.13.8(graphql-ws@6.0.5(graphql@15.10.1)(ws@8.18.2))(graphql@15.10.1)(react@18.3.1)(subscriptions-transport-ws@0.9.19(graphql@15.10.1))
+      '@graphql-typed-document-node/core':
+        specifier: ^3.2.0
+        version: 3.2.0(graphql@15.10.1)
+      '@types/pluralize':
+        specifier: ^0.0.33
+        version: 0.0.33
+      gql.tada:
+        specifier: ^1.7.0
+        version: 1.8.10(graphql@15.10.1)(typescript@5.8.3)
+      graphql:
+        specifier: ^15.8.0
+        version: 15.10.1
+      husky:
+        specifier: ^8.0.3
+        version: 8.0.3
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
+      process:
+        specifier: ^0.11.10
+        version: 0.11.10
+      superstruct:
+        specifier: ^1.0.3
+        version: 1.0.4
+      tmp:
+        specifier: ^0.2.1
+        version: 0.2.3
+      tweetnacl:
+        specifier: ^1.0.3
+        version: 1.0.3
+      valibot:
+        specifier: 0.36.0
+        version: 0.36.0
+      ws:
+        specifier: ^8.18.0
+        version: 8.18.2
+    devDependencies:
+      '@commitlint/cli':
+        specifier: ^18.0.0
+        version: 18.6.1(@types/node@20.17.50)(typescript@5.8.3)
+      '@commitlint/config-conventional':
+        specifier: ^18.0.0
+        version: 18.6.3
+      '@commitlint/prompt-cli':
+        specifier: ^18.0.0
+        version: 18.6.1(@types/node@20.17.50)(typescript@5.8.3)
+      '@types/jest':
+        specifier: ^29.5.14
+        version: 29.5.14
+      '@types/node':
+        specifier: ^20.8.7
+        version: 20.17.50
+      '@types/tmp':
+        specifier: ^0.2.5
+        version: 0.2.6
+      '@types/ws':
+        specifier: ^8.5.14
+        version: 8.18.1
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.8.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.8.3))(eslint@8.57.1)(typescript@5.8.3)
+      '@typescript-eslint/parser':
+        specifier: ^6.8.0
+        version: 6.21.0(eslint@8.57.1)(typescript@5.8.3)
+      dotenv:
+        specifier: ^16.3.1
+        version: 16.5.0
+      eslint:
+        specifier: ^8.56.0
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.0(eslint@8.57.1)
+      eslint-plugin-prettier:
+        specifier: ^5.0.1
+        version: 5.4.0(eslint-config-prettier@9.1.0(eslint@8.57.1))(eslint@8.57.1)(prettier@3.3.3)
+      graphql-ws:
+        specifier: ^6.0.2
+        version: 6.0.5(graphql@15.10.1)(ws@8.18.2)
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@20.17.50)(ts-node@10.9.2(@types/node@20.17.50)(typescript@5.8.3))
+      lint-staged:
+        specifier: ^15.0.2
+        version: 15.5.2
+      prettier:
+        specifier: 3.3.3
+        version: 3.3.3
+      ts-node:
+        specifier: ^10.9.1
+        version: 10.9.2(@types/node@20.17.50)(typescript@5.8.3)
+      tsconfig-paths:
+        specifier: ^4.2.0
+        version: 4.2.0
+      tsup:
+        specifier: ^7.1.0
+        version: 7.3.0(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.50)(typescript@5.8.3))(typescript@5.8.3)
+      typedoc:
+        specifier: ^0.25.2
+        version: 0.25.13(typescript@5.8.3)
+      typescript:
+        specifier: ^5.2.2
+        version: 5.8.3
+
   packages/graphql-server:
     dependencies:
       '@graphile-contrib/pg-simplify-inflector':
@@ -13614,7 +13841,7 @@ snapshots:
 
   bs58check@4.0.0:
     dependencies:
-      '@noble/hashes': 1.5.0
+      '@noble/hashes': 1.8.0
       bs58: 6.0.0
 
   bser@2.1.1:
@@ -19230,8 +19457,8 @@ snapshots:
 
   webauthn-p256@0.0.10:
     dependencies:
-      '@noble/curves': 1.6.0
-      '@noble/hashes': 1.5.0
+      '@noble/curves': 1.9.1
+      '@noble/hashes': 1.8.0
 
   webidl-conversions@3.0.1: {}
 

@@ -3,7 +3,7 @@ import {
   createDubheGraphqlClient,
   DubheGraphqlClient,
   QueryBuilders,
-} from './apollo-client';
+} from './client';
 import { Connection, StoreTableRow, DubheClientConfig } from './types';
 
 /**
@@ -154,10 +154,6 @@ export function exampleListenSubscription() {
         '📨 Encounters实时数据（单数转复数）:',
         data.listen.query.encounters
       );
-      // 检查是否有relatedNode数据（单个变更记录）
-      if (data.listen.relatedNode) {
-        console.log('🎯 变更的具体记录:', data.listen.relatedNode);
-      }
     },
     onError: (error) => {
       console.error('❌ Encounters订阅错误:', error);

@@ -1,7 +1,7 @@
 // 标准ECS接口规范使用示例
 
-import { createDubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
-import { createECSWorld } from './world';
+import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
+import { createECSWorld } from '../src';
 import { exampleDubheConfig } from './examples-dubhe-config';
 
 /**
@@ -116,7 +116,9 @@ export async function standardECSInterfaceExample() {
       const entities1 = await world.getEntities();
       const entities2 = await world.getAllEntities();
       console.log(
-        `✅ getEntities() === getAllEntities(): ${JSON.stringify(entities1) === JSON.stringify(entities2)}`
+        `✅ getEntities() === getAllEntities(): ${
+          JSON.stringify(entities1) === JSON.stringify(entities2)
+        }`
       );
 
       // 组件检查对比
@@ -130,7 +132,9 @@ export async function standardECSInterfaceExample() {
       const comp1 = await world.getComponent(testId, 'player');
       const comp2 = await world.getComponent(testId, 'player');
       console.log(
-        `✅ getComponent() === getComponent(): ${JSON.stringify(comp1) === JSON.stringify(comp2)}`
+        `✅ getComponent() === getComponent(): ${
+          JSON.stringify(comp1) === JSON.stringify(comp2)
+        }`
       );
     }
 

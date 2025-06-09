@@ -1,7 +1,7 @@
 // ECS订阅系统实现
 
 import { Observable } from '@apollo/client';
-import { DubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
+import { DubheGraphqlClient } from '@0xobelisk/graphql-client';
 import {
   EntityId,
   ComponentType,
@@ -61,12 +61,6 @@ export class ECSSubscription {
           fields: ['updatedAt'],
           onData: (data) => {
             try {
-              // PostGraphile Listen 提供的数据结构
-              const relatedNode = data.listen?.relatedNode;
-              if (relatedNode && relatedNode.id) {
-                debouncedCallback(relatedNode.id, relatedNode as T);
-              }
-
               // 处理批量数据
               const pluralTableName = this.getPluralTableName(componentType);
               const nodes = data.listen?.query?.[pluralTableName]?.nodes;
@@ -201,12 +195,6 @@ export class ECSSubscription {
           initialEvent: options?.initialEvent ?? false,
           onData: (data) => {
             try {
-              // 处理单个变更
-              const relatedNode = data.listen?.relatedNode;
-              if (relatedNode && relatedNode.id) {
-                debouncedCallback(relatedNode.id, relatedNode as T);
-              }
-
               // 处理批量数据
               const pluralTableName = this.getPluralTableName(componentType);
               const nodes = data.listen?.query?.[pluralTableName]?.nodes;

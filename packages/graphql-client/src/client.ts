@@ -18,7 +18,7 @@ import { RetryLink } from '@apollo/client/link/retry';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
-import * as pluralize from 'pluralize';
+import pluralize from 'pluralize';
 import { DubheConfig } from '@0xobelisk/sui-common';
 
 import {

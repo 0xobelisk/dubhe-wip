@@ -16,6 +16,7 @@ import configStore from './configStore';
 import watch from './watch';
 import wait from './wait';
 import switchEnv from './switchEnv';
+import info from './info';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Each command has different options
 export const commands: CommandModule<any, any>[] = [
@@ -34,5 +35,6 @@ export const commands: CommandModule<any, any>[] = [
   configStore,
   watch,
   wait,
-  switchEnv
+  switchEnv,
+  info
 ];

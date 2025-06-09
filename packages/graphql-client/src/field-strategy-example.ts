@@ -2,7 +2,7 @@
  * 字段策略示例 - 展示如何处理不同类型的表结构
  */
 
-import { createDubheGraphqlClient } from './apollo-client';
+import { createDubheGraphqlClient } from './client';
 import { DubheConfig } from '@0xobelisk/sui-common';
 
 // 示例dubhe config，包含不同类型的表

@@ -8,7 +8,7 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
-//右侧弹出框
+// Right side popup box
 const PopUpBox = () => {
   const [pop_up_boxState, setSop_up_boxState] = useAtom(SellPopUpBoxState);
   const [pop_up_boxData] = useAtom(SellState);
@@ -115,7 +115,7 @@ const PopUpBox = () => {
   );
 };
 
-//加载弹出框
+// Loading popup box
 const Loading = () => {
   const [openLoading, setOpenLoading] = useAtom(OpenBoxState);
   return (

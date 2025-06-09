@@ -1,6 +1,6 @@
 // ECS世界主类实现 - 简化版本，内置组件发现
 
-import { DubheGraphqlClient } from '../dubheGraphqlClient/apollo-client';
+import { DubheGraphqlClient } from '@0xobelisk/graphql-client';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import { ECSQuery } from './query';
 import { ECSSubscription } from './subscription';
@@ -219,6 +219,13 @@ class SimpleComponentDiscoverer {
             continue; // Skip tables without primary keys
           }
 
+          if (primaryKeys.length > 1) {
+            console.log(
+              `⚠️ ${componentType} has composite primary keys (${primaryKeys.join(', ')}), skipping ECS component registration (recommend using dedicated resource query interface)`
+            );
+            continue; // Skip tables with composite primary keys
+          }
+
           const metadata: ComponentMetadata = {
             name: componentType,
             tableName: componentName,
@@ -236,9 +243,6 @@ class SimpleComponentDiscoverer {
           };
 
           components.push(metadata);
-          console.log(
-            `✅ Discovered component ${componentType} (table: ${componentName})`
-          );
         } catch (error) {
           const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
           errors.push(errorMsg);
@@ -258,13 +262,6 @@ class SimpleComponentDiscoverer {
             tableName: this.componentNameToTableName(componentType),
             fields: [
               {
-                name: 'id',
-                type: 'String',
-                nullable: false,
-                isPrimaryKey: true,
-                isEnum: false,
-              },
-              {
                 name: 'createdAt',
                 type: 'String',
                 nullable: false,
@@ -279,7 +276,7 @@ class SimpleComponentDiscoverer {
                 isEnum: false,
               },
             ],
-            primaryKeys: [],
+            primaryKeys: ['id'],
             hasDefaultId: true,
             enumFields: [],
             lastUpdated: Date.now(),
@@ -458,9 +455,30 @@ export class DubheECSWorld implements ECSWorld {
       // Discover available components
       const discoveryResult = await this.componentDiscoverer.discover();
 
-      // Update query system's available components list
+      // Filter ECS-compliant components (single primary key only)
+      const ecsComponents = discoveryResult.components.filter((comp) => {
+        // Must have exactly one primary key to be ECS-compliant
+        return comp.primaryKeys.length === 1;
+      });
+
+      console.log(`📊 Component classification:`);
+      console.log(
+        `  - ECS Components: ${ecsComponents.length} (${ecsComponents.map((c) => c.name).join(', ')})`
+      );
+      console.log(`  - Global Configs: ${this.getGlobalConfigTables().length}`);
+      console.log(`  - Resources: ${this.getResourceTables().length}`);
+
+      // Initialize query system with ECS components and their metadata
       this.querySystem.setAvailableComponents(
-        discoveryResult.components.map((comp) => comp.name)
+        ecsComponents.map((comp) => comp.name)
+      );
+
+      // 🆕 Initialize component primary key cache
+      await this.querySystem.initializeComponentMetadata(
+        ecsComponents.map((comp) => ({
+          name: comp.name,
+          primaryKeys: comp.primaryKeys,
+        }))
       );
 
       if (this.config.queryConfig?.enableAutoFieldResolution) {
@@ -1076,6 +1094,241 @@ export class DubheECSWorld implements ECSWorld {
     );
 
     return globalTables;
+  }
+
+  // ============ Resource Queries (for composite primary keys) ============
+
+  /**
+   * Query resource table with composite primary keys
+   */
+  async getResource<T>(
+    resourceType: string,
+    keyValues: Record<string, any>,
+    options?: QueryOptions
+  ): Promise<T | null> {
+    try {
+      console.log(
+        `🎯 Querying resource: ${resourceType} with keys:`,
+        keyValues
+      );
+
+      // Build where condition for composite keys
+      const whereConditions: Record<string, any> = {};
+      for (const [key, value] of Object.entries(keyValues)) {
+        whereConditions[key] = { equalTo: value };
+      }
+
+      const result = await this.graphqlClient.getAllTables(resourceType, {
+        first: 1,
+        filter: whereConditions,
+        ...options,
+      });
+
+      const record = result.edges[0]?.node;
+
+      if (record) {
+        console.log(`✅ Found ${resourceType} resource`);
+        return record as T;
+      } else {
+        console.log(`⚠️ ${resourceType} resource not found with given keys`);
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        `❌ Failed to query ${resourceType} resource:`,
+        formatError(error)
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Query multiple resources with composite primary keys
+   */
+  async getResources<T>(
+    resourceType: string,
+    filters?: Record<string, any>,
+    options?: QueryOptions
+  ): Promise<T[]> {
+    try {
+      console.log(`🎯 Querying multiple resources: ${resourceType}`);
+
+      // Build where condition
+      const whereConditions: Record<string, any> = {};
+      if (filters) {
+        for (const [key, value] of Object.entries(filters)) {
+          if (typeof value === 'object' && value !== null) {
+            // If value is already a filter object, use it directly
+            whereConditions[key] = value;
+          } else {
+            // Otherwise, wrap in equalTo
+            whereConditions[key] = { equalTo: value };
+          }
+        }
+      }
+
+      const result = await this.graphqlClient.getAllTables(resourceType, {
+        filter:
+          Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
+        ...options,
+      });
+
+      const records = result.edges.map((edge) => edge.node as T);
+      console.log(`✅ Found ${records.length} ${resourceType} resources`);
+      return records;
+    } catch (error) {
+      console.error(
+        `❌ Failed to query ${resourceType} resources:`,
+        formatError(error)
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Get list of all resource tables (tables with composite primary keys)
+   */
+  getResourceTables(): string[] {
+    if (!this.config.dubheConfig?.components) {
+      return [];
+    }
+
+    const resourceTables: string[] = [];
+
+    Object.entries(this.config.dubheConfig.components).forEach(
+      ([componentName, component]) => {
+        // Check if it's a resource table with composite primary keys
+        if (
+          typeof component === 'object' &&
+          component !== null &&
+          'keys' in component
+        ) {
+          if (Array.isArray(component.keys) && component.keys.length > 1) {
+            resourceTables.push(componentName);
+          }
+        }
+      }
+    );
+
+    return resourceTables;
+  }
+
+  /**
+   * Get resource table metadata (including primary key information)
+   */
+  async getResourceMetadata(resourceType: string): Promise<{
+    tableName: string;
+    primaryKeys: string[];
+    fields: ComponentField[];
+  } | null> {
+    if (!this.config.dubheConfig?.components) {
+      return null;
+    }
+
+    const component = this.config.dubheConfig.components[resourceType];
+    if (!component || typeof component !== 'object' || component === null) {
+      return null;
+    }
+
+    if (
+      !('keys' in component) ||
+      !Array.isArray(component.keys) ||
+      component.keys.length <= 1
+    ) {
+      return null;
+    }
+
+    // Build field information similar to component discovery
+    const fields: ComponentField[] = [];
+    const primaryKeys: string[] = [];
+
+    if ('fields' in component && component.fields) {
+      for (const [fieldName, fieldType] of Object.entries(component.fields)) {
+        const camelFieldName = this.snakeToCamel(fieldName);
+        const typeStr = String(fieldType);
+        const isCustomKey = component.keys!.includes(fieldName);
+
+        fields.push({
+          name: camelFieldName,
+          type: this.dubheTypeToGraphQLType(typeStr),
+          nullable: !isCustomKey,
+          isPrimaryKey: isCustomKey,
+          isEnum: this.isEnumType(typeStr),
+        });
+
+        if (isCustomKey) {
+          primaryKeys.push(camelFieldName);
+        }
+      }
+    }
+
+    // Add system fields
+    fields.push(
+      {
+        name: 'createdAt',
+        type: 'String',
+        nullable: false,
+        isPrimaryKey: false,
+        isEnum: false,
+      },
+      {
+        name: 'updatedAt',
+        type: 'String',
+        nullable: false,
+        isPrimaryKey: false,
+        isEnum: false,
+      }
+    );
+
+    return {
+      tableName: resourceType,
+      primaryKeys,
+      fields,
+    };
+  }
+
+  // ============ Private Helper Methods ============
+
+  private snakeToCamel(str: string): string {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  }
+
+  private dubheTypeToGraphQLType(dubheType: string): string {
+    // 处理向量类型 vector<T>
+    if (dubheType.startsWith('vector<') && dubheType.endsWith('>')) {
+      return 'String'; // GraphQL通常将复杂类型序列化为JSON字符串
+    }
+
+    switch (dubheType) {
+      case 'u8':
+      case 'u16':
+      case 'u32':
+      case 'u64':
+      case 'u128':
+      case 'i8':
+      case 'i16':
+      case 'i32':
+      case 'i64':
+      case 'i128':
+        return 'Int';
+      case 'address':
+      case 'string':
+        return 'String';
+      case 'bool':
+        return 'Boolean';
+      case 'enum':
+        return 'String';
+      default:
+        // If not a known basic type, might be enum or custom type
+        // For unknown types, default to String
+        return 'String';
+    }
+  }
+
+  private isEnumType(typeStr: string): boolean {
+    return !!(
+      this.config.dubheConfig?.enums && this.config.dubheConfig.enums[typeStr]
+    );
   }
 }
 

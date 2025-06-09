@@ -5,7 +5,7 @@
  * 让客户端自动识别表的字段信息，无需手动指定。
  */
 
-import { DubheGraphqlClient, createDubheGraphqlClient } from './apollo-client';
+import { DubheGraphqlClient, createDubheGraphqlClient } from './client';
 import { DubheConfig } from '@0xobelisk/sui-common';
 
 // 示例 dubhe config

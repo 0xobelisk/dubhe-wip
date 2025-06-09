@@ -1,7 +1,7 @@
 // ECS工具函数
 
 import { EntityId, ComponentType, QueryChange } from './types';
-import { Connection, StoreTableRow } from '../dubheGraphqlClient/types';
+import { Connection, StoreTableRow } from '@0xobelisk/graphql-client';
 
 /**
  * 从GraphQL查询结果中提取实体ID

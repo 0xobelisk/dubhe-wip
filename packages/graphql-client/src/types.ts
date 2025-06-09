@@ -85,7 +85,6 @@ export interface DateFilter extends FilterCondition {
 
 // Store表基础类型（现在API中已去掉store前缀）
 export interface StoreTableRow {
-  id: string;
   createdAt: string;
   updatedAt: string;
   [key: string]: any;
@@ -111,8 +110,6 @@ export interface SubscriptionOptions {
 // PostGraphile Listen订阅相关类型
 export interface ListenPayload<T = any> {
   query: T;
-  relatedNode?: any;
-  relatedNodeId?: string;
 }
 
 export interface ListenSubscriptionResult<T = any> {
@@ -231,8 +228,6 @@ export interface MultiTableSubscriptionData {
   [tableName: string]: {
     listen: {
       query: any;
-      relatedNode?: any;
-      relatedNodeId?: string;
     };
   };
 }
