@@ -35,13 +35,11 @@ async function testMonsterHunterECS() {
 
     // 3. 初始化 ECS world（自动发现组件）
     console.log('🚀 初始化 ECS world...');
-    await world.initialize();
+    // 初始化现在在构造函数中自动完成
 
     console.log(`✅ ECS world 初始化完成`);
-    console.log(
-      `📋 使用策略: ${world.isUsingDubheConfig() ? 'dubhe-config' : 'manual'}`
-    );
-    console.log(`🔧 自动字段解析: ${world.isAutoFieldResolutionEnabled()}\n`);
+    console.log(`📋 使用策略: dubhe-config`);
+    console.log(`🔧 自动字段解析: true\n`);
 
     // 4. 查看可用组件
     console.log('📦 === 可用组件列表 ===');

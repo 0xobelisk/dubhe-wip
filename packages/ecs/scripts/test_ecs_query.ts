@@ -32,10 +32,6 @@ async function testMonsterHunterECS() {
   console.log('🌍 创建 ECS world...');
   world = createECSWorld(client);
 
-  // 3. 初始化 ECS world（自动发现组件）
-  console.log('🚀 初始化 ECS world...');
-  await world.initialize();
-
   const entity = await world.getEntity(
     '0xfc8f7d0eec60cc35beb5e0dce4e71a2e245a1f2fbb1ac736c4428e62f36bbe82'
   );

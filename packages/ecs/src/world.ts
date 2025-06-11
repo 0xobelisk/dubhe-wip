@@ -13,7 +13,6 @@ import {
   QueryChangeCallback,
   QueryWatcher,
   Unsubscribe,
-  ECSWorld,
   PagedResult,
   ECSWorldConfig,
   ComponentMetadata,
@@ -23,88 +22,130 @@ import {
 import { formatError } from './utils';
 
 /**
- * 简化的组件发现器 - 自动策略判断
+ * 组件发现器 - 自动解析 dubhe config
  */
-class SimpleComponentDiscoverer {
+export class ComponentDiscoverer {
   private graphqlClient: DubheGraphqlClient;
-  private componentNames: ComponentType[] = [];
-  private dubheConfig: DubheConfig | null = null;
-  private strategy: 'manual' | 'dubhe-config' = 'manual';
+  public dubheConfig: DubheConfig;
+  public discoveryResult: ComponentDiscoveryResult;
+  public componentMetadataMap = new Map<ComponentType, ComponentMetadata>();
+  public componentTypes: ComponentType[] = [];
 
-  constructor(
-    graphqlClient: DubheGraphqlClient,
-    componentNames?: ComponentType[],
-    dubheConfig?: DubheConfig
-  ) {
+  constructor(graphqlClient: DubheGraphqlClient, dubheConfig: DubheConfig) {
     this.graphqlClient = graphqlClient;
 
-    // Validate parameters: cannot have both empty
-    if (!componentNames?.length && !dubheConfig) {
-      throw new Error(
-        'Component discovery configuration error: must provide either componentNames (manual mode) or dubheConfig (auto mode)'
-      );
+    if (!dubheConfig) {
+      throw new Error('DubheConfig is required for component discovery');
     }
 
-    // Auto-determine strategy: prioritize dubheConfig
-    if (dubheConfig) {
-      this.dubheConfig = dubheConfig;
-      this.strategy = 'dubhe-config';
-    } else if (componentNames?.length) {
-      this.componentNames = componentNames;
-      this.strategy = 'manual';
-    }
-  }
+    this.dubheConfig = dubheConfig;
 
-  async discover(): Promise<ComponentDiscoveryResult> {
     const components: ComponentMetadata[] = [];
     const errors: string[] = [];
 
-    if (this.strategy === 'dubhe-config' && this.dubheConfig) {
-      if (!this.dubheConfig.components) {
-        throw new Error('Components section not found in dubhe configuration');
-      }
+    if (!this.dubheConfig.components) {
+      throw new Error('Components section not found in dubhe configuration');
+    }
 
-      for (const [componentName, componentConfig] of Object.entries(
-        this.dubheConfig.components
-      )) {
-        const componentType = this.tableNameToComponentName(componentName);
+    for (const [componentName, componentConfig] of Object.entries(
+      this.dubheConfig.components
+    )) {
+      const componentType = this.tableNameToComponentName(componentName);
 
-        try {
-          // Verify component exists
-          await this.graphqlClient.getAllTables(componentType, { first: 1 });
+      try {
+        // Build field information
+        const fields: ComponentField[] = [];
+        const primaryKeys: string[] = [];
+        const enumFields: string[] = [];
 
-          // Build field information
-          const fields: ComponentField[] = [];
-          const primaryKeys: string[] = [];
-          const enumFields: string[] = [];
+        // Handle different component types
+        if (typeof componentConfig === 'string') {
+          // MoveType string, e.g. owned_by: "address"
+          fields.push(
+            {
+              name: 'id',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: true,
+              isEnum: false,
+            },
+            {
+              name: 'value',
+              type: this.dubheTypeToGraphQLType(componentConfig),
+              nullable: true,
+              isPrimaryKey: false,
+              isEnum: this.isEnumType(componentConfig),
+            }
+          );
+          primaryKeys.push('id');
+        } else if (
+          typeof componentConfig === 'object' &&
+          componentConfig !== null &&
+          Object.keys(componentConfig).length === 0
+        ) {
+          // EmptyComponent, e.g. player: {}
+          fields.push({
+            name: 'id',
+            type: 'String',
+            nullable: false,
+            isPrimaryKey: true,
+            isEnum: false,
+          });
+          primaryKeys.push('id');
+        } else if (
+          typeof componentConfig === 'object' &&
+          componentConfig !== null &&
+          'fields' in componentConfig &&
+          componentConfig.fields
+        ) {
+          // Component type with fields definition
 
-          // Handle different component types
-          if (typeof componentConfig === 'string') {
-            // MoveType string, e.g. owned_by: "address"
-            fields.push(
-              {
-                name: 'id',
-                type: 'String',
-                nullable: false,
-                isPrimaryKey: true,
-                isEnum: false,
-              },
-              {
-                name: 'value',
-                type: this.dubheTypeToGraphQLType(componentConfig),
-                nullable: true,
-                isPrimaryKey: false,
-                isEnum: this.isEnumType(componentConfig),
+          // Analyze primary key configuration
+          let keyStrategy: 'custom' | 'default' | 'none' = 'default';
+          if ('keys' in componentConfig) {
+            if (Array.isArray(componentConfig.keys)) {
+              if (componentConfig.keys.length > 0) {
+                keyStrategy = 'custom';
+              } else {
+                keyStrategy = 'none';
               }
-            );
-            primaryKeys.push('id');
-          } else if (
-            typeof componentConfig === 'object' &&
-            componentConfig !== null &&
-            Object.keys(componentConfig).length === 0
-          ) {
-            // EmptyComponent, e.g. player: {}
+            }
+          }
+
+          // First handle business fields
+          for (const [fieldName, fieldType] of Object.entries(
+            componentConfig.fields
+          )) {
+            // According to sui-common definition, fieldType should be MoveType (string)
+            const camelFieldName = this.snakeToCamel(fieldName);
+            const typeStr = String(fieldType);
+
+            // Check if this field is one of the custom primary keys
+            const isCustomKey =
+              keyStrategy === 'custom' &&
+              componentConfig.keys!.includes(fieldName);
+
             fields.push({
+              name: camelFieldName,
+              type: this.dubheTypeToGraphQLType(typeStr),
+              nullable: !isCustomKey, // 主键字段不可为空
+              isPrimaryKey: isCustomKey,
+              isEnum: this.isEnumType(typeStr),
+            });
+
+            if (isCustomKey) {
+              primaryKeys.push(camelFieldName);
+            }
+
+            // Check if it's an enum type (check if exists in dubheConfig.enums)
+            if (this.isEnumType(typeStr)) {
+              enumFields.push(camelFieldName);
+            }
+          }
+
+          // Add default id field based on primary key strategy
+          if (keyStrategy === 'default') {
+            fields.unshift({
               name: 'id',
               type: 'String',
               nullable: false,
@@ -112,209 +153,300 @@ class SimpleComponentDiscoverer {
               isEnum: false,
             });
             primaryKeys.push('id');
-          } else if (
-            typeof componentConfig === 'object' &&
-            componentConfig !== null &&
-            'fields' in componentConfig &&
-            componentConfig.fields
-          ) {
-            // Component type with fields definition
-
-            // Analyze primary key configuration
-            let keyStrategy: 'custom' | 'default' | 'none' = 'default';
-            if ('keys' in componentConfig) {
-              if (Array.isArray(componentConfig.keys)) {
-                if (componentConfig.keys.length > 0) {
-                  keyStrategy = 'custom';
-                } else {
-                  keyStrategy = 'none';
-                }
-              }
-            }
-
-            // First handle business fields
-            for (const [fieldName, fieldType] of Object.entries(
-              componentConfig.fields
-            )) {
-              // According to sui-common definition, fieldType should be MoveType (string)
-              const camelFieldName = this.snakeToCamel(fieldName);
-              const typeStr = String(fieldType);
-
-              // Check if this field is one of the custom primary keys
-              const isCustomKey =
-                keyStrategy === 'custom' &&
-                componentConfig.keys!.includes(fieldName);
-
-              fields.push({
-                name: camelFieldName,
-                type: this.dubheTypeToGraphQLType(typeStr),
-                nullable: !isCustomKey, // 主键字段不可为空
-                isPrimaryKey: isCustomKey,
-                isEnum: this.isEnumType(typeStr),
-              });
-
-              if (isCustomKey) {
-                primaryKeys.push(camelFieldName);
-              }
-
-              // Check if it's an enum type (check if exists in dubheConfig.enums)
-              if (this.isEnumType(typeStr)) {
-                enumFields.push(camelFieldName);
-              }
-            }
-
-            // Add default id field based on primary key strategy
-            if (keyStrategy === 'default') {
-              fields.unshift({
-                name: 'id',
-                type: 'String',
-                nullable: false,
-                isPrimaryKey: true,
-                isEnum: false,
-              });
-              primaryKeys.push('id');
-            }
           }
+        }
 
-          // Add system fields
-          fields.push(
-            {
-              name: 'createdAt',
-              type: 'String',
-              nullable: false,
-              isPrimaryKey: false,
-              isEnum: false,
-            },
-            {
-              name: 'updatedAt',
-              type: 'String',
-              nullable: false,
-              isPrimaryKey: false,
-              isEnum: false,
-            }
+        // Add system fields
+        fields.push(
+          {
+            name: 'createdAt',
+            type: 'String',
+            nullable: false,
+            isPrimaryKey: false,
+            isEnum: false,
+          },
+          {
+            name: 'updatedAt',
+            type: 'String',
+            nullable: false,
+            isPrimaryKey: false,
+            isEnum: false,
+          }
+        );
+
+        // Check if should be registered as ECS component
+        if (primaryKeys.length === 0) {
+          console.log(
+            `⚠️ ${componentType} has no primary key, skipping ECS component registration (recommend using dedicated config query interface)`
           );
-
-          // console.log(`  📊 最终字段解析结果:`);
-          // console.log(`    主键: [${primaryKeys.join(', ')}]`);
-          // console.log(`    字段 (${fields.length}个):`);
-          // fields.forEach((field) => {
-          //   const tags = [];
-          //   if (field.isPrimaryKey) tags.push('主键');
-          //   if (field.isEnum) tags.push('枚举');
-          //   if (!field.nullable) tags.push('必填');
-          //   else tags.push('可空');
-          //   console.log(
-          //     `      - ${field.name}: ${field.type} (${tags.join(', ')})`
-          //   );
-          // });
-          // if (enumFields.length > 0) {
-          //   console.log(`    枚举字段: [${enumFields.join(', ')}]`);
-          // }
-
-          // Check if should be registered as ECS component
-          if (primaryKeys.length === 0) {
-            console.log(
-              `⚠️ ${componentType} has no primary key, skipping ECS component registration (recommend using dedicated config query interface)`
-            );
-            continue; // Skip tables without primary keys
-          }
-
-          if (primaryKeys.length > 1) {
-            console.log(
-              `⚠️ ${componentType} has composite primary keys (${primaryKeys.join(', ')}), skipping ECS component registration (recommend using dedicated resource query interface)`
-            );
-            continue; // Skip tables with composite primary keys
-          }
-
-          const metadata: ComponentMetadata = {
-            name: componentType,
-            tableName: componentName,
-            fields,
-            primaryKeys,
-            hasDefaultId:
-              typeof componentConfig !== 'object' ||
-              componentConfig === null ||
-              !('keys' in componentConfig) ||
-              !componentConfig.keys ||
-              componentConfig.keys.length === 0,
-            enumFields,
-            lastUpdated: Date.now(),
-            description: `Auto-discovered component from dubhe config: ${componentName}`,
-          };
-
-          components.push(metadata);
-        } catch (error) {
-          const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
-          errors.push(errorMsg);
-          console.warn(`⚠️ ${errorMsg}`);
+          continue; // Skip tables without primary keys
         }
-      }
-    } else {
-      // Manual mode
 
-      for (const componentType of this.componentNames) {
-        try {
-          // Verify component exists
-          await this.graphqlClient.getAllTables(componentType, { first: 1 });
-
-          const metadata: ComponentMetadata = {
-            name: componentType,
-            tableName: this.componentNameToTableName(componentType),
-            fields: [
-              {
-                name: 'createdAt',
-                type: 'String',
-                nullable: false,
-                isPrimaryKey: false,
-                isEnum: false,
-              },
-              {
-                name: 'updatedAt',
-                type: 'String',
-                nullable: false,
-                isPrimaryKey: false,
-                isEnum: false,
-              },
-            ],
-            primaryKeys: ['id'],
-            hasDefaultId: true,
-            enumFields: [],
-            lastUpdated: Date.now(),
-            description: `Manually configured component: ${componentType}`,
-          };
-
-          components.push(metadata);
-          console.log(`✅ Confirmed component ${componentType} available`);
-        } catch (error) {
-          const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
-          errors.push(errorMsg);
-          console.warn(`⚠️ ${errorMsg}`);
+        if (primaryKeys.length > 1) {
+          console.log(
+            `⚠️ ${componentType} has composite primary keys (${primaryKeys.join(', ')}), skipping ECS component registration (recommend using dedicated resource query interface)`
+          );
+          continue; // Skip tables with composite primary keys
         }
+
+        const metadata: ComponentMetadata = {
+          name: componentType,
+          tableName: componentName,
+          fields,
+          primaryKeys,
+          hasDefaultId:
+            typeof componentConfig !== 'object' ||
+            componentConfig === null ||
+            !('keys' in componentConfig) ||
+            !componentConfig.keys ||
+            componentConfig.keys.length === 0,
+          enumFields,
+          lastUpdated: Date.now(),
+          description: `Auto-discovered component from dubhe config: ${componentName}`,
+        };
+
+        components.push(metadata);
+      } catch (error) {
+        const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
+        errors.push(errorMsg);
+        console.warn(`⚠️ ${errorMsg}`);
       }
     }
 
-    return {
+    const result: ComponentDiscoveryResult = {
       components,
       discoveredAt: Date.now(),
-      strategy: this.strategy,
       errors: errors.length > 0 ? errors : undefined,
       totalDiscovered: components.length,
-      fromDubheConfig: this.strategy === 'dubhe-config',
+      fromDubheConfig: true,
     };
+
+    // 缓存发现结果
+    this.discoveryResult = result;
+
+    this.componentTypes = components.map((comp) => comp.name);
+
+    components.forEach((comp) => {
+      this.componentMetadataMap.set(comp.name, comp);
+    });
   }
 
-  async getComponentTypes(): Promise<ComponentType[]> {
-    const result = await this.discover();
-    return result.components.map((comp) => comp.name);
+  // discover(): ComponentDiscoveryResult {
+  //   // 如果已有缓存，直接返回
+  //   if (this.cachedDiscoveryResult) {
+  //     console.log('📄 Using cached component discovery result');
+  //     return this.cachedDiscoveryResult;
+  //   }
+
+  //   console.log('🔍 Discovering components from dubhe config...');
+  //   const components: ComponentMetadata[] = [];
+  //   const errors: string[] = [];
+
+  //   if (!this.dubheConfig.components) {
+  //     throw new Error('Components section not found in dubhe configuration');
+  //   }
+
+  //   for (const [componentName, componentConfig] of Object.entries(
+  //     this.dubheConfig.components
+  //   )) {
+  //     const componentType = this.tableNameToComponentName(componentName);
+
+  //     try {
+  //       // Build field information
+  //       const fields: ComponentField[] = [];
+  //       const primaryKeys: string[] = [];
+  //       const enumFields: string[] = [];
+
+  //       // Handle different component types
+  //       if (typeof componentConfig === 'string') {
+  //         // MoveType string, e.g. owned_by: "address"
+  //         fields.push(
+  //           {
+  //             name: 'id',
+  //             type: 'String',
+  //             nullable: false,
+  //             isPrimaryKey: true,
+  //             isEnum: false,
+  //           },
+  //           {
+  //             name: 'value',
+  //             type: this.dubheTypeToGraphQLType(componentConfig),
+  //             nullable: true,
+  //             isPrimaryKey: false,
+  //             isEnum: this.isEnumType(componentConfig),
+  //           }
+  //         );
+  //         primaryKeys.push('id');
+  //       } else if (
+  //         typeof componentConfig === 'object' &&
+  //         componentConfig !== null &&
+  //         Object.keys(componentConfig).length === 0
+  //       ) {
+  //         // EmptyComponent, e.g. player: {}
+  //         fields.push({
+  //           name: 'id',
+  //           type: 'String',
+  //           nullable: false,
+  //           isPrimaryKey: true,
+  //           isEnum: false,
+  //         });
+  //         primaryKeys.push('id');
+  //       } else if (
+  //         typeof componentConfig === 'object' &&
+  //         componentConfig !== null &&
+  //         'fields' in componentConfig &&
+  //         componentConfig.fields
+  //       ) {
+  //         // Component type with fields definition
+
+  //         // Analyze primary key configuration
+  //         let keyStrategy: 'custom' | 'default' | 'none' = 'default';
+  //         if ('keys' in componentConfig) {
+  //           if (Array.isArray(componentConfig.keys)) {
+  //             if (componentConfig.keys.length > 0) {
+  //               keyStrategy = 'custom';
+  //             } else {
+  //               keyStrategy = 'none';
+  //             }
+  //           }
+  //         }
+
+  //         // First handle business fields
+  //         for (const [fieldName, fieldType] of Object.entries(
+  //           componentConfig.fields
+  //         )) {
+  //           // According to sui-common definition, fieldType should be MoveType (string)
+  //           const camelFieldName = this.snakeToCamel(fieldName);
+  //           const typeStr = String(fieldType);
+
+  //           // Check if this field is one of the custom primary keys
+  //           const isCustomKey =
+  //             keyStrategy === 'custom' &&
+  //             componentConfig.keys!.includes(fieldName);
+
+  //           fields.push({
+  //             name: camelFieldName,
+  //             type: this.dubheTypeToGraphQLType(typeStr),
+  //             nullable: !isCustomKey, // 主键字段不可为空
+  //             isPrimaryKey: isCustomKey,
+  //             isEnum: this.isEnumType(typeStr),
+  //           });
+
+  //           if (isCustomKey) {
+  //             primaryKeys.push(camelFieldName);
+  //           }
+
+  //           // Check if it's an enum type (check if exists in dubheConfig.enums)
+  //           if (this.isEnumType(typeStr)) {
+  //             enumFields.push(camelFieldName);
+  //           }
+  //         }
+
+  //         // Add default id field based on primary key strategy
+  //         if (keyStrategy === 'default') {
+  //           fields.unshift({
+  //             name: 'id',
+  //             type: 'String',
+  //             nullable: false,
+  //             isPrimaryKey: true,
+  //             isEnum: false,
+  //           });
+  //           primaryKeys.push('id');
+  //         }
+  //       }
+
+  //       // Add system fields
+  //       fields.push(
+  //         {
+  //           name: 'createdAt',
+  //           type: 'String',
+  //           nullable: false,
+  //           isPrimaryKey: false,
+  //           isEnum: false,
+  //         },
+  //         {
+  //           name: 'updatedAt',
+  //           type: 'String',
+  //           nullable: false,
+  //           isPrimaryKey: false,
+  //           isEnum: false,
+  //         }
+  //       );
+
+  //       // Check if should be registered as ECS component
+  //       if (primaryKeys.length === 0) {
+  //         console.log(
+  //           `⚠️ ${componentType} has no primary key, skipping ECS component registration (recommend using dedicated config query interface)`
+  //         );
+  //         continue; // Skip tables without primary keys
+  //       }
+
+  //       if (primaryKeys.length > 1) {
+  //         console.log(
+  //           `⚠️ ${componentType} has composite primary keys (${primaryKeys.join(', ')}), skipping ECS component registration (recommend using dedicated resource query interface)`
+  //         );
+  //         continue; // Skip tables with composite primary keys
+  //       }
+
+  //       const metadata: ComponentMetadata = {
+  //         name: componentType,
+  //         tableName: componentName,
+  //         fields,
+  //         primaryKeys,
+  //         hasDefaultId:
+  //           typeof componentConfig !== 'object' ||
+  //           componentConfig === null ||
+  //           !('keys' in componentConfig) ||
+  //           !componentConfig.keys ||
+  //           componentConfig.keys.length === 0,
+  //         enumFields,
+  //         lastUpdated: Date.now(),
+  //         description: `Auto-discovered component from dubhe config: ${componentName}`,
+  //       };
+
+  //       components.push(metadata);
+  //       console.log(
+  //         `✅ Discovered ECS component: ${componentType} (primaryKey: ${primaryKeys[0]}, fields: ${fields.length})`
+  //       );
+  //     } catch (error) {
+  //       const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
+  //       errors.push(errorMsg);
+  //       console.warn(`⚠️ ${errorMsg}`);
+  //     }
+  //   }
+
+  //   const result: ComponentDiscoveryResult = {
+  //     components,
+  //     discoveredAt: Date.now(),
+  //     errors: errors.length > 0 ? errors : undefined,
+  //     totalDiscovered: components.length,
+  //     fromDubheConfig: true,
+  //   };
+
+  //   // 缓存发现结果
+  //   this.cachedDiscoveryResult = result;
+
+  //   // 构建快速查找缓存
+  //   this.componentMetadataCache.clear();
+  //   this.componentTypesCache = components.map((comp) => comp.name);
+
+  //   components.forEach((comp) => {
+  //     this.componentMetadataCache.set(comp.name, comp);
+  //   });
+
+  //   console.log(
+  //     `✅ Component discovery completed and cached (${components.length} components)`
+  //   );
+
+  //   return result;
+  // }
+
+  getComponentTypes(): ComponentType[] {
+    return this.componentTypes;
   }
 
-  async getComponentMetadata(
-    componentType: ComponentType
-  ): Promise<ComponentMetadata | null> {
-    const result = await this.discover();
-    return (
-      result.components.find((comp) => comp.name === componentType) || null
-    );
+  getComponentMetadata(componentType: ComponentType): ComponentMetadata | null {
+    return this.componentMetadataMap.get(componentType) || null;
   }
 
   private snakeToCamel(str: string): string {
@@ -378,13 +510,13 @@ class SimpleComponentDiscoverer {
 /**
  * ECS World - Simplified version with built-in component discovery
  */
-export class DubheECSWorld implements ECSWorld {
+export class DubheECSWorld {
   private graphqlClient: DubheGraphqlClient;
   private querySystem: ECSQuery;
   private subscriptionSystem: ECSSubscription;
-  private componentDiscoverer: SimpleComponentDiscoverer;
+  private componentDiscoverer: ComponentDiscoverer;
   private config: ECSWorldConfig;
-  private isInitialized = false;
+  // public componentMetada
 
   constructor(
     graphqlClient: DubheGraphqlClient,
@@ -393,22 +525,23 @@ export class DubheECSWorld implements ECSWorld {
     this.graphqlClient = graphqlClient;
 
     // Check if GraphQL client contains dubhe config
-    const clientDubheConfig = (this.graphqlClient as any).getDubheConfig?.();
+    const clientDubheConfig = this.graphqlClient.getDubheConfig();
     const configDubheConfig = config?.dubheConfig;
     const dubheConfig = configDubheConfig || clientDubheConfig;
 
+    if (!dubheConfig) {
+      throw new Error(
+        'DubheConfig is required. Please provide it either through config.dubheConfig or ensure your GraphQL client contains dubhe configuration.'
+      );
+    }
+
     // Set default configuration
     this.config = {
-      componentDiscovery: {
-        componentNames: config?.componentDiscovery?.componentNames || [],
-        dubheConfig,
-      },
       dubheConfig,
       queryConfig: {
         defaultCacheTimeout: 5000,
         maxConcurrentQueries: 10,
         enableBatchOptimization: true,
-        enableAutoFieldResolution: !!dubheConfig,
       },
       subscriptionConfig: {
         defaultDebounceMs: 100,
@@ -418,55 +551,31 @@ export class DubheECSWorld implements ECSWorld {
       ...config,
     };
 
-    this.componentDiscoverer = new SimpleComponentDiscoverer(
+    this.componentDiscoverer = new ComponentDiscoverer(
       graphqlClient,
-      this.config.componentDiscovery.componentNames,
-      this.config.componentDiscovery.dubheConfig
+      dubheConfig
     );
     this.querySystem = new ECSQuery(graphqlClient, this.componentDiscoverer);
     this.subscriptionSystem = new ECSSubscription(graphqlClient);
-  }
 
-  // ============ Configuration and Initialization ============
-
-  /**
-   * Configure ECS world
-   */
-  async configure(config: Partial<ECSWorldConfig>): Promise<void> {
-    this.config = { ...this.config, ...config };
-
-    // Recreate component discoverer if configuration changed
-    if (config.componentDiscovery) {
-      this.componentDiscoverer = new SimpleComponentDiscoverer(
-        this.graphqlClient,
-        this.config.componentDiscovery.componentNames,
-        this.config.componentDiscovery.dubheConfig
-      );
-    }
-  }
-
-  /**
-   * Initialize ECS world
-   */
-  async initialize(): Promise<void> {
     try {
-      console.log('🚀 Initializing ECS world...');
+      // console.log('🚀 Initializing ECS world...');
 
       // Discover available components
-      const discoveryResult = await this.componentDiscoverer.discover();
 
       // Filter ECS-compliant components (single primary key only)
-      const ecsComponents = discoveryResult.components.filter((comp) => {
-        // Must have exactly one primary key to be ECS-compliant
-        return comp.primaryKeys.length === 1;
-      });
+      const ecsComponents =
+        this.componentDiscoverer.discoveryResult.components.filter((comp) => {
+          // Must have exactly one primary key to be ECS-compliant
+          return comp.primaryKeys.length === 1;
+        });
 
-      console.log(`📊 Component classification:`);
-      console.log(
-        `  - ECS Components: ${ecsComponents.length} (${ecsComponents.map((c) => c.name).join(', ')})`
-      );
-      console.log(`  - Global Configs: ${this.getGlobalConfigTables().length}`);
-      console.log(`  - Resources: ${this.getResourceTables().length}`);
+      // console.log(`📊 Component classification:`);
+      // console.log(
+      //   `  - ECS Components: ${ecsComponents.length} (${ecsComponents.map((c) => c.name).join(', ')})`
+      // );
+      // console.log(`  - Global Configs: ${this.getGlobalConfigTables().length}`);
+      // console.log(`  - Resources: ${this.getResourceTables().length}`);
 
       // Initialize query system with ECS components and their metadata
       this.querySystem.setAvailableComponents(
@@ -474,49 +583,108 @@ export class DubheECSWorld implements ECSWorld {
       );
 
       // 🆕 Initialize component primary key cache
-      await this.querySystem.initializeComponentMetadata(
+      this.querySystem.initializeComponentMetadata(
         ecsComponents.map((comp) => ({
           name: comp.name,
           primaryKeys: comp.primaryKeys,
         }))
       );
-
-      if (this.config.queryConfig?.enableAutoFieldResolution) {
-        console.log(
-          '🔧 Auto field resolution enabled, queries will use correct fields automatically'
-        );
-      }
-
-      this.isInitialized = true;
-      console.log('✅ ECS world initialization completed');
     } catch (error) {
       console.error('❌ ECS world initialization failed:', formatError(error));
       throw error;
     }
   }
 
+  // ============ Configuration and Initialization ============
+
+  /**
+   * Configure ECS world
+   */
+  configure(config: Partial<ECSWorldConfig>): void {
+    this.config = { ...this.config, ...config };
+
+    // Recreate component discoverer if configuration changed
+    if (config.dubheConfig) {
+      const newDubheConfig = config.dubheConfig;
+      if (!newDubheConfig) {
+        throw new Error('DubheConfig is required for reconfiguration');
+      }
+
+      this.componentDiscoverer = new ComponentDiscoverer(
+        this.graphqlClient,
+        newDubheConfig
+      );
+
+      try {
+        console.log('🚀 Initializing ECS world...');
+
+        // Discover available components
+
+        // Filter ECS-compliant components (single primary key only)
+        const ecsComponents =
+          this.componentDiscoverer.discoveryResult.components.filter((comp) => {
+            // Must have exactly one primary key to be ECS-compliant
+            return comp.primaryKeys.length === 1;
+          });
+
+        console.log(`📊 Component classification:`);
+        console.log(
+          `  - ECS Components: ${ecsComponents.length} (${ecsComponents.map((c) => c.name).join(', ')})`
+        );
+        console.log(
+          `  - Global Configs: ${this.getGlobalConfigTables().length}`
+        );
+        console.log(`  - Resources: ${this.getResourceTables().length}`);
+
+        // Initialize query system with ECS components and their metadata
+        this.querySystem.setAvailableComponents(
+          ecsComponents.map((comp) => comp.name)
+        );
+
+        // 🆕 Initialize component primary key cache
+        this.querySystem.initializeComponentMetadata(
+          ecsComponents.map((comp) => ({
+            name: comp.name,
+            primaryKeys: comp.primaryKeys,
+          }))
+        );
+      } catch (error) {
+        console.error(
+          '❌ ECS world initialization failed:',
+          formatError(error)
+        );
+        throw error;
+      }
+    }
+  }
+
+  // /**
+  //  * Initialize ECS world
+  //  */
+  // initialize(): void {
+
+  // }
+
   // ============ Component Discovery ============
 
   /**
    * Discover components
    */
-  async discoverComponents(): Promise<ComponentType[]> {
+  discoverComponents(): ComponentType[] {
     return this.componentDiscoverer.getComponentTypes();
   }
 
   /**
    * Get available components list
    */
-  async getAvailableComponents(): Promise<ComponentType[]> {
+  getAvailableComponents(): ComponentType[] {
     return this.componentDiscoverer.getComponentTypes();
   }
 
   /**
    * Get component metadata
    */
-  async getComponentMetadata(
-    componentType: ComponentType
-  ): Promise<ComponentMetadata | null> {
+  getComponentMetadata(componentType: ComponentType): ComponentMetadata | null {
     return this.componentDiscoverer.getComponentMetadata(componentType);
   }
 
@@ -1012,31 +1180,10 @@ export class DubheECSWorld implements ECSWorld {
   }
 
   /**
-   * 检查是否已初始化
-   */
-  isReady(): boolean {
-    return this.isInitialized;
-  }
-
-  /**
    * Get dubhe configuration info
    */
   getDubheConfig(): DubheConfig | null {
     return this.config.dubheConfig || null;
-  }
-
-  /**
-   * Check if using dubhe configuration
-   */
-  isUsingDubheConfig(): boolean {
-    return !!this.config.componentDiscovery.dubheConfig;
-  }
-
-  /**
-   * Get auto field resolution status
-   */
-  isAutoFieldResolutionEnabled(): boolean {
-    return !!this.config.queryConfig?.enableAutoFieldResolution;
   }
 
   // ============ Global Config Queries ============
@@ -1340,21 +1487,4 @@ export function createECSWorld(
   config?: Partial<ECSWorldConfig>
 ): DubheECSWorld {
   return new DubheECSWorld(graphqlClient, config);
-}
-
-/**
- * Convenience function: Create ECS world with preset component names (manual mode)
- */
-export function createECSWorldWithComponents(
-  graphqlClient: DubheGraphqlClient,
-  componentNames: ComponentType[],
-  config?: Partial<ECSWorldConfig>
-): DubheECSWorld {
-  return new DubheECSWorld(graphqlClient, {
-    ...config,
-    componentDiscovery: {
-      componentNames,
-      ...config?.componentDiscovery,
-    },
-  });
 }

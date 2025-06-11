@@ -20,8 +20,7 @@ export async function standardECSInterfaceExample() {
   const world = createECSWorld(client);
 
   try {
-    // 初始化ECS世界
-    await world.initialize();
+    // 初始化现在在构造函数中自动完成
     console.log('✅ ECS世界初始化完成');
 
     // ============ 实体查询接口示例 ============
@@ -160,7 +159,7 @@ export async function gameLogicWithStandardInterface() {
   const world = createECSWorld(client);
 
   try {
-    await world.initialize();
+    // 初始化现在在构造函数中自动完成
 
     // 游戏系统：玩家移动系统
     console.log('\n🚀 玩家移动系统:');
@@ -231,7 +230,7 @@ export async function performanceComparisonExample() {
   const world = createECSWorld(client);
 
   try {
-    await world.initialize();
+    // 初始化现在在构造函数中自动完成
 
     const allEntities = await world.getEntities();
     if (allEntities.length === 0) {

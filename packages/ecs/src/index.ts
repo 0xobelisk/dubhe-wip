@@ -15,14 +15,11 @@ export type {
   EntityChangeEvent,
   QueryOptions,
   SubscriptionOptions,
-  ComponentDiscoveryStrategy,
   ComponentDiscoveryConfig,
   ComponentMetadata,
   ComponentField,
   ComponentDiscoveryResult,
   ECSWorldConfig,
-  ECSWorld,
-  ECSQueryBuilder,
 } from './types';
 
 // 主要类导出
@@ -31,7 +28,7 @@ export { ECSQuery } from './query';
 export { ECSSubscription } from './subscription';
 
 // 工厂函数导出
-export { createECSWorld, createECSWorldWithComponents } from './world';
+export { createECSWorld } from './world';
 
 // 导出工具函数
 export {

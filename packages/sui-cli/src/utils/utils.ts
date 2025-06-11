@@ -193,11 +193,7 @@ export async function saveMetadata(
       );
 
       // Save latest metadata.json
-      await writeOutput(
-        metadataJson,
-        `${path}/src/${projectName}/.history/sui_${network}/metadata.json`,
-        'Save latest metadata'
-      );
+      await writeOutput(metadataJson, `${path}/metadata.json`, 'Save latest metadata');
     }
   } catch (error) {
     console.warn(chalk.yellow(`Warning: Failed to save metadata: ${error}`));

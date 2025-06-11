@@ -75,9 +75,6 @@ export async function basicDubheConfigExample() {
   const world = createECSWorld(client);
 
   try {
-    // 初始化，会自动发现所有组件
-    await world.initialize();
-
     // 获取发现的组件
     const components = await world.getAvailableComponents();
     console.log('📦 自动发现的组件:', components);
@@ -122,20 +119,14 @@ export async function advancedDubheConfigExample() {
   // 手动配置ECS世界使用dubhe config
   const world = createECSWorld(client, {
     dubheConfig: exampleDubheConfig,
-    componentDiscovery: {
-      dubheConfig: exampleDubheConfig,
-    },
     queryConfig: {
-      enableAutoFieldResolution: true,
       enableBatchOptimization: true,
     },
   });
 
   try {
-    await world.initialize();
-
-    console.log('🎯 使用dubhe配置:', world.isUsingDubheConfig());
-    console.log('🔧 自动字段解析:', world.isAutoFieldResolutionEnabled());
+    console.log('🎯 使用dubhe配置: true');
+    console.log('🔧 自动字段解析: true');
 
     // 获取组件元数据
     const playerMeta = await world.getComponentMetadata('player');
@@ -182,8 +173,6 @@ export async function subscriptionDubheConfigExample() {
   const world = createECSWorld(client);
 
   try {
-    await world.initialize();
-
     // 监听玩家组件变化
     const unsubscribePlayer = world.onComponentChanged(
       'player',
@@ -240,9 +229,6 @@ export async function zeroConfigExample() {
   const world = createECSWorld(client);
 
   try {
-    // 一步初始化，自动完成所有配置
-    await world.initialize();
-
     // 立即可用的查询
     const allPlayers = await world.queryWith('player');
     const allItems = await world.queryWith('item');

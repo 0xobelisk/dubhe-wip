@@ -1,16 +1,7 @@
 // ECS查询系统实现
 
 import { DubheGraphqlClient } from '@0xobelisk/graphql-client';
-import {
-  EntityId,
-  ComponentType,
-  QueryOptions,
-  PagedResult,
-  ECSQueryBuilder,
-  ECSWorld,
-  ComponentMetadata,
-  ComponentDiscoverer,
-} from './types';
+import { EntityId, ComponentType, QueryOptions, PagedResult } from './types';
 import {
   extractEntityIds,
   extractIntersectionFromBatchResult,
@@ -22,6 +13,7 @@ import {
   paginateArray,
   formatError,
 } from './utils';
+import { ComponentDiscoverer } from './world';
 
 /**
  * ECS查询系统核心实现
@@ -56,30 +48,20 @@ export class ECSQuery {
   /**
    * 🆕 预先解析并缓存所有组件的主键信息
    */
-  async initializeComponentMetadata(
+  initializeComponentMetadata(
     componentMetadataList: Array<{ name: ComponentType; primaryKeys: string[] }>
-  ): Promise<void> {
-    console.log('🔧 Initializing component primary key cache...');
-
+  ) {
     this.componentPrimaryKeys.clear();
 
     for (const metadata of componentMetadataList) {
-      // 只处理ECS规范的组件（单主键）
       if (metadata.primaryKeys.length === 1) {
         this.componentPrimaryKeys.set(metadata.name, metadata.primaryKeys[0]);
-        console.log(
-          `   📋 ${metadata.name} -> primary key: ${metadata.primaryKeys[0]}`
-        );
       } else {
         console.warn(
           `⚠️ Skipping ${metadata.name}: invalid primary key count (${metadata.primaryKeys.length})`
         );
       }
     }
-
-    console.log(
-      `✅ Component primary key cache initialized with ${this.componentPrimaryKeys.size} components`
-    );
   }
 
   /**
@@ -104,9 +86,8 @@ export class ECSQuery {
   ): Promise<string[]> {
     if (this.componentDiscoverer) {
       try {
-        const metadata = await this.componentDiscoverer.getComponentMetadata(
-          componentType
-        );
+        const metadata =
+          this.componentDiscoverer.getComponentMetadata(componentType);
         if (metadata) {
           return metadata.fields.map((field) => field.name);
         }
@@ -129,9 +110,8 @@ export class ECSQuery {
   ): Promise<string[]> {
     if (this.componentDiscoverer) {
       try {
-        const metadata = await this.componentDiscoverer.getComponentMetadata(
-          componentType
-        );
+        const metadata =
+          this.componentDiscoverer.getComponentMetadata(componentType);
         if (metadata && metadata.primaryKeys.length > 0) {
           return metadata.primaryKeys;
         }
@@ -705,7 +685,7 @@ export class ECSQuery {
    * 创建查询构建器
    */
   query(): ECSQueryBuilder {
-    return new QueryBuilder(this);
+    return new ECSQueryBuilder(this);
   }
 
   /**
@@ -765,7 +745,7 @@ export class ECSQuery {
 /**
  * 查询构建器实现
  */
-export class QueryBuilder implements ECSQueryBuilder {
+export class ECSQueryBuilder {
   private ecsQuery: ECSQuery;
   private includeTypes: ComponentType[] = [];
   private excludeTypes: ComponentType[] = [];
