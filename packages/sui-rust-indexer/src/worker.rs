@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use diesel_async::RunQueryDsl;
 use std::fs;
 use serde_json::Value;
-use sui_data_ingestion_core::Worker;
+use crate::sui_data_ingestion_core::Worker;
 use sui_types::full_checkpoint_content::CheckpointData;
 use sui_types::base_types::ObjectID;
 use std::str::FromStr;
@@ -91,6 +91,66 @@ impl DubheIndexerWorker {
             let table_name_with_prefix = format!("store_{}", table.name);
             create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
             println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table_name_with_prefix);
+        }
+        
+        Ok(())
+    }
+
+    pub async fn create_reader_progress_table(&self, start_checkpoint: u64, end_checkpoint: u64, worker_pool_number: u32) -> Result<()> {
+        let mut conn = self.pg_pool.get().await?;
+        // Create reader_progress table first
+        diesel::sql_query(
+            "CREATE TABLE IF NOT EXISTS reader_progress (
+                progress_name VARCHAR(255),
+                start_checkpoint BIGINT,
+                end_checkpoint BIGINT,
+                last_indexed_checkpoint BIGINT,
+                PRIMARY KEY (progress_name)
+            )"
+        )
+        .execute(&mut conn)
+        .await?;
+
+        diesel::sql_query(
+            "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (progress_name) 
+             DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
+        )
+        .bind::<diesel::sql_types::Text, _>("latest_reader_progress")
+        .bind::<diesel::sql_types::Bigint, _>(0 as i64)
+        .bind::<diesel::sql_types::Bigint, _>(0 as i64)
+        .bind::<diesel::sql_types::Bigint, _>(end_checkpoint as i64)
+        .execute(&mut conn)
+        .await?;
+
+        // 计算每个 worker 的检查点范围
+        let total_checkpoints = end_checkpoint - start_checkpoint + 1;
+        let checkpoints_per_worker = total_checkpoints / worker_pool_number as u64;
+        let remainder = total_checkpoints % worker_pool_number as u64;
+
+        for i in 0..worker_pool_number {
+            let worker_start = start_checkpoint + (i as u64 * checkpoints_per_worker);
+            let worker_end = if i == worker_pool_number - 1 {
+                // 最后一个 worker 处理剩余的检查点
+                end_checkpoint
+            } else {
+                worker_start + checkpoints_per_worker - 1
+            };
+
+            let progress_name = format!("task_{}", i);
+            diesel::sql_query(
+                "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (progress_name) 
+                 DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
+            )
+            .bind::<diesel::sql_types::Text, _>(progress_name)
+            .bind::<diesel::sql_types::Bigint, _>(worker_start as i64)
+            .bind::<diesel::sql_types::Bigint, _>(worker_end as i64)
+            .bind::<diesel::sql_types::Bigint, _>(worker_start as i64)
+            .execute(&mut conn)
+            .await?;
         }
         
         Ok(())
