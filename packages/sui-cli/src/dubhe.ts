@@ -25,6 +25,7 @@ yargs(hideBin(process.argv))
   // Custom error handler
   .fail((msg, err) => {
     console.error(chalk.red(msg));
+
     if (msg.includes('Missing required argument')) {
       console.log(
         chalk.yellow(

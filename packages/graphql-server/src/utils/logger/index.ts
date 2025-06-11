@@ -80,9 +80,9 @@ export class Logger {
 						target: 'pino-pretty',
 						options: {
 							colorize: true,
-							translateTime: 'yyyy-mm-dd HH:MM:ss',
-							ignore: 'pid,hostname,service',
-							messageFormat: '{service} [{component}]: {msg}',
+							translateTime: 'yyyy-mm-dd HH:MM:ss.l',
+							ignore: 'pid,hostname,service,component',
+							messageFormat: '[{component}]: {msg}',
 							singleLine: true,
 							hideObject: false,
 						},
@@ -107,9 +107,9 @@ export class Logger {
 				target: 'pino-pretty',
 				options: {
 					colorize: true,
-					translateTime: 'yyyy-mm-dd HH:MM:ss',
+					translateTime: 'yyyy-mm-dd HH:MM:ss.l',
 					ignore: 'pid,hostname,service',
-					messageFormat: '{service} [{component}]: {msg}',
+					messageFormat: '[{component}]: {msg}',
 					singleLine: true,
 					hideObject: false,
 				},
@@ -182,10 +182,34 @@ export class Logger {
 	): void {
 		const duration = Date.now() - startTime;
 		const perfLogger = this.createComponentLogger('performance');
-		perfLogger.info(`${operation} completed`, {
+		perfLogger.info(operation, {
 			duration: `${duration}ms`,
 			...meta,
 		});
+	}
+
+	/**
+	 * 记录Express HTTP请求
+	 */
+	public logExpress(
+		method: string,
+		path: string,
+		statusCode: number,
+		startTime: number,
+		meta?: any
+	): void {
+		const duration = Date.now() - startTime;
+		const httpLogger = this.createComponentLogger('express');
+		const message = `${method} ${path} - ${statusCode} (${duration}ms)`;
+
+		// 根据状态码选择日志级别
+		if (statusCode >= 500) {
+			httpLogger.error(message, meta);
+		} else if (statusCode >= 400) {
+			httpLogger.warn(message, meta);
+		} else {
+			httpLogger.info(message, meta);
+		}
 	}
 
 	/**
@@ -242,6 +266,7 @@ const defaultLogger = new Logger();
 // 导出预定义的组件logger（保持向后兼容）
 export const dbLogger = defaultLogger.createComponentLogger('database');
 export const serverLogger = defaultLogger.createComponentLogger('server');
+export const httpLogger = defaultLogger.createComponentLogger('express');
 export const wsLogger = defaultLogger.createComponentLogger('websocket');
 export const gqlLogger = defaultLogger.createComponentLogger('graphql');
 export const subscriptionLogger =
@@ -259,6 +284,14 @@ export const logPerformance = (
 	startTime: number,
 	meta?: any
 ) => defaultLogger.logPerformance(operation, startTime, meta);
+
+export const logExpress = (
+	method: string,
+	path: string,
+	statusCode: number,
+	startTime: number,
+	meta?: any
+) => defaultLogger.logExpress(method, path, statusCode, startTime, meta);
 
 export const logDatabaseOperation = (
 	operation: string,

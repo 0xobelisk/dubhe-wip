@@ -170,12 +170,12 @@ async function waitForNode(dubhe: Dubhe): Promise<string> {
   process.on('SIGINT', handleInterrupt);
 
   try {
-    // 第一阶段：等待获取 chainId
+    // Phase 1: Wait for getting chainId
     while (retryCount < MAX_RETRIES && !isInterrupted && !chainId) {
       try {
         chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
       } catch (error) {
-        // 忽略错误，继续重试
+        // Ignore errors, continue retrying
       }
 
       if (isInterrupted) break;
@@ -197,11 +197,11 @@ async function waitForNode(dubhe: Dubhe): Promise<string> {
       }
     }
 
-    // 显示 chainId
+    // Display chainId
     process.stdout.write('\r' + ' '.repeat(50) + '\r');
     console.log(`  ├─ ChainId: ${chainId}`);
 
-    // 第二阶段：检查部署账户余额
+    // Phase 2: Check deployer account balance
     retryCount = 0;
     while (retryCount < MAX_RETRIES && !isInterrupted) {
       try {
@@ -432,7 +432,7 @@ async function publishContract(
       console.log(`  └─ ID: ${object.objectId}`);
     });
 
-    saveContractData(
+    await saveContractData(
       dubheConfig.name,
       network,
       packageId,
@@ -462,9 +462,7 @@ async function checkDubheFramework(projectPath: string): Promise<boolean> {
         '  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe contracts/dubhe'
       )
     );
-    console.log(
-      chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe')
-    );
+    console.log(chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe'));
     console.log(chalk.yellow('  └─ After setup, restart the local node'));
     return false;
   }
@@ -574,10 +572,7 @@ export async function publishDubheFramework(
   const deployHookTx = new Transaction();
   deployHookTx.moveCall({
     target: `${packageId}::dubhe_genesis::run`,
-    arguments: [
-      deployHookTx.object(dappHub),
-      deployHookTx.object('0x6')
-    ]
+    arguments: [deployHookTx.object(dappHub), deployHookTx.object('0x6')]
   });
 
   let deployHookResult;
@@ -588,12 +583,12 @@ export async function publishDubheFramework(
     console.error(error.message);
     process.exit(1);
   }
- 
+
   if (deployHookResult.effects?.status.status !== 'success') {
     throw new Error('Deploy hook execution failed');
   }
 
-  saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, components);
+  await saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, components);
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
 }
@@ -613,7 +608,7 @@ export async function publishHandler(
   const projectPath = `${path}/src/${dubheConfig.name}`;
 
   if (network === 'localnet' && dubheConfig.name !== 'dubhe') {
-    await publishDubheFramework(dubhe, network);  
+    await publishDubheFramework(dubhe, network);
   }
 
   if (dubheConfig.name !== 'dubhe') {

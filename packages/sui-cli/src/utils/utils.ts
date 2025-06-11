@@ -6,7 +6,7 @@ import { FsIibError } from './errors';
 import * as fs from 'fs';
 import chalk from 'chalk';
 import { spawn } from 'child_process';
-import { Dubhe, NetworkType, SuiMoveNormalizedModules } from '@0xobelisk/sui-client';
+import { Dubhe, NetworkType, SuiMoveNormalizedModules, loadMetadata } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
 import packageJson from '../../package.json';
 import { Component, MoveType, EmptyComponent } from '@0xobelisk/sui-common';
@@ -144,7 +144,7 @@ export async function getUpgradeCap(projectPath: string, network: string): Promi
   return deployment.upgradeCap;
 }
 
-export function saveContractData(
+export async function saveContractData(
   projectName: string,
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
   packageId: string,
@@ -165,11 +165,43 @@ export function saveContractData(
 
   const path = process.cwd();
   const storeDeploymentData = JSON.stringify(DeploymentData, null, 2);
-  writeOutput(
+  await writeOutput(
     storeDeploymentData,
     `${path}/src/${projectName}/.history/sui_${network}/latest.json`,
     'Update deploy log'
   );
+}
+
+export async function saveMetadata(
+  projectName: string,
+  network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+  packageId: string
+) {
+  const path = process.cwd();
+
+  // Save metadata files
+  try {
+    const metadata = await loadMetadata(network, packageId);
+    if (metadata) {
+      const metadataJson = JSON.stringify(metadata, null, 2);
+
+      // Save packageId-specific metadata file
+      await writeOutput(
+        metadataJson,
+        `${path}/src/${projectName}/.history/sui_${network}/${packageId}.json`,
+        'Save package metadata'
+      );
+
+      // Save latest metadata.json
+      await writeOutput(
+        metadataJson,
+        `${path}/src/${projectName}/.history/sui_${network}/metadata.json`,
+        'Save latest metadata'
+      );
+    }
+  } catch (error) {
+    console.warn(chalk.yellow(`Warning: Failed to save metadata: ${error}`));
+  }
 }
 
 export async function writeOutput(
