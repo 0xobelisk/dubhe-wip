@@ -34,15 +34,11 @@ module dubhe::dapp_hub {
         );
     }
 
-    public fun create_dapp<DappKey: copy + drop>(
+    public fun add_dapp<DappKey: copy + drop>(
         self: &mut DappHub, 
-        dapp_key: DappKey, 
-        name: vector<u8>, 
-        description: vector<u8>, 
-        clock: &Clock,
-        ctx: &mut TxContext
+        _: DappKey, 
+        dapp: DappState
     ) {
-        let dapp = dapp_state::new(dapp_key, name, description, clock, ctx);
         let dapp_key = type_name::get<DappKey>().into_string();
         object_table::add(&mut self.dapps, dapp_key, dapp);
     }
@@ -56,6 +52,10 @@ module dubhe::dapp_hub {
         let dapp_state = object_table::borrow_mut(&mut self.dapps, dapp_key);
         assert!(dapp_state.dapp_key() == dapp_key, ENoPermissionPackageId);
         dapp_state
+    }
+
+    public(package) fun mut_dapp_state_by_key(self: &mut DappHub, dapp_key: String): &mut DappState {
+        object_table::borrow_mut(&mut self.dapps, dapp_key)
     }
 
     public fun mut_dapp_state_objects<DappKey: copy + drop>(self: &mut DappHub, dapp_key: DappKey): &mut Bag {

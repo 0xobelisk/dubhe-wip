@@ -62,7 +62,7 @@ module dubhe::dapp_service {
         // TODO: Modify dubhe_state
         // let dubhe_state = dapp_hub.mut_dubhe_state();
         // encounter_system::encounter(dapp_hub, @0x0);
-        // dubhe::dapp_charge::charge(dapp_hub, @0x0, 100);
+        // dubhe::dubhe_assets_functions::do_transfer(dapp_hub, @0x0, @0x0, @0x0, 100);
 
         // Emit event
         emit_store_set_record(
@@ -106,6 +106,23 @@ module dubhe::dapp_service {
 
         // TODO: Modify dubhe_state
         // let dubhe_state = dapp_hub.mut_dubhe_state();
+    }
+
+    public fun delete_record<DappKey: copy + drop>(
+        dapp_hub: &mut DappHub,
+        dapp_key: DappKey,
+        table_id: vector<u8>,
+        key_tuple: vector<vector<u8>>
+    ) {
+        if(table_id::table_type(&table_id) == table_id::offchain_table_type()) {
+            emit_store_delete_record(table_id, key_tuple);
+            return
+        };
+        let dapp_state = dapp_hub.mut_dapp_state(dapp_key);
+        dapp_state::delete_record(dapp_state, table_id, key_tuple);
+
+        // Emit event
+        emit_store_delete_record(table_id, key_tuple);
     }
 
     /// Get a record
@@ -187,31 +204,17 @@ module dubhe::dapp_service {
         assert!(!has_field<DappKey>(dapp_hub, table_id, key_tuple, field_index), EInvalidFieldIndex);
     }
 
-    public fun delete_record<DappKey: copy + drop>(
-        dapp_hub: &mut DappHub,
-        dapp_key: DappKey,
-        table_id: vector<u8>,
-        key_tuple: vector<vector<u8>>
-    ) {
-        if(table_id::table_type(&table_id) == table_id::offchain_table_type()) {
-            emit_store_delete_record(table_id, key_tuple);
-            return
-        };
-        let dapp_state = dapp_hub.mut_dapp_state(dapp_key);
-        dapp_state::delete_record(dapp_state, table_id, key_tuple);
-    }
-
-    public fun upgrade<DappKey: copy + drop>(
-        dapp_hub: &mut DappHub,
-        _: DappKey,
-        new_package_id: address,
-        new_version: u32
-    ) {
-        let dapp_key = type_name::get<DappKey>().into_string();
-        let dapp_state = dapp_hub.mut_dapp_state(dapp_key);
-        assert!(dapp_state.dapp_key() == dapp_key, ENoPermissionPackageId);
-        assert!(dapp_state.packages().contains(&new_package_id), EInvalidPackageId);
-        dapp_state.mut_packages().push_back(new_package_id);
-        *dapp_state.mut_version() = new_version;
-    } 
+    // public fun upgrade<DappKey: copy + drop>(
+    //     dapp_hub: &mut DappHub,
+    //     _: DappKey,
+    //     new_package_id: address,
+    //     new_version: u32
+    // ) {
+    //     let dapp_key = type_name::get<DappKey>().into_string();
+    //     let dapp_state = dapp_hub.mut_dapp_state(dapp_key);
+    //     assert!(dapp_state.dapp_key() == dapp_key, ENoPermissionPackageId);
+    //     assert!(dapp_state.packages().contains(&new_package_id), EInvalidPackageId);
+    //     dapp_state.mut_packages().push_back(new_package_id);
+    //     *dapp_state.mut_version() = new_version;
+    // } 
 }

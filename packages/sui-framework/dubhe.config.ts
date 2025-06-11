@@ -9,6 +9,20 @@ export const dubheConfig = {
         AssetType: ['Lp', 'Wrapped', 'Private', 'Package'],
     },
     components: {
+        dapp_metadata: {
+            fields: {
+                dapp_key: 'vector<u8>',
+                name: 'vector<u8>',
+                description: 'vector<u8>',
+                website_url: 'vector<u8>',
+                cover_urls: 'vector<vector<u8>>',
+                partners: 'vector<vector<u8>>',
+                package: 'address',
+                created_at: 'u64',
+                version: 'u32'
+            },
+            keys: ['dapp_key']
+        },
         config: {
             fields: {
                 next_asset_id: 'u256',

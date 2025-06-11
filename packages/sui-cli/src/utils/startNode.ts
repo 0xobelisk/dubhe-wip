@@ -78,7 +78,7 @@ function handleProcessSignals(suiProcess: ReturnType<typeof spawn> | null) {
   process.on('SIGTERM', cleanup);
 }
 
-export async function startLocalNode() {
+export async function startLocalNode(data_dir: string) {
   if (isSuiStartRunning()) {
     console.log(chalk.yellow('\n⚠️  Warning: Local Node Already Running'));
     console.log(chalk.yellow('  ├─ Cannot start a new instance'));
@@ -90,7 +90,7 @@ export async function startLocalNode() {
   console.log('🚀 Starting Local Node...');
   let suiProcess: ReturnType<typeof spawn> | null = null;
   try {
-    suiProcess = spawn('sui', ['start', '--with-faucet', '--force-regenesis'], {
+    suiProcess = spawn('sui', ['start', '--with-faucet', '--force-regenesis', '--data-ingestion-dir', data_dir], {
       env: { ...process.env, RUST_LOG: 'off,sui_node=info' },
       stdio: 'ignore'
     });

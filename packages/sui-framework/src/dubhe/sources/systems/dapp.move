@@ -1,37 +1,37 @@
-// module dubhe::dubhe_dapp_system;
-// use std::ascii::String;
-// use dubhe::type_info;
-// use dubhe::dubhe_schema::Schema;
-// use dubhe::dubhe_dapp_stats;
-// use dubhe::dubhe_dapp_metadata;
-// use dubhe::dubhe_dapp_metadata::DappMetadata;
-// use dubhe::dubhe_errors::{not_dapp_pausable_error, not_dapp_admin_error, not_dapp_latest_version_error, dapp_already_exists_error};
+module dubhe::dapp_system;
+use std::ascii::String;
+use dubhe::dapp_hub::DappHub;
+use sui::clock::Clock;
+use dubhe::dapp_state::{Self, DappState};
+use dubhe::dubhe_dapp_metadata;
+use std::type_name;
 
-// public fun create_dapp<DappKey: copy + drop>(
-//   schema: &mut Schema,
-//   _: DappKey,
-//   dapp_metadata: DappMetadata,
-//   ctx: &TxContext,
-// ) {
-//   let package_id = type_info::get_package_id<DappKey>();
-//   dapp_already_exists_error(schema.dapp_metadata().try_get(package_id) == option::none());
-//   schema.dapp_admin().set(package_id, ctx.sender());
-//   schema.dapp_version().set(package_id, 1);
-//   schema.dapp_metadata().set(package_id, dapp_metadata);
-//   schema.dapp_package_id().set(package_id, package_id);
-//   schema.dapp_pausable().set(package_id, false);
-//   schema.dapp_stats().set(package_id, dubhe_dapp_stats::new(100000, 100000, 0, 0));
-// }
+public fun create_dapp<DappKey: copy + drop>(
+  dapp_hub: &mut DappHub,
+  dapp_key: DappKey,
+  name: vector<u8>,
+  description: vector<u8>,
+  clock: &Clock,
+  ctx: &mut TxContext,
+) {
+  let dapp = dapp_state::new(dapp_key, name, description, clock, ctx);
+  dapp_hub.add_dapp(dapp_key, dapp);
+}
 
-//   public fun upgrade_dapp<DappKey: copy + drop>(schema: &mut Schema, dapp_key: DappKey, new_package_id: address, new_version: u32, ctx: &mut TxContext) {
-//     ensure_dapp_admin_sign(schema, dapp_key, ctx);
-//     let package_id = type_info::get_package_id<DappKey>();
-//     schema.dapp_version().set(package_id, new_version);
-//     schema.dapp_package_id().set(package_id, new_package_id);
-// }
+  public fun upgrade_dapp<DappKey: copy + drop>(
+      dapp_hub: &mut DappHub, 
+      dapp_key: DappKey, 
+      new_package_id: address, 
+      new_version: u32, 
+      ctx: &mut TxContext
+) {
+      let dapp_key = type_name::get<DappKey>().into_string().into_bytes();
+      dubhe_dapp_metadata::set_package(dapp_hub, dapp_key, new_package_id);
+      dubhe_dapp_metadata::set_version(dapp_hub, dapp_key, new_version);
+}
 
 // public entry fun set_metadata(
-//   schema: &mut Schema,
+//   dapp_hub: &mut DappHub,
 //   package_id: address,
 //   name: String,
 //   description: String,
@@ -40,10 +40,10 @@
 //   partners: vector<String>,
 //   ctx: &TxContext,
 // ) {
-//   let admin = schema.dapp_admin().try_get(package_id);
+//   let admin = dapp_hub.dapp_admin().try_get(package_id);
 //   not_dapp_admin_error(admin == option::some(ctx.sender()));
-//   let created_at = schema.dapp_metadata().get(package_id).get_created_at();
-//   schema.dapp_metadata().set(package_id, dubhe_dapp_metadata::new(
+//   let created_at = dapp_hub.dapp_metadata().get(package_id).get_created_at();
+//   dapp_hub.dapp_metadata().set(package_id, dubhe_dapp_metadata::new(
 //               name,
 //               description,
 //               cover_url,
@@ -54,37 +54,37 @@
 //   );
 // }
 
-// public entry fun transfer_ownership(schema: &mut Schema,package_id: address, new_admin: address, ctx: &mut TxContext) {
-//   let admin = schema.dapp_admin().try_get(package_id);
+// public entry fun transfer_ownership(dapp_hub: &mut DappHub,package_id: address, new_admin: address, ctx: &mut TxContext) {
+//   let admin = dapp_hub.dapp_admin().try_get(package_id);
 //   not_dapp_admin_error(admin == option::some(ctx.sender()));
-//   schema.dapp_admin().set(package_id, new_admin);
+//   dapp_hub.dapp_admin().set(package_id, new_admin);
 // }
 
-// public entry fun set_pausable(schema: &mut Schema, package_id: address, pausable: bool, ctx: &TxContext) {
-//   let admin = schema.dapp_admin().try_get(package_id);
+// public entry fun set_pausable(dapp_hub: &mut DappHub, package_id: address, pausable: bool, ctx: &TxContext) {
+//   let admin = dapp_hub.dapp_admin().try_get(package_id);
 //   not_dapp_admin_error(admin == option::some(ctx.sender()));
-//   schema.dapp_pausable().set(package_id, pausable);
+//   dapp_hub.dapp_pausable().set(package_id, pausable);
 // }
 
-// public fun get_dapp_admin<DappKey: copy + drop>(schema: &mut Schema, _: DappKey): address {
+// public fun get_dapp_admin<DappKey: copy + drop>(dapp_hub: &mut DappHub, _: DappKey): address {
 //   let package_id = type_info::get_package_id<DappKey>();
-//   schema.dapp_admin()[package_id]
+//   dapp_hub.dapp_admin()[package_id]
 // }
 
-// public fun ensure_dapp_not_pausable<DappKey: copy + drop>(schema: &mut Schema, _: DappKey) {
+// public fun ensure_dapp_not_pausable<DappKey: copy + drop>(dapp_hub: &mut DappHub, _: DappKey) {
 //   let package_id = type_info::get_package_id<DappKey>();
-//   let pausable = schema.dapp_pausable().try_get(package_id);
+//   let pausable = dapp_hub.dapp_pausable().try_get(package_id);
 //   not_dapp_pausable_error(pausable == option::some(false));
 // }
 
-// public fun ensure_dapp_admin_sign<DappKey: copy + drop>(schema: &mut Schema, _: DappKey, ctx: &TxContext) {
+// public fun ensure_dapp_admin_sign<DappKey: copy + drop>(dapp_hub: &mut DappHub, _: DappKey, ctx: &TxContext) {
 //   let package_id = type_info::get_package_id<DappKey>();
-//   let admin = schema.dapp_admin().try_get(package_id);
+//   let admin = dapp_hub.dapp_admin().try_get(package_id);
 //   not_dapp_admin_error(admin == option::some(ctx.sender()));
 // }
 
-// public fun ensure_dapp_latest_version<DappKey: copy + drop>(schema: &mut Schema, _: DappKey, on_chain_version: u32) {
+// public fun ensure_dapp_latest_version<DappKey: copy + drop>(dapp_hub: &mut DappHub, _: DappKey, on_chain_version: u32) {
 //   let package_id = type_info::get_package_id<DappKey>();
-//   let current_version = schema.dapp_version().get(package_id);
+//   let current_version = dapp_hub.dapp_version().get(package_id);
 //   not_dapp_latest_version_error(current_version == on_chain_version);
 // }

@@ -20,6 +20,19 @@ module dubhe::dapp_state {
     const EInvalidFieldType: u64 = 5;
     const ENoPermissionPackageId: u64 = 6;
     const EInvalidPackageId: u64 = 7;
+    const EInvalidVersion: u64 = 8;
+
+    /// Dapp metadata structure
+    public struct DappMetadata has store {
+        name: String,
+        description: String,
+        website_url: String,
+        cover_url: vector<String>,
+        partners: vector<String>,
+        package_ids: vector<address>,
+        created_at: u64,
+        version: u32
+    }
 
     /// Table metadata structure
     public struct TableMetadata has store {
@@ -53,16 +66,9 @@ module dubhe::dapp_state {
     /// Storage structure
     public struct DappState has key, store {
         id: UID,
-        name: String,
-        description: String,
         dapp_key: String,
-        packages: vector<address>,
-        version: u32,
-        cover_url: vector<String>,
-        website_url: String,
-        created_at: u64,
-        partners: vector<String>,
-        metadatas: Table<vector<u8>, TableMetadata>,
+        dapp_metadata: DappMetadata,
+        table_metadatas: Table<vector<u8>, TableMetadata>,
         // table_id => key_tuple => value_tuple
         tables: Table<vector<u8>, Table<vector<vector<u8>>, vector<vector<u8>>>>,
         // Object
@@ -80,17 +86,19 @@ module dubhe::dapp_state {
         let dapp_key = type_name::get<DappKey>().into_string();
         DappState {
             id: object::new(ctx),
-            name: string(name),
-            description: string(description),
             dapp_key,
-            packages: vector::empty(),
-            version: 0,
-            cover_url: vector::empty(),
-            website_url: string(b""),
-            created_at: clock::timestamp_ms(clock),
-            partners: vector::empty(),
+            dapp_metadata: DappMetadata {
+                name: string(name),
+                description: string(description),
+                package_ids: vector::empty(),
+                version: 0,
+                cover_url: vector::empty(),
+                website_url: string(b""),
+                created_at: clock::timestamp_ms(clock),
+                partners: vector::empty(),
+            },
             tables: table::new(ctx),
-            metadatas: table::new(ctx),
+            table_metadatas: table::new(ctx),
             objects: bag::new(ctx),
         }
     }
@@ -114,7 +122,7 @@ module dubhe::dapp_state {
             value_schemas,
             value_names
         };
-        table::add(&mut self.metadatas, table_id, metadata);
+        table::add(&mut self.table_metadatas, table_id, metadata);
 
         // Create table data storage
         let table_data = table::new(ctx);
@@ -161,7 +169,7 @@ module dubhe::dapp_state {
         } else {
                 // Create a new record
             let mut new_value = vector::empty();
-            let metadata = table::borrow(&self.metadatas, table_id);
+            let metadata = table::borrow(&self.table_metadatas, table_id);
             let field_count = vector::length(&metadata.value_schemas);
             let mut i = 0;
             while (i < field_count) {
@@ -269,28 +277,12 @@ module dubhe::dapp_state {
         table::remove(table, key_tuple);
     }
 
-    public fun name(self: &DappState): String {
-        self.name
-    }
-
-    public fun description(self: &DappState): String {
-        self.description
-    }
-
     public fun dapp_key(self: &DappState): String {
         self.dapp_key
     }
 
-    public fun packages(self: &DappState): vector<address> {
-        self.packages
-    }
-
-    public fun version(self: &DappState): u32 {
-        self.version
-    }
-
-    public fun metadatas(self: &DappState): &Table<vector<u8>, TableMetadata> {
-        &self.metadatas
+    public fun table_metadatas(self: &DappState): &Table<vector<u8>, TableMetadata> {
+        &self.table_metadatas
     }
 
     public fun tables(self: &DappState): &Table<vector<u8>, Table<vector<vector<u8>>, vector<vector<u8>>>> {
@@ -301,28 +293,12 @@ module dubhe::dapp_state {
         &self.objects
     }
 
-    public(package) fun mut_name(self: &mut DappState): &mut String {
-        &mut self.name
-    }
-
-    public(package) fun mut_description(self: &mut DappState): &mut String {
-        &mut self.description
-    }
-
     public(package) fun mut_dapp_key(self: &mut DappState): &mut String {
         &mut self.dapp_key
     }
 
-    public(package) fun mut_packages(self: &mut DappState): &mut vector<address> {
-        &mut self.packages
-    }
-
-    public(package) fun mut_version(self: &mut DappState): &mut u32 {
-        &mut self.version
-    }
-
     public(package) fun mut_metadatas(self: &mut DappState): &mut Table<vector<u8>, TableMetadata> {
-        &mut self.metadatas
+        &mut self.table_metadatas
     }
 
     public(package) fun mut_tables(self: &mut DappState): &mut Table<vector<u8>, Table<vector<vector<u8>>, vector<vector<u8>>>> {
@@ -332,4 +308,11 @@ module dubhe::dapp_state {
     public(package) fun mut_objects(self: &mut DappState): &mut Bag {
         &mut self.objects
     }
+
+    // public(package) fun upgrade(self: &mut DappState, new_package: address, new_version: u32) { 
+    //    assert!(!self.dapp_metadata.package_ids.contains(&new_package), EInvalidPackageId);
+    //    self.dapp_metadata.package_ids.push_back(new_package);
+    //    assert!(new_version > self.dapp_metadata.version, EInvalidVersion);
+    //    self.dapp_metadata.version = new_version;
+    // }
 }
