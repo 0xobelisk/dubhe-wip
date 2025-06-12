@@ -2,7 +2,7 @@ import { DubheConfig } from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
 
 export async function generateDappKey(config: DubheConfig, path: string) {
-  let code = `module ${config.name}::${config.name}_dapp_key {
+  let code = `module ${config.name}::dapp_key {
 use std::type_name;
   use sui::address;
   use std::ascii::String;

@@ -14,6 +14,7 @@ import { generateInitTest } from './generateInitTest';
 import { generateComponents } from './generateComponents';
 import { generateGenesis } from './generateGenesis';
 import { generateEnums } from './generateEnums';
+import { generateResources } from './generateResources';
 import path from 'node:path';
 
 export async function schemaGen(
@@ -61,6 +62,11 @@ export async function schemaGen(
   const componentsPath = path.join(projectDir, 'sources', 'codegen', 'components');
   if (!existsSync(componentsPath)) {
     await generateComponents(config, componentsPath);
+  }
+
+  const resourcesPath = path.join(projectDir, 'sources', 'codegen', 'resources');
+  if (!existsSync(resourcesPath)) {
+    await generateResources(config, resourcesPath);
   }
 
   const enumsPath = path.join(projectDir, 'sources', 'codegen', 'enums');

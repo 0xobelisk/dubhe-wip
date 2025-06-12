@@ -1,4 +1,4 @@
-#[test_only]module test_project::test_project_init_test {
+#[test_only]module test_project::init_test {
 
   use sui::clock;
 
@@ -12,7 +12,7 @@
     let ctx = test_scenario::ctx(scenario);
     let clock = clock::create_for_testing(ctx);
     let mut dapp_hub = dapp_hub::create_dapp_hub_for_testing(ctx);
-    test_project::test_project_genesis::run(&mut dapp_hub, &clock, ctx);
+    test_project::genesis::run(&mut dapp_hub, &clock, ctx);
     clock::destroy_for_testing(clock);
     test_scenario::next_tx(scenario, ctx.sender());
     dapp_hub

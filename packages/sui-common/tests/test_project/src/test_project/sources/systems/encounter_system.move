@@ -1,8 +1,8 @@
-module test_project::test_project_encounter_system {
+module test_project::encounter_system {
     use dubhe::dapp_hub;
     use dubhe::dapp_hub::DappHub;
-    use test_project::test_project_encounter;
-    use test_project::test_project_position;
+    use test_project::encounter;
+    use test_project::position;
 
     public fun move_player(
         dapp_hub: &mut DappHub, 
@@ -11,10 +11,10 @@ module test_project::test_project_encounter_system {
         monster: address,
         catch_attempt: u256
     ) {
-        if (!test_project_position::has(dapp_hub, player)) {
-            test_project_position::set(dapp_hub, player, 0, 0);
+        if (!position::has(dapp_hub, player)) {
+            position::set(dapp_hub, player, 0, 0);
         };
-        test_project_encounter::set(
+        encounter::set(
             dapp_hub, 
             player, 
             exists, 

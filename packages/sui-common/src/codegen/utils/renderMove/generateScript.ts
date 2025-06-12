@@ -11,7 +11,7 @@ function capitalizeFirstLetter(str: string): string {
 
 export async function generateDeployHook(config: DubheConfig, path: string) {
   if (!existsSync(path)) {
-    const code = `module ${config.name}::${config.name}_deploy_hook {
+    const code = `module ${config.name}::deploy_hook {
 			  use dubhe::dapp_hub::DappHub;
 
   public(package) fun run(_dapp_hub: &mut DappHub, _ctx: &mut TxContext) {
@@ -24,7 +24,7 @@ export async function generateDeployHook(config: DubheConfig, path: string) {
 
 export async function generateMigrate(config: DubheConfig, srcPrefix: string) {
   if (!existsSync(`${srcPrefix}/src/${config.name}/sources/scripts/migrate.move`)) {
-    let code = `module ${config.name}::${config.name}_migrate {
+    let code = `module ${config.name}::migrate {
     const ON_CHAIN_VERSION: u32 = 1;
 
     public fun on_chain_version(): u32 {

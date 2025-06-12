@@ -8,12 +8,11 @@
 
   use dubhe::dapp_hub::DappHub;
 
-  use test_project::test_project_dapp_key;
-  use test_project::test_project_map_config;
-  use test_project::test_project_encounter;
+  use test_project::map_config;
+  use test_project::encounter;
 
   public(package) fun run(dapp_hub: &mut DappHub, _ctx: &mut TxContext) {
-    test_project_map_config::set(dapp_hub, 100, 100);
+    map_config::set(dapp_hub, 100, 100);
     
 
   }

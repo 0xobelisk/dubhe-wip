@@ -2,15 +2,15 @@ import { DubheConfig } from '../../types';
 import { ComponentType } from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
 
-export async function generateComponents(config: DubheConfig, path: string) {
-  console.log('\n📦 Starting Components Generation...');
+export async function generateResources(config: DubheConfig, path: string) {
+  console.log('\n📦 Starting Resources Generation...');
   
-  for (const [componentName, component] of Object.entries(config.components)) {
-    console.log(`     └─ ${componentName}: ${JSON.stringify(component)}`);
+  for (const [componentName, resource] of Object.entries(config.resources)) {
+    console.log(`     └─ ${componentName}: ${JSON.stringify(resource)}`);
     
     // Handle simple type cases
-    if (typeof component === 'string') {
-      const code = generateSimpleComponentCode(config.name, componentName, component, 'Onchain');
+    if (typeof resource === 'string') {
+      const code = generateSimpleComponentCode(config.name, componentName, resource, 'Onchain');
       await formatAndWriteMove(
         code,
         `${path}/${componentName}.move`,
@@ -19,8 +19,8 @@ export async function generateComponents(config: DubheConfig, path: string) {
       continue;
     }
 
-    // Handle empty object cases, representing components with only id key
-    if (Object.keys(component).length === 0) {
+    // Handle empty object cases, representing resources with only id key
+    if (Object.keys(resource).length === 0) {
       const code = generateComponentCode(config.name, componentName, {
         fields: {
           'id': 'address'
@@ -37,17 +37,17 @@ export async function generateComponents(config: DubheConfig, path: string) {
     }
 
     // Handle cases where keys are not defined
-    if (!component.keys) {
-      component.keys = ['id'];
-      if (!component.fields['id']) {
-        component.fields = {
+    if (!resource.keys) {
+      resource.keys = ['id'];
+      if (!resource.fields['id']) {
+        resource.fields = {
           'id': 'address',
-          ...component.fields
+          ...resource.fields
         };
       }
     }
     
-    const code = generateComponentCode(config.name, componentName, component);
+    const code = generateComponentCode(config.name, componentName, resource);
     await formatAndWriteMove(
       code,
       `${path}/${componentName}.move`,
@@ -144,10 +144,10 @@ function toSnakeCase(str: string): string {
   return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '');
 }
 
-function generateComponentCode(projectName: string, componentName: string, component: any): string {
-  const fields = component.fields;
-  const keys = component.keys || ['id'];
-  const type: ComponentType = component.type || 'Onchain';
+function generateComponentCode(projectName: string, componentName: string, resource: any): string {
+  const fields = resource.fields;
+  const keys = resource.keys || ['id'];
+  const type: ComponentType = resource.type || 'Onchain';
   
   // Check if all fields are keys
   const isAllKeys = Object.keys(fields).every(name => keys.includes(name));
@@ -165,7 +165,7 @@ function generateComponentCode(projectName: string, componentName: string, compo
     .filter(([_, type]) => !isBasicType(type as string))
     .map(([_, type]) => ({
       type: type as string,
-      module: `${toSnakeCase(type as string)}`
+      module: `${projectName}_${toSnakeCase(type as string)}`
     }))
     .filter((item, index, self) => 
       self.findIndex(t => t.type === item.type) === index

@@ -100,6 +100,16 @@ describe('schemaGen', () => {
         keys: []
       },
     },
+    resources: {
+      counter0: {
+        fields: {
+          'player': 'address'
+        },
+        keys: ['player']
+      },
+      counter1: {},
+      counter2: "u32",
+    },
     errors: {
       asset_not_found: "Asset not found",
       asset_already_frozen: "Asset already frozen",

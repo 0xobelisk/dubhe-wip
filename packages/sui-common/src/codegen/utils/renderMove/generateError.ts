@@ -17,7 +17,7 @@ function convertToSnakeCase(input: string): string {
 export async function generateSchemaError(projectName: string, errors: ErrorData, path: string) {
   console.log('\n📦 Starting Schema Error Generation...');
 
-  let code = `module ${projectName}::${projectName}_errors {
+  let code = `module ${projectName}::errors {
 		${Object.entries(errors)
       .map(([name, message]) => {
         console.log(`     └─ ${name}: ${message}`);

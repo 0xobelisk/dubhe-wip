@@ -30,7 +30,7 @@ export async function generateEnums(config: DubheConfig, path: string) {
 function generateEnumCode(projectName: string, enumName: string, values: string[]): string {
   const enumValues = values.map(v => v.charAt(0).toUpperCase() + v.slice(1)).join(',');
   
-  return `module ${projectName}::${projectName}_${toSnakeCase(enumName)} {
+  return `module ${projectName}::${toSnakeCase(enumName)} {
     use sui::bcs::{BCS, to_bytes, peel_enum_tag};
 
     public enum ${enumName} has copy, drop, store {
