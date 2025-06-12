@@ -4,11 +4,11 @@
       "player": {
         "fields": [
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
@@ -16,11 +16,11 @@
       "moveable": {
         "fields": [
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
@@ -28,11 +28,11 @@
       "obstruction": {
         "fields": [
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
@@ -40,11 +40,11 @@
       "encounterable": {
         "fields": [
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
@@ -52,11 +52,11 @@
       "encounter_trigger": {
         "fields": [
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
@@ -70,11 +70,11 @@
             "y": "u64"
           },
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
@@ -88,11 +88,11 @@
             "catch_attempts": "u64"
           },
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
@@ -115,11 +115,11 @@
       "owned_by": {
         "fields": [
           {
-            "id": "address"
+            "entity_id": "address"
           }
         ],
         "keys": [
-          "id"
+          "entity_id"
         ]
       }
     },
