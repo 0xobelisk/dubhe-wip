@@ -20,22 +20,14 @@ export const dubheConfig = {
     player: {},
     moveable: {},
     obstruction: {},
+    encounterable: {},
+    encounter_trigger: {},
     position: {
       fields: {
         x: 'u64',
         y: 'u64',
       },
     },
-    map_config: {
-      fields: {
-        width: 'u64',
-        height: 'u64',
-        terrain: 'vector<u32>',
-      },
-      keys: []
-    },
-    encounterable: {},
-    encounter_trigger: {},
     encounter: {
       fields: {
         monster: 'address',
@@ -58,4 +50,14 @@ export const dubheConfig = {
       keys: ["monster"]
     },
   },
+  resources: {
+    map_config: {
+      fields: {
+        width: 'u64',
+        height: 'u64',
+        terrain: 'vector<u32>',
+      },
+      keys: []
+    },
+  }
 } as DubheConfig;

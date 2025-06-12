@@ -16,6 +16,7 @@ import switchEnv from './switchEnv';
 import info from './info';
 import loadMetadata from './loadMetadata';
 import doctor from './doctor';
+import convertJson from './convertJson';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Each command has different options
 export const commands: CommandModule<any, any>[] = [
@@ -37,5 +38,6 @@ export const commands: CommandModule<any, any>[] = [
   switchEnv,
   info,
   loadMetadata,
-  doctor
+  doctor,
+  convertJson
 ];

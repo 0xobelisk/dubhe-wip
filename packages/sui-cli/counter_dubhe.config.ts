@@ -3,13 +3,21 @@ import { defineDapp } from '@0xobelisk/sui-common';
 export default defineDapp({
   name: 'counter',
   description: 'counter contract',
-  tables: {
+  components: {
     counter: {
-      schema: {
+      fields: {
         player: 'address',
         value: 'u8'
       },
-      key: ['player']
+      keys: ['player']
+    }
+  },
+  resources: {
+    counter: {
+      fields: {
+        value: 'u8'
+      },
+      keys: []
     }
   }
 });

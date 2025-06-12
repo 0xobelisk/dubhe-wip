@@ -9,7 +9,7 @@ import { spawn } from 'child_process';
 import { Dubhe, NetworkType, SuiMoveNormalizedModules, loadMetadata } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
 import packageJson from '../../package.json';
-import { Component, MoveType, EmptyComponent } from '@0xobelisk/sui-common';
+import { Component, MoveType, EmptyComponent, DubheConfig } from '@0xobelisk/sui-common';
 
 export type DeploymentJsonType = {
   projectName: string;
@@ -415,4 +415,111 @@ export function initializeDubhe({
     packageId,
     metadata
   });
+}
+
+export function generateConfigJson(config: DubheConfig): string {
+  const components = Object.entries(config.components).map(([name, component]) => {
+    if (typeof component === 'string') {
+      return {
+        [name]: {
+          fields: [
+            { "id": "address" }
+          ],
+          keys: ["id"]
+        }
+      };
+    }
+
+    if (Object.keys(component as object).length === 0) {
+      return {
+        [name]: {
+          fields: [
+            { "id": "address" }
+          ],
+          keys: ["id"]
+        }
+      };
+    }
+
+    const fields = (component as any).fields || {};
+    const keys = (component as any).keys || ['id'];
+
+    // ensure id field exists
+    if (!fields.id && keys.includes('id')) {
+      fields.id = 'address';
+    }
+
+    return {
+      [name]: {
+        fields: Object.entries(fields).map(([fieldName, fieldType]) => ({
+          [fieldName]: fieldType
+        })),
+        keys: keys
+      }
+    };
+  });
+
+  const resources = Object.entries(config.resources).map(([name, resource]) => {
+    if (typeof resource === 'string') {
+      return {
+        [name]: {
+          fields: [
+            { "id": "address" },
+            { "value": resource }
+          ],
+          keys: ["id"]
+        }
+      };
+    }
+
+    if (Object.keys(resource as object).length === 0) {
+      return {
+        [name]: {
+          fields: [
+            { "id": "address" }
+          ],
+          keys: ["id"]
+        }
+      };
+    }
+
+    const fields = (resource as any).fields || {};
+    const keys = (resource as any).keys || ['id'];
+
+    // ensure id field exists
+    if (!fields.id && keys.includes('id')) {
+      fields.id = 'address';
+    }
+
+    return {
+      [name]: {
+        fields: Object.entries(fields).map(([fieldName, fieldType]) => ({
+          [fieldName]: fieldType
+        })),
+        keys: keys
+      }
+    };
+  });
+
+  // handle enums
+  const enums = Object.entries(config.enums || {}).map(([name, enumFields]) => {
+    // Sort enum values by first letter
+    let sortedFields = enumFields.sort((a, b) => a.localeCompare(b)).map((value, index) => ({
+      [index]: value
+    }));
+
+    return {
+      [name]: {
+        fields: sortedFields
+      }
+    };
+  });
+
+  console.log(enums)
+
+  return JSON.stringify({
+    components,
+    resources,
+    enums
+  }, null, 2);
 }

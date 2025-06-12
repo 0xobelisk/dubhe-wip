@@ -88,9 +88,8 @@ impl DubheIndexerWorker {
             }
             
             // 为每个表创建统一实时引擎触发器
-            let table_name_with_prefix = format!("store_{}", table.name);
-            create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
-            println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table_name_with_prefix);
+            create_realtime_trigger(&mut conn, &table.name).await?;
+            println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table.name);
         }
         
         Ok(())

@@ -10,8 +10,8 @@ pub struct SchemaField {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct TableConfig {
-    pub schemas: Vec<SchemaField>,
-    pub key: Vec<String>,
+    pub fields: Vec<SchemaField>,
+    pub keys: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -22,7 +22,8 @@ pub struct TableDefinition {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
-    pub tables: Vec<TableDefinition>,
+    pub components: Vec<TableDefinition>,
+    pub resources: Vec<TableDefinition>,
 }
 
 #[derive(Debug)]
@@ -46,15 +47,16 @@ impl TableSchema {
         let config: Config = serde_json::from_value(json.clone())?;
         let mut tables = Vec::new();
         
-        for table_def in config.tables {
+        // 处理 components
+        for table_def in config.components {
             for (table_name, table_config) in table_def.tables {
                 let mut key_fields = Vec::new();
                 let mut value_fields = Vec::new();
 
                 // 处理每个字段
-                for schema in &table_config.schemas {
+                for schema in &table_config.fields {
                     for (field_name, field_type) in &schema.fields {
-                        if table_config.key.contains(field_name) {
+                        if table_config.keys.contains(field_name) {
                             key_fields.push((field_name.clone(), field_type.clone()));
                         } else {
                             value_fields.push((field_name.clone(), field_type.clone()));
@@ -63,7 +65,32 @@ impl TableSchema {
                 }
 
                 tables.push(TableSchema {
-                    name: table_name,
+                    name: format!("component_{}", table_name),
+                    key_fields,
+                    value_fields,
+                });
+            }
+        }
+
+        // 处理 resources
+        for table_def in config.resources {
+            for (table_name, table_config) in table_def.tables {
+                let mut key_fields = Vec::new();
+                let mut value_fields = Vec::new();
+
+                // 处理每个字段
+                for schema in &table_config.fields {
+                    for (field_name, field_type) in &schema.fields {
+                        if table_config.keys.contains(field_name) {
+                            key_fields.push((field_name.clone(), field_type.clone()));
+                        } else {
+                            value_fields.push((field_name.clone(), field_type.clone()));
+                        }
+                    }
+                }
+
+                tables.push(TableSchema {
+                    name: format!("resource_{}", table_name),
                     key_fields,
                     value_fields,
                 });
@@ -98,9 +125,24 @@ impl TableSchema {
             
             fields.push(format!("PRIMARY KEY ({})", key_names.join(", ")));
         }
+
+        // 根据表名添加前缀
+        let table_prefix = if self.name.starts_with("component_") || self.name.starts_with("resource_") {
+            "".to_string()
+        } else {
+            // 检查表名是否在 components 或 resources 中
+            if self.name.contains("_component_") {
+                "component_".to_string()
+            } else if self.name.contains("_resource_") {
+                "resource_".to_string()
+            } else {
+                "".to_string()
+            }
+        };
         
         format!(
-            "CREATE TABLE IF NOT EXISTS store_{} ({})",
+            "CREATE TABLE IF NOT EXISTS {}{} ({})",
+            table_prefix,
             self.name,
             fields.join(", ")
         )
