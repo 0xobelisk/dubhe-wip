@@ -37,7 +37,7 @@
   }
 
   public fun get_key_names(): vector<vector<u8>> {
-    vector[b"id"]
+    vector[b"entity_id"]
   }
 
   public fun get_value_names(): vector<vector<u8>> {
@@ -59,33 +59,33 @@
         );
   }
 
-  public fun has(dapp_hub: &DappHub, id: address): bool {
+  public fun has(dapp_hub: &DappHub, entity_id: address): bool {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun ensure_has(dapp_hub: &DappHub, id: address) {
+  public fun ensure_has(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun ensure_not_has(dapp_hub: &DappHub, id: address) {
+  public fun ensure_not_has(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, id: address) {
+  public fun delete(dapp_hub: &mut DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
 
-  public fun set(dapp_hub: &mut DappHub, id: address) {
+  public fun set(dapp_hub: &mut DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = vector::empty();
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }

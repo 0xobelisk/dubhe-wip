@@ -21,9 +21,9 @@ describe('generateConfigJson', () => {
     expect(parsed.components).toHaveLength(1);
     expect(parsed.components[0].owned_by).toEqual({
       fields: [
-        { id: 'address' }
+        { entity_id: 'address' }
       ],
-      keys: ['id']
+      keys: ['entity_id']
     });
   });
 
@@ -45,9 +45,9 @@ describe('generateConfigJson', () => {
     expect(parsed.components).toHaveLength(1);
     expect(parsed.components[0].player).toEqual({
       fields: [
-        { id: 'address' }
+        { entity_id: 'address' }
       ],
-      keys: ['id']
+      keys: ['entity_id']
     });
   });
 
@@ -102,10 +102,10 @@ describe('generateConfigJson', () => {
     expect(parsed.resources).toHaveLength(1);
     expect(parsed.resources[0].counter).toEqual({
       fields: [
-        { id: 'address' },
+        { entity_id: 'address' },
         { value: 'u32' }
       ],
-      keys: ['id']
+      keys: ['entity_id']
     });
   });
 
@@ -127,9 +127,9 @@ describe('generateConfigJson', () => {
     expect(parsed.resources).toHaveLength(1);
     expect(parsed.resources[0].counter).toEqual({
       fields: [
-        { id: 'address' }
+        { entity_id: 'address' }
       ],
-      keys: ['id']
+      keys: ['entity_id']
     });
   });
 
@@ -208,8 +208,8 @@ describe('generateConfigJson', () => {
 
     // validate components
     expect(parsed.components[0].player).toEqual({
-      fields: [{ id: 'address' }],
-      keys: ['id']
+      fields: [{ entity_id: 'address' }],
+      keys: ['entity_id']
     });
 
     expect(parsed.components[1].position).toEqual({
@@ -222,8 +222,8 @@ describe('generateConfigJson', () => {
     });
 
     expect(parsed.components[2].owned_by).toEqual({
-      fields: [{ id: 'address' }],
-      keys: ['id']
+      fields: [{ entity_id: 'address' }],
+      keys: ['entity_id']
     });
 
     // validate resources
@@ -238,10 +238,10 @@ describe('generateConfigJson', () => {
 
     expect(parsed.resources[1].balance).toEqual({
       fields: [
-        { id: 'address' },
+        { entity_id: 'address' },
         { value: 'u256' }
       ],
-      keys: ['id']
+      keys: ['entity_id']
     });
   });
 }); 

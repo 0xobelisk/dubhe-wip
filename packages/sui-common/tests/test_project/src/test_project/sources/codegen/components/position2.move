@@ -79,7 +79,7 @@
   }
 
   public fun get_key_names(): vector<vector<u8>> {
-    vector[b"id"]
+    vector[b"entity_id"]
   }
 
   public fun get_value_names(): vector<vector<u8>> {
@@ -101,135 +101,135 @@
         );
   }
 
-  public fun has(dapp_hub: &DappHub, id: address): bool {
+  public fun has(dapp_hub: &DappHub, entity_id: address): bool {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun ensure_has(dapp_hub: &DappHub, id: address) {
+  public fun ensure_has(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun ensure_not_has(dapp_hub: &DappHub, id: address) {
+  public fun ensure_not_has(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun has_x(dapp_hub: &DappHub, id: address): bool {
+  public fun has_x(dapp_hub: &DappHub, entity_id: address): bool {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
   }
 
-  public fun ensure_has_x(dapp_hub: &DappHub, id: address) {
+  public fun ensure_has_x(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
   }
 
-  public fun ensure_not_has_x(dapp_hub: &DappHub, id: address) {
+  public fun ensure_not_has_x(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
   }
 
-  public fun has_y(dapp_hub: &DappHub, id: address): bool {
+  public fun has_y(dapp_hub: &DappHub, entity_id: address): bool {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
   }
 
-  public fun ensure_has_y(dapp_hub: &DappHub, id: address) {
+  public fun ensure_has_y(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
   }
 
-  public fun ensure_not_has_y(dapp_hub: &DappHub, id: address) {
+  public fun ensure_not_has_y(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
   }
 
-  public fun has_direction(dapp_hub: &DappHub, id: address): bool {
+  public fun has_direction(dapp_hub: &DappHub, entity_id: address): bool {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
   }
 
-  public fun ensure_has_direction(dapp_hub: &DappHub, id: address) {
+  public fun ensure_has_direction(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
   }
 
-  public fun ensure_not_has_direction(dapp_hub: &DappHub, id: address) {
+  public fun ensure_not_has_direction(dapp_hub: &DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, id: address) {
+  public fun delete(dapp_hub: &mut DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
 
-  public fun get_x(dapp_hub: &DappHub, id: address): u64 {
+  public fun get_x(dapp_hub: &DappHub, entity_id: address): u64 {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value = dapp_service::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0);
     let mut bsc_type = sui::bcs::new(value);
     let x = sui::bcs::peel_u64(&mut bsc_type);
     x
   }
 
-  public fun set_x(dapp_hub: &mut DappHub, id: address, x: u64) {
+  public fun set_x(dapp_hub: &mut DappHub, entity_id: address, x: u64) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value = to_bytes(&x);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
   }
 
-  public fun get_y(dapp_hub: &DappHub, id: address): u64 {
+  public fun get_y(dapp_hub: &DappHub, entity_id: address): u64 {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value = dapp_service::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1);
     let mut bsc_type = sui::bcs::new(value);
     let y = sui::bcs::peel_u64(&mut bsc_type);
     y
   }
 
-  public fun set_y(dapp_hub: &mut DappHub, id: address, y: u64) {
+  public fun set_y(dapp_hub: &mut DappHub, entity_id: address, y: u64) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value = to_bytes(&y);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
   }
 
-  public fun get_direction(dapp_hub: &DappHub, id: address): Direction {
+  public fun get_direction(dapp_hub: &DappHub, entity_id: address): Direction {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value = dapp_service::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2);
     let mut bsc_type = sui::bcs::new(value);
     let direction = test_project::direction::decode(&mut bsc_type);
     direction
   }
 
-  public fun set_direction(dapp_hub: &mut DappHub, id: address, direction: Direction) {
+  public fun set_direction(dapp_hub: &mut DappHub, entity_id: address, direction: Direction) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value = test_project::direction::encode(direction);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 2, value);
   }
 
-  public fun get(dapp_hub: &DappHub, id: address): (u64, u64, Direction) {
+  public fun get(dapp_hub: &DappHub, entity_id: address): (u64, u64, Direction) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     let mut bsc_type = sui::bcs::new(value_tuple);
     let x = sui::bcs::peel_u64(&mut bsc_type);
@@ -238,23 +238,23 @@
     (x, y, direction)
   }
 
-  public fun set(dapp_hub: &mut DappHub, id: address, x: u64, y: u64, direction: Direction) {
+  public fun set(dapp_hub: &mut DappHub, entity_id: address, x: u64, y: u64, direction: Direction) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = encode(x, y, direction);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }
 
-  public fun get_struct(dapp_hub: &DappHub, id: address): Position2 {
+  public fun get_struct(dapp_hub: &DappHub, entity_id: address): Position2 {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, id: address, position2: Position2) {
+  public fun set_struct(dapp_hub: &mut DappHub, entity_id: address, position2: Position2) {
     let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&id));
+    key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = encode_struct(position2);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }

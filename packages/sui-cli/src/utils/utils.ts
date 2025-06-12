@@ -423,9 +423,9 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "id": "address" }
+            { "entity_id": "address" }
           ],
-          keys: ["id"]
+          keys: ["entity_id"]
         }
       };
     }
@@ -434,19 +434,19 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "id": "address" }
+            { "entity_id": "address" }
           ],
-          keys: ["id"]
+          keys: ["entity_id"]
         }
       };
     }
 
     const fields = (component as any).fields || {};
-    const keys = (component as any).keys || ['id'];
+    const keys = (component as any).keys || ['entity_id'];
 
-    // ensure id field exists
-    if (!fields.id && keys.includes('id')) {
-      fields.id = 'address';
+    // ensure entity_id field exists
+    if (!fields.entity_id && keys.includes('entity_id')) {
+      fields.entity_id = 'address';
     }
 
     return {
@@ -464,10 +464,10 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "id": "address" },
+            { "entity_id": "address" },
             { "value": resource }
           ],
-          keys: ["id"]
+          keys: ["entity_id"]
         }
       };
     }
@@ -476,19 +476,19 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "id": "address" }
+            { "entity_id": "address" }
           ],
-          keys: ["id"]
+          keys: ["entity_id"]
         }
       };
     }
 
     const fields = (resource as any).fields || {};
-    const keys = (resource as any).keys || ['id'];
+    const keys = (resource as any).keys || ['entity_id'];
 
-    // ensure id field exists
-    if (!fields.id && keys.includes('id')) {
-      fields.id = 'address';
+    // ensure entity_id field exists
+    if (!fields.entity_id && keys.includes('entity_id')) {
+      fields.entity_id = 'address';
     }
 
     return {

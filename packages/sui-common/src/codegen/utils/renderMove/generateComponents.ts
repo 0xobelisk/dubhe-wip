@@ -19,13 +19,13 @@ export async function generateComponents(config: DubheConfig, path: string) {
       continue;
     }
 
-    // Handle empty object cases, representing components with only id key
+    // Handle empty object cases, representing components with only entity_id key
     if (Object.keys(component).length === 0) {
       const code = generateComponentCode(config.name, componentName, {
         fields: {
-          'id': 'address'
+          'entity_id': 'address'
         },
-        keys: ['id'],
+        keys: ['entity_id'],
         type: 'Onchain'
       });
       await formatAndWriteMove(
@@ -38,10 +38,10 @@ export async function generateComponents(config: DubheConfig, path: string) {
 
     // Handle cases where keys are not defined
     if (!component.keys) {
-      component.keys = ['id'];
-      if (!component.fields['id']) {
+      component.keys = ['entity_id'];
+      if (!component.fields['entity_id']) {
         component.fields = {
-          'id': 'address',
+          'entity_id': 'address',
           ...component.fields
         };
       }
@@ -82,7 +82,7 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
     }
 
     public fun get_key_names(): vector<vector<u8>> { 
-        vector[b"id"]
+        vector[b"entity_id"]
     }
 
     public fun get_value_names(): vector<vector<u8>> { 
@@ -104,30 +104,30 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
         );
     }
 
-    public fun has(dapp_hub: &DappHub, id: address): bool {
+    public fun has(dapp_hub: &DappHub, entity_id: address): bool {
         let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&id));
+        key_tuple.push_back(to_bytes(&entity_id));
         dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
     }
 
-    public fun delete(dapp_hub: &mut DappHub, id: address) {
+    public fun delete(dapp_hub: &mut DappHub, entity_id: address) {
         let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&id));
+        key_tuple.push_back(to_bytes(&entity_id));
         dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
     }
 
-    public fun get(dapp_hub: &DappHub, id: address): (${valueType}) {
+    public fun get(dapp_hub: &DappHub, entity_id: address): (${valueType}) {
         let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&id));
+        key_tuple.push_back(to_bytes(&entity_id));
         let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
         let mut bsc_type = sui::bcs::new(value_tuple);
         let value = sui::bcs::peel_${getBcsType(valueType)}(&mut bsc_type);
         (value)
     }
 
-    public fun set(dapp_hub: &mut DappHub, id: address, value: ${valueType}) {
+    public fun set(dapp_hub: &mut DappHub, entity_id: address, value: ${valueType}) {
         let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&id));
+        key_tuple.push_back(to_bytes(&entity_id));
         let value_tuple = encode(value);
         dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
     }
@@ -146,7 +146,7 @@ function toSnakeCase(str: string): string {
 
 function generateComponentCode(projectName: string, componentName: string, component: any): string {
   const fields = component.fields;
-  const keys = component.keys || ['id'];
+  const keys = component.keys || ['entity_id'];
   const type: ComponentType = component.type || 'Onchain';
   
   // Check if all fields are keys
