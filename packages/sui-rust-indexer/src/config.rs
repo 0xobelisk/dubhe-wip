@@ -38,6 +38,7 @@ pub struct TableField {
 #[derive(Debug)]
 pub struct TableSchema {
     pub name: String,
+    pub table_type: String,
     pub key_fields: Vec<(String, String)>,
     pub value_fields: Vec<(String, String)>,
 }
@@ -65,7 +66,8 @@ impl TableSchema {
                 }
 
                 tables.push(TableSchema {
-                    name: format!("component_{}", table_name),
+                    name: table_name,
+                    table_type: "component".to_string(),
                     key_fields,
                     value_fields,
                 });
@@ -90,7 +92,8 @@ impl TableSchema {
                 }
 
                 tables.push(TableSchema {
-                    name: format!("resource_{}", table_name),
+                    name: table_name,
+                    table_type: "resource".to_string(),
                     key_fields,
                     value_fields,
                 });
@@ -125,24 +128,9 @@ impl TableSchema {
             
             fields.push(format!("PRIMARY KEY ({})", key_names.join(", ")));
         }
-
-        // 根据表名添加前缀
-        let table_prefix = if self.name.starts_with("component_") || self.name.starts_with("resource_") {
-            "".to_string()
-        } else {
-            // 检查表名是否在 components 或 resources 中
-            if self.name.contains("_component_") {
-                "component_".to_string()
-            } else if self.name.contains("_resource_") {
-                "resource_".to_string()
-            } else {
-                "".to_string()
-            }
-        };
         
         format!(
-            "CREATE TABLE IF NOT EXISTS {}{} ({})",
-            table_prefix,
+            "CREATE TABLE IF NOT EXISTS store_{} ({})",
             self.name,
             fields.join(", ")
         )

@@ -45,6 +45,18 @@ impl DubheIndexerWorker {
         let tables = TableSchema::from_json(&json)?;
         println!("Tables: {:?}", tables);
         let mut conn = self.pg_pool.get().await?;
+
+        // Create table_fields table first
+        diesel::sql_query(
+            "CREATE TABLE IF NOT EXISTS table_metadata (
+                table_name VARCHAR(255),
+                table_type VARCHAR(255),
+                PRIMARY KEY (table_name)
+            )"
+        )
+        .execute(&mut conn)
+        .await?;
+
         
         // Create table_fields table first
         diesel::sql_query(
@@ -64,6 +76,10 @@ impl DubheIndexerWorker {
         diesel::sql_query("TRUNCATE TABLE table_fields")
             .execute(&mut conn)
             .await?;
+
+        diesel::sql_query("TRUNCATE TABLE table_metadata")
+            .execute(&mut conn)
+            .await?;
         
         // 设置简化的日志系统（可选）
         setup_simple_logging(&mut conn).await?;
@@ -79,7 +95,16 @@ impl DubheIndexerWorker {
             diesel::sql_query(&sql)
                 .execute(&mut conn)
                 .await?;
-            
+
+            // Insert table metadata
+            diesel::sql_query(
+                "INSERT INTO table_metadata (table_name, table_type) VALUES ($1, $2)"
+            )
+            .bind::<diesel::sql_types::Text, _>(table.name.clone())
+            .bind::<diesel::sql_types::Text, _>(table.table_type.clone())
+            .execute(&mut conn)
+            .await?;
+
             // Insert table fields metadata
             for field_sql in table.generate_table_fields_sql() {
                 diesel::sql_query(&field_sql)
@@ -88,8 +113,9 @@ impl DubheIndexerWorker {
             }
             
             // 为每个表创建统一实时引擎触发器
-            create_realtime_trigger(&mut conn, &table.name).await?;
-            println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table.name);
+            let table_name_with_prefix = format!("store_{}", table.name);
+            create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
+            println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table_name_with_prefix);
         }
         
         Ok(())

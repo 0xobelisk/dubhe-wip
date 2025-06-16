@@ -40,9 +40,9 @@ struct TableExists {
 }
 
 // testnet
-// cargo run -- --config config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
+// cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
 // localnet
-//cargo run -- --config config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1
+//cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
