@@ -24,13 +24,17 @@ describe('defineDapp', () => {
           },
           keys: ['id'],
         }
+      },
+      resources: {
+        game_state: {
+          fields: {
+            id: 'address',
+          }
+        }
       }
     };
 
-
     const result = defineDapp(config);
-    expect(result).toContain('module game');
-    expect(result).toContain('public struct game');
   });
 
   it('should handle config with offchain table', () => {
@@ -47,12 +51,17 @@ describe('defineDapp', () => {
           },
           keys: ['id'],
         }
+      },
+      resources: {
+        game_state: {
+          fields: {
+            id: 'address',
+          }
+        }
       }
     };
 
-    const result = defineDapp(config);
-    expect(result).toContain('module game');
-    expect(result).toContain('public struct game');
+    defineDapp(config);
   });
 
   it('should handle config with simple table type', () => {
@@ -62,23 +71,53 @@ describe('defineDapp', () => {
       components: {
         player: 'bool',
         movable: 'bool'
+      },
+      resources: {
+        game_state: {
+          fields: {
+            id: 'address',
+          }
+        }
       }
     };
 
-    const result = defineDapp(config);
-    expect(result).toContain('module game');
-    expect(result).toContain('public struct game');
+    defineDapp(config);
   });
 
   it('should handle empty config', () => {
     const config: DubheConfig = {
       name: 'game',
       description: 'Game module',
-      components: {}
+      components: {},
+      resources: {}
     };
 
-    const result = defineDapp(config);
-    expect(result).toContain('module game');
-    expect(result).toContain('public struct game');
+    defineDapp(config);
+  });
+
+  it('should throw error when duplicate keys exist between components and resources', () => {
+    const config: DubheConfig = {
+      name: 'game',
+      description: 'Game module',
+      components: {
+        player: {
+          fields: {
+            id: 'address',
+            name: 'vector<u8>',
+            level: 'u64',
+          },
+          keys: ['id'],
+        }
+      },
+      resources: {
+        player: {
+          fields: {
+            id: 'address',
+          }
+        }
+      }
+    };
+
+    expect(() => defineDapp(config)).toThrow('Duplicate keys found between components and resources: player');
   });
 }); 

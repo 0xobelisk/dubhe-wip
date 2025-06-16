@@ -1,10 +1,17 @@
 import { DubheConfig } from '../../types';
 
-export const defineDapp = (config: DubheConfig) => {
-  console.log(config);
-  return `
-  module ${config.name} {
-    public struct ${config.name} {}
+const checkDuplicateKeys = (config: DubheConfig): void => {
+  const componentKeys = Object.keys(config.components || {});
+  const resourceKeys = Object.keys(config.resources || {});
+  
+  const duplicates = componentKeys.filter(key => resourceKeys.includes(key));
+  
+  if (duplicates.length > 0) {
+    throw new Error(`Duplicate keys found between components and resources: ${duplicates.join(', ')}`);
   }
-  `;
+};
+
+export const defineDapp = (config: DubheConfig): DubheConfig => {
+  checkDuplicateKeys(config);
+  return config;
 };
