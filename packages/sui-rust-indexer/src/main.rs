@@ -62,6 +62,9 @@ struct Args {
     /// Package id
     #[arg(long)]
     package_id: Option<String>,
+    /// db url
+    #[arg(long)]
+    db_url: Option<String>,
 }
 
 struct CustomWorker;
@@ -102,7 +105,7 @@ async fn main() -> Result<()> {
 
     
     let mut dubhe_indexer_worker = DubheIndexerWorker {
-        pg_pool: get_connection_pool().await,
+        pg_pool: get_connection_pool(args.db_url.clone()).await,
         package_id: args.package_id,
     };
 
@@ -118,7 +121,7 @@ async fn main() -> Result<()> {
     // let mut progress_store = FileProgressStore::new(PathBuf::from(backfill_progress_file_path.clone()));
     // FileProgressStore::save(&mut progress_store, "latest_checkpoint".to_string(), latest_checkpoint).await?;
 
-    let progress_store = PostgressProgressStore::new(get_connection_pool().await);
+    let progress_store = PostgressProgressStore::new(get_connection_pool(args.db_url).await);
 
     let (exit_sender, exit_receiver) = oneshot::channel();
     let mut executor = IndexerExecutor::new(

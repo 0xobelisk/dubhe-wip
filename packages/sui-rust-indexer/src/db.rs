@@ -12,10 +12,16 @@ use dotenvy::dotenv;
 pub type PgConnectionPool = diesel_async::pooled_connection::bb8::Pool<diesel_async::AsyncPgConnection>;
 pub type PgPoolConnection<'a> = diesel_async::pooled_connection::bb8::PooledConnection<'a, AsyncPgConnection>;
 
-pub async fn get_connection_pool() -> PgConnectionPool {
+pub async fn get_connection_pool(db_url: Option<String>) -> PgConnectionPool {
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = if let Ok(url) = env::var("DATABASE_URL") {
+        url
+    } else if let Some(url) = db_url {
+        url
+    } else {
+        "postgres://postgres:postgres@localhost:5432/postgres".to_string()
+    };
 
     let mut config = ManagerConfig::default();
     config.custom_setup = Box::new(establish_connection);
