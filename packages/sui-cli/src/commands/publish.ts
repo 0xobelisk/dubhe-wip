@@ -39,8 +39,8 @@ const commandModule: CommandModule<Options, Options> = {
   async handler({ network, 'config-path': configPath, 'gas-budget': gasBudget }) {
     try {
       const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
-      await publishHandler(dubheConfig, network, gasBudget);
       execSync(`pnpm dubhe convert-json --config-path ${configPath}`, { encoding: 'utf-8' })
+      await publishHandler(dubheConfig, network, gasBudget); 
     } catch (error: any) {
       logError(error);
       process.exit(1);

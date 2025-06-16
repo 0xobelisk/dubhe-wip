@@ -58,7 +58,10 @@ struct Args {
     store_url: String,
     /// Start checkpoint
     #[arg(long)]
-    start_checkpoint: u64
+    start_checkpoint: u64,
+    /// Package id
+    #[arg(long)]
+    package_id: Option<String>,
 }
 
 struct CustomWorker;
@@ -97,8 +100,10 @@ async fn main() -> Result<()> {
 
     // println!("Checkpoint: {:?}", start_checkpoint);
 
-    let dubhe_indexer_worker = DubheIndexerWorker {
+    
+    let mut dubhe_indexer_worker = DubheIndexerWorker {
         pg_pool: get_connection_pool().await,
+        package_id: args.package_id,
     };
 
     // Create database tables from configuration

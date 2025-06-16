@@ -441,6 +441,12 @@ async function publishContract(
       version,
       components
     );
+
+    // Insert package id to dubhe config
+    let config = JSON.parse(fs.readFileSync(`${process.cwd()}/dubhe.config.json`, 'utf-8'));
+    config.package_id = packageId;
+    fs.writeFileSync(`${process.cwd()}/dubhe.config.json`, JSON.stringify(config, null, 2));
+
     console.log('\n✅ Contract Publication Complete\n');
   } else {
     console.log(chalk.yellow('  └─ Deploy hook execution failed'));

@@ -35,14 +35,20 @@ pub struct TableField {
 
 pub struct DubheIndexerWorker {
     pub pg_pool: PgConnectionPool,
+    pub package_id: Option<String>,
 }
 
 impl DubheIndexerWorker {
-    pub async fn create_tables_from_config(&self, config_path: &str) -> Result<()> {
+    pub async fn create_tables_from_config(&mut self, config_path: &str) -> Result<()> {
         let content = fs::read_to_string(config_path)?;
         let json: Value = serde_json::from_str(&content)?;
         
-        let tables = TableSchema::from_json(&json)?;
+        let (package_id, tables) = TableSchema::from_json(&json)?;
+
+        if self.package_id.is_none() {
+            self.package_id = Some(package_id);
+        }
+        
         println!("Tables: {:?}", tables);
         let mut conn = self.pg_pool.get().await?;
 
@@ -344,31 +350,38 @@ impl Worker for DubheIndexerWorker {
             let maybe_events = &transaction.events;
             if let Some(events) = maybe_events {
                 for event in &events.data {
-                    let package_id = std::env::var("PACKAGE_ID").unwrap_or_else(|_| "0x30eba12b78bfe6b292975d0f194e4f231adca8389efb577e51e4018ef42568fa".to_string());
-                    if event.package_id == ObjectID::from_str(&package_id).unwrap() {
-                        println!("Event: {:?}", event);
-                        println!("================================================");
-                        
-                        if event.type_.name.to_string() == "Store_SetRecord" {
-                            let set_record: StorageSetRecord = bcs::from_bytes(event.contents.as_slice())
-                                .expect("Failed to parse set record");
-                            println!("Set record: {:?}", set_record);
-                            
-                            // Process StoreSetRecord event
-                            self.handle_store_set_record(&set_record).await?;
-                            set_record_count += 1;
+                    match &self.package_id { 
+                        Some(package_id) => { 
+                            if event.package_id == ObjectID::from_str(package_id).unwrap() {
+                                println!("Event: {:?}", event);
+                                println!("================================================");
+                                
+                                if event.type_.name.to_string() == "Store_SetRecord" {
+                                    let set_record: StorageSetRecord = bcs::from_bytes(event.contents.as_slice())
+                                        .expect("Failed to parse set record");
+                                    println!("Set record: {:?}", set_record);
+                                    
+                                    // Process StoreSetRecord event
+                                    self.handle_store_set_record(&set_record).await?;
+                                    set_record_count += 1;
+                                }
+        
+                                if event.type_.name.to_string() == "Store_SetField" {
+                                    let set_field: StoreSetField = bcs::from_bytes(event.contents.as_slice())
+                                        .expect("Failed to parse set field");
+                                    
+                                    println!("Set field: {:?}", set_field);
+                                    // Process StoreSetField event
+                                    self.handle_store_set_field(&set_field).await?;
+                                    set_field_count += 1;
+                                }
+                            }
                         }
-
-                        if event.type_.name.to_string() == "Store_SetField" {
-                            let set_field: StoreSetField = bcs::from_bytes(event.contents.as_slice())
-                                .expect("Failed to parse set field");
-                            
-                            println!("Set field: {:?}", set_field);
-                            // Process StoreSetField event
-                            self.handle_store_set_field(&set_field).await?;
-                            set_field_count += 1;
+                        None => {
+                           return Err(anyhow::anyhow!("Package ID is not set"));
                         }
                     }
+                    
                 }
             }
         }

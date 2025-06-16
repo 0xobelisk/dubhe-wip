@@ -37,6 +37,40 @@
       }
     },
     {
+      "position": {
+        "fields": [
+          {
+            "x": "u64"
+          },
+          {
+            "y": "u64"
+          },
+          {
+            "entity_id": "address"
+          }
+        ],
+        "keys": [
+          "entity_id"
+        ]
+      }
+    },
+    {
+      "map_config": {
+        "fields": [
+          {
+            "width": "u64"
+          },
+          {
+            "height": "u64"
+          },
+          {
+            "terrain": "vector<u32>"
+          }
+        ],
+        "keys": []
+      }
+    },
+    {
       "encounterable": {
         "fields": [
           {
@@ -51,24 +85,6 @@
     {
       "encounter_trigger": {
         "fields": [
-          {
-            "entity_id": "address"
-          }
-        ],
-        "keys": [
-          "entity_id"
-        ]
-      }
-    },
-    {
-      "position": {
-        "fields": [
-          {
-            "x": "u64"
-          },
-          {
-            "y": "u64"
-          },
           {
             "entity_id": "address"
           }
@@ -139,24 +155,7 @@
       }
     }
   ],
-  "resources": [
-    {
-      "map_config": {
-        "fields": [
-          {
-            "width": "u64"
-          },
-          {
-            "height": "u64"
-          },
-          {
-            "terrain": "vector<u32>"
-          }
-        ],
-        "keys": []
-      }
-    }
-  ],
+  "resources": [],
   "enums": [
     {
       "Direction": {
@@ -221,5 +220,6 @@
         ]
       }
     }
-  ]
+  ],
+  "package_id": "0xb837a254b0c4dfb732f6f7c35371a2d5a48eb967d5c434dd8e5460cce77e00fc"
 }

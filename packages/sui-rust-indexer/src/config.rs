@@ -24,6 +24,7 @@ pub struct TableDefinition {
 pub struct Config {
     pub components: Vec<TableDefinition>,
     pub resources: Vec<TableDefinition>,
+    pub package_id: String,
 }
 
 #[derive(Debug)]
@@ -44,7 +45,7 @@ pub struct TableSchema {
 }
 
 impl TableSchema {
-    pub fn from_json(json: &Value) -> Result<Vec<TableSchema>> {
+    pub fn from_json(json: &Value) -> Result<(String, Vec<TableSchema>)> {
         let config: Config = serde_json::from_value(json.clone())?;
         let mut tables = Vec::new();
         
@@ -100,7 +101,7 @@ impl TableSchema {
             }
         }
 
-        Ok(tables)
+        Ok((config.package_id, tables))
     }
 
     pub fn generate_create_table_sql(&self) -> String {
