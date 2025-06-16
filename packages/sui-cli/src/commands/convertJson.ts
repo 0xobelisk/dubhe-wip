@@ -21,7 +21,7 @@ const commandModule: CommandModule<Options, Options> = {
       },
       'output-path': {
         type: 'string',
-        default: 'config.json',
+        default: 'dubhe.config.json',
         description: 'Output path for the config.json file'
       }
     });

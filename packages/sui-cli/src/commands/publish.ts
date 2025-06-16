@@ -2,6 +2,7 @@ import type { CommandModule } from 'yargs';
 import { logError } from '../utils/errors';
 import { publishHandler } from '../utils';
 import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
+import { execSync } from 'child_process';
 
 type Options = {
   network: any;
@@ -39,6 +40,7 @@ const commandModule: CommandModule<Options, Options> = {
     try {
       const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
       await publishHandler(dubheConfig, network, gasBudget);
+      execSync(`pnpm dubhe convert-json --config-path ${configPath}`, { encoding: 'utf-8' })
     } catch (error: any) {
       logError(error);
       process.exit(1);
