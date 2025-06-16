@@ -1,0 +1,41 @@
+{
+  "components": [
+    {
+      "counter0": {
+        "fields": [
+          {
+            "entity_id": "address"
+          }
+        ],
+        "keys": [
+          "entity_id"
+        ]
+      }
+    },
+    {
+      "counter1": {
+        "fields": [
+          {
+            "value": "u32"
+          }
+        ],
+        "keys": []
+      }
+    },
+    {
+      "counter2": {
+        "fields": [
+          {
+            "entity_id": "address"
+          }
+        ],
+        "keys": [
+          "entity_id"
+        ]
+      }
+    }
+  ],
+  "resources": [],
+  "enums": [],
+  "package_id": "0xe718fd3ecf244a816f2c8291ca42b2b89814af11549ce28c2d7a72b983f7dc3c"
+}

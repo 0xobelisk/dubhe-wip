@@ -64,3 +64,15 @@ dependencies = [
 
 
 
+
+
+
+
+
+
+
+[env.localnet]
+chain-id = "a1c999e8"
+original-published-id = "0xe718fd3ecf244a816f2c8291ca42b2b89814af11549ce28c2d7a72b983f7dc3c"
+latest-published-id = "0xe718fd3ecf244a816f2c8291ca42b2b89814af11549ce28c2d7a72b983f7dc3c"
+published-version = "1"

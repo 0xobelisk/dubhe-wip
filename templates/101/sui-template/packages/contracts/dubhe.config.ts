@@ -13,6 +13,7 @@ export const dubheConfig = {
     },
     counter2: "u32",
   },
+  resources: {},
   errors: {
     invalid_increment: "Number can't be incremented, must be more than 0"
   }
