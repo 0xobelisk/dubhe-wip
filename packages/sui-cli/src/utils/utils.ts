@@ -423,9 +423,10 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "entity_id": "address" }
+            { entity_id: 'address' },
+            { value: component }
           ],
-          keys: ["entity_id"]
+          keys: ['entity_id']
         }
       };
     }
@@ -434,9 +435,9 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "entity_id": "address" }
+            { entity_id: 'address' }
           ],
-          keys: ["entity_id"]
+          keys: ['entity_id']
         }
       };
     }
@@ -464,10 +465,10 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "entity_id": "address" },
-            { "value": resource }
+            { entity_id: 'address' },
+            { value: resource }
           ],
-          keys: ["entity_id"]
+          keys: ['entity_id']
         }
       };
     }
@@ -476,9 +477,9 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { "entity_id": "address" }
+            { entity_id: 'address' }
           ],
-          keys: ["entity_id"]
+          keys: ['entity_id']
         }
       };
     }
@@ -514,8 +515,6 @@ export function generateConfigJson(config: DubheConfig): string {
       }
     };
   });
-
-  console.log(enums)
 
   return JSON.stringify({
     components,

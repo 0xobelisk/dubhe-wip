@@ -1,23 +1,17 @@
-import { defineDapp } from '@0xobelisk/sui-common';
+import { DubheConfig } from '@0xobelisk/sui-common';
 
-export default defineDapp({
+export const dubheConfig = {
   name: 'counter',
   description: 'counter contract',
   components: {
-    counter: {
-      fields: {
-        player: 'address',
-        value: 'u8'
-      },
-      keys: ['player']
-    }
-  },
-  resources: {
-    counter: {
-      fields: {
-        value: 'u8'
+    counter0: {},
+    counter1: {
+      fields:{
+        value: "u32"
       },
       keys: []
-    }
-  }
-});
+    },
+    counter2: "u32",
+  },
+  resources: {}
+} as DubheConfig;

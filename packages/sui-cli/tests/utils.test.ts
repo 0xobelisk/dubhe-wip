@@ -21,7 +21,8 @@ describe('generateConfigJson', () => {
     expect(parsed.components).toHaveLength(1);
     expect(parsed.components[0].owned_by).toEqual({
       fields: [
-        { entity_id: 'address' }
+        { entity_id: 'address' },
+        { value: 'address' }
       ],
       keys: ['entity_id']
     });
@@ -222,7 +223,10 @@ describe('generateConfigJson', () => {
     });
 
     expect(parsed.components[2].owned_by).toEqual({
-      fields: [{ entity_id: 'address' }],
+      fields: [
+        { entity_id: 'address' },
+        { value: 'address' }
+      ],
       keys: ['entity_id']
     });
 
