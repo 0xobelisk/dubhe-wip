@@ -19,8 +19,8 @@ module counter::counter_test {
         assert!(counter2::get(&dapp_hub) == 10);
 
         counter_system::inc(&mut dapp_hub, 20, ctx);
-        assert!(counter1::get(&dapp_hub, ctx.sender()) == 20);
-        assert!(counter2::get(&dapp_hub) == 20);
+        assert!(counter1::get(&dapp_hub, ctx.sender()) == 30);
+        assert!(counter2::get(&dapp_hub) == 30);
 
         dapp_hub.destroy();
         scenario.end();
