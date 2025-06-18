@@ -5,15 +5,16 @@ export const dubheConfig = {
   description: 'counter contract',
   components: {
     counter0: {},
-    counter1: {
-      fields:{
+    counter1: "u32",
+  },
+  resources: {
+    counter2: { 
+      fields: {
         value: "u32"
       },
       keys: []
-    },
-    counter2: "u32",
+    }
   },
-  resources: {},
   errors: {
     invalid_increment: "Number can't be incremented, must be more than 0"
   }
