@@ -10,10 +10,11 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 const exampleDubheConfig: DubheConfig = {
   name: 'example-game',
   description: 'Example game configuration for ECS demo',
+  resources: {},
   components: {
     // 玩家组件
     player: {
-      keys: ['id'], // 单主键
+      keys: ['entityId'], // 单主键
       fields: {
         name: 'string',
         level: 'u32',
@@ -24,9 +25,9 @@ const exampleDubheConfig: DubheConfig = {
     },
     // 位置组件
     position: {
-      keys: ['entity_id'], // 外键
+      keys: ['entityId'], // 外键
       fields: {
-        entity_id: 'string',
+        entityId: 'string',
         x: 'u32',
         y: 'u32',
         map_id: 'string',
@@ -34,10 +35,10 @@ const exampleDubheConfig: DubheConfig = {
     },
     // 物品组件
     item: {
-      keys: ['id'],
+      keys: ['entityId'],
       fields: {
+        itemId: 'string',
         name: 'string',
-        item_type: 'ItemType', // 引用枚举类型
         quantity: 'u32',
         owner_id: 'string',
       },

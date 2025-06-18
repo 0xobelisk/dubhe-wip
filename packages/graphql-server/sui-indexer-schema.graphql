@@ -17,8 +17,8 @@ type Query implements Node {
     nodeId: ID!
   ): Node
 
-  """Reads and enables pagination through a set of `StoreEncounter`."""
-  encounters(
+  """Reads and enables pagination through a set of `StoreCounter0`."""
+  counter0s(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -37,22 +37,22 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreEncounter`."""
-    orderBy: [StoreEncountersOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreCounter0`."""
+    orderBy: [StoreCounter0sOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreEncounterCondition
+    condition: StoreCounter0Condition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreEncounterFilter
-  ): StoreEncountersConnection
+    filter: StoreCounter0Filter
+  ): StoreCounter0sConnection
 
-  """Reads and enables pagination through a set of `StoreEncounterTrigger`."""
-  encounterTriggers(
+  """Reads and enables pagination through a set of `StoreCounter1`."""
+  counter1s(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -71,22 +71,22 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreEncounterTrigger`."""
-    orderBy: [StoreEncounterTriggersOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreCounter1`."""
+    orderBy: [StoreCounter1sOrderBy!] = [NATURAL]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreEncounterTriggerCondition
+    condition: StoreCounter1Condition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreEncounterTriggerFilter
-  ): StoreEncounterTriggersConnection
+    filter: StoreCounter1Filter
+  ): StoreCounter1sConnection
 
-  """Reads and enables pagination through a set of `StoreEncounterable`."""
-  encounterables(
+  """Reads and enables pagination through a set of `StoreCounter2`."""
+  counter2s(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -105,293 +105,19 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreEncounterable`."""
-    orderBy: [StoreEncounterablesOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreCounter2`."""
+    orderBy: [StoreCounter2sOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreEncounterableCondition
+    condition: StoreCounter2Condition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreEncounterableFilter
-  ): StoreEncounterablesConnection
-
-  """Reads and enables pagination through a set of `StoreMapConfig`."""
-  mapConfigs(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StoreMapConfig`."""
-    orderBy: [StoreMapConfigsOrderBy!] = [NATURAL]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StoreMapConfigCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StoreMapConfigFilter
-  ): StoreMapConfigsConnection
-
-  """Reads and enables pagination through a set of `StoreMonster`."""
-  monsters(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StoreMonster`."""
-    orderBy: [StoreMonstersOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StoreMonsterCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StoreMonsterFilter
-  ): StoreMonstersConnection
-
-  """
-  Reads and enables pagination through a set of `StoreMonsterCatchAttempt`.
-  """
-  monsterCatchAttempts(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StoreMonsterCatchAttempt`."""
-    orderBy: [StoreMonsterCatchAttemptsOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StoreMonsterCatchAttemptCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StoreMonsterCatchAttemptFilter
-  ): StoreMonsterCatchAttemptsConnection
-
-  """Reads and enables pagination through a set of `StoreMoveable`."""
-  moveables(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StoreMoveable`."""
-    orderBy: [StoreMoveablesOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StoreMoveableCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StoreMoveableFilter
-  ): StoreMoveablesConnection
-
-  """Reads and enables pagination through a set of `StoreObstruction`."""
-  obstructions(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StoreObstruction`."""
-    orderBy: [StoreObstructionsOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StoreObstructionCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StoreObstructionFilter
-  ): StoreObstructionsConnection
-
-  """Reads and enables pagination through a set of `StoreOwnedBy`."""
-  ownedBies(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StoreOwnedBy`."""
-    orderBy: [StoreOwnedBiesOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StoreOwnedByCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StoreOwnedByFilter
-  ): StoreOwnedBiesConnection
-
-  """Reads and enables pagination through a set of `StorePlayer`."""
-  players(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StorePlayer`."""
-    orderBy: [StorePlayersOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StorePlayerCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StorePlayerFilter
-  ): StorePlayersConnection
-
-  """Reads and enables pagination through a set of `StorePosition`."""
-  positions(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StorePosition`."""
-    orderBy: [StorePositionsOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StorePositionCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StorePositionFilter
-  ): StorePositionsConnection
+    filter: StoreCounter2Filter
+  ): StoreCounter2sConnection
 
   """Reads and enables pagination through a set of `TableField`."""
   tableFields(
@@ -426,99 +152,60 @@ type Query implements Node {
     """
     filter: TableFieldFilter
   ): TableFieldsConnection
-  encounter(id: String!): StoreEncounter
-  encounterTrigger(id: String!): StoreEncounterTrigger
-  encounterable(id: String!): StoreEncounterable
-  monster(id: String!): StoreMonster
-  monsterCatchAttempt(monster: String!): StoreMonsterCatchAttempt
-  moveable(id: String!): StoreMoveable
-  obstruction(id: String!): StoreObstruction
-  ownedBy(id: String!): StoreOwnedBy
-  player(id: String!): StorePlayer
-  position(id: String!): StorePosition
+
+  """Reads and enables pagination through a set of `TableMetadatum`."""
+  tableMetadata(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `TableMetadatum`."""
+    orderBy: [TableMetadataOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TableMetadatumCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TableMetadatumFilter
+  ): TableMetadataConnection
+  counter0(entityId: String!): StoreCounter0
+  counter2(entityId: String!): StoreCounter2
   tableField(tableName: String!, fieldName: String!): TableField
+  tableMetadatum(tableName: String!): TableMetadatum
 
-  """Reads a single `StoreEncounter` using its globally unique `ID`."""
-  encounterByNodeId(
+  """Reads a single `StoreCounter0` using its globally unique `ID`."""
+  counter0ByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreEncounter`.
+    The globally unique `ID` to be used in selecting a single `StoreCounter0`.
     """
     nodeId: ID!
-  ): StoreEncounter
+  ): StoreCounter0
 
-  """Reads a single `StoreEncounterTrigger` using its globally unique `ID`."""
-  encounterTriggerByNodeId(
+  """Reads a single `StoreCounter2` using its globally unique `ID`."""
+  counter2ByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreEncounterTrigger`.
+    The globally unique `ID` to be used in selecting a single `StoreCounter2`.
     """
     nodeId: ID!
-  ): StoreEncounterTrigger
-
-  """Reads a single `StoreEncounterable` using its globally unique `ID`."""
-  encounterableByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreEncounterable`.
-    """
-    nodeId: ID!
-  ): StoreEncounterable
-
-  """Reads a single `StoreMonster` using its globally unique `ID`."""
-  monsterByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreMonster`.
-    """
-    nodeId: ID!
-  ): StoreMonster
-
-  """
-  Reads a single `StoreMonsterCatchAttempt` using its globally unique `ID`.
-  """
-  monsterCatchAttemptByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreMonsterCatchAttempt`.
-    """
-    nodeId: ID!
-  ): StoreMonsterCatchAttempt
-
-  """Reads a single `StoreMoveable` using its globally unique `ID`."""
-  moveableByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreMoveable`.
-    """
-    nodeId: ID!
-  ): StoreMoveable
-
-  """Reads a single `StoreObstruction` using its globally unique `ID`."""
-  obstructionByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreObstruction`.
-    """
-    nodeId: ID!
-  ): StoreObstruction
-
-  """Reads a single `StoreOwnedBy` using its globally unique `ID`."""
-  ownedByByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreOwnedBy`.
-    """
-    nodeId: ID!
-  ): StoreOwnedBy
-
-  """Reads a single `StorePlayer` using its globally unique `ID`."""
-  playerByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StorePlayer`.
-    """
-    nodeId: ID!
-  ): StorePlayer
-
-  """Reads a single `StorePosition` using its globally unique `ID`."""
-  positionByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StorePosition`.
-    """
-    nodeId: ID!
-  ): StorePosition
+  ): StoreCounter2
 
   """Reads a single `TableField` using its globally unique `ID`."""
   tableFieldByNodeId(
@@ -527,6 +214,14 @@ type Query implements Node {
     """
     nodeId: ID!
   ): TableField
+
+  """Reads a single `TableMetadatum` using its globally unique `ID`."""
+  tableMetadatumByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `TableMetadatum`.
+    """
+    nodeId: ID!
+  ): TableMetadatum
 
   """获取所有store表的Schema信息"""
   storeSchema: JSON
@@ -546,39 +241,32 @@ interface Node {
   nodeId: ID!
 }
 
-"""A connection to a list of `StoreEncounter` values."""
-type StoreEncountersConnection {
-  """A list of `StoreEncounter` objects."""
-  nodes: [StoreEncounter!]!
+"""A connection to a list of `StoreCounter0` values."""
+type StoreCounter0sConnection {
+  """A list of `StoreCounter0` objects."""
+  nodes: [StoreCounter0!]!
 
   """
-  A list of edges which contains the `StoreEncounter` and cursor to aid in pagination.
+  A list of edges which contains the `StoreCounter0` and cursor to aid in pagination.
   """
-  edges: [StoreEncountersEdge!]!
+  edges: [StoreCounter0sEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreEncounter` you could get from the connection."""
+  """The count of *all* `StoreCounter0` you could get from the connection."""
   totalCount: Int!
 }
 
-type StoreEncounter implements Node {
+type StoreCounter0 implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
-  id: String!
-  monster: String
-  catchAttempts: BigFloat
+  entityId: String!
   createdAt: Datetime
   updatedAt: Datetime
 }
-
-"""
-A floating point number that requires more precision than IEEE 754 binary 64
-"""
-scalar BigFloat
 
 """
 A point in time as described by the [ISO
@@ -586,13 +274,13 @@ A point in time as described by the [ISO
 """
 scalar Datetime
 
-"""A `StoreEncounter` edge in the connection."""
-type StoreEncountersEdge {
+"""A `StoreCounter0` edge in the connection."""
+type StoreCounter0sEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreEncounter` at the end of the edge."""
-  node: StoreEncounter!
+  """The `StoreCounter0` at the end of the edge."""
+  node: StoreCounter0!
 }
 
 """A location in a connection that can be used for resuming pagination."""
@@ -613,15 +301,11 @@ type PageInfo {
   endCursor: Cursor
 }
 
-"""Methods to use when ordering `StoreEncounter`."""
-enum StoreEncountersOrderBy {
+"""Methods to use when ordering `StoreCounter0`."""
+enum StoreCounter0sOrderBy {
   NATURAL
-  ID_ASC
-  ID_DESC
-  MONSTER_ASC
-  MONSTER_DESC
-  CATCH_ATTEMPTS_ASC
-  CATCH_ATTEMPTS_DESC
+  ENTITY_ID_ASC
+  ENTITY_ID_DESC
   CREATED_AT_ASC
   CREATED_AT_DESC
   UPDATED_AT_ASC
@@ -631,18 +315,12 @@ enum StoreEncountersOrderBy {
 }
 
 """
-A condition to be used against `StoreEncounter` object types. All fields are
+A condition to be used against `StoreCounter0` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StoreEncounterCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `monster` field."""
-  monster: String
-
-  """Checks for equality with the object’s `catchAttempts` field."""
-  catchAttempts: BigFloat
+input StoreCounter0Condition {
+  """Checks for equality with the object’s `entityId` field."""
+  entityId: String
 
   """Checks for equality with the object’s `createdAt` field."""
   createdAt: Datetime
@@ -652,14 +330,11 @@ input StoreEncounterCondition {
 }
 
 """
-A filter to be used against `StoreEncounter` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreCounter0` object types. All fields are combined with a logical ‘and.’
 """
-input StoreEncounterFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
-
-  """Filter by the object’s `monster` field."""
-  monster: StringFilter
+input StoreCounter0Filter {
+  """Filter by the object’s `entityId` field."""
+  entityId: StringFilter
 
   """Filter by the object’s `createdAt` field."""
   createdAt: DatetimeFilter
@@ -668,16 +343,13 @@ input StoreEncounterFilter {
   updatedAt: DatetimeFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreEncounterFilter!]
+  and: [StoreCounter0Filter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreEncounterFilter!]
+  or: [StoreCounter0Filter!]
 
   """Negates the expression."""
-  not: StoreEncounterFilter
-
-  """Filter by the object's `catch_attempts` field."""
-  catchAttempts: StringFilter
+  not: StoreCounter0Filter
 }
 
 """
@@ -810,205 +482,25 @@ input DatetimeFilter {
   greaterThanOrEqualTo: Datetime
 }
 
-"""A connection to a list of `StoreEncounterTrigger` values."""
-type StoreEncounterTriggersConnection {
-  """A list of `StoreEncounterTrigger` objects."""
-  nodes: [StoreEncounterTrigger!]!
+"""A connection to a list of `StoreCounter1` values."""
+type StoreCounter1sConnection {
+  """A list of `StoreCounter1` objects."""
+  nodes: [StoreCounter1!]!
 
   """
-  A list of edges which contains the `StoreEncounterTrigger` and cursor to aid in pagination.
+  A list of edges which contains the `StoreCounter1` and cursor to aid in pagination.
   """
-  edges: [StoreEncounterTriggersEdge!]!
+  edges: [StoreCounter1sEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """
-  The count of *all* `StoreEncounterTrigger` you could get from the connection.
-  """
+  """The count of *all* `StoreCounter1` you could get from the connection."""
   totalCount: Int!
 }
 
-type StoreEncounterTrigger implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  id: String!
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StoreEncounterTrigger` edge in the connection."""
-type StoreEncounterTriggersEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreEncounterTrigger` at the end of the edge."""
-  node: StoreEncounterTrigger!
-}
-
-"""Methods to use when ordering `StoreEncounterTrigger`."""
-enum StoreEncounterTriggersOrderBy {
-  NATURAL
-  ID_ASC
-  ID_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StoreEncounterTrigger` object types. All fields
-are tested for equality and combined with a logical ‘and.’
-"""
-input StoreEncounterTriggerCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StoreEncounterTrigger` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreEncounterTriggerFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreEncounterTriggerFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreEncounterTriggerFilter!]
-
-  """Negates the expression."""
-  not: StoreEncounterTriggerFilter
-}
-
-"""A connection to a list of `StoreEncounterable` values."""
-type StoreEncounterablesConnection {
-  """A list of `StoreEncounterable` objects."""
-  nodes: [StoreEncounterable!]!
-
-  """
-  A list of edges which contains the `StoreEncounterable` and cursor to aid in pagination.
-  """
-  edges: [StoreEncounterablesEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """
-  The count of *all* `StoreEncounterable` you could get from the connection.
-  """
-  totalCount: Int!
-}
-
-type StoreEncounterable implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  id: String!
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StoreEncounterable` edge in the connection."""
-type StoreEncounterablesEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreEncounterable` at the end of the edge."""
-  node: StoreEncounterable!
-}
-
-"""Methods to use when ordering `StoreEncounterable`."""
-enum StoreEncounterablesOrderBy {
-  NATURAL
-  ID_ASC
-  ID_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StoreEncounterable` object types. All fields are
-tested for equality and combined with a logical ‘and.’
-"""
-input StoreEncounterableCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StoreEncounterable` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreEncounterableFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreEncounterableFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreEncounterableFilter!]
-
-  """Negates the expression."""
-  not: StoreEncounterableFilter
-}
-
-"""A connection to a list of `StoreMapConfig` values."""
-type StoreMapConfigsConnection {
-  """A list of `StoreMapConfig` objects."""
-  nodes: [StoreMapConfig!]!
-
-  """
-  A list of edges which contains the `StoreMapConfig` and cursor to aid in pagination.
-  """
-  edges: [StoreMapConfigsEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The count of *all* `StoreMapConfig` you could get from the connection."""
-  totalCount: Int!
-}
-
-type StoreMapConfig {
-  width: BigInt
-  height: BigInt
-  terrain: [BigInt]
+type StoreCounter1 {
+  value: BigInt
   createdAt: Datetime
   updatedAt: Datetime
 }
@@ -1020,512 +512,33 @@ strings and not numbers.
 """
 scalar BigInt
 
-"""A `StoreMapConfig` edge in the connection."""
-type StoreMapConfigsEdge {
+"""A `StoreCounter1` edge in the connection."""
+type StoreCounter1sEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreMapConfig` at the end of the edge."""
-  node: StoreMapConfig!
+  """The `StoreCounter1` at the end of the edge."""
+  node: StoreCounter1!
 }
 
-"""Methods to use when ordering `StoreMapConfig`."""
-enum StoreMapConfigsOrderBy {
+"""Methods to use when ordering `StoreCounter1`."""
+enum StoreCounter1sOrderBy {
   NATURAL
-  WIDTH_ASC
-  WIDTH_DESC
-  HEIGHT_ASC
-  HEIGHT_DESC
-  TERRAIN_ASC
-  TERRAIN_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-}
-
-"""
-A condition to be used against `StoreMapConfig` object types. All fields are
-tested for equality and combined with a logical ‘and.’
-"""
-input StoreMapConfigCondition {
-  """Checks for equality with the object’s `width` field."""
-  width: BigInt
-
-  """Checks for equality with the object’s `height` field."""
-  height: BigInt
-
-  """Checks for equality with the object’s `terrain` field."""
-  terrain: [BigInt]
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StoreMapConfig` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreMapConfigFilter {
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreMapConfigFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreMapConfigFilter!]
-
-  """Negates the expression."""
-  not: StoreMapConfigFilter
-
-  """Filter by the object's `width` field."""
-  width: StringFilter
-
-  """Filter by the object's `height` field."""
-  height: StringFilter
-
-  """Filter by the object's `terrain` field."""
-  terrain: StringFilter
-}
-
-"""A connection to a list of `StoreMonster` values."""
-type StoreMonstersConnection {
-  """A list of `StoreMonster` objects."""
-  nodes: [StoreMonster!]!
-
-  """
-  A list of edges which contains the `StoreMonster` and cursor to aid in pagination.
-  """
-  edges: [StoreMonstersEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The count of *all* `StoreMonster` you could get from the connection."""
-  totalCount: Int!
-}
-
-type StoreMonster implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  id: String!
-  monsterType: BigInt
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StoreMonster` edge in the connection."""
-type StoreMonstersEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreMonster` at the end of the edge."""
-  node: StoreMonster!
-}
-
-"""Methods to use when ordering `StoreMonster`."""
-enum StoreMonstersOrderBy {
-  NATURAL
-  ID_ASC
-  ID_DESC
-  MONSTER_TYPE_ASC
-  MONSTER_TYPE_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StoreMonster` object types. All fields are
-tested for equality and combined with a logical ‘and.’
-"""
-input StoreMonsterCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `monsterType` field."""
-  monsterType: BigInt
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StoreMonster` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreMonsterFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreMonsterFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreMonsterFilter!]
-
-  """Negates the expression."""
-  not: StoreMonsterFilter
-
-  """Filter by the object's `monster_type` field."""
-  monsterType: StringFilter
-}
-
-"""A connection to a list of `StoreMonsterCatchAttempt` values."""
-type StoreMonsterCatchAttemptsConnection {
-  """A list of `StoreMonsterCatchAttempt` objects."""
-  nodes: [StoreMonsterCatchAttempt!]!
-
-  """
-  A list of edges which contains the `StoreMonsterCatchAttempt` and cursor to aid in pagination.
-  """
-  edges: [StoreMonsterCatchAttemptsEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """
-  The count of *all* `StoreMonsterCatchAttempt` you could get from the connection.
-  """
-  totalCount: Int!
-}
-
-type StoreMonsterCatchAttempt implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  monster: String!
-  result: BigInt
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StoreMonsterCatchAttempt` edge in the connection."""
-type StoreMonsterCatchAttemptsEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreMonsterCatchAttempt` at the end of the edge."""
-  node: StoreMonsterCatchAttempt!
-}
-
-"""Methods to use when ordering `StoreMonsterCatchAttempt`."""
-enum StoreMonsterCatchAttemptsOrderBy {
-  NATURAL
-  MONSTER_ASC
-  MONSTER_DESC
-  RESULT_ASC
-  RESULT_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StoreMonsterCatchAttempt` object types. All
-fields are tested for equality and combined with a logical ‘and.’
-"""
-input StoreMonsterCatchAttemptCondition {
-  """Checks for equality with the object’s `monster` field."""
-  monster: String
-
-  """Checks for equality with the object’s `result` field."""
-  result: BigInt
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StoreMonsterCatchAttempt` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreMonsterCatchAttemptFilter {
-  """Filter by the object’s `monster` field."""
-  monster: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreMonsterCatchAttemptFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreMonsterCatchAttemptFilter!]
-
-  """Negates the expression."""
-  not: StoreMonsterCatchAttemptFilter
-
-  """Filter by the object's `result` field."""
-  result: StringFilter
-}
-
-"""A connection to a list of `StoreMoveable` values."""
-type StoreMoveablesConnection {
-  """A list of `StoreMoveable` objects."""
-  nodes: [StoreMoveable!]!
-
-  """
-  A list of edges which contains the `StoreMoveable` and cursor to aid in pagination.
-  """
-  edges: [StoreMoveablesEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The count of *all* `StoreMoveable` you could get from the connection."""
-  totalCount: Int!
-}
-
-type StoreMoveable implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  id: String!
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StoreMoveable` edge in the connection."""
-type StoreMoveablesEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreMoveable` at the end of the edge."""
-  node: StoreMoveable!
-}
-
-"""Methods to use when ordering `StoreMoveable`."""
-enum StoreMoveablesOrderBy {
-  NATURAL
-  ID_ASC
-  ID_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StoreMoveable` object types. All fields are
-tested for equality and combined with a logical ‘and.’
-"""
-input StoreMoveableCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StoreMoveable` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreMoveableFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreMoveableFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreMoveableFilter!]
-
-  """Negates the expression."""
-  not: StoreMoveableFilter
-}
-
-"""A connection to a list of `StoreObstruction` values."""
-type StoreObstructionsConnection {
-  """A list of `StoreObstruction` objects."""
-  nodes: [StoreObstruction!]!
-
-  """
-  A list of edges which contains the `StoreObstruction` and cursor to aid in pagination.
-  """
-  edges: [StoreObstructionsEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """
-  The count of *all* `StoreObstruction` you could get from the connection.
-  """
-  totalCount: Int!
-}
-
-type StoreObstruction implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  id: String!
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StoreObstruction` edge in the connection."""
-type StoreObstructionsEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreObstruction` at the end of the edge."""
-  node: StoreObstruction!
-}
-
-"""Methods to use when ordering `StoreObstruction`."""
-enum StoreObstructionsOrderBy {
-  NATURAL
-  ID_ASC
-  ID_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StoreObstruction` object types. All fields are
-tested for equality and combined with a logical ‘and.’
-"""
-input StoreObstructionCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StoreObstruction` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreObstructionFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreObstructionFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreObstructionFilter!]
-
-  """Negates the expression."""
-  not: StoreObstructionFilter
-}
-
-"""A connection to a list of `StoreOwnedBy` values."""
-type StoreOwnedBiesConnection {
-  """A list of `StoreOwnedBy` objects."""
-  nodes: [StoreOwnedBy!]!
-
-  """
-  A list of edges which contains the `StoreOwnedBy` and cursor to aid in pagination.
-  """
-  edges: [StoreOwnedBiesEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The count of *all* `StoreOwnedBy` you could get from the connection."""
-  totalCount: Int!
-}
-
-type StoreOwnedBy implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  id: String!
-  value: String
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StoreOwnedBy` edge in the connection."""
-type StoreOwnedBiesEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreOwnedBy` at the end of the edge."""
-  node: StoreOwnedBy!
-}
-
-"""Methods to use when ordering `StoreOwnedBy`."""
-enum StoreOwnedBiesOrderBy {
-  NATURAL
-  ID_ASC
-  ID_DESC
   VALUE_ASC
   VALUE_DESC
   CREATED_AT_ASC
   CREATED_AT_DESC
   UPDATED_AT_ASC
   UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
 }
 
 """
-A condition to be used against `StoreOwnedBy` object types. All fields are
+A condition to be used against `StoreCounter1` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StoreOwnedByCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
+input StoreCounter1Condition {
   """Checks for equality with the object’s `value` field."""
-  value: String
+  value: BigInt
 
   """Checks for equality with the object’s `createdAt` field."""
   createdAt: Datetime
@@ -1535,72 +548,69 @@ input StoreOwnedByCondition {
 }
 
 """
-A filter to be used against `StoreOwnedBy` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreCounter1` object types. All fields are combined with a logical ‘and.’
 """
-input StoreOwnedByFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
+input StoreCounter1Filter {
+  """Filter by the object’s `createdAt` field."""
+  createdAt: DatetimeFilter
 
-  """Filter by the object’s `value` field."""
+  """Filter by the object’s `updatedAt` field."""
+  updatedAt: DatetimeFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreCounter1Filter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreCounter1Filter!]
+
+  """Negates the expression."""
+  not: StoreCounter1Filter
+
+  """Filter by the object's `value` field."""
   value: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreOwnedByFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreOwnedByFilter!]
-
-  """Negates the expression."""
-  not: StoreOwnedByFilter
 }
 
-"""A connection to a list of `StorePlayer` values."""
-type StorePlayersConnection {
-  """A list of `StorePlayer` objects."""
-  nodes: [StorePlayer!]!
+"""A connection to a list of `StoreCounter2` values."""
+type StoreCounter2sConnection {
+  """A list of `StoreCounter2` objects."""
+  nodes: [StoreCounter2!]!
 
   """
-  A list of edges which contains the `StorePlayer` and cursor to aid in pagination.
+  A list of edges which contains the `StoreCounter2` and cursor to aid in pagination.
   """
-  edges: [StorePlayersEdge!]!
+  edges: [StoreCounter2sEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `StorePlayer` you could get from the connection."""
+  """The count of *all* `StoreCounter2` you could get from the connection."""
   totalCount: Int!
 }
 
-type StorePlayer implements Node {
+type StoreCounter2 implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
-  id: String!
+  entityId: String!
   createdAt: Datetime
   updatedAt: Datetime
 }
 
-"""A `StorePlayer` edge in the connection."""
-type StorePlayersEdge {
+"""A `StoreCounter2` edge in the connection."""
+type StoreCounter2sEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StorePlayer` at the end of the edge."""
-  node: StorePlayer!
+  """The `StoreCounter2` at the end of the edge."""
+  node: StoreCounter2!
 }
 
-"""Methods to use when ordering `StorePlayer`."""
-enum StorePlayersOrderBy {
+"""Methods to use when ordering `StoreCounter2`."""
+enum StoreCounter2sOrderBy {
   NATURAL
-  ID_ASC
-  ID_DESC
+  ENTITY_ID_ASC
+  ENTITY_ID_DESC
   CREATED_AT_ASC
   CREATED_AT_DESC
   UPDATED_AT_ASC
@@ -1610,111 +620,12 @@ enum StorePlayersOrderBy {
 }
 
 """
-A condition to be used against `StorePlayer` object types. All fields are tested
-for equality and combined with a logical ‘and.’
-"""
-input StorePlayerCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `createdAt` field."""
-  createdAt: Datetime
-
-  """Checks for equality with the object’s `updatedAt` field."""
-  updatedAt: Datetime
-}
-
-"""
-A filter to be used against `StorePlayer` object types. All fields are combined with a logical ‘and.’
-"""
-input StorePlayerFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
-
-  """Filter by the object’s `createdAt` field."""
-  createdAt: DatetimeFilter
-
-  """Filter by the object’s `updatedAt` field."""
-  updatedAt: DatetimeFilter
-
-  """Checks for all expressions in this list."""
-  and: [StorePlayerFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StorePlayerFilter!]
-
-  """Negates the expression."""
-  not: StorePlayerFilter
-}
-
-"""A connection to a list of `StorePosition` values."""
-type StorePositionsConnection {
-  """A list of `StorePosition` objects."""
-  nodes: [StorePosition!]!
-
-  """
-  A list of edges which contains the `StorePosition` and cursor to aid in pagination.
-  """
-  edges: [StorePositionsEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The count of *all* `StorePosition` you could get from the connection."""
-  totalCount: Int!
-}
-
-type StorePosition implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  id: String!
-  x: BigInt
-  y: BigInt
-  createdAt: Datetime
-  updatedAt: Datetime
-}
-
-"""A `StorePosition` edge in the connection."""
-type StorePositionsEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StorePosition` at the end of the edge."""
-  node: StorePosition!
-}
-
-"""Methods to use when ordering `StorePosition`."""
-enum StorePositionsOrderBy {
-  NATURAL
-  ID_ASC
-  ID_DESC
-  X_ASC
-  X_DESC
-  Y_ASC
-  Y_DESC
-  CREATED_AT_ASC
-  CREATED_AT_DESC
-  UPDATED_AT_ASC
-  UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StorePosition` object types. All fields are
+A condition to be used against `StoreCounter2` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StorePositionCondition {
-  """Checks for equality with the object’s `id` field."""
-  id: String
-
-  """Checks for equality with the object’s `x` field."""
-  x: BigInt
-
-  """Checks for equality with the object’s `y` field."""
-  y: BigInt
+input StoreCounter2Condition {
+  """Checks for equality with the object’s `entityId` field."""
+  entityId: String
 
   """Checks for equality with the object’s `createdAt` field."""
   createdAt: Datetime
@@ -1724,11 +635,11 @@ input StorePositionCondition {
 }
 
 """
-A filter to be used against `StorePosition` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreCounter2` object types. All fields are combined with a logical ‘and.’
 """
-input StorePositionFilter {
-  """Filter by the object’s `id` field."""
-  id: StringFilter
+input StoreCounter2Filter {
+  """Filter by the object’s `entityId` field."""
+  entityId: StringFilter
 
   """Filter by the object’s `createdAt` field."""
   createdAt: DatetimeFilter
@@ -1737,19 +648,13 @@ input StorePositionFilter {
   updatedAt: DatetimeFilter
 
   """Checks for all expressions in this list."""
-  and: [StorePositionFilter!]
+  and: [StoreCounter2Filter!]
 
   """Checks for any expressions in this list."""
-  or: [StorePositionFilter!]
+  or: [StoreCounter2Filter!]
 
   """Negates the expression."""
-  not: StorePositionFilter
-
-  """Filter by the object's `x` field."""
-  x: StringFilter
-
-  """Filter by the object's `y` field."""
-  y: StringFilter
+  not: StoreCounter2Filter
 }
 
 """A connection to a list of `TableField` values."""
@@ -1939,6 +844,84 @@ input BooleanFilter {
 
   """Greater than or equal to the specified value."""
   greaterThanOrEqualTo: Boolean
+}
+
+"""A connection to a list of `TableMetadatum` values."""
+type TableMetadataConnection {
+  """A list of `TableMetadatum` objects."""
+  nodes: [TableMetadatum!]!
+
+  """
+  A list of edges which contains the `TableMetadatum` and cursor to aid in pagination.
+  """
+  edges: [TableMetadataEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `TableMetadatum` you could get from the connection."""
+  totalCount: Int!
+}
+
+type TableMetadatum implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  tableName: String!
+  tableType: String
+}
+
+"""A `TableMetadatum` edge in the connection."""
+type TableMetadataEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `TableMetadatum` at the end of the edge."""
+  node: TableMetadatum!
+}
+
+"""Methods to use when ordering `TableMetadatum`."""
+enum TableMetadataOrderBy {
+  NATURAL
+  TABLE_NAME_ASC
+  TABLE_NAME_DESC
+  TABLE_TYPE_ASC
+  TABLE_TYPE_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `TableMetadatum` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input TableMetadatumCondition {
+  """Checks for equality with the object’s `tableName` field."""
+  tableName: String
+
+  """Checks for equality with the object’s `tableType` field."""
+  tableType: String
+}
+
+"""
+A filter to be used against `TableMetadatum` object types. All fields are combined with a logical ‘and.’
+"""
+input TableMetadatumFilter {
+  """Filter by the object’s `tableName` field."""
+  tableName: StringFilter
+
+  """Filter by the object’s `tableType` field."""
+  tableType: StringFilter
+
+  """Checks for all expressions in this list."""
+  and: [TableMetadatumFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [TableMetadatumFilter!]
+
+  """Negates the expression."""
+  not: TableMetadatumFilter
 }
 
 """

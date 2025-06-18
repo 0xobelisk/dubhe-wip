@@ -453,7 +453,7 @@ export async function exampleCustomQuery() {
       encounters(filter: { player: { equalTo: $player } }) {
         edges {
           node {
-            id
+            entityId
             player
             monster
             catchAttempts
@@ -638,7 +638,7 @@ export function exampleMultiTableSubscription() {
     ['encounter', 'account', 'position'],
     {
       initialEvent: true,
-      fields: ['id', 'createdAt', 'updatedAt'], // 所有表共用的字段
+      fields: ['entityId', 'createdAt', 'updatedAt'], // 所有表共用的字段
       first: 5,
       onData: (allData) => {
         console.log('📦 表列表订阅数据更新:', {

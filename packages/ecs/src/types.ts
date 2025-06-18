@@ -65,7 +65,7 @@ export interface EntityChangeEvent {
 // 查询选项
 export interface QueryOptions {
   fields?: string[]; // 允许用户指定需要查询的字段
-  idFields?: string[]; // 用作实体ID的字段名数组，默认尝试 ['nodeId', 'id']
+  idFields?: string[]; // 用作实体ID的字段名数组，默认尝试 ['nodeId', 'entityId']
   compositeId?: boolean; // 是否组合多个字段作为ID，默认false
   limit?: number;
   offset?: number;

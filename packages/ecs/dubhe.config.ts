@@ -4,10 +4,10 @@ export const dubheConfig = {
   name: 'monster_hunter',
   description: 'monster_hunter contract',
   enums: {
-    Direction: ["North", "East", "South", "West"],
-    MonsterCatchResult: ["Missed", "Caught", "Fled"],
-    MonsterType: ["Eagle", "Rat", "Caterpillar"],
-    TerrainType: ["None", "TallGrass", "Boulder"]
+    Direction: ['North', 'East', 'South', 'West'],
+    MonsterCatchResult: ['Missed', 'Caught', 'Fled'],
+    MonsterType: ['Eagle', 'Rat', 'Caterpillar'],
+    TerrainType: ['None', 'TallGrass', 'Boulder'],
   },
   errors: {
     cannot_move: 'This entity cannot move',
@@ -16,6 +16,7 @@ export const dubheConfig = {
     in_encounter: 'This player is already in an encounter',
     not_in_encounter: 'This player is not in an encounter',
   },
+  resources: {},
   components: {
     player: {},
     moveable: {},
@@ -32,7 +33,7 @@ export const dubheConfig = {
         height: 'u64',
         terrain: 'vector<u32>',
       },
-      keys: []
+      keys: [],
     },
     encounterable: {},
     encounter_trigger: {},
@@ -40,22 +41,22 @@ export const dubheConfig = {
       fields: {
         monster: 'address',
         catch_attempts: 'u64',
-      }
+      },
     },
     monster: {
       fields: {
-        id: 'address',
+        entity_id: 'address',
         monster_type: 'MonsterType',
       },
-      keys: ["id"]
+      keys: ['entity_id'],
     },
-    owned_by: "address",
+    owned_by: 'address',
     monster_catch_attempt: {
       fields: {
         monster: 'address',
         result: 'MonsterCatchResult',
       },
-      keys: ["monster"]
+      keys: ['monster'],
     },
   },
 } as DubheConfig;

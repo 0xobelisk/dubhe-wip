@@ -451,6 +451,13 @@ export class DubheGraphqlClient {
       }
     `;
 
+    console.log(`
+      query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
+        ${singularTableName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
+          ${this.convertTableFields(tableName, fields)}
+        }
+      }
+    `);
     const result = await this.query(query, condition);
 
     if (result.error) {
@@ -1031,22 +1038,22 @@ export class DubheGraphqlClient {
       // 处理不同类型的组件定义
       if (typeof component === 'string') {
         // 如果组件是字符串（MoveType），创建一个value字段
-        fields.push('id', 'value');
+        fields.push('entityId', 'value');
       } else if (Object.keys(component).length === 0) {
-        // EmptyComponent - 只有id字段
-        fields.push('id');
+        // EmptyComponent - 只有entityId字段
+        fields.push('entityId');
       } else {
         // Component 类型
         // 分析主键配置
         if (!('keys' in component)) {
-          // keys未定义 → 添加默认id字段
-          fields.push('id');
+          // keys未定义 → 添加默认entityId字段
+          fields.push('entityId');
         } else if (component.keys && component.keys.length > 0) {
-          // keys指定了字段 → 不添加默认id（主键字段会在下面处理）
-          // 不添加id
+          // keys指定了字段 → 不添加默认entityId（主键字段会在下面处理）
+          // 不添加entityId
         } else {
-          // keys: [] → 明确指定无主键，不添加id
-          // 不添加id
+          // keys: [] → 明确指定无主键，不添加entityId
+          // 不添加entityId
         }
 
         // 添加用户定义的字段
@@ -1075,12 +1082,12 @@ export class DubheGraphqlClient {
         typeof component === 'string' ||
         Object.keys(component).length === 0
       ) {
-        // 字符串类型和空组件都使用id作为主键
-        primaryKeys = ['id'];
+        // 字符串类型和空组件都使用entityId作为主键
+        primaryKeys = ['entityId'];
         hasDefaultId = true;
       } else if (!('keys' in component)) {
-        // Component类型但没有定义keys，使用默认id
-        primaryKeys = ['id'];
+        // Component类型但没有定义keys，使用默认entityId
+        primaryKeys = ['entityId'];
         hasDefaultId = true;
       } else if (!component.keys || component.keys.length === 0) {
         // keys: [] 明确指定无主键

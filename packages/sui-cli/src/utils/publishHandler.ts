@@ -7,7 +7,8 @@ import {
   switchEnv,
   delay,
   getDubheDappHub,
-  initializeDubhe
+  initializeDubhe,
+  saveMetadata
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
@@ -441,6 +442,8 @@ async function publishContract(
       version,
       components
     );
+
+    await saveMetadata(dubheConfig.name, network, packageId);
 
     // Insert package id to dubhe config
     let config = JSON.parse(fs.readFileSync(`${process.cwd()}/dubhe.config.json`, 'utf-8'));

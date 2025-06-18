@@ -49,3 +49,6 @@ indexer.db
 node_logs
 mprocs.log
 .data/
+
+src/dubhe/
+.chk

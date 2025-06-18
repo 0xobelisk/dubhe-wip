@@ -63,7 +63,7 @@ export class ComponentDiscoverer {
           // MoveType string, e.g. owned_by: "address"
           fields.push(
             {
-              name: 'id',
+              name: 'entityId',
               type: 'String',
               nullable: false,
               isPrimaryKey: true,
@@ -77,7 +77,7 @@ export class ComponentDiscoverer {
               isEnum: this.isEnumType(componentConfig),
             }
           );
-          primaryKeys.push('id');
+          primaryKeys.push('entityId');
         } else if (
           typeof componentConfig === 'object' &&
           componentConfig !== null &&
@@ -85,13 +85,13 @@ export class ComponentDiscoverer {
         ) {
           // EmptyComponent, e.g. player: {}
           fields.push({
-            name: 'id',
+            name: 'entityId',
             type: 'String',
             nullable: false,
             isPrimaryKey: true,
             isEnum: false,
           });
-          primaryKeys.push('id');
+          primaryKeys.push('entityId');
         } else if (
           typeof componentConfig === 'object' &&
           componentConfig !== null &&
@@ -146,13 +146,13 @@ export class ComponentDiscoverer {
           // Add default id field based on primary key strategy
           if (keyStrategy === 'default') {
             fields.unshift({
-              name: 'id',
+              name: 'entityId',
               type: 'String',
               nullable: false,
               isPrimaryKey: true,
               isEnum: false,
             });
-            primaryKeys.push('id');
+            primaryKeys.push('entityId');
           }
         }
 
@@ -262,7 +262,7 @@ export class ComponentDiscoverer {
   //         // MoveType string, e.g. owned_by: "address"
   //         fields.push(
   //           {
-  //             name: 'id',
+  //             name: 'entity_id',
   //             type: 'String',
   //             nullable: false,
   //             isPrimaryKey: true,
@@ -276,7 +276,7 @@ export class ComponentDiscoverer {
   //             isEnum: this.isEnumType(componentConfig),
   //           }
   //         );
-  //         primaryKeys.push('id');
+  //         primaryKeys.push('entity_id');
   //       } else if (
   //         typeof componentConfig === 'object' &&
   //         componentConfig !== null &&
@@ -284,13 +284,13 @@ export class ComponentDiscoverer {
   //       ) {
   //         // EmptyComponent, e.g. player: {}
   //         fields.push({
-  //           name: 'id',
+  //           name: 'entity_id',
   //           type: 'String',
   //           nullable: false,
   //           isPrimaryKey: true,
   //           isEnum: false,
   //         });
-  //         primaryKeys.push('id');
+  //         primaryKeys.push('entity_id');
   //       } else if (
   //         typeof componentConfig === 'object' &&
   //         componentConfig !== null &&
@@ -345,13 +345,13 @@ export class ComponentDiscoverer {
   //         // Add default id field based on primary key strategy
   //         if (keyStrategy === 'default') {
   //           fields.unshift({
-  //             name: 'id',
+  //             name: 'entity_id',
   //             type: 'String',
   //             nullable: false,
   //             isPrimaryKey: true,
   //             isEnum: false,
   //           });
-  //           primaryKeys.push('id');
+  //           primaryKeys.push('entity_id');
   //         }
   //       }
 

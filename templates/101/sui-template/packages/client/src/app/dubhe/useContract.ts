@@ -40,6 +40,9 @@ export function useContract() {
     contract,
     graphqlClient,
     ecsWorld,
-    metadata
+    metadata,
+    network: NETWORK,
+    packageId: PACKAGE_ID,
+    address: contract.getAddress()
   };
 }

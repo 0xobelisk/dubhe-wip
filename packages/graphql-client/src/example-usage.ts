@@ -16,15 +16,16 @@ const exampleDubheConfig: DubheConfig = {
     MonsterType: ['Fire', 'Water', 'Grass', 'Electric'],
     Direction: ['North', 'South', 'East', 'West'],
   },
+  resources: {},
   components: {
-    // 有默认 id 字段的表
+    // 有默认 entityId 字段的表
     Player: {
       fields: {
         name: 'string',
         level: 'u32',
         experience: 'u64',
       },
-      // keys 未定义，表示有默认的 id 字段
+      // keys 未定义，表示有默认的 entityId 字段
     },
 
     // 有自定义主键的表
@@ -88,7 +89,7 @@ async function exampleUsage() {
   // 2. 查询时自动使用解析的字段（不需要手动指定 fields）
   console.log('2. 自动字段查询示例:');
   try {
-    // 查询 Player 表 - 自动包含 id, name, level, experience, createdAt, updatedAt
+    // 查询 Player 表 - 自动包含 entityId, name, level, experience, createdAt, updatedAt
     const players = await client.getAllTables('player');
     console.log(
       'Players 查询成功，自动使用的字段:',
@@ -111,7 +112,7 @@ async function exampleUsage() {
   console.log('\n3. 手动指定字段示例:');
   try {
     const playersWithCustomFields = await client.getAllTables('player', {
-      fields: ['id', 'name'], // 手动指定只查询这两个字段
+      fields: ['entityId', 'name'], // 手动指定只查询这两个字段
     });
     console.log('手动指定字段查询成功');
   } catch (error: any) {

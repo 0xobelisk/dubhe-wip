@@ -9,6 +9,7 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 const dubheConfig: DubheConfig = {
   name: 'field_strategy_demo',
   description: 'description demo',
+  resources: {},
   components: {
     // 1. 有默认id字段的表
     Player: {

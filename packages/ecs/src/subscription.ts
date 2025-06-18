@@ -66,8 +66,8 @@ export class ECSSubscription {
               const nodes = data.listen?.query?.[pluralTableName]?.nodes;
               if (nodes && Array.isArray(nodes)) {
                 nodes.forEach((node: any) => {
-                  if (node && node.id) {
-                    debouncedCallback(node.id, node as T);
+                  if (node && node.entityId) {
+                    debouncedCallback(node.entityId, node as T);
                   }
                 });
               }
@@ -132,7 +132,7 @@ export class ECSSubscription {
               const pluralTableName = this.getPluralTableName(componentType);
               const nodes = data.listen?.query?.[pluralTableName]?.nodes || [];
               const currentEntities = new Set<EntityId>(
-                nodes.map((node: any) => node.id)
+                nodes.map((node: any) => node.entityId)
               );
 
               // 找出被移除的实体
@@ -200,8 +200,8 @@ export class ECSSubscription {
               const nodes = data.listen?.query?.[pluralTableName]?.nodes;
               if (nodes && Array.isArray(nodes)) {
                 nodes.forEach((node: any) => {
-                  if (node && node.id) {
-                    debouncedCallback(node.id, node as T);
+                  if (node && node.entityId) {
+                    debouncedCallback(node.entityId, node as T);
                   }
                 });
               }
@@ -261,8 +261,8 @@ export class ECSSubscription {
               const nodes = data.listen?.query?.[pluralTableName]?.nodes || [];
 
               nodes.forEach((node: any) => {
-                if (node && node.id) {
-                  debouncedCallback(node.id, node as T);
+                if (node && node.entityId) {
+                  debouncedCallback(node.entityId, node as T);
                 }
               });
             } catch (error) {
@@ -351,7 +351,7 @@ export class ECSSubscription {
               .map((edge: any) => {
                 const node = edge.node as any;
                 const entityId =
-                  node.nodeId || node.id || Object.values(node)[0] || '';
+                  node.nodeId || node.entityId || Object.values(node)[0] || '';
                 return {
                   entityId,
                   data: node as T,
@@ -393,7 +393,7 @@ export class ECSSubscription {
 
       connection.edges.forEach((edge) => {
         const node = edge.node as any;
-        const entityId = node.nodeId || node.id || Object.values(node)[0];
+        const entityId = node.nodeId || node.entityId || Object.values(node)[0];
         if (entityId) {
           lastKnownEntities.add(entityId);
         }
@@ -539,7 +539,7 @@ class QueryWatcherImpl {
         this.currentResults = connection.edges
           .map((edge) => {
             const node = edge.node as any;
-            return node.nodeId || node.id || Object.values(node)[0] || '';
+            return node.nodeId || node.entityId || Object.values(node)[0] || '';
           })
           .filter(Boolean);
       } else {
@@ -562,7 +562,9 @@ class QueryWatcherImpl {
             ? connection.edges
                 .map((edge) => {
                   const node = edge.node as any;
-                  return node.nodeId || node.id || Object.values(node)[0] || '';
+                  return (
+                    node.nodeId || node.entityId || Object.values(node)[0] || ''
+                  );
                 })
                 .filter(Boolean)
             : [];

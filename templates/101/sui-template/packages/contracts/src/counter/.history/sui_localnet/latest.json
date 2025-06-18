@@ -1,7 +1,7 @@
 {
   "projectName": "counter",
   "network": "localnet",
-  "packageId": "0xe718fd3ecf244a816f2c8291ca42b2b89814af11549ce28c2d7a72b983f7dc3c",
+  "packageId": "0x2cd54cc8fac19c64df1c0fb182b1b4f3dc4f5c535ba7d1a3976e33fc1e27d1f4",
   "dappHub": "",
   "components": {
     "counter0": {},
@@ -13,6 +13,6 @@
     },
     "counter2": "u32"
   },
-  "upgradeCap": "0xacb03030c8739590a8244044143c65d7278e9e5b8ef2a6c8bba3b2e1ee6fb2e5",
+  "upgradeCap": "0x8b7f9d955ff17721ddaa96702932fe466c3b4bf9161601b406ac14af3dd362e5",
   "version": 1
 }

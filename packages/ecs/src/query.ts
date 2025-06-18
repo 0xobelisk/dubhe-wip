@@ -68,7 +68,7 @@ export class ECSQuery {
    * 🆕 获取组件的主键字段名（从缓存中快速获取）
    */
   getComponentPrimaryKeyField(componentType: ComponentType): string {
-    return this.componentPrimaryKeys.get(componentType) || 'id';
+    return this.componentPrimaryKeys.get(componentType) || 'entityId';
   }
 
   /**
@@ -188,7 +188,7 @@ export class ECSQuery {
       const queries = await Promise.all(
         tables.map(async (table) => {
           const fields = await this.getQueryFields(table);
-          const primaryKey = this.componentPrimaryKeys.get(table) || 'id';
+          const primaryKey = this.componentPrimaryKeys.get(table) || 'entityId';
 
           return {
             key: table,
@@ -340,11 +340,11 @@ export class ECSQuery {
     if (primaryKeyField) {
       return { [primaryKeyField]: entityId };
     } else {
-      // 如果缓存中没有，回退到默认的'id'字段
+      // 如果缓存中没有，回退到默认的'entityId'字段
       console.warn(
-        `⚠️ No cached primary key for ${componentType}, falling back to 'id' field`
+        `⚠️ No cached primary key for ${componentType}, falling back to 'entityId' field`
       );
-      return { id: entityId };
+      return { entityId: entityId };
     }
   }
 

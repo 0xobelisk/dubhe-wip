@@ -7,7 +7,7 @@ import { Connection, StoreTableRow } from '@0xobelisk/graphql-client';
  * 从GraphQL查询结果中提取实体ID
  * @param connection GraphQL查询结果
  * @param options 提取选项
- * @param options.idFields 用作实体ID的字段名数组，默认尝试 ['nodeId', 'id']
+ * @param options.idFields 用作实体ID的字段名数组，默认尝试 ['nodeId', 'entityId']
  * @param options.composite 是否组合多个字段作为ID，默认false
  */
 export function extractEntityIds<T extends StoreTableRow>(
@@ -17,7 +17,8 @@ export function extractEntityIds<T extends StoreTableRow>(
     composite?: boolean;
   }
 ): EntityId[] {
-  const { idFields = ['nodeId', 'id'], composite = false } = options || {};
+  const { idFields = ['nodeId', 'entityId'], composite = false } =
+    options || {};
 
   return connection.edges
     .map((edge) => {
