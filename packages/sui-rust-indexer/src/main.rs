@@ -131,7 +131,7 @@ async fn main() -> Result<()> {
     );
 
     executor.register(WorkerPool::new(
-        CustomWorker, 
+        dubhe_indexer_worker, 
         "latest_reader_progress".to_string(), 
         concurrency
     )).await?;
