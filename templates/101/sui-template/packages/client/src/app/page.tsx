@@ -4,7 +4,7 @@ import { Transaction, TransactionResult } from '@0xobelisk/sui-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Value } from '@/app/state';
-import { SCHEMA_ID, DUBHE_SCHEMA_ID } from '../../../contracts/deployment';
+import { DUBHE_SCHEMA_ID } from '../../../contracts/deployment';
 import { toast } from 'sonner';
 import { useContract } from './dubhe/useContract';
 
@@ -36,8 +36,8 @@ export default function Home() {
     try {
       console.log('🔍 使用 GraphQL 查询 counter 值...');
 
-      // 查询 counter0 组件（包含 value 字段）
-      const result = await graphqlClient.getAllTables('counter0', {
+      // 查询 counter1 组件（包含 value 字段）
+      const result = await graphqlClient.getAllTables('counter1', {
         first: 1,
         orderBy: [{ field: 'createdAt', direction: 'DESC' }]
       });
@@ -64,14 +64,15 @@ export default function Home() {
     try {
       console.log('🎮 使用 ECS World 查询 counter 值...');
 
-      // 获取拥有 counter0 组件的实体
+      // 获取拥有 counter1 组件的实体
       if (address) {
-        // 获取第一个实体的 counter0 组件数据
-        const counterComponent = (await ecsWorld.getComponent(address, 'counter0')) as any;
+        console.log('address', address);
+        // 获取第一个实体的 counter1 组件数据
+        const counterComponent = (await ecsWorld.getComponent(address, 'counter1')) as any;
         console.log('📊 Counter 组件数据:', counterComponent);
         setValue(counterComponent?.value || 0);
       } else {
-        console.log('📊 未找到 counter0 组件，设置默认值 0');
+        console.log('📊 未找到 counter1 组件，设置默认值 0');
         setValue(0);
       }
     } catch (error) {
@@ -127,38 +128,37 @@ export default function Home() {
     try {
       console.log('📡 开始 GraphQL 订阅 counter 变化...');
 
-      const subscription = graphqlClient.subscribeToTableChanges('counter0', {
-        fields: ['value', 'createdAt', 'updatedAt'],
-        initialEvent: true
-      });
+      const observable = graphqlClient.subscribeToTableChanges('counter1', {
+        // initialEvent: true, // 🔑 重要：设置 initialEvent 为 true
+        onData: (data: any) => {
+          console.log('📢 GraphQL 收到 counter 更新:', data);
 
-      subscription.subscribe({
-        next: (result) => {
-          console.log('📢 GraphQL 收到 counter 更新:', result);
-
-          // GraphQL 订阅数据结构：result.listen.query.counter0s.nodes
-          const data = result as any;
-          const nodes = data?.listen?.query?.counter0s?.nodes;
-
+          // GraphQL 订阅数据结构：data.listen.query.counter1s.nodes
+          console.log('完整数据结构:', JSON.stringify(data, null, 2));
+          const nodes = data?.listen?.query?.counter1s?.nodes;
+          console.log('nodes:', nodes);
           if (nodes && Array.isArray(nodes) && nodes.length > 0) {
             const latestCounter = nodes[0];
             if (latestCounter?.value !== undefined) {
               setValue(latestCounter.value);
-              toast('Counter Updated', {
+              toast('Counter GraphQL Updated', {
                 description: `New value: ${latestCounter.value}`
               });
             }
           }
         },
-        error: (err) => {
-          console.error('❌ GraphQL 订阅错误:', err);
+        onError: (error: any) => {
+          console.error('❌ GraphQL 订阅错误:', error);
         },
-        complete: () => {
+        onComplete: () => {
           console.log('✅ GraphQL 订阅完成');
         }
       });
 
-      return subscription;
+      // 启动订阅并返回 Subscription 对象
+      const subscription = observable.subscribe({});
+
+      return subscription; // 返回 Subscription 对象，有 unsubscribe 方法
     } catch (error) {
       console.error('❌ GraphQL 订阅设置失败:', error);
       return null;
@@ -170,16 +170,16 @@ export default function Home() {
    */
   const subscribeToCounterWithECS = () => {
     try {
-      console.log('🎮 开始 ECS 订阅 counter0 组件变化...');
+      console.log('🎮 开始 ECS 订阅 counter1 组件变化...');
 
-      const unsubscribe = ecsWorld.onComponentChanged('counter0', (entityId, component) => {
-        console.log(`📢 实体 ${entityId} 的 counter0 组件发生变化:`, component);
+      const unsubscribe = ecsWorld.onComponentChanged('counter1', (entityId, component) => {
+        console.log(`📢 实体 ${entityId} 的 counter1 组件发生变化:`, component);
 
         // ECS 组件数据直接包含 value 字段
         const componentData = component as any;
         if (componentData?.value !== undefined) {
           setValue(componentData.value);
-          toast('Counter Updated', {
+          toast('Counter ECS Updated', {
             description: `New value: ${componentData.value}`
           });
         }
@@ -217,9 +217,9 @@ export default function Home() {
         if (ecsUnsubscribe) {
           ecsUnsubscribe();
         }
-        // if (graphqlSubscription) {
-        //   graphqlSubscription.unsubscribe();
-        // }
+        if (graphqlSubscription) {
+          graphqlSubscription.unsubscribe();
+        }
       };
     };
 

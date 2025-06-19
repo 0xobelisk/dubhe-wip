@@ -16,17 +16,10 @@
       "counter1": {
         "fields": [
           {
-            "value": "u32"
-          }
-        ],
-        "keys": []
-      }
-    },
-    {
-      "counter2": {
-        "fields": [
-          {
             "entity_id": "address"
+          },
+          {
+            "value": "u32"
           }
         ],
         "keys": [
@@ -35,7 +28,18 @@
       }
     }
   ],
-  "resources": [],
+  "resources": [
+    {
+      "counter2": {
+        "fields": [
+          {
+            "value": "u32"
+          }
+        ],
+        "keys": []
+      }
+    }
+  ],
   "enums": [],
-  "package_id": "0x2cd54cc8fac19c64df1c0fb182b1b4f3dc4f5c535ba7d1a3976e33fc1e27d1f4"
+  "package_id": "0xf26e3909e664d4d957263bd4fb71d42eabee25e0cd9bb89bc3ad96192c89fb46"
 }

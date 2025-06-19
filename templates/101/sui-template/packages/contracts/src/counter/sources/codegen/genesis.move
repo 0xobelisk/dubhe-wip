@@ -1,4 +1,4 @@
-#[allow(lint(share_owned))]module counter::genesis {
+#[allow(lint(share_owned))]module counter::counter_genesis {
 
   use sui::clock::Clock;
 

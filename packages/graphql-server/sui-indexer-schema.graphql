@@ -72,7 +72,7 @@ type Query implements Node {
     after: Cursor
 
     """The method to use when ordering `StoreCounter1`."""
-    orderBy: [StoreCounter1sOrderBy!] = [NATURAL]
+    orderBy: [StoreCounter1sOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
@@ -106,7 +106,7 @@ type Query implements Node {
     after: Cursor
 
     """The method to use when ordering `StoreCounter2`."""
-    orderBy: [StoreCounter2sOrderBy!] = [PRIMARY_KEY_ASC]
+    orderBy: [StoreCounter2sOrderBy!] = [NATURAL]
 
     """
     A condition to be used in determining which values should be returned by the collection.
@@ -187,7 +187,7 @@ type Query implements Node {
     filter: TableMetadatumFilter
   ): TableMetadataConnection
   counter0(entityId: String!): StoreCounter0
-  counter2(entityId: String!): StoreCounter2
+  counter1(entityId: String!): StoreCounter1
   tableField(tableName: String!, fieldName: String!): TableField
   tableMetadatum(tableName: String!): TableMetadatum
 
@@ -199,13 +199,13 @@ type Query implements Node {
     nodeId: ID!
   ): StoreCounter0
 
-  """Reads a single `StoreCounter2` using its globally unique `ID`."""
-  counter2ByNodeId(
+  """Reads a single `StoreCounter1` using its globally unique `ID`."""
+  counter1ByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreCounter2`.
+    The globally unique `ID` to be used in selecting a single `StoreCounter1`.
     """
     nodeId: ID!
-  ): StoreCounter2
+  ): StoreCounter1
 
   """Reads a single `TableField` using its globally unique `ID`."""
   tableFieldByNodeId(
@@ -499,7 +499,12 @@ type StoreCounter1sConnection {
   totalCount: Int!
 }
 
-type StoreCounter1 {
+type StoreCounter1 implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  entityId: String!
   value: BigInt
   createdAt: Datetime
   updatedAt: Datetime
@@ -524,12 +529,16 @@ type StoreCounter1sEdge {
 """Methods to use when ordering `StoreCounter1`."""
 enum StoreCounter1sOrderBy {
   NATURAL
+  ENTITY_ID_ASC
+  ENTITY_ID_DESC
   VALUE_ASC
   VALUE_DESC
   CREATED_AT_ASC
   CREATED_AT_DESC
   UPDATED_AT_ASC
   UPDATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
 }
 
 """
@@ -537,6 +546,9 @@ A condition to be used against `StoreCounter1` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
 input StoreCounter1Condition {
+  """Checks for equality with the object’s `entityId` field."""
+  entityId: String
+
   """Checks for equality with the object’s `value` field."""
   value: BigInt
 
@@ -551,6 +563,9 @@ input StoreCounter1Condition {
 A filter to be used against `StoreCounter1` object types. All fields are combined with a logical ‘and.’
 """
 input StoreCounter1Filter {
+  """Filter by the object’s `entityId` field."""
+  entityId: StringFilter
+
   """Filter by the object’s `createdAt` field."""
   createdAt: DatetimeFilter
 
@@ -587,12 +602,8 @@ type StoreCounter2sConnection {
   totalCount: Int!
 }
 
-type StoreCounter2 implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  entityId: String!
+type StoreCounter2 {
+  value: BigInt
   createdAt: Datetime
   updatedAt: Datetime
 }
@@ -609,14 +620,12 @@ type StoreCounter2sEdge {
 """Methods to use when ordering `StoreCounter2`."""
 enum StoreCounter2sOrderBy {
   NATURAL
-  ENTITY_ID_ASC
-  ENTITY_ID_DESC
+  VALUE_ASC
+  VALUE_DESC
   CREATED_AT_ASC
   CREATED_AT_DESC
   UPDATED_AT_ASC
   UPDATED_AT_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
 }
 
 """
@@ -624,8 +633,8 @@ A condition to be used against `StoreCounter2` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
 input StoreCounter2Condition {
-  """Checks for equality with the object’s `entityId` field."""
-  entityId: String
+  """Checks for equality with the object’s `value` field."""
+  value: BigInt
 
   """Checks for equality with the object’s `createdAt` field."""
   createdAt: Datetime
@@ -638,9 +647,6 @@ input StoreCounter2Condition {
 A filter to be used against `StoreCounter2` object types. All fields are combined with a logical ‘and.’
 """
 input StoreCounter2Filter {
-  """Filter by the object’s `entityId` field."""
-  entityId: StringFilter
-
   """Filter by the object’s `createdAt` field."""
   createdAt: DatetimeFilter
 
@@ -655,6 +661,9 @@ input StoreCounter2Filter {
 
   """Negates the expression."""
   not: StoreCounter2Filter
+
+  """Filter by the object's `value` field."""
+  value: StringFilter
 }
 
 """A connection to a list of `TableField` values."""

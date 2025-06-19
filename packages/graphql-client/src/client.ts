@@ -483,7 +483,7 @@ export class DubheGraphqlClient {
     // 所以这里我们使用更简洁的topic命名
     const topic = options?.topicPrefix
       ? `${options.topicPrefix}${tableName}`
-      : `store_${tableName}`;
+      : `store_${this.getSingularTableName(tableName)}`;
 
     const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
     const fields = this.convertTableFields(tableName, options?.fields);
@@ -506,6 +506,24 @@ export class DubheGraphqlClient {
         }
       }
     `;
+    console.log(`
+      subscription ListenToTableChanges($topic: String!, $initialEvent: Boolean) {
+        listen(topic: $topic, initialEvent: $initialEvent) {
+          query {
+            ${pluralTableName}(first: ${options?.first || 10}, orderBy: UPDATED_AT_DESC) {
+              totalCount
+              nodes {
+                ${fields}
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+            }
+          }
+        }
+      }
+    `);
 
     return this.subscribe(
       subscription,
@@ -566,7 +584,7 @@ export class DubheGraphqlClient {
     // 改进topic命名，支持自定义前缀
     const topic = options?.topicPrefix
       ? `${options.topicPrefix}${tableName}`
-      : `store_${tableName}`;
+      : `store_${this.getSingularTableName(tableName)}`;
 
     const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
     const fields = this.convertTableFields(tableName, options?.fields);
@@ -1105,7 +1123,6 @@ export class DubheGraphqlClient {
         hasDefaultId,
         enumFields,
       };
-
       this.parsedTables.set(tableName, tableInfo);
       // 同时用camelCase版本作为key存储，方便查找
       this.parsedTables.set(this.toCamelCase(tableName), tableInfo);
@@ -1183,20 +1200,18 @@ export class DubheGraphqlClient {
     customFields?: string[]
   ): string {
     let fields: string[];
-    let source: string;
 
     if (customFields && customFields.length > 0) {
       fields = customFields;
-      source = '用户指定';
     } else {
       // 尝试从dubhe配置中获取字段
       const autoFields = this.getTableFields(tableName);
+      console.log('tableName', tableName);
+      console.log('autoFields', autoFields);
       if (autoFields.length > 0) {
         fields = autoFields;
-        source = 'dubhe配置';
       } else {
         fields = ['createdAt', 'updatedAt'];
-        source = '默认字段';
       }
     }
 

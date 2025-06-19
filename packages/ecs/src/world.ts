@@ -556,7 +556,10 @@ export class DubheECSWorld {
       dubheConfig
     );
     this.querySystem = new ECSQuery(graphqlClient, this.componentDiscoverer);
-    this.subscriptionSystem = new ECSSubscription(graphqlClient);
+    this.subscriptionSystem = new ECSSubscription(
+      graphqlClient,
+      this.componentDiscoverer
+    );
 
     try {
       // console.log('🚀 Initializing ECS world...');
@@ -584,6 +587,14 @@ export class DubheECSWorld {
 
       // 🆕 Initialize component primary key cache
       this.querySystem.initializeComponentMetadata(
+        ecsComponents.map((comp) => ({
+          name: comp.name,
+          primaryKeys: comp.primaryKeys,
+        }))
+      );
+
+      // 🆕 Initialize subscription system component metadata cache
+      this.subscriptionSystem.initializeComponentMetadata(
         ecsComponents.map((comp) => ({
           name: comp.name,
           primaryKeys: comp.primaryKeys,
@@ -643,6 +654,14 @@ export class DubheECSWorld {
 
         // 🆕 Initialize component primary key cache
         this.querySystem.initializeComponentMetadata(
+          ecsComponents.map((comp) => ({
+            name: comp.name,
+            primaryKeys: comp.primaryKeys,
+          }))
+        );
+
+        // 🆕 Initialize subscription system component metadata cache
+        this.subscriptionSystem.initializeComponentMetadata(
           ecsComponents.map((comp) => ({
             name: comp.name,
             primaryKeys: comp.primaryKeys,
@@ -715,31 +734,31 @@ export class DubheECSWorld {
 
   /**
    * Get complete data of a single entity
-   * @param id Entity ID
+   * @param entityId Entity ID
    * @returns Complete component data of the entity, or null if entity doesn't exist
    */
-  async getEntity(id: EntityId): Promise<any | null> {
+  async getEntity(entityId: EntityId): Promise<any | null> {
     try {
       // First check if entity exists
-      const exists = await this.hasEntity(id);
+      const exists = await this.hasEntity(entityId);
       if (!exists) {
         return null;
       }
 
       // Get all components of the entity
-      const componentTypes = await this.getComponents(id);
+      const componentTypes = await this.getComponents(entityId);
       if (componentTypes.length === 0) {
         return null;
       }
 
       // Get data for all components
       const entityData: Record<string, any> = {
-        id: id,
+        entityId,
         components: {},
       };
 
       for (const componentType of componentTypes) {
-        const componentData = await this.getComponent(id, componentType);
+        const componentData = await this.getComponent(entityId, componentType);
         if (componentData) {
           entityData.components[componentType] = componentData;
         }
@@ -747,7 +766,7 @@ export class DubheECSWorld {
 
       return entityData;
     } catch (error) {
-      console.error(`Failed to get entity ${id}:`, formatError(error));
+      console.error(`Failed to get entity ${entityId}:`, formatError(error));
       return null;
     }
   }
@@ -898,14 +917,9 @@ export class DubheECSWorld {
    */
   onComponentAdded<T>(
     componentType: ComponentType,
-    callback: ComponentCallback<T>,
-    options?: SubscriptionOptions
-  ): Unsubscribe {
-    return this.subscriptionSystem.onComponentAdded<T>(
-      componentType,
-      callback,
-      options
-    );
+    options?: SubscriptionOptions & { fields?: string[] }
+  ) {
+    return this.subscriptionSystem.onComponentAdded<T>(componentType, options);
   }
 
   /**
@@ -913,12 +927,10 @@ export class DubheECSWorld {
    */
   onComponentRemoved<T>(
     componentType: ComponentType,
-    callback: ComponentCallback<T>,
-    options?: SubscriptionOptions
-  ): Unsubscribe {
+    options?: SubscriptionOptions & { fields?: string[] }
+  ) {
     return this.subscriptionSystem.onComponentRemoved<T>(
       componentType,
-      callback,
       options
     );
   }
@@ -928,12 +940,10 @@ export class DubheECSWorld {
    */
   onComponentChanged<T>(
     componentType: ComponentType,
-    callback: ComponentCallback<T>,
-    options?: SubscriptionOptions
-  ): Unsubscribe {
+    options?: SubscriptionOptions & { fields?: string[] }
+  ) {
     return this.subscriptionSystem.onComponentChanged<T>(
       componentType,
-      callback,
       options
     );
   }
@@ -944,13 +954,11 @@ export class DubheECSWorld {
   onComponentCondition<T>(
     componentType: ComponentType,
     filter: Record<string, any>,
-    callback: ComponentCallback<T>,
-    options?: SubscriptionOptions
-  ): Unsubscribe {
+    options?: SubscriptionOptions & { fields?: string[] }
+  ) {
     return this.subscriptionSystem.onComponentCondition<T>(
       componentType,
       filter,
-      callback,
       options
     );
   }
@@ -958,16 +966,8 @@ export class DubheECSWorld {
   /**
    * 监听查询结果变化
    */
-  watchQuery(
-    componentTypes: ComponentType[],
-    callback: QueryChangeCallback,
-    options?: SubscriptionOptions
-  ): QueryWatcher {
-    return this.subscriptionSystem.watchQuery(
-      componentTypes,
-      callback,
-      options
-    );
+  watchQuery(componentTypes: ComponentType[], options?: SubscriptionOptions) {
+    return this.subscriptionSystem.watchQuery(componentTypes, options);
   }
 
   /**

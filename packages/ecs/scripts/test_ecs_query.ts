@@ -7,7 +7,7 @@
 
 import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
 import { createECSWorld, DubheECSWorld } from '../src';
-import { dubheConfig } from '../dubhe.config';
+import { dubheConfig } from '../monster_dubhe.config';
 
 // GraphQL 端点配置
 const GRAPHQL_ENDPOINT =
