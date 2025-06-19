@@ -174,8 +174,8 @@ export default function Home() {
 
       const subscription = ecsWorld
         .onComponentChanged<any>('counter1', {
-          initialEvent: true,
-          debounceMs: 500 // 500ms 防抖
+          // initialEvent: true,
+          // debounceMs: 500 // 500ms 防抖
         })
         .subscribe({
           next: (result: any) => {
