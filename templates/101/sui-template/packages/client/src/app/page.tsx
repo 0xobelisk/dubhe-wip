@@ -172,20 +172,48 @@ export default function Home() {
     try {
       console.log('🎮 开始 ECS 订阅 counter1 组件变化...');
 
-      const unsubscribe = ecsWorld.onComponentChanged('counter1', (entityId, component) => {
-        console.log(`📢 实体 ${entityId} 的 counter1 组件发生变化:`, component);
+      const subscription = ecsWorld
+        .onComponentChanged<any>('counter1', {
+          initialEvent: true,
+          debounceMs: 500 // 500ms 防抖
+        })
+        .subscribe({
+          next: (result: any) => {
+            if (result.data) {
+              console.log(
+                `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.data.entityId} 的 counter1 组件发生变化:`
+              );
+              console.log(`  - 变化类型: ${result.data.changeType}`);
+              console.log(`  - 组件数据:`, result.data.data);
+              console.log(`  - 时间戳: ${result.data.timestamp}`);
 
-        // ECS 组件数据直接包含 value 字段
-        const componentData = component as any;
-        if (componentData?.value !== undefined) {
-          setValue(componentData.value);
-          toast('Counter ECS Updated', {
-            description: `New value: ${componentData.value}`
-          });
-        }
-      });
+              // ECS 组件数据在 result.data.data 中
+              const componentData = result.data.data as any;
+              if (componentData?.value !== undefined) {
+                setValue(componentData.value);
+                toast('Counter ECS Updated', {
+                  description: `New value: ${componentData.value}`
+                });
+              }
+            }
 
-      return unsubscribe;
+            if (result.error) {
+              console.error('❌ 订阅错误:', result.error);
+            }
+
+            if (result.loading) {
+              console.log('⏳ 数据加载中...');
+            }
+          },
+          error: (error: any) => {
+            console.error('❌ ECS 订阅失败:', error);
+          },
+          complete: () => {
+            console.log('✅ ECS 订阅完成');
+          }
+        });
+
+      return subscription;
     } catch (error) {
       console.error('❌ ECS 订阅设置失败:', error);
       return null;
@@ -202,11 +230,11 @@ export default function Home() {
 
       // 设置订阅
       let graphqlSubscription: any = null;
-      let ecsUnsubscribe: (() => void) | null = null;
+      let ecsSubscription: any = null;
 
       if (ecsInitialized) {
         // 尝试ECS订阅
-        ecsUnsubscribe = subscribeToCounterWithECS();
+        ecsSubscription = subscribeToCounterWithECS();
       }
 
       // 同时设置GraphQL订阅作为备选
@@ -214,8 +242,8 @@ export default function Home() {
 
       // 清理函数
       return () => {
-        if (ecsUnsubscribe) {
-          ecsUnsubscribe();
+        if (ecsSubscription) {
+          ecsSubscription.unsubscribe();
         }
         if (graphqlSubscription) {
           graphqlSubscription.unsubscribe();
