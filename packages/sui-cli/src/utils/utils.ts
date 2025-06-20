@@ -522,3 +522,16 @@ export function generateConfigJson(config: DubheConfig): string {
     enums
   }, null, 2);
 }
+
+/**
+ * Updates the dubhe address in Move.toml file
+ * @param path - Directory path containing Move.toml file
+ * @param packageAddress - New dubhe package address to set
+ */
+export function updateMoveTomlAddress(path: string, packageAddress: string) {
+  const moveTomlPath = `${path}/Move.toml`;
+  const moveTomlContent = fs.readFileSync(moveTomlPath, 'utf-8');
+  // Use regex to match any dubhe address, not just "0x0"
+  const updatedContent = moveTomlContent.replace(/dubhe\s*=\s*"[^"]*"/, `dubhe = "${packageAddress}"`);
+  fs.writeFileSync(moveTomlPath, updatedContent, 'utf-8');
+}
