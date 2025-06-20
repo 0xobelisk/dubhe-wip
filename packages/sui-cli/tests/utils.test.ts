@@ -106,22 +106,19 @@ describe('generateConfigJson', () => {
     expect(parsed.resources).toHaveLength(1);
     expect(parsed.resources[0].counter).toEqual({
       fields: [
-        { entity_id: 'address' },
         { value: 'u32' }
       ],
-      keys: ['entity_id']
+      keys: []
     });
   });
 
-  it('should generate correct JSON for empty object resource', () => {
+  it('should generate correct JSON for string type resource without entity_id', () => {
     const config: DubheConfig = {
       name: 'test_project',
       description: 'Test project',
       components: {},
       resources: {
-        counter: {
-          fields: {}
-        }
+        counter: 'u32'
       },
       enums: {},
       errors: {}
@@ -133,9 +130,34 @@ describe('generateConfigJson', () => {
     expect(parsed.resources).toHaveLength(1);
     expect(parsed.resources[0].counter).toEqual({
       fields: [
-        { entity_id: 'address' }
+        { value: 'u32' }
       ],
-      keys: ['entity_id']
+      keys: []
+    });
+  });
+
+  it('should generate correct JSON for empty object resource', () => {
+    const config: DubheConfig = {
+      name: 'test_project',
+      description: 'Test project',
+      components: {},
+      resources: {
+        counter: {
+          fields: {},
+          keys: []
+        }
+      },
+      enums: {},
+      errors: {}
+    };
+
+    const result = generateConfigJson(config);
+    const parsed = JSON.parse(result);
+
+    expect(parsed.resources).toHaveLength(1);
+    expect(parsed.resources[0].counter).toEqual({
+      fields: [],
+      keys: []
     });
   });
 
@@ -170,15 +192,46 @@ describe('generateConfigJson', () => {
     });
   });
 
+  it('should generate correct JSON for resource with custom fields without entity_id', () => {
+    const config: DubheConfig = {
+      name: 'test_project',
+      description: 'Test project',
+      components: {},
+      resources: {
+        counter: {
+          fields: {
+            value: 'u32',
+            owner: 'address'
+          },
+          keys: ['owner']
+        }
+      },
+      enums: {},
+      errors: {}
+    };
+
+    const result = generateConfigJson(config);
+    const parsed = JSON.parse(result);
+
+    expect(parsed.resources).toHaveLength(1);
+    expect(parsed.resources[0].counter).toEqual({
+      fields: [
+        { value: 'u32' },
+        { owner: 'address' }
+      ],
+      keys: ['owner']
+    });
+  });
+
   it('should handle complex config with multiple components and resources', () => {
     const config: DubheConfig = {
       name: 'test_project',
       description: 'Test project',
       enums: {
-            Direction: ["North", "East", "South", "West"],
-            MonsterCatchResult: ["Missed", "Caught", "Fled"],
-            MonsterType: ["Eagle", "Rat", "Caterpillar"],
-            TerrainType: ["None", "TallGrass", "Boulder"]
+        Direction: ["North", "East", "South", "West"],
+        MonsterCatchResult: ["Missed", "Caught", "Fled"],
+        MonsterType: ["Eagle", "Rat", "Caterpillar"],
+        TerrainType: ["None", "TallGrass", "Boulder"]
       },
       components: {
         player: {},
@@ -247,10 +300,9 @@ describe('generateConfigJson', () => {
 
     expect(parsed.resources[1].balance).toEqual({
       fields: [
-        { entity_id: 'address' },
         { value: 'u256' }
       ],
-      keys: ['entity_id']
+      keys: []
     });
   });
 });

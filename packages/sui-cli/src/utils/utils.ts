@@ -465,10 +465,9 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [
-            { entity_id: 'address' },
             { value: resource }
           ],
-          keys: ['entity_id']
+          keys: []
         }
       };
     }
@@ -476,21 +475,14 @@ export function generateConfigJson(config: DubheConfig): string {
     if (Object.keys(resource as object).length === 0) {
       return {
         [name]: {
-          fields: [
-            { entity_id: 'address' }
-          ],
-          keys: ['entity_id']
+          fields: [],
+          keys: []
         }
       };
     }
 
     const fields = (resource as any).fields || {};
-    const keys = (resource as any).keys || ['entity_id'];
-
-    // ensure entity_id field exists
-    if (!fields.entity_id && keys.includes('entity_id')) {
-      fields.entity_id = 'address';
-    }
+    const keys = (resource as any).keys || [];
 
     return {
       [name]: {

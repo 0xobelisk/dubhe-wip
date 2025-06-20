@@ -16,16 +16,6 @@
       "counter1": {
         "fields": [
           {
-            "value": "u32"
-          }
-        ],
-        "keys": []
-      }
-    },
-    {
-      "counter2": {
-        "fields": [
-          {
             "entity_id": "address"
           },
           {
@@ -38,6 +28,17 @@
       }
     }
   ],
-  "resources": [],
+  "resources": [
+    {
+      "counter2": {
+        "fields": [
+          {
+            "value": "u32"
+          }
+        ],
+        "keys": []
+      }
+    }
+  ],
   "enums": []
 }
