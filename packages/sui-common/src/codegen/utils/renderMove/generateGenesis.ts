@@ -24,7 +24,7 @@ export async function generateGenesis(config: DubheConfig, path: string) {
 
   let genesis_code = `module ${config.name}::genesis {
       use sui::clock::Clock;
-      use dubhe::dapp_system;
+      use dubhe::dapp_service;
       use dubhe::dapp_hub::DappHub;
       use ${config.name}::dapp_key;
       ${Object.keys(config.components || {}).map(componentName => `use ${config.name}::${componentName};`).join('\n')}
@@ -33,7 +33,7 @@ export async function generateGenesis(config: DubheConfig, path: string) {
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
-    dapp_system::create_dapp(dapp_hub, dapp_key, b"${config.name}", b"${config.description}", clock, ctx);
+    dapp_service::create_dapp(dapp_hub, dapp_key, b"${config.name}", b"${config.description}", clock, ctx);
 
     // Register tables
 ${registerTablesCode}
