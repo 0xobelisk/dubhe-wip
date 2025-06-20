@@ -38,6 +38,8 @@
 
   use test_project::component14;
 
+  use test_project::test_component;
+
   use test_project::resource0;
 
   use test_project::resource1;
@@ -53,6 +55,8 @@
   use test_project::resource6;
 
   use test_project::resource7;
+
+  use test_project::test_resource;
 
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
@@ -74,6 +78,7 @@
     component12::register_table(dapp_hub, ctx);
     component13::register_table(dapp_hub, ctx);
     component14::register_table(dapp_hub, ctx);
+    test_component::register_table(dapp_hub, ctx);
     resource0::register_table(dapp_hub, ctx);
     resource1::register_table(dapp_hub, ctx);
     resource2::register_table(dapp_hub, ctx);
@@ -82,6 +87,7 @@
     resource5::register_table(dapp_hub, ctx);
     resource6::register_table(dapp_hub, ctx);
     resource7::register_table(dapp_hub, ctx);
+    test_resource::register_table(dapp_hub, ctx);
     // Logic that needs to be automated once the contract is deployed
     test_project::deploy_hook::run(dapp_hub, ctx);
   }

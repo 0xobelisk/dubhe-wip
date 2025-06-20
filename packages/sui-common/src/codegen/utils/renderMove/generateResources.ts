@@ -492,7 +492,18 @@ ${encodeDecodeFunctions}`;
 }
 
 function toPascalCase(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  // Split the underscore-separated string into words
+  return str
+    .split('_')
+    .map((word, index) => {
+      // If the word is a pure number, return it as is
+      if (/^\d+$/.test(word)) {
+        return word;
+      }
+      // Otherwise, capitalize the first letter and lowercase the rest
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join('');
 }
 
 function getBcsType(type: string): string {

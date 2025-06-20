@@ -106,6 +106,14 @@ describe('schemaGen', () => {
           result: 'Status',
         }
       },
+
+      //
+      test_component: {
+        fields: {
+          player: 'address',
+          value: 'u32'
+        }
+      }
     },
     resources: {
       // Only has a value
@@ -155,6 +163,12 @@ describe('schemaGen', () => {
       // Offchain
       resource7: {
         offchain: true,
+        fields: {
+          player: 'address',
+          value: 'u32'
+        }
+      },
+      test_resource: {
         fields: {
           player: 'address',
           value: 'u32'
