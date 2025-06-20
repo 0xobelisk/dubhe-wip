@@ -1,14 +1,14 @@
-module dubhe::dubhe_dex_system {
+module dubhe::dex_system {
     use std::ascii;
-    use dubhe::dubhe_pools;
-    use dubhe::dubhe_dex_functions::{sort_assets};
-    use dubhe::dubhe_assets_functions;
-    use dubhe::dubhe_dex_functions;
-    use dubhe::dubhe_asset_metadata;
+    use dubhe::asset_pools;
+    use dubhe::dex_functions::{sort_assets};
+    use dubhe::assets_functions;
+    use dubhe::dex_functions;
+    use dubhe::asset_metadata;
     use dubhe::dapp_hub::DappHub;
-    use dubhe::dubhe_asset_type;
+    use dubhe::asset_type;
     use dubhe::dubhe_config;
-    use dubhe::dubhe_errors:: {
+    use dubhe::errors:: {
         asset_not_found_error, more_than_max_swap_path_len_error, pool_already_exists_error,swap_path_too_small_error, below_min_amount_error, less_than_amount_out_min_error, more_than_amount_in_max_error
     };
 
@@ -28,18 +28,18 @@ module dubhe::dubhe_dex_system {
 
         let (asset_0, asset_1) = sort_assets(asset_a, asset_b);
 
-        dubhe_asset_metadata::ensure_has(dapp_hub, asset_0);
-        dubhe_asset_metadata::ensure_has(dapp_hub, asset_1);
-        dubhe_pools::ensure_not_has(dapp_hub, asset_0, asset_1);
+        asset_metadata::ensure_has(dapp_hub, asset_0);
+        asset_metadata::ensure_has(dapp_hub, asset_1);
+        asset_pools::ensure_not_has(dapp_hub, asset_0, asset_1);
 
-        let asset_0_metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_0);
-        let asset_1_metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_1);
-        let lp_asset_symbol = dubhe_dex_functions::pool_asset_symbol(asset_0_metadata, asset_1_metadata);
-        let pool_address = dubhe_dex_functions::pair_for(asset_0, asset_1);
+        let asset_0_metadata = asset_metadata::get_struct(dapp_hub, asset_0);
+        let asset_1_metadata = asset_metadata::get_struct(dapp_hub, asset_1);
+        let lp_asset_symbol = dex_functions::pool_asset_symbol(asset_0_metadata, asset_1_metadata);
+        let pool_address = dex_functions::pair_for(asset_0, asset_1);
 
-        let lp_asset_id = dubhe_assets_functions::do_create(
+        let lp_asset_id = assets_functions::do_create(
             dapp_hub,
-            dubhe_asset_type::new_lp(),
+            asset_type::new_lp(),
             @0x0,
             LP_ASSET_NAME,
             lp_asset_symbol,
@@ -51,7 +51,7 @@ module dubhe::dubhe_dex_system {
             false,
         );
 
-        dubhe_pools::set(
+        asset_pools::set(
             dapp_hub,
             asset_0, 
             asset_1, 
@@ -87,13 +87,13 @@ module dubhe::dubhe_dex_system {
     ): u256 {
         let sender = ctx.sender();
 
-        let pool = dubhe_dex_functions::get_pool(dapp_hub, asset_a, asset_b);
+        let pool = dex_functions::get_pool(dapp_hub, asset_a, asset_b);
 
-        let (amount_a, amount_b) = dubhe_dex_functions::do_add_liquidity(dapp_hub, asset_a, asset_b, amount_a_desired, amount_b_desired, amount_a_min, amount_b_min);
+        let (amount_a, amount_b) = dex_functions::do_add_liquidity(dapp_hub, asset_a, asset_b, amount_a_desired, amount_b_desired, amount_a_min, amount_b_min);
 
-        dubhe_assets_functions::do_transfer(dapp_hub, asset_a, sender, pool.pool_address(), amount_a);
-        dubhe_assets_functions::do_transfer(dapp_hub, asset_b, sender, pool.pool_address(), amount_b);
-        let liquidity = dubhe_dex_functions::mint(dapp_hub, asset_a, asset_b, to, ctx);
+        assets_functions::do_transfer(dapp_hub, asset_a, sender, pool.pool_address(), amount_a);
+        assets_functions::do_transfer(dapp_hub, asset_b, sender, pool.pool_address(), amount_b);
+        let liquidity = dex_functions::mint(dapp_hub, asset_a, asset_b, to, ctx);
         liquidity
     }
 
@@ -118,9 +118,9 @@ module dubhe::dubhe_dex_system {
         ctx: &mut TxContext
     ): (u256, u256) {
         let sender = ctx.sender();
-        let pool = dubhe_dex_functions::get_pool(dapp_hub, asset_a, asset_b);
-        dubhe_assets_functions::do_transfer(dapp_hub, pool.lp_asset(), sender, pool.pool_address(), liquidity);
-        let (amount_0, amount_1) = dubhe_dex_functions::burn(dapp_hub, asset_a, asset_b, to, ctx);
+        let pool = dex_functions::get_pool(dapp_hub, asset_a, asset_b);
+        assets_functions::do_transfer(dapp_hub, pool.lp_asset(), sender, pool.pool_address(), liquidity);
+        let (amount_0, amount_1) = dex_functions::burn(dapp_hub, asset_a, asset_b, to, ctx);
         let (asset_0, _) = sort_assets(asset_a, asset_b);
         let (amount_a, amount_b) = if (asset_0 == asset_a) {
             (amount_0, amount_1)
@@ -151,14 +151,14 @@ module dubhe::dubhe_dex_system {
         let sender = ctx.sender();
         let amounts = get_amounts_out(dapp_hub, amount_in, path);
         less_than_amount_out_min_error(amounts[amounts.length() - 1] >= amount_out_min);
-        dubhe_assets_functions::do_transfer(
+        assets_functions::do_transfer(
             dapp_hub, 
             path[0], 
             sender, 
-            dubhe_dex_functions::pair_for(path[0], path[1]), 
+            dex_functions::pair_for(path[0], path[1]), 
             amounts[0]
         );
-        dubhe_dex_functions::do_swap(dapp_hub, amounts, path, to, ctx);
+        dex_functions::do_swap(dapp_hub, amounts, path, to, ctx);
         amounts
     }
 
@@ -181,14 +181,14 @@ module dubhe::dubhe_dex_system {
         let sender = ctx.sender();
         let amounts = get_amounts_in(dapp_hub, amount_out, path);
         more_than_amount_in_max_error(amounts[0] <= amount_in_max);
-        dubhe_assets_functions::do_transfer(
+        assets_functions::do_transfer(
             dapp_hub, 
             path[0], 
             sender, 
-            dubhe_dex_functions::pair_for(path[0], path[1]), 
+            dex_functions::pair_for(path[0], path[1]), 
             amounts[0]
         );
-        dubhe_dex_functions::do_swap(dapp_hub, amounts, path, to, ctx);
+        dex_functions::do_swap(dapp_hub, amounts, path, to, ctx);
         amounts
     }
 
@@ -206,9 +206,9 @@ module dubhe::dubhe_dex_system {
 
         let mut i = 0;
         while (i < path.length() - 1) {
-            let (reserve_in, reserve_out) = dubhe_dex_functions::get_reserves(dapp_hub, path[i], path[i + 1]);
+            let (reserve_in, reserve_out) = dex_functions::get_reserves(dapp_hub, path[i], path[i + 1]);
             let amount = amounts[i];
-            amounts.push_back(dubhe_dex_functions::get_amount_out(dapp_hub, amount, reserve_in, reserve_out));
+            amounts.push_back(dex_functions::get_amount_out(dapp_hub, amount, reserve_in, reserve_out));
             i = i + 1;
         };
         amounts
@@ -228,9 +228,9 @@ module dubhe::dubhe_dex_system {
 
         let mut i = path.length() - 1;
         while (i > 0) {
-            let (reserve_in, reserve_out) = dubhe_dex_functions::get_reserves(dapp_hub, path[i - 1], path[i]);
+            let (reserve_in, reserve_out) = dex_functions::get_reserves(dapp_hub, path[i - 1], path[i]);
             let amount = amounts[amounts.length() - 1];
-            amounts.push_back(dubhe_dex_functions::get_amount_in(dapp_hub, amount, reserve_in, reserve_out));
+            amounts.push_back(dex_functions::get_amount_in(dapp_hub, amount, reserve_in, reserve_out));
             i = i - 1;
         };
         amounts.reverse();

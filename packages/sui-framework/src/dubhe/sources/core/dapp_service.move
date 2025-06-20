@@ -62,7 +62,7 @@ module dubhe::dapp_service {
         // TODO: Modify dubhe_state
         // let dubhe_state = dapp_hub.mut_dubhe_state();
         // encounter_system::encounter(dapp_hub, @0x0);
-        // dubhe::dubhe_assets_functions::do_transfer(dapp_hub, @0x0, @0x0, @0x0, 100);
+        // dubhe::assets_functions::do_transfer(dapp_hub, @0x0, @0x0, @0x0, 100);
 
         // Emit event
         emit_store_set_record(

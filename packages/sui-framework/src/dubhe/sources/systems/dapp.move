@@ -3,7 +3,7 @@ use std::ascii::String;
 use dubhe::dapp_hub::DappHub;
 use sui::clock::Clock;
 use dubhe::dapp_state::{Self, DappState};
-use dubhe::dubhe_dapp_metadata;
+use dubhe::dapp_metadata;
 use std::type_name;
 
 public fun create_dapp<DappKey: copy + drop>(
@@ -26,8 +26,8 @@ public fun create_dapp<DappKey: copy + drop>(
       ctx: &mut TxContext
 ) {
       let dapp_key = type_name::get<DappKey>().into_string().into_bytes();
-      dubhe_dapp_metadata::set_package(dapp_hub, dapp_key, new_package_id);
-      dubhe_dapp_metadata::set_version(dapp_hub, dapp_key, new_version);
+      dapp_metadata::set_package(dapp_hub, dapp_key, new_package_id);
+      dapp_metadata::set_version(dapp_hub, dapp_key, new_version);
 }
 
 // public entry fun set_metadata(
@@ -43,7 +43,7 @@ public fun create_dapp<DappKey: copy + drop>(
 //   let admin = dapp_hub.dapp_admin().try_get(package_id);
 //   not_dapp_admin_error(admin == option::some(ctx.sender()));
 //   let created_at = dapp_hub.dapp_metadata().get(package_id).get_created_at();
-//   dapp_hub.dapp_metadata().set(package_id, dubhe_dapp_metadata::new(
+//   dapp_hub.dapp_metadata().set(package_id, dapp_metadata::new(
 //               name,
 //               description,
 //               cover_url,

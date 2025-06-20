@@ -18,21 +18,21 @@
 
   use dubhe::dapp_hub::DappHub;
 
-  use dubhe::dubhe_dapp_key;
+  use dubhe::dapp_key;
 
-  use dubhe::dubhe_dapp_key::DappKey;
+  use dubhe::dapp_key::DappKey;
 
-  const TABLE_NAME: vector<u8> = b"config";
+  const TABLE_NAME: vector<u8> = b"dubhe_config";
 
-  public struct Config has copy, drop, store {
+  public struct DubheConfig has copy, drop, store {
     next_asset_id: u256,
     swap_fee: u256,
     fee_to: address,
     max_swap_path_len: u64,
   }
 
-  public fun new(next_asset_id: u256, swap_fee: u256, fee_to: address, max_swap_path_len: u64): Config {
-    Config {
+  public fun new(next_asset_id: u256, swap_fee: u256, fee_to: address, max_swap_path_len: u64): DubheConfig {
+    DubheConfig {
             next_asset_id,
             swap_fee,
             fee_to,
@@ -40,35 +40,35 @@
         }
   }
 
-  public fun next_asset_id(self: &Config): u256 {
+  public fun next_asset_id(self: &DubheConfig): u256 {
     self.next_asset_id
   }
 
-  public fun swap_fee(self: &Config): u256 {
+  public fun swap_fee(self: &DubheConfig): u256 {
     self.swap_fee
   }
 
-  public fun fee_to(self: &Config): address {
+  public fun fee_to(self: &DubheConfig): address {
     self.fee_to
   }
 
-  public fun max_swap_path_len(self: &Config): u64 {
+  public fun max_swap_path_len(self: &DubheConfig): u64 {
     self.max_swap_path_len
   }
 
-  public fun update_next_asset_id(self: &mut Config, next_asset_id: u256) {
+  public fun update_next_asset_id(self: &mut DubheConfig, next_asset_id: u256) {
     self.next_asset_id = next_asset_id
   }
 
-  public fun update_swap_fee(self: &mut Config, swap_fee: u256) {
+  public fun update_swap_fee(self: &mut DubheConfig, swap_fee: u256) {
     self.swap_fee = swap_fee
   }
 
-  public fun update_fee_to(self: &mut Config, fee_to: address) {
+  public fun update_fee_to(self: &mut DubheConfig, fee_to: address) {
     self.fee_to = fee_to
   }
 
-  public fun update_max_swap_path_len(self: &mut Config, max_swap_path_len: u64) {
+  public fun update_max_swap_path_len(self: &mut DubheConfig, max_swap_path_len: u64) {
     self.max_swap_path_len = max_swap_path_len
   }
 
@@ -93,7 +93,7 @@
   }
 
   public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
-    let dapp_key = dubhe_dapp_key::new();
+    let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
             dapp_key,
@@ -184,7 +184,7 @@
 
   public fun delete(dapp_hub: &mut DappHub) {
     let key_tuple = vector::empty();
-    dapp_service::delete_record<DappKey>(dapp_hub, dubhe_dapp_key::new(), get_table_id(), key_tuple);
+    dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
 
   public fun get_next_asset_id(dapp_hub: &DappHub): u256 {
@@ -198,7 +198,7 @@
   public fun set_next_asset_id(dapp_hub: &mut DappHub, next_asset_id: u256) {
     let key_tuple = vector::empty();
     let value = to_bytes(&next_asset_id);
-    dapp_service::set_field(dapp_hub, dubhe_dapp_key::new(), get_table_id(), key_tuple, 0, value);
+    dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
   }
 
   public fun get_swap_fee(dapp_hub: &DappHub): u256 {
@@ -212,7 +212,7 @@
   public fun set_swap_fee(dapp_hub: &mut DappHub, swap_fee: u256) {
     let key_tuple = vector::empty();
     let value = to_bytes(&swap_fee);
-    dapp_service::set_field(dapp_hub, dubhe_dapp_key::new(), get_table_id(), key_tuple, 1, value);
+    dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
   }
 
   public fun get_fee_to(dapp_hub: &DappHub): address {
@@ -226,7 +226,7 @@
   public fun set_fee_to(dapp_hub: &mut DappHub, fee_to: address) {
     let key_tuple = vector::empty();
     let value = to_bytes(&fee_to);
-    dapp_service::set_field(dapp_hub, dubhe_dapp_key::new(), get_table_id(), key_tuple, 2, value);
+    dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 2, value);
   }
 
   public fun get_max_swap_path_len(dapp_hub: &DappHub): u64 {
@@ -240,7 +240,7 @@
   public fun set_max_swap_path_len(dapp_hub: &mut DappHub, max_swap_path_len: u64) {
     let key_tuple = vector::empty();
     let value = to_bytes(&max_swap_path_len);
-    dapp_service::set_field(dapp_hub, dubhe_dapp_key::new(), get_table_id(), key_tuple, 3, value);
+    dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 3, value);
   }
 
   public fun get(dapp_hub: &DappHub): (u256, u256, address, u64) {
@@ -257,19 +257,19 @@
   public fun set(dapp_hub: &mut DappHub, next_asset_id: u256, swap_fee: u256, fee_to: address, max_swap_path_len: u64) {
     let key_tuple = vector::empty();
     let value_tuple = encode(next_asset_id, swap_fee, fee_to, max_swap_path_len);
-    dapp_service::set_record(dapp_hub, dubhe_dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }
 
-  public fun get_struct(dapp_hub: &DappHub): Config {
+  public fun get_struct(dapp_hub: &DappHub): DubheConfig {
     let key_tuple = vector::empty();
     let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, config: Config) {
+  public fun set_struct(dapp_hub: &mut DappHub, dubhe_config: DubheConfig) {
     let key_tuple = vector::empty();
-    let value_tuple = encode_struct(config);
-    dapp_service::set_record(dapp_hub, dubhe_dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    let value_tuple = encode_struct(dubhe_config);
+    dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }
 
   public fun encode(next_asset_id: u256, swap_fee: u256, fee_to: address, max_swap_path_len: u64): vector<vector<u8>> {
@@ -281,17 +281,17 @@
     value_tuple
   }
 
-  public fun encode_struct(config: Config): vector<vector<u8>> {
-    encode(config.next_asset_id, config.swap_fee, config.fee_to, config.max_swap_path_len)
+  public fun encode_struct(dubhe_config: DubheConfig): vector<vector<u8>> {
+    encode(dubhe_config.next_asset_id, dubhe_config.swap_fee, dubhe_config.fee_to, dubhe_config.max_swap_path_len)
   }
 
-  public fun decode(data: vector<u8>): Config {
+  public fun decode(data: vector<u8>): DubheConfig {
     let mut bsc_type = sui::bcs::new(data);
     let next_asset_id = sui::bcs::peel_u256(&mut bsc_type);
     let swap_fee = sui::bcs::peel_u256(&mut bsc_type);
     let fee_to = sui::bcs::peel_address(&mut bsc_type);
     let max_swap_path_len = sui::bcs::peel_u64(&mut bsc_type);
-    Config {
+    DubheConfig {
             next_asset_id,
             swap_fee,
             fee_to,

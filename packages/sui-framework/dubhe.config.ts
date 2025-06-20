@@ -8,7 +8,7 @@ export const dubheConfig = {
         AssetStatus: ['Liquid', 'Frozen'],
         AssetType: ['Lp', 'Wrapped', 'Private', 'Package'],
     },
-    components: {
+    resources: {
         dapp_metadata: {
             fields: {
                 dapp_key: 'vector<u8>',
@@ -23,17 +23,17 @@ export const dubheConfig = {
             },
             keys: ['dapp_key']
         },
-        config: {
+        dubhe_config: {
             fields: {
                 next_asset_id: 'u256',
                 swap_fee: 'u256',
                 fee_to: 'address',
                 max_swap_path_len: 'u64',
-            },
-            keys: []
+            }
         },
         asset_metadata: {
             fields: {
+                asset_id: 'address',
                 // The user friendly name of this asset. Limited in length by `StringLimit`.
                 name: 'vector<u8>',
                 // The ticker symbol for this asset. Limited in length by `StringLimit`.
@@ -60,7 +60,8 @@ export const dubheConfig = {
                 is_freezable: 'bool',
                 // The type of the asset.
                 asset_type: 'AssetType',
-            }
+            },
+            keys: ['asset_id']
         }, 
         asset_account: {
             fields: {
@@ -71,7 +72,7 @@ export const dubheConfig = {
             },
             keys: ['asset_id', 'account']
         },
-        pools: {
+        asset_pools: {
             fields: {
                 asset0: 'address',
                 asset1: 'address',
@@ -101,6 +102,7 @@ export const dubheConfig = {
         },
         // dapp_admin: 'address',
     },
+    components: { },
      errors: {
         asset_not_found: "Asset not found",
         asset_already_frozen: "Asset already frozen",

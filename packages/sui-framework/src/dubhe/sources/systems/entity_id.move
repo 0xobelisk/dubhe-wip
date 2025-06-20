@@ -1,4 +1,4 @@
-module dubhe::dubhe_entity_id {
+module dubhe::entity_id {
     use sui::hash::blake2b256;
     use sui::address;
 

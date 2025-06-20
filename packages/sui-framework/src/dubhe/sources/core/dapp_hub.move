@@ -5,7 +5,7 @@ module dubhe::dapp_hub {
     use sui::object_table::ObjectTable;
     use sui::object_table;
     use dubhe::dapp_state;
-    use dubhe::dubhe_dapp_key;
+    use dubhe::dapp_key;
     use sui::bag;
     use sui::bag::Bag;
     use sui::clock::{Clock};
@@ -64,7 +64,7 @@ module dubhe::dapp_hub {
     }
 
     public fun mut_dubhe_state(self: &mut DappHub): &mut DappState {
-        let dapp_key = dubhe_dapp_key::to_string();
+        let dapp_key = dapp_key::to_string();
         object_table::borrow_mut(&mut self.dapps, dapp_key)
     }   
 

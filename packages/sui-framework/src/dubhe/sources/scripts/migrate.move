@@ -1,4 +1,4 @@
-module dubhe::dubhe_migrate {
+module dubhe::migrate {
 
   const ON_CHAIN_VERSION: u32 = 2;
 

@@ -3,12 +3,12 @@ module dubhe::dex_tests {
     use std::debug;
     use std::ascii;
     use std::u128;
-    use dubhe::dubhe_dex_functions;
-    use dubhe::dubhe_init_test::deploy_dapp_for_testing;
-    use dubhe::dubhe_pools;
-    use dubhe::dubhe_dex_system;
+    use dubhe::dex_functions;
+    use dubhe::init_test::deploy_dapp_for_testing;
+    use dubhe::asset_pools;
+    use dubhe::dex_system;
     use dubhe::assets_tests;
-    use dubhe::dubhe_assets_system;
+    use dubhe::assets_system;
     use dubhe::dapp_hub::DappHub;
     use sui::test_scenario;
     use sui::test_scenario::Scenario;
@@ -45,16 +45,16 @@ module dubhe::dex_tests {
 
         dubhe_config::set_swap_fee(&mut dapp_hub, 0);
 
-        assert!(dubhe_dex_functions::quote(3, u128_max, u128_max) ==  3);
+        assert!(dex_functions::quote(3, u128_max, u128_max) ==  3);
 
         let x = 1_000_000_000_000_000_000;
-        assert!(dubhe_dex_functions::quote(10000_0000_0000 * x, 100_0000_0000_0000 * x, 100_0000_0000_0000 * x) == 10000_0000_0000 * x, 100);
+        assert!(dex_functions::quote(10000_0000_0000 * x, 100_0000_0000_0000 * x, 100_0000_0000_0000 * x) == 10000_0000_0000 * x, 100);
 
-        assert!(dubhe_dex_functions::quote(u128_max, u128_max, u128_max) == u128_max);
+        assert!(dex_functions::quote(u128_max, u128_max, u128_max) == u128_max);
 
-        debug::print(&dubhe_dex_functions::get_amount_out(&dapp_hub, 100, u128_max, u128_max));
-        assert!(dubhe_dex_functions::get_amount_out(&dapp_hub, 100, u128_max, u128_max) == 99);
-        assert!(dubhe_dex_functions::get_amount_in(&dapp_hub, 100, u128_max, u128_max) == 101);
+        debug::print(&dex_functions::get_amount_out(&dapp_hub, 100, u128_max, u128_max));
+        assert!(dex_functions::get_amount_out(&dapp_hub, 100, u128_max, u128_max) == 99);
+        assert!(dex_functions::get_amount_in(&dapp_hub, 100, u128_max, u128_max) == 101);
 
         dapp_hub.destroy();
         scenario.end();
@@ -65,15 +65,15 @@ module dubhe::dex_tests {
         let (mut dapp_hub, mut scenario, asset_0, asset_1, asset_2) = init_test();
         let ctx =  test_scenario::ctx(&mut scenario);
         
-        let pool_address = dubhe_dex_functions::pair_for(asset_0, asset_1);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        std::debug::print(&dubhe_pools::get_struct(&dapp_hub, asset_0, asset_1));
-        assert!(pool_address == dubhe_pools::get_pool_address(&dapp_hub, asset_0, asset_1));
+        let pool_address = dex_functions::pair_for(asset_0, asset_1);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+        std::debug::print(&asset_pools::get_struct(&dapp_hub, asset_0, asset_1));
+        assert!(pool_address == asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1));
 
-        let pool_address = dubhe_dex_functions::pair_for(asset_2, asset_1);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
-        std::debug::print(&dubhe_pools::get_struct(&dapp_hub, asset_2, asset_1));
-        assert!(dubhe_pools::get_pool_address(&dapp_hub, asset_2, asset_1) == pool_address);
+        let pool_address = dex_functions::pair_for(asset_2, asset_1);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        std::debug::print(&asset_pools::get_struct(&dapp_hub, asset_2, asset_1));
+        assert!(asset_pools::get_pool_address(&dapp_hub, asset_2, asset_1) == pool_address);
 
         dapp_hub.destroy();
     
@@ -86,8 +86,8 @@ module dubhe::dex_tests {
         let (mut dapp_hub, mut scenario, asset_0, asset_1, _) = init_test();
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_1, asset_0, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_0, ctx);
 
         dapp_hub.destroy();
     
@@ -101,58 +101,58 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xfee);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_2, ctx);
 
-        dubhe_assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 20000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 20000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 20000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 20000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 20000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 20000 * DECIMAL, ctx);
 
-        dubhe_dex_system::add_liquidity(&mut dapp_hub, asset_0, asset_1, 10000 * DECIMAL, 10 * DECIMAL, 0, 0, ctx.sender(), ctx);
-        let pool = dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()) == 10000 * DECIMAL);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()) == 10 * DECIMAL);
+        dex_system::add_liquidity(&mut dapp_hub, asset_0, asset_1, 10000 * DECIMAL, 10 * DECIMAL, 0, 0, ctx.sender(), ctx);
+        let pool = dex_functions::get_pool(&dapp_hub, asset_0, asset_1);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()) == 10000 * DECIMAL);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()) == 10 * DECIMAL);
 
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
-        std::debug::print(&dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216 * DECIMAL, 0);
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
+        std::debug::print(&dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
+        // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216 * DECIMAL, 0);
 
-        dubhe_dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_0, 2 * DECIMAL, 8000 * DECIMAL, 0, 0, ctx.sender(), ctx);
-        let pool = dubhe_dex_functions::get_pool(&dapp_hub, asset_1, asset_0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL - 2 * DECIMAL, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL - 2000 * DECIMAL, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()) == 10000 * DECIMAL + 2000 * DECIMAL, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()) == 10 * DECIMAL + 2 * DECIMAL, 0);
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xfee));
-        std::debug::print(&dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
+        dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_0, 2 * DECIMAL, 8000 * DECIMAL, 0, 0, ctx.sender(), ctx);
+        let pool = dex_functions::get_pool(&dapp_hub, asset_1, asset_0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL - 2 * DECIMAL, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL - 2000 * DECIMAL, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()) == 10000 * DECIMAL + 2000 * DECIMAL, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()) == 10 * DECIMAL + 2 * DECIMAL, 0);
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xfee));
+        std::debug::print(&dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
 
-        dubhe_dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_0, 2 * DECIMAL, 8000 * DECIMAL, 0, 0, ctx.sender(), ctx);
-        // let (pool_address, lp_asset_id, _, _, _) = dubhe_dex_functions::get_pool(&mut dapp_hub, asset_1, asset_0).get();
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL - 2 * DECIMAL, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL - 2000 * DECIMAL, 0);
-        // // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 10000 * DECIMAL + 2000 * DECIMAL, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 10 * DECIMAL + 2 * DECIMAL, 0);
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xfee));
-        std::debug::print(&dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
+        dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_0, 2 * DECIMAL, 8000 * DECIMAL, 0, 0, ctx.sender(), ctx);
+        // let (pool_address, lp_asset_id, _, _, _) = dex_functions::get_pool(&mut dapp_hub, asset_1, asset_0).get();
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL - 2 * DECIMAL, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL - 2000 * DECIMAL, 0);
+        // // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 10000 * DECIMAL + 2000 * DECIMAL, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 10 * DECIMAL + 2 * DECIMAL, 0);
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xfee));
+        std::debug::print(&dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
 
 
-        dubhe_dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_0, 2 * DECIMAL, 8000 * DECIMAL, 0, 0, ctx.sender(), ctx);
-        // let (pool_address, lp_asset_id, _, _, _) = dubhe_dex_functions::get_pool(&mut dapp_hub, asset_1, asset_0).get();
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL - 2 * DECIMAL, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL - 2000 * DECIMAL, 0);
-        // // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 10000 * DECIMAL + 2000 * DECIMAL, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 10 * DECIMAL + 2 * DECIMAL, 0);
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xfee));
-        std::debug::print(&dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
+        dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_0, 2 * DECIMAL, 8000 * DECIMAL, 0, 0, ctx.sender(), ctx);
+        // let (pool_address, lp_asset_id, _, _, _) = dex_functions::get_pool(&mut dapp_hub, asset_1, asset_0).get();
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 20000 * DECIMAL - 10 * DECIMAL - 2 * DECIMAL, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 20000 * DECIMAL - 10000 * DECIMAL - 2000 * DECIMAL, 0);
+        // // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 216, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 10000 * DECIMAL + 2000 * DECIMAL, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 10 * DECIMAL + 2 * DECIMAL, 0);
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xfee));
+        std::debug::print(&dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
         
 
         dapp_hub.destroy();
@@ -167,15 +167,15 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xB);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_2, ctx);
 
-        dubhe_assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 100000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 100000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 100000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 100000 * DECIMAL, ctx);
 
-        dubhe_dex_system::add_liquidity(
+        dex_system::add_liquidity(
             &mut dapp_hub, 
             asset_0, 
             asset_1, 
@@ -186,12 +186,12 @@ module dubhe::dex_tests {
             ctx.sender(), 
             ctx
         );
-        let pool = dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1);
-        let total_lp_received = dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender());
+        let pool = dex_functions::get_pool(&dapp_hub, asset_0, asset_1);
+        let total_lp_received = assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender());
         // 99999999999000
         debug::print(&total_lp_received);
 
-        dubhe_dex_system::remove_liquidity(
+        dex_system::remove_liquidity(
             &mut dapp_hub, 
             asset_0, 
             asset_1, 
@@ -201,23 +201,23 @@ module dubhe::dex_tests {
             ctx.sender(), 
             ctx
         );
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 10000000000 - 1000000000 + 899991000);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 89999);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 10000000000 - 1000000000 + 899991000);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 89999);
     
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()));
 
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 0, 0);
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
+        // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 0, 0);
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
 
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 0, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 0, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, @0xB) == 999990, 0);
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xB));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()));
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 0, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 0, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, @0xB) == 999990, 0);
+        std::debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xB));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()));
 
-        dubhe_dex_system::remove_liquidity(
+        dex_system::remove_liquidity(
             &mut dapp_hub, 
             asset_0, 
             asset_1, 
@@ -227,21 +227,21 @@ module dubhe::dex_tests {
             ctx.sender(), 
             ctx
         );
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 10000000000 - 1000000000 + 899991000);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 89999);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, ctx.sender()) == 10000000000 - 1000000000 + 899991000);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, ctx.sender()) == 89999);
     
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()));
 
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 0, 0);
-        debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
+        // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, ctx.sender()) == 0, 0);
+        debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), ctx.sender()));
 
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 0, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 0, 0);
-        // assert!(dubhe_assets_system::balance_of(&mut dapp_hub, lp_asset_id, @0xB) == 999990, 0);
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xB));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()));
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_0, pool_address) == 0, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, asset_1, pool_address) == 0, 0);
+        // assert!(assets_system::balance_of(&mut dapp_hub, lp_asset_id, @0xB) == 999990, 0);
+        std::debug::print(&assets_system::balance_of(&dapp_hub, pool.lp_asset(), @0xB));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_0, pool.pool_address()));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_1, pool.pool_address()));
 
         dapp_hub.destroy();
     
@@ -255,54 +255,54 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xB);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
 
-        dubhe_assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 100000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 100000 * DECIMAL, ctx);
 
         let liquidity1 = 800 * DECIMAL;
         let liquidity2 = 200 * DECIMAL;
 
-        dubhe_dex_system::add_liquidity(&mut dapp_hub, asset_0, asset_1, liquidity1, liquidity2, 1, 1, ctx.sender(), ctx);
+        dex_system::add_liquidity(&mut dapp_hub, asset_0, asset_1, liquidity1, liquidity2, 1, 1, ctx.sender(), ctx);
 
         let input_amount = 10 * DECIMAL;
         let expect_receive =
-            dubhe_dex_system::get_amounts_out(&mut dapp_hub, input_amount, vector[asset_0, asset_1]);
+            dex_system::get_amounts_out(&mut dapp_hub, input_amount, vector[asset_0, asset_1]);
         debug::print(&expect_receive);
 
         let balance0 = 10000 * DECIMAL - liquidity1 - input_amount;
         let balance1 = 1000 * DECIMAL - liquidity2 + expect_receive[expect_receive.length() - 1];
-        dubhe_dex_system::swap_exact_tokens_for_tokens(&mut dapp_hub, input_amount, 1, vector[asset_0, asset_1], ctx.sender(), ctx);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
+        dex_system::swap_exact_tokens_for_tokens(&mut dapp_hub, input_amount, 1, vector[asset_0, asset_1], ctx.sender(), ctx);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
 
         let liquidity1 = liquidity1 + input_amount;
         let liquidity2 = liquidity2 - expect_receive[expect_receive.length() - 1];
-        let pool_address = dubhe_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
+        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
 
 
         let output_amount = 10 * DECIMAL;
         let amounts =
-            dubhe_dex_system::get_amounts_in(&mut dapp_hub, output_amount, vector[asset_1, asset_0]);
+            dex_system::get_amounts_in(&mut dapp_hub, output_amount, vector[asset_1, asset_0]);
         debug::print(&amounts);
-        dubhe_dex_system::swap_tokens_for_exact_tokens(&mut dapp_hub, output_amount, amounts[0], vector[asset_1, asset_0], ctx.sender(), ctx);
+        dex_system::swap_tokens_for_exact_tokens(&mut dapp_hub, output_amount, amounts[0], vector[asset_1, asset_0], ctx.sender(), ctx);
 
         let balance0 = balance0 + output_amount;
         let balance1 = balance1 - amounts[0];
 
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
 
         let liquidity1 = liquidity1 - output_amount;
         let liquidity2 = liquidity2 + amounts[0];
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
 
-        std::debug::print(&dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
+        std::debug::print(&dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
 
         dapp_hub.destroy();
     
@@ -316,81 +316,81 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xB);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dubhe_dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
 
-        dubhe_assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
-        dubhe_assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 100000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
+        assets_system::mint(&mut dapp_hub, asset_2, ctx.sender(), 100000 * DECIMAL, ctx);
 
         let liquidity1 = 800 * DECIMAL;
         let liquidity2 = 200 * DECIMAL;
         let liquidity3 = 100 * DECIMAL;
         let liquidity4 = 100 * DECIMAL;
 
-        dubhe_dex_system::add_liquidity(&mut dapp_hub, asset_0, asset_1, liquidity1, liquidity2, 1, 1, ctx.sender(), ctx);
-        dubhe_dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_2, liquidity3, liquidity4, 1, 1, ctx.sender(), ctx);
+        dex_system::add_liquidity(&mut dapp_hub, asset_0, asset_1, liquidity1, liquidity2, 1, 1, ctx.sender(), ctx);
+        dex_system::add_liquidity(&mut dapp_hub, asset_1, asset_2, liquidity3, liquidity4, 1, 1, ctx.sender(), ctx);
 
         let input_amount = 10 * DECIMAL;
         let path = vector[asset_0, asset_1, asset_2];
         let amounts =
-            dubhe_dex_system::get_amounts_out(&mut dapp_hub, input_amount, path);
+            dex_system::get_amounts_out(&mut dapp_hub, input_amount, path);
         debug::print(&amounts);
 
         let balance0 = 10000 * DECIMAL - liquidity1 - input_amount;
         let balance1 = 1000 * DECIMAL - liquidity2 - liquidity3;
         let balance2 = 100000 * DECIMAL - liquidity3 + amounts[amounts.length() - 1];
 
-        dubhe_dex_system::swap_exact_tokens_for_tokens(&mut dapp_hub, input_amount, 1, path, ctx.sender(), ctx);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_2, ctx.sender()) == balance2, 0);
+        dex_system::swap_exact_tokens_for_tokens(&mut dapp_hub, input_amount, 1, path, ctx.sender(), ctx);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_2, ctx.sender()) == balance2, 0);
 
         let liquidity1 = liquidity1 + input_amount;
         let liquidity2 = liquidity2 - amounts[1];
-        let pool_address = dubhe_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool_address));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address));
+        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_0, pool_address));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_1, pool_address));
 
         let liquidity3 = liquidity3 + amounts[1];
         let liquidity4 = liquidity4 - amounts[2];
-        let pool_address = dubhe_pools::get_pool_address(&dapp_hub, asset_2, asset_1);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity3, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_2, pool_address) == liquidity4, 0);
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address));
-        std::debug::print(&dubhe_assets_system::balance_of(&dapp_hub, asset_2, pool_address));
+        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_2, asset_1);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity3, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_2, pool_address) == liquidity4, 0);
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_1, pool_address));
+        std::debug::print(&assets_system::balance_of(&dapp_hub, asset_2, pool_address));
 
         let output_amount = 10 * DECIMAL;
         let path = vector[asset_0, asset_1, asset_2];
         let amounts =
-            dubhe_dex_system::get_amounts_in(&mut dapp_hub, output_amount, path);
+            dex_system::get_amounts_in(&mut dapp_hub, output_amount, path);
         debug::print(&amounts);
-        dubhe_dex_system::swap_tokens_for_exact_tokens(&mut dapp_hub, output_amount, amounts[0], path, ctx.sender(), ctx);
+        dex_system::swap_tokens_for_exact_tokens(&mut dapp_hub, output_amount, amounts[0], path, ctx.sender(), ctx);
 
         let balance0 = balance0 - amounts[0];
         let balance1 = balance1;
         let balance2 = balance2 + output_amount;
 
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_2, ctx.sender()) == balance2, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, ctx.sender()) == balance0, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == balance1, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_2, ctx.sender()) == balance2, 0);
 
         let liquidity1 = liquidity1 + amounts[0];
         let liquidity2 = liquidity2 - amounts[1];
-        let pool_address = dubhe_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
+        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
+        assert!(assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
 
         let liquidity3 = liquidity3 + amounts[1];
         let liquidity4 = liquidity4 - amounts[2];
-        let pool_address = dubhe_pools::get_pool_address(&dapp_hub, asset_2, asset_1);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity3, 0);
-        assert!(dubhe_assets_system::balance_of(&dapp_hub, asset_2, pool_address) == liquidity4, 0);
+        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_2, asset_1);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity3, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset_2, pool_address) == liquidity4, 0);
 
-        std::debug::print(&dubhe_dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
-        std::debug::print(&dubhe_dex_functions::get_pool(&dapp_hub, asset_1, asset_2));
+        std::debug::print(&dex_functions::get_pool(&dapp_hub, asset_0, asset_1));
+        std::debug::print(&dex_functions::get_pool(&dapp_hub, asset_1, asset_2));
         dapp_hub.destroy();
     
         scenario.end();
@@ -401,10 +401,10 @@ module dubhe::dex_tests {
     //     let (mut dapp_hub, mut scenario, asset_0, asset_1, _) = init_test();
 
     //     let ctx = test_scenario::ctx(&mut scenario);
-    //   dubhe_dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+    //   dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
 
-    //   dubhe_assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
-    //     dubhe_assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
+    //   assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
+    //     assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
 
     //   dapp_hub.pools().set(asset_0, asset_1, dubhe_pool::new(
     //         @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7, 
@@ -415,7 +415,7 @@ module dubhe::dex_tests {
     //         )
     //     );
 
-    //     dapp_hub.asset_metadata().set(asset_0, dubhe::dubhe_asset_metadata::new(
+    //     dapp_hub.asset_metadata().set(asset_0, dubhe::asset_metadata::new(
     //         std::ascii::string(b"USDT"),
     //         std::ascii::string(b"USDT"),
     //         std::ascii::string(b"USDT"),
@@ -425,24 +425,24 @@ module dubhe::dex_tests {
     //         @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7,
     //         418696631,
     //         0,
-    //         dubhe::dubhe_asset_status::new_liquid(),
+    //         dubhe::asset_status::new_liquid(),
     //         true,
     //         true,
     //         true,
-    //         dubhe::dubhe_asset_type::new_lp()
+    //         dubhe::asset_type::new_lp()
     //     ));
 
     //     dapp_hub.account().set(asset_0, @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7, dubhe::dubhe_account::new(
     //        2738193354,
-    //         dubhe::dubhe_account_status::new_liquid(),
+    //         dubhe::account_status::new_liquid(),
     //     ));
 
     //     dapp_hub.account().set(asset_1, @0xcdbf6f09931206f105dbd759561f36aff7676f5eec7fe6e027473cea643250f7, dubhe::dubhe_account::new(
     //         64665424,
-    //         dubhe::dubhe_account_status::new_liquid(),
+    //         dubhe::account_status::new_liquid(),
     //     ));
 
-    //     dubhe_dex_system::add_liquidity(
+    //     dex_system::add_liquidity(
     //         &mut dapp_hub, 
     //         asset_0, 
     //         asset_1, 

@@ -1,23 +1,21 @@
-module dubhe::dubhe_assets_system;
-use std::ascii::String;
-use std::ascii::string;
-use dubhe::dubhe_errors::{
+module dubhe::assets_system;
+use dubhe::errors::{
     asset_not_found_error, no_permission_error, not_mintable_error, not_burnable_error, account_not_found_error, asset_not_liquid_error, asset_not_frozen_error
 };
 use dubhe::dapp_hub::DappHub;
-use dubhe::dubhe_account_status;
-use dubhe::dubhe_asset_status;
-use dubhe::dubhe_assets_functions;
-use dubhe::dubhe_asset_type;
-use dubhe::dubhe_errors::not_freezable_error;
-use dubhe::dubhe_errors::invalid_metadata_error;
-use dubhe::dubhe_asset_metadata;
-use dubhe::dubhe_asset_account;
+use dubhe::account_status;
+use dubhe::asset_status;
+use dubhe::assets_functions;
+use dubhe::asset_type;
+use dubhe::errors::not_freezable_error;
+use dubhe::errors::invalid_metadata_error;
+use dubhe::asset_metadata;
+use dubhe::asset_account;
 use std::type_name;
 use sui::address;
-use dubhe::dubhe_entity_id::asset_to_entity_id;
+use dubhe::entity_id::asset_to_entity_id;
 use dubhe::dubhe_config;
-use dubhe::dubhe_dapp_key;
+use dubhe::dapp_key;
 
 /// Set the metadata of an asset.
 /// 
@@ -39,8 +37,8 @@ public entry fun set_metadata(
     ctx: &mut TxContext
 ) {
     let admin = ctx.sender();
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let mut asset_metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let mut asset_metadata = asset_metadata::get_struct(dapp_hub, asset_id);
     no_permission_error(asset_metadata.owner() == admin);
     invalid_metadata_error(!name.is_empty() && !symbol.is_empty() && !description.is_empty());
 
@@ -48,7 +46,7 @@ public entry fun set_metadata(
     asset_metadata.update_symbol(symbol);
     asset_metadata.update_description(description);
     asset_metadata.update_icon_url(icon_url);
-    dubhe_asset_metadata::set_struct(dapp_hub, asset_id, asset_metadata);
+    asset_metadata::set_struct(dapp_hub, asset_id, asset_metadata);
 }
 
 /// Mint `amount` of asset `id` to `who`. Sender must be the admin of the asset.
@@ -62,12 +60,12 @@ public entry fun set_metadata(
 /// * `amount`: The amount of the asset to mint.
 public entry fun mint(dapp_hub: &mut DappHub, asset_id: address, to: address, amount: u256, ctx: &mut TxContext) {
     let issuer = ctx.sender();
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let asset_metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let asset_metadata = asset_metadata::get_struct(dapp_hub, asset_id);
     no_permission_error(asset_metadata.owner() == issuer);
     not_mintable_error(asset_metadata.is_mintable());
 
-    dubhe_assets_functions::do_mint(dapp_hub, asset_id, to, amount);
+    assets_functions::do_mint(dapp_hub, asset_id, to, amount);
 }
 
 /// Burn `amount` of asset `id` from `who`. Sender must be the admin of the asset.
@@ -81,12 +79,12 @@ public entry fun mint(dapp_hub: &mut DappHub, asset_id: address, to: address, am
 /// * `amount`: The amount of the asset to burn.
 public entry fun burn(dapp_hub: &mut DappHub, asset_id: address, from: address, amount: u256, ctx: &mut TxContext) {
     let burner = ctx.sender();
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let asset_metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let asset_metadata = asset_metadata::get_struct(dapp_hub, asset_id);
     no_permission_error(asset_metadata.owner() == burner);
     not_burnable_error(asset_metadata.is_burnable());
 
-    dubhe_assets_functions::do_burn(dapp_hub, asset_id, from, amount);
+    assets_functions::do_burn(dapp_hub, asset_id, from, amount);
 }
 
 /// Disallow further unprivileged transfers of an asset `id` from an account `who`.
@@ -101,14 +99,14 @@ public entry fun burn(dapp_hub: &mut DappHub, asset_id: address, from: address, 
 public entry fun freeze_address(dapp_hub: &mut DappHub, asset_id: address, who: address, ctx: &mut TxContext) {
     let freezer = ctx.sender();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let asset_metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let asset_metadata = asset_metadata::get_struct(dapp_hub, asset_id);
     no_permission_error(asset_metadata.owner() == freezer);
     not_freezable_error(asset_metadata.is_freezable());
 
-    dubhe_asset_account::ensure_has(dapp_hub, asset_id, who);
-    let status = dubhe_account_status::new_frozen();
-    dubhe_asset_account::set_status(dapp_hub, asset_id, who, status);
+    asset_account::ensure_has(dapp_hub, asset_id, who);
+    let status = account_status::new_frozen();
+    asset_account::set_status(dapp_hub, asset_id, who, status);
 }
 
 /// Disallow further unprivileged transfers of an asset `id` to and from an account `who`.
@@ -123,13 +121,13 @@ public entry fun freeze_address(dapp_hub: &mut DappHub, asset_id: address, who: 
 public entry fun block_address(dapp_hub: &mut DappHub, asset_id: address, who: address, ctx: &mut TxContext) {
     let blocker = ctx.sender();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(owner == blocker);
 
-    dubhe_asset_account::ensure_has(dapp_hub, asset_id, who);
-    let status = dubhe_account_status::new_blocked();
-    dubhe_asset_account::set_status(dapp_hub, asset_id, who, status);
+    asset_account::ensure_has(dapp_hub, asset_id, who);
+    let status = account_status::new_blocked();
+    asset_account::set_status(dapp_hub, asset_id, who, status);
 }
 
 /// Allow unprivileged transfers to and from an account again.
@@ -144,13 +142,13 @@ public entry fun block_address(dapp_hub: &mut DappHub, asset_id: address, who: a
 public entry fun thaw_address(dapp_hub: &mut DappHub, asset_id: address, who: address, ctx: &mut TxContext) {
     let unfreezer = ctx.sender();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(owner == unfreezer);
 
-    dubhe_asset_account::ensure_has(dapp_hub, asset_id, who);
-    let status = dubhe_account_status::new_liquid();
-    dubhe_asset_account::set_status(dapp_hub, asset_id, who, status);
+    asset_account::ensure_has(dapp_hub, asset_id, who);
+    let status = account_status::new_liquid();
+    asset_account::set_status(dapp_hub, asset_id, who, status);
 }
 
 /// Disallow further unprivileged transfers for the asset class.
@@ -163,12 +161,12 @@ public entry fun thaw_address(dapp_hub: &mut DappHub, asset_id: address, who: ad
 public entry fun freeze_asset(dapp_hub: &mut DappHub, asset_id: address, ctx: &mut TxContext) {
     let freezer = ctx.sender();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(owner == freezer);
 
-    let status = dubhe_asset_status::new_frozen();
-    dubhe_asset_metadata::set_status(dapp_hub, asset_id, status);
+    let status = asset_status::new_frozen();
+    asset_metadata::set_status(dapp_hub, asset_id, status);
 }
 
 /// Allow unprivileged transfers for the asset again.
@@ -181,12 +179,12 @@ public entry fun freeze_asset(dapp_hub: &mut DappHub, asset_id: address, ctx: &m
 public entry fun thaw_asset(dapp_hub: &mut DappHub, asset_id: address, ctx: &mut TxContext) {
     let unfreezer = ctx.sender();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(owner == unfreezer);
 
-    let status = dubhe_asset_status::new_liquid();
-    dubhe_asset_metadata::set_status(dapp_hub, asset_id, status);
+    let status = asset_status::new_liquid();
+    asset_metadata::set_status(dapp_hub, asset_id, status);
 }
 
 /// Change the Owner of an asset.
@@ -200,10 +198,10 @@ public entry fun thaw_asset(dapp_hub: &mut DappHub, asset_id: address, ctx: &mut
 public entry fun transfer_ownership(dapp_hub: &mut DappHub, asset_id: address, to: address, ctx: &mut TxContext) {
     let owner = ctx.sender();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let stored_owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let stored_owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(stored_owner == owner);
-    dubhe_asset_metadata::set_owner(dapp_hub, asset_id, to);
+    asset_metadata::set_owner(dapp_hub, asset_id, to);
 }
 
 /// Move some assets from the sender account to another.
@@ -216,7 +214,7 @@ public entry fun transfer_ownership(dapp_hub: &mut DappHub, asset_id: address, t
 /// * `amount`: The amount of the asset to transfer.
 public entry fun transfer(dapp_hub: &mut DappHub, asset_id: address, to: address, amount: u256, ctx: &mut TxContext) {
     let from = ctx.sender();
-    dubhe_assets_functions::do_transfer(dapp_hub, asset_id, from, to, amount);
+    assets_functions::do_transfer(dapp_hub, asset_id, from, to, amount);
 }
 
 /// Transfer the entire transferable balance from the caller asset account.
@@ -230,7 +228,7 @@ public entry fun transfer_all(dapp_hub: &mut DappHub, asset_id: address, to: add
     let from = ctx.sender();
     let balance = balance_of(dapp_hub, asset_id, from);
 
-    dubhe_assets_functions::do_transfer(dapp_hub, asset_id, from, to, balance);
+    assets_functions::do_transfer(dapp_hub, asset_id, from, to, balance);
 }
 
 // ===============================================================
@@ -269,15 +267,15 @@ public fun create_asset<DappKey: drop>(
     is_burnable: bool, 
     is_freezable: bool
 ): address {
-    let dapp_key = dubhe_dapp_key::to_string();
-    let package_id = dubhe_dapp_key::package_id();
+    let dapp_key = dapp_key::to_string();
+    let package_id = dapp_key::package_id();
     let asset_id = dubhe_config::get_next_asset_id(dapp_hub);
     let entity_id = asset_to_entity_id(dapp_key.into_bytes(), asset_id);
     let supply = 0;
     let accounts = 0;
-    let status = dubhe_asset_status::new_liquid();
+    let status = asset_status::new_liquid();
     // set the assets metadata
-    dubhe_asset_metadata::set(
+    asset_metadata::set(
         dapp_hub, 
         entity_id, 
         name, 
@@ -292,7 +290,7 @@ public fun create_asset<DappKey: drop>(
         is_mintable, 
         is_burnable, 
         is_freezable, 
-        dubhe_asset_type::new_package()
+        asset_type::new_package()
     );
 
     // Increment the asset ID
@@ -316,13 +314,13 @@ public fun mint_asset<DappKey: drop>(
     to: address,
     amount: u256
 ) {
-    let package_id = dubhe_dapp_key::package_id();
+    let package_id = dapp_key::package_id();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(owner == package_id);
 
-    dubhe_assets_functions::do_mint(dapp_hub, asset_id, to, amount);
+    assets_functions::do_mint(dapp_hub, asset_id, to, amount);
 }
 
 /// Burn `amount` of asset `id` from `from`. Dapps can only burn their own assets.
@@ -339,13 +337,13 @@ public fun burn_asset<DappKey: drop>(
     from: address,
     amount: u256
 ) {
-    let package_id = dubhe_dapp_key::package_id();
+    let package_id = dapp_key::package_id();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(owner == package_id);
 
-    dubhe_assets_functions::do_burn(dapp_hub, asset_id, from, amount);
+    assets_functions::do_burn(dapp_hub, asset_id, from, amount);
 }       
 
 /// Transfer `amount` of asset `id` from `from` to `to`. Dapps can only transfer their own assets.
@@ -364,13 +362,13 @@ public fun transfer_asset<DappKey: drop>(
     to: address,
     amount: u256
 ) {
-    let package_id = dubhe_dapp_key::package_id();
+    let package_id = dapp_key::package_id();
 
-    dubhe_asset_metadata::ensure_has(dapp_hub, asset_id);
-    let owner = dubhe_asset_metadata::get_owner(dapp_hub, asset_id);
+    asset_metadata::ensure_has(dapp_hub, asset_id);
+    let owner = asset_metadata::get_owner(dapp_hub, asset_id);
     no_permission_error(owner == package_id);
 
-    dubhe_assets_functions::do_transfer(dapp_hub, asset_id, from, to, amount);
+    assets_functions::do_transfer(dapp_hub, asset_id, from, to, amount);
 }
 
 
@@ -390,8 +388,8 @@ public fun transfer_asset<DappKey: drop>(
 /// 
 /// The balance of the address.
 public fun balance_of(dapp_hub: &DappHub, asset_id: address, who: address): u256 {
-   if (dubhe_asset_account::has(dapp_hub, asset_id, who)) {
-    dubhe_asset_account::get_balance(dapp_hub, asset_id, who)
+   if (asset_account::has(dapp_hub, asset_id, who)) {
+    asset_account::get_balance(dapp_hub, asset_id, who)
    } else {
     0
    }
@@ -408,8 +406,8 @@ public fun balance_of(dapp_hub: &DappHub, asset_id: address, who: address): u256
 /// 
 /// The supply of the asset.
 public fun supply_of(dapp_hub: &DappHub, asset_id: address): u256 {
-    if (dubhe_asset_metadata::has(dapp_hub, asset_id)) {
-        dubhe_asset_metadata::get_supply(dapp_hub, asset_id)
+    if (asset_metadata::has(dapp_hub, asset_id)) {
+        asset_metadata::get_supply(dapp_hub, asset_id)
     } else {
         0
     }
@@ -424,8 +422,8 @@ public fun supply_of(dapp_hub: &DappHub, asset_id: address): u256 {
 /// * `asset_id`: The ID of the asset to get the owner of.
 /// 
 public fun owner_of(dapp_hub: &DappHub, asset_id: address): address {
-    if (dubhe_asset_metadata::has(dapp_hub, asset_id)) {
-        dubhe_asset_metadata::get_owner(dapp_hub, asset_id)
+    if (asset_metadata::has(dapp_hub, asset_id)) {
+        asset_metadata::get_owner(dapp_hub, asset_id)
     } else {
         @0x0
     }
@@ -442,8 +440,8 @@ public fun owner_of(dapp_hub: &DappHub, asset_id: address): address {
 /// 
 /// The metadata of the asset.
 public fun metadata_of(dapp_hub: &DappHub, asset_id: address): (vector<u8>, vector<u8>, vector<u8>, u8) {
-    if (dubhe_asset_metadata::has(dapp_hub, asset_id)) {
-        let metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_id);
+    if (asset_metadata::has(dapp_hub, asset_id)) {
+        let metadata = asset_metadata::get_struct(dapp_hub, asset_id);
         (
             metadata.name(),
             metadata.symbol(),

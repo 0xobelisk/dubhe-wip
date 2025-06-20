@@ -1,15 +1,15 @@
-module dubhe::dubhe_assets_functions {
+module dubhe::assets_functions {
     use std::u256;
     use std::ascii::String;
     use std::ascii::string;
     use std::type_name;
-    use dubhe::dubhe_account_status;
-    use dubhe::dubhe_asset_account;
-    use dubhe::dubhe_entity_id::asset_to_entity_id;
-    use dubhe::dubhe_asset_status;
-    use dubhe::dubhe_asset_metadata;
-    use dubhe::dubhe_asset_type::AssetType;
-    use dubhe::dubhe_errors::{
+    use dubhe::account_status;
+    use dubhe::asset_account;
+    use dubhe::entity_id::asset_to_entity_id;
+    use dubhe::asset_status;
+    use dubhe::asset_metadata;
+    use dubhe::asset_type::AssetType;
+    use dubhe::errors::{
         account_blocked_error, overflows_error, 
         asset_not_found_error,
         account_not_found_error, account_frozen_error, balance_too_low_error,
@@ -35,9 +35,9 @@ module dubhe::dubhe_assets_functions {
         let entity_id = asset_to_entity_id(name, asset_id);
         let supply = 0;
         let accounts = 0;
-        let status = dubhe_asset_status::new_liquid();
+        let status = asset_status::new_liquid();
         // set the assets metadata
-        dubhe_asset_metadata::set(
+        asset_metadata::set(
             dapp_hub, 
             entity_id, 
             name, 
@@ -78,29 +78,29 @@ module dubhe::dubhe_assets_functions {
 
 
     public(package) fun update(dapp_hub: &mut DappHub, asset_id: address, from: address, to: address, amount: u256) {        
-        asset_not_found_error(dubhe_asset_metadata::has(dapp_hub, asset_id));
-        let asset_metadata = dubhe_asset_metadata::get_struct(dapp_hub, asset_id);
+        asset_not_found_error(asset_metadata::has(dapp_hub, asset_id));
+        let asset_metadata = asset_metadata::get_struct(dapp_hub, asset_id);
         if( from == @0xfeed ) {
             // Overflow check required: The rest of the code assumes that totalSupply never overflows
             overflows_error(amount <= u256::max_value!() - asset_metadata.supply());
             // supply += amount;
             let supply = asset_metadata.supply();
-            dubhe_asset_metadata::set_supply(dapp_hub, asset_id, supply + amount);
+            asset_metadata::set_supply(dapp_hub, asset_id, supply + amount);
         } else {
             // asset already frozen
-            asset_already_frozen_error(asset_metadata.status() != dubhe_asset_status::new_frozen());
-            account_not_found_error(dubhe_asset_account::has(dapp_hub, asset_id, from));
-            let (balance, status) = dubhe_asset_account::get(dapp_hub, asset_id, from);
+            asset_already_frozen_error(asset_metadata.status() != asset_status::new_frozen());
+            account_not_found_error(asset_account::has(dapp_hub, asset_id, from));
+            let (balance, status) = asset_account::get(dapp_hub, asset_id, from);
             balance_too_low_error(balance >= amount);
-            account_frozen_error(status != dubhe_account_status::new_frozen());
-            account_blocked_error(status != dubhe_account_status::new_blocked());
+            account_frozen_error(status != account_status::new_frozen());
+            account_blocked_error(status != account_status::new_blocked());
             // balance -= amount;
             if (balance == amount) {
                 let accounts = asset_metadata.accounts();
-                dubhe_asset_metadata::set_accounts(dapp_hub, asset_id, accounts - 1);
-                dubhe_asset_account::delete(dapp_hub, asset_id, from);
+                asset_metadata::set_accounts(dapp_hub, asset_id, accounts - 1);
+                asset_account::delete(dapp_hub, asset_id, from);
             } else {
-                dubhe_asset_account::set_balance(dapp_hub, asset_id, from, balance - amount);
+                asset_account::set_balance(dapp_hub, asset_id, from, balance - amount);
             }
         };
 
@@ -108,16 +108,16 @@ module dubhe::dubhe_assets_functions {
             // Overflow not possible: value <= totalSupply or value <= fromBalance <= totalSupply.
             // supply -= amount;
             let supply = asset_metadata.supply();
-            dubhe_asset_metadata::set_supply(dapp_hub, asset_id, supply - amount);
+            asset_metadata::set_supply(dapp_hub, asset_id, supply - amount);
         } else {
-            if(dubhe_asset_account::has(dapp_hub, asset_id, to)) {
-                let (balance, status) = dubhe_asset_account::get(dapp_hub, asset_id, to);
-                account_blocked_error(status != dubhe_account_status::new_blocked());
-                dubhe_asset_account::set_balance(dapp_hub, asset_id, to, balance + amount);
+            if(asset_account::has(dapp_hub, asset_id, to)) {
+                let (balance, status) = asset_account::get(dapp_hub, asset_id, to);
+                account_blocked_error(status != account_status::new_blocked());
+                asset_account::set_balance(dapp_hub, asset_id, to, balance + amount);
             } else {
                 let accounts = asset_metadata.accounts();
-                dubhe_asset_metadata::set_accounts(dapp_hub, asset_id, accounts + 1);
-                dubhe_asset_account::set(dapp_hub, asset_id, to, amount, dubhe_account_status::new_liquid());
+                asset_metadata::set_accounts(dapp_hub, asset_id, accounts + 1);
+                asset_account::set(dapp_hub, asset_id, to, amount, account_status::new_liquid());
             }
         };
     }
