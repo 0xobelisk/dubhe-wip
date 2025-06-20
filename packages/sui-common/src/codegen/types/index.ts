@@ -20,7 +20,7 @@ export type MoveType =
 
 // Define the type of Schema
 export type Component = {
-  type?: ComponentType;
+  offchain?: boolean;
   fields: Record<string, MoveType>;
   keys?: string[];
 };
@@ -33,6 +33,6 @@ export type DubheConfig = {
   description: string;
   enums?: Record<string, string[]>;
   components: Record<string, Component | MoveType | EmptyComponent>;
-  resources: Record<string, Component | MoveType | EmptyComponent>;
+  resources: Record<string, Component | MoveType>;
   errors?: Record<string, string>;
 };

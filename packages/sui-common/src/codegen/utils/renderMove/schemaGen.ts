@@ -62,10 +62,14 @@ export async function schemaGen(
   const componentsPath = path.join(projectDir, 'sources', 'codegen', 'components');
   if (!existsSync(componentsPath)) {
     await generateComponents(config, componentsPath);
+  } else {
+    await generateComponents(config, componentsPath);
   }
 
   const resourcesPath = path.join(projectDir, 'sources', 'codegen', 'resources');
   if (!existsSync(resourcesPath)) {
+    await generateResources(config, resourcesPath);
+  } else {
     await generateResources(config, resourcesPath);
   }
 
@@ -74,28 +78,13 @@ export async function schemaGen(
     await generateEnums(config, enumsPath);
   }
 
-  // if (config.events) {
-  //   if (config.data) {
-  //     await generateSchemaEvent(config.name, config.data, config.events, rootDir);
-  //   } else {
-  //     await generateSchemaEvent(config.name, null, config.events, rootDir);
-  //   }
-  // }
-
-  // if (config.data) {
-  //   await generateSchemaData(config.name, config.data, rootDir);
-  //   await generateSchemaStructure(config.name, config.data, config.schemas, rootDir);
-  // } else {
-  //   await generateSchemaStructure(config.name, null, config.schemas, rootDir);
-  // }
-
   if (config.errors) {
     await generateSchemaError(config.name, config.errors, rootDir);
   }
 
   // await generateDefaultSchema(config, rootDir);
   // await generateInit(config, rootDir);
-  // await generateSystemsAndTests(config, rootDir);
-  // await generateMigrate(config, rootDir);
+  await generateSystemsAndTests(config, rootDir);
+  await generateMigrate(config, rootDir);
   console.log('\n✅  Schema Generation Process Complete!\n');
 }

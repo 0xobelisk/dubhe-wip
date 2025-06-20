@@ -19,33 +19,18 @@ export async function generateResources(config: DubheConfig, path: string) {
       continue;
     }
 
-    // Handle empty object cases, representing resources with only entity_id key
-    if (Object.keys(resource).length === 0) {
-      const code = generateComponentCode(config.name, componentName, {
-        fields: {
-          'entity_id': 'address'
-        },
-        keys: ['entity_id'],
-        type: 'Onchain'
-      });
-      await formatAndWriteMove(
-        code,
-        `${path}/${componentName}.move`,
-        'formatAndWriteMove'
-      );
-      continue;
+    // Validate that resource has fields defined
+    if (!resource.fields || Object.keys(resource.fields).length === 0) {
+      throw new Error(`Resource '${componentName}' must have fields defined, but found empty object`);
     }
 
-    // Handle cases where keys are not defined
+    // For resources, don't default to any keys - use what's defined or empty array
     if (!resource.keys) {
-      resource.keys = ['entity_id'];
-      if (!resource.fields['entity_id']) {
-        resource.fields = {
-          'entity_id': 'address',
-          ...resource.fields
-        };
-      }
+      resource.keys = [];
     }
+    
+    const offchain = resource.offchain || false;
+    const type: ComponentType = offchain ? 'Offchain' : 'Onchain';
     
     const code = generateComponentCode(config.name, componentName, resource);
     await formatAndWriteMove(
@@ -57,6 +42,10 @@ export async function generateResources(config: DubheConfig, path: string) {
 }
 
 function generateSimpleComponentCode(projectName: string, componentName: string, valueType: string, type: ComponentType = 'Onchain'): string {
+  // Check if it's an enum type
+  const isEnum = !isBasicType(valueType);
+  const enumModule = isEnum ? `${toSnakeCase(valueType)}` : '';
+  
   return `module ${projectName}::${componentName} { 
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
@@ -66,6 +55,8 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
     use dubhe::dapp_hub::DappHub;
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
+${isEnum ? `    use ${projectName}::${enumModule};
+    use ${projectName}::${enumModule}::{${valueType}};` : ''}
 
     const TABLE_NAME: vector<u8> = b"${componentName}";
 
@@ -74,7 +65,7 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
     }
 
     public fun get_key_schemas(): vector<vector<u8>> { 
-        vector[b"address"]
+        vector[]
     }
 
     public fun get_value_schemas(): vector<vector<u8>> { 
@@ -82,7 +73,7 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
     }
 
     public fun get_key_names(): vector<vector<u8>> { 
-        vector[b"entity_id"]
+        vector[]
     }
 
     public fun get_value_names(): vector<vector<u8>> { 
@@ -104,37 +95,33 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
         );
     }
 
-    public fun has(dapp_hub: &DappHub, entity_id: address): bool {
-        let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&entity_id));
+    public fun has(dapp_hub: &DappHub): bool {
+        let key_tuple = vector::empty();
         dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
     }
 
-    public fun delete(dapp_hub: &mut DappHub, entity_id: address) {
-        let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&entity_id));
+    public fun delete(dapp_hub: &mut DappHub) {
+        let key_tuple = vector::empty();
         dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
     }
 
-    public fun get(dapp_hub: &DappHub, entity_id: address): (${valueType}) {
-        let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&entity_id));
+    public fun get(dapp_hub: &DappHub): (${valueType}) {
+        let key_tuple = vector::empty();
         let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
         let mut bsc_type = sui::bcs::new(value_tuple);
-        let value = sui::bcs::peel_${getBcsType(valueType)}(&mut bsc_type);
+        ${isEnum ? `let value = ${projectName}::${enumModule}::decode(&mut bsc_type);` : `let value = sui::bcs::peel_${getBcsType(valueType)}(&mut bsc_type);`}
         (value)
     }
 
-    public fun set(dapp_hub: &mut DappHub, entity_id: address, value: ${valueType}) {
-        let mut key_tuple = vector::empty();
-        key_tuple.push_back(to_bytes(&entity_id));
+    public fun set(dapp_hub: &mut DappHub, value: ${valueType}) {
+        let key_tuple = vector::empty();
         let value_tuple = encode(value);
         dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
     }
 
     public fun encode(value: ${valueType}): vector<vector<u8>> {
         let mut value_tuple = vector::empty();
-        value_tuple.push_back(to_bytes(&value));
+        value_tuple.push_back(${isEnum ? `${projectName}::${enumModule}::encode(value)` : `to_bytes(&value)`});
         value_tuple
     }
 }`;
@@ -146,8 +133,9 @@ function toSnakeCase(str: string): string {
 
 function generateComponentCode(projectName: string, componentName: string, resource: any): string {
   const fields = resource.fields;
-  const keys = resource.keys || ['entity_id'];
-  const type: ComponentType = resource.type || 'Onchain';
+  const keys = resource.keys || [];
+  const offchain = resource.offchain || false;
+  const type: ComponentType = offchain ? 'Offchain' : 'Onchain';
   
   // Check if all fields are keys
   const isAllKeys = Object.keys(fields).every(name => keys.includes(name));
@@ -165,7 +153,7 @@ function generateComponentCode(projectName: string, componentName: string, resou
     .filter(([_, type]) => !isBasicType(type as string))
     .map(([_, type]) => ({
       type: type as string,
-      module: `${projectName}_${toSnakeCase(type as string)}`
+      module: `${toSnakeCase(type as string)}`
     }))
     .filter((item, index, self) => 
       self.findIndex(t => t.type === item.type) === index

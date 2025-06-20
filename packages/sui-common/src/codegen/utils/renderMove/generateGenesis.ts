@@ -10,12 +10,16 @@ function capitalizeFirstLetter(str: string): string {
 
 export async function generateGenesis(config: DubheConfig, path: string) {
   // Generate register table code
-  const registerTablesCode = Object.keys(config.components || {})
-    .map(componentName => `    ${componentName}::register_table(dapp_hub, ctx); `)
-    .join('\n') 
-    + 
-    Object.keys(config.resources || {})
-    .map(resourceName => `    ${resourceName}::register_table(dapp_hub, ctx); `)
+  const componentRegisterCode = Object.keys(config.components || {})
+    .map(componentName => `    ${componentName}::register_table(dapp_hub, ctx);`)
+    .join('\n');
+    
+  const resourceRegisterCode = Object.keys(config.resources || {})
+    .map(resourceName => `    ${resourceName}::register_table(dapp_hub, ctx);`)
+    .join('\n');
+
+  const registerTablesCode = [componentRegisterCode, resourceRegisterCode]
+    .filter(code => code.trim() !== '')
     .join('\n');
 
   let genesis_code = `module ${config.name}::genesis {
@@ -35,7 +39,7 @@ export async function generateGenesis(config: DubheConfig, path: string) {
 ${registerTablesCode}
 
     // Logic that needs to be automated once the contract is deployed
-    ${config.name}::${config.name}_deploy_hook::run(dapp_hub, ctx);
+    ${config.name}::deploy_hook::run(dapp_hub, ctx);
   }
 }
 `;

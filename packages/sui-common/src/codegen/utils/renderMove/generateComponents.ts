@@ -26,7 +26,7 @@ export async function generateComponents(config: DubheConfig, path: string) {
           'entity_id': 'address'
         },
         keys: ['entity_id'],
-        type: 'Onchain'
+        offchain: false
       });
       await formatAndWriteMove(
         code,
@@ -36,7 +36,7 @@ export async function generateComponents(config: DubheConfig, path: string) {
       continue;
     }
 
-    // Handle cases where keys are not defined
+    // Handle cases where keys are not defined - default to entity_id for components
     if (!component.keys) {
       component.keys = ['entity_id'];
       if (!component.fields['entity_id']) {
@@ -45,6 +45,11 @@ export async function generateComponents(config: DubheConfig, path: string) {
           ...component.fields
         };
       }
+    }
+    
+    // Validate that components only have one key
+    if (component.keys && component.keys.length > 1) {
+      throw new Error(`Component '${componentName}' can only have one key, but found ${component.keys.length} keys: ${component.keys.join(', ')}`);
     }
     
     const code = generateComponentCode(config.name, componentName, component);
@@ -57,6 +62,10 @@ export async function generateComponents(config: DubheConfig, path: string) {
 }
 
 function generateSimpleComponentCode(projectName: string, componentName: string, valueType: string, type: ComponentType = 'Onchain'): string {
+  // Check if it's an enum type
+  const isEnum = !isBasicType(valueType);
+  const enumModule = isEnum ? `${toSnakeCase(valueType)}` : '';
+  
   return `module ${projectName}::${componentName} { 
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
@@ -66,6 +75,8 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
     use dubhe::dapp_hub::DappHub;
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
+${isEnum ? `    use ${projectName}::${enumModule};
+    use ${projectName}::${enumModule}::{${valueType}};` : ''}
 
     const TABLE_NAME: vector<u8> = b"${componentName}";
 
@@ -121,7 +132,7 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
         key_tuple.push_back(to_bytes(&entity_id));
         let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
         let mut bsc_type = sui::bcs::new(value_tuple);
-        let value = sui::bcs::peel_${getBcsType(valueType)}(&mut bsc_type);
+        ${isEnum ? `let value = ${projectName}::${enumModule}::decode(&mut bsc_type);` : `let value = sui::bcs::peel_${getBcsType(valueType)}(&mut bsc_type);`}
         (value)
     }
 
@@ -134,7 +145,7 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
 
     public fun encode(value: ${valueType}): vector<vector<u8>> {
         let mut value_tuple = vector::empty();
-        value_tuple.push_back(to_bytes(&value));
+        value_tuple.push_back(${isEnum ? `${projectName}::${enumModule}::encode(value)` : `to_bytes(&value)`});
         value_tuple
     }
 }`;
@@ -147,7 +158,8 @@ function toSnakeCase(str: string): string {
 function generateComponentCode(projectName: string, componentName: string, component: any): string {
   const fields = component.fields;
   const keys = component.keys || ['entity_id'];
-  const type: ComponentType = component.type || 'Onchain';
+  const offchain = component.offchain || false;
+  const type: ComponentType = offchain ? 'Offchain' : 'Onchain';
   
   // Check if all fields are keys
   const isAllKeys = Object.keys(fields).every(name => keys.includes(name));
@@ -160,8 +172,8 @@ function generateComponentCode(projectName: string, componentName: string, compo
   // If there is only one value field, do not generate struct
   const isSingleValue = valueFieldNames.length === 1;
 
-  // Get all enum type fields and their corresponding module names
-  const enumTypes = valueFields
+  // Get all enum type fields (both key fields and value fields) and their corresponding module names
+  const allEnumTypes = Object.entries(fields)
     .filter(([_, type]) => !isBasicType(type as string))
     .map(([_, type]) => ({
       type: type as string,
@@ -172,7 +184,7 @@ function generateComponentCode(projectName: string, componentName: string, compo
     );
   
   // Generate table related functions
-  const tableFunctions = generateTableFunctions(projectName, componentName, fields, keys, !isAllKeys && !isSingleValue, enumTypes, type);
+  const tableFunctions = generateTableFunctions(projectName, componentName, fields, keys, !isAllKeys && !isSingleValue, allEnumTypes, type);
 
   // If all fields are keys or there is only one value field, do not generate struct related code
   if (isAllKeys || isSingleValue) {
@@ -185,7 +197,7 @@ function generateComponentCode(projectName: string, componentName: string, compo
     use dubhe::dapp_hub::DappHub;
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
-${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module};
+${allEnumTypes.length > 0 ? allEnumTypes.map(e => `    use ${projectName}::${e.module};
     use ${projectName}::${e.module}::{${e.type}};`).join('\n') : ''}
 
     const TABLE_NAME: vector<u8> = b"${componentName}";
@@ -232,7 +244,7 @@ ${tableFunctions}
     use dubhe::dapp_hub::DappHub;
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
-${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module};
+${allEnumTypes.length > 0 ? allEnumTypes.map(e => `    use ${projectName}::${e.module};
     use ${projectName}::${e.module}::{${e.type}};`).join('\n') : ''}
 
     const TABLE_NAME: vector<u8> = b"${componentName}";

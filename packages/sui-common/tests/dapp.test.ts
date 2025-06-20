@@ -43,7 +43,7 @@ describe('defineDapp', () => {
       description: 'Game module',
       components: {
         player: {
-          type: 'Offchain',
+          offchain: true,
           fields: {
             id: 'vector<u8>' as MoveType,
             name: 'vector<u8>' as MoveType,
