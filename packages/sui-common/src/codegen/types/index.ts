@@ -36,3 +36,9 @@ export type DubheConfig = {
   resources: Record<string, Component | MoveType>;
   errors?: Record<string, string>;
 };
+
+export type DubheMetadata = {
+  components: Record<string, Component | MoveType | EmptyComponent>;
+  resources: Record<string, Component | MoveType>;
+  enums: Record<string, string[]>;
+};

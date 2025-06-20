@@ -19,7 +19,6 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
 import pluralize from 'pluralize';
-import { DubheConfig } from '@0xobelisk/sui-common';
 
 import {
   DubheClientConfig,
@@ -41,6 +40,7 @@ import {
   MultiTableSubscriptionResult,
   MultiTableSubscriptionData,
   ParsedTableInfo,
+  DubheMetadata,
 } from './types';
 
 // 转换缓存策略类型
@@ -64,15 +64,15 @@ function mapCachePolicyToFetchPolicy(cachePolicy: CachePolicy): FetchPolicy {
 export class DubheGraphqlClient {
   private apolloClient: ApolloClient<NormalizedCacheObject>;
   private subscriptionClient?: any;
-  private dubheConfig?: DubheConfig;
+  private dubheMetadata?: DubheMetadata;
   private parsedTables: Map<string, ParsedTableInfo> = new Map();
 
   constructor(config: DubheClientConfig) {
-    // 保存dubhe配置
-    this.dubheConfig = config.dubheConfig;
+    // 保存dubhe元数据
+    this.dubheMetadata = config.dubheMetadata;
 
-    // 如果提供了dubhe配置，解析表信息
-    if (this.dubheConfig) {
+    // 如果提供了dubhe元数据，解析表信息
+    if (this.dubheMetadata) {
       this.parseTableInfoFromConfig();
     }
 
@@ -362,42 +362,42 @@ export class DubheGraphqlClient {
       }
     `;
 
-    // console.log(
-    //   'query:',
-    //   `
-    //   query GetAllTables(
-    //     $first: Int
-    //     $last: Int
-    //     $after: Cursor
-    //     $before: Cursor
-    //     $filter: ${this.getFilterTypeName(tableName)}
-    //     $orderBy: [${this.getOrderByTypeName(tableName)}!]
-    //   ) {
-    //     ${pluralTableName}(
-    //       first: $first
-    //       last: $last
-    //       after: $after
-    //       before: $before
-    //       filter: $filter
-    //       orderBy: $orderBy
-    //     ) {
-    //       totalCount
-    //       pageInfo {
-    //         hasNextPage
-    //         hasPreviousPage
-    //         startCursor
-    //         endCursor
-    //       }
-    //       edges {
-    //         cursor
-    //         node {
-    //           ${this.convertTableFields(tableName, params?.fields)}
-    //         }
-    //       }
-    //     }
-    //   }
-    // `
-    // );
+    console.log(
+      'query:',
+      `
+      query GetAllTables(
+        $first: Int
+        $last: Int
+        $after: Cursor
+        $before: Cursor
+        $filter: ${this.getFilterTypeName(tableName)}
+        $orderBy: [${this.getOrderByTypeName(tableName)}!]
+      ) {
+        ${pluralTableName}(
+          first: $first
+          last: $last
+          after: $after
+          before: $before
+          filter: $filter
+          orderBy: $orderBy
+        ) {
+          totalCount
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          edges {
+            cursor
+            node {
+              ${this.convertTableFields(tableName, params?.fields)}
+            }
+          }
+        }
+      }
+    `
+    );
     // 构建查询参数，使用枚举值
     const queryParams = {
       first: params?.first,
@@ -409,7 +409,7 @@ export class DubheGraphqlClient {
     };
 
     // // 添加调试日志
-    // console.log('queryParams:', JSON.stringify(queryParams, null, 2));
+    console.log('queryParams:', JSON.stringify(queryParams, null, 2));
 
     // const result = await this.query(query, queryParams, {
     //   cachePolicy: 'no-cache',
@@ -968,10 +968,10 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 获取 Dubhe 配置
+   * 获取 Dubhe 元数据
    */
-  getDubheConfig(): DubheConfig | undefined {
-    return this.dubheConfig;
+  getDubheMetadata(): DubheMetadata | undefined {
+    return this.dubheMetadata;
   }
 
   /**
@@ -1037,96 +1037,81 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 从dubhe配置中解析表信息
+   * 从dubhe元数据中解析表信息
    */
   private parseTableInfoFromConfig(): void {
-    if (!this.dubheConfig?.components) {
+    if (!this.dubheMetadata) {
       return;
     }
 
-    const { components, enums = {} } = this.dubheConfig;
+    const { components = [], resources = [], enums = [] } = this.dubheMetadata;
 
-    Object.entries(components).forEach(([componentName, component]) => {
-      const tableName = this.toSnakeCase(componentName); // 转换为snake_case表名
-
-      // 获取字段列表
-      const fields: string[] = [];
-      const enumFields: Record<string, string[]> = {};
-
-      // 处理不同类型的组件定义
-      if (typeof component === 'string') {
-        // 如果组件是字符串（MoveType），创建一个value字段
-        fields.push('entityId', 'value');
-      } else if (Object.keys(component).length === 0) {
-        // EmptyComponent - 只有entityId字段
-        fields.push('entityId');
-      } else {
-        // Component 类型
-        // 分析主键配置
-        if (!('keys' in component)) {
-          // keys未定义 → 添加默认entityId字段
-          fields.push('entityId');
-        } else if (component.keys && component.keys.length > 0) {
-          // keys指定了字段 → 不添加默认entityId（主键字段会在下面处理）
-          // 不添加entityId
-        } else {
-          // keys: [] → 明确指定无主键，不添加entityId
-          // 不添加entityId
+    // 处理components数组
+    components.forEach((componentObj: any) => {
+      Object.entries(componentObj).forEach(
+        ([componentName, componentData]: [string, any]) => {
+          this.processTableData(componentName, componentData, enums);
         }
+      );
+    });
 
-        // 添加用户定义的字段
-        if (component.fields) {
-          Object.entries(component.fields).forEach(([fieldName, fieldType]) => {
+    // 处理resources数组
+    resources.forEach((resourceObj: any) => {
+      Object.entries(resourceObj).forEach(
+        ([resourceName, resourceData]: [string, any]) => {
+          this.processTableData(resourceName, resourceData, enums);
+        }
+      );
+    });
+  }
+
+  /**
+   * 处理单个表的数据
+   */
+  private processTableData(
+    tableName: string,
+    tableData: any,
+    enums: any[]
+  ): void {
+    const snakeTableName = this.toSnakeCase(tableName);
+    const fields: string[] = [];
+    const enumFields: Record<string, string[]> = {};
+
+    // 处理字段数组
+    if (tableData.fields && Array.isArray(tableData.fields)) {
+      tableData.fields.forEach((fieldObj: any) => {
+        Object.entries(fieldObj).forEach(
+          ([fieldName, fieldType]: [string, any]) => {
             const fieldNameCamelCase = this.toCamelCase(fieldName);
             fields.push(fieldNameCamelCase);
+            // // 检查是否是枚举类型
+            // const typeStr = String(fieldType);
+            // if (enums.length > 0) {
+            //   // 这里可以根据需要处理枚举类型
+            //   // enumFields[fieldNameCamelCase] = [...];
+            // }
+          }
+        );
+      });
+    }
 
-            // 检查是否是枚举类型（根据sui-common，fieldType是MoveType字符串）
-            const typeStr = String(fieldType);
-            if (enums[typeStr]) {
-              enumFields[fieldNameCamelCase] = enums[typeStr];
-            }
-          });
-        }
-      }
+    // 添加系统字段
+    fields.push('createdAt', 'updatedAt');
 
-      // 添加系统字段
-      fields.push('createdAt', 'updatedAt');
+    // 处理主键
+    const primaryKeys: string[] = tableData.keys.map((key: string) =>
+      this.toCamelCase(key)
+    );
 
-      // 确定主键
-      let primaryKeys: string[] = [];
-      let hasDefaultId = false;
+    const tableInfo: ParsedTableInfo = {
+      tableName: snakeTableName,
+      fields: [...new Set(fields)], // 去重
+      primaryKeys,
+      enumFields,
+    };
 
-      if (
-        typeof component === 'string' ||
-        Object.keys(component).length === 0
-      ) {
-        // 字符串类型和空组件都使用entityId作为主键
-        primaryKeys = ['entityId'];
-        hasDefaultId = true;
-      } else if (!('keys' in component)) {
-        // Component类型但没有定义keys，使用默认entityId
-        primaryKeys = ['entityId'];
-        hasDefaultId = true;
-      } else if (!component.keys || component.keys.length === 0) {
-        // keys: [] 明确指定无主键
-        primaryKeys = [];
-        hasDefaultId = false;
-      } else {
-        // 使用自定义主键
-        primaryKeys = component.keys.map((key) => this.toCamelCase(key));
-      }
-
-      const tableInfo: ParsedTableInfo = {
-        tableName,
-        fields: [...new Set(fields)], // 去重
-        primaryKeys,
-        hasDefaultId,
-        enumFields,
-      };
-      this.parsedTables.set(tableName, tableInfo);
-      // 同时用camelCase版本作为key存储，方便查找
-      this.parsedTables.set(this.toCamelCase(tableName), tableInfo);
-    });
+    this.parsedTables.set(snakeTableName, tableInfo);
+    this.parsedTables.set(this.toCamelCase(snakeTableName), tableInfo);
   }
 
   /**
@@ -1165,16 +1150,6 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 检查表是否有默认id字段
-   */
-  hasDefaultId(tableName: string): boolean {
-    const tableInfo =
-      this.parsedTables.get(tableName) ||
-      this.parsedTables.get(this.toSnakeCase(tableName));
-    return tableInfo?.hasDefaultId || false;
-  }
-
-  /**
    * 获取表的最小字段集（用于fallback）
    */
   getMinimalFields(tableName: string): string[] {
@@ -1187,8 +1162,6 @@ export class DubheGraphqlClient {
       return tableInfo.fields;
     }
 
-    // 如果没有配置，返回最保守的字段集
-    // 只包含系统字段，因为不确定表结构
     return ['createdAt', 'updatedAt'];
   }
 
@@ -1206,8 +1179,6 @@ export class DubheGraphqlClient {
     } else {
       // 尝试从dubhe配置中获取字段
       const autoFields = this.getTableFields(tableName);
-      console.log('tableName', tableName);
-      console.log('autoFields', autoFields);
       if (autoFields.length > 0) {
         fields = autoFields;
       } else {
@@ -1227,11 +1198,6 @@ export function createDubheGraphqlClient(
 ): DubheGraphqlClient {
   return new DubheGraphqlClient(config);
 }
-
-/**
- * 导出类型以便外部使用
- */
-export type { DubheClientConfig } from './types';
 
 // 导出常用的GraphQL查询构建器
 export const QueryBuilders = {

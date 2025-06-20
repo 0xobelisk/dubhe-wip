@@ -1,3 +1,6 @@
+// 导入sui-common的dubhe配置类型，更通用
+import type { DubheConfig } from '@0xobelisk/sui-common';
+
 // ECS类型定义
 
 export type EntityId = string;
@@ -82,9 +85,6 @@ export interface SubscriptionOptions {
   debounceMs?: number;
   filter?: Record<string, any>;
 }
-
-// 导入sui-common的dubhe配置类型，更通用
-import type { DubheConfig } from '@0xobelisk/sui-common';
 
 // 组件发现配置 - 只支持dubhe config自动解析
 export interface ComponentDiscoveryConfig {

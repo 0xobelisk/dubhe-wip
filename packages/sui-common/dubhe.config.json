@@ -26,9 +26,34 @@
           "entity_id"
         ]
       }
+    },
+    {
+      "counter2": {
+        "fields": [
+          {
+            "value": "u32"
+          },
+          {
+            "entity_id": "address"
+          }
+        ],
+        "keys": [
+          "entity_id"
+        ]
+      }
     }
   ],
   "resources": [
+    {
+      "counter1": {
+        "fields": [
+          {
+            "value": "u32"
+          }
+        ],
+        "keys": []
+      }
+    },
     {
       "counter2": {
         "fields": [

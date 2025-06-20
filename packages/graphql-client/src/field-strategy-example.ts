@@ -3,57 +3,72 @@
  */
 
 import { createDubheGraphqlClient } from './client';
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheMetadata } from './types';
 
-// 示例dubhe config，包含不同类型的表
-const dubheConfig: DubheConfig = {
-  name: 'field_strategy_demo',
-  description: 'description demo',
-  resources: {},
-  components: {
-    // 1. 有默认id字段的表
-    Player: {
-      fields: {
-        name: 'string',
-        level: 'u32',
+// 示例dubhe metadata，包含不同类型的表（JSON格式）
+const dubheMetadata: DubheMetadata = {
+  components: [
+    {
+      // 1. 有默认id字段的表
+      Player: {
+        fields: [
+          { entity_id: 'address' },
+          { name: 'string' },
+          { level: 'u32' },
+        ],
+        keys: ['entity_id'], // 空keys表示使用默认entityId
       },
-      // keys: undefined -> 有默认id字段
     },
-
-    // 2. 自定义主键（没有id字段）
-    Position: {
-      fields: {
-        x: 'u32',
-        y: 'u32',
+    {
+      // 2. 自定义主键（没有id字段）
+      Position: {
+        fields: [{ x: 'u32' }, { y: 'u32' }],
+        keys: ['x', 'y'], // 复合主键，没有id字段
       },
-      keys: ['x', 'y'], // 复合主键，没有id字段
     },
-
-    // 3. 单一自定义主键
-    UserProfile: {
-      fields: {
-        user_id: 'string',
-        bio: 'string',
-        avatar: 'string',
+    {
+      // 3. 单一自定义主键
+      UserProfile: {
+        fields: [
+          { user_id: 'string' },
+          { bio: 'string' },
+          { avatar: 'string' },
+        ],
+        keys: ['user_id'], // 使用user_id作为主键
       },
-      keys: ['user_id'], // 使用user_id作为主键
     },
-
-    // 4. 无主键表
-    GameLog: {
-      fields: {
-        action: 'string',
-        timestamp: 'u64',
-        data: 'string',
+    {
+      // 4. 无主键表
+      GameLog: {
+        fields: [
+          { entity_id: 'address' },
+          { action: 'string' },
+          { timestamp: 'u64' },
+          { data: 'string' },
+        ],
+        keys: ['entity_id'], // 无主键
       },
-      keys: [], // 无主键
     },
-  },
+  ],
+  resources: [
+    // {
+    //   // 4. 无主键表
+    //   GameLog: {
+    //     fields: [
+    //       { action: 'string' },
+    //       { timestamp: 'u64' },
+    //       { data: 'string' },
+    //     ],
+    //     keys: [], // 无主键
+    //   },
+    // },
+  ],
+  enums: [],
 };
 
 const client = createDubheGraphqlClient({
   endpoint: 'http://localhost:4000/graphql',
-  dubheConfig: dubheConfig,
+  dubheMetadata: dubheMetadata,
 });
 
 // 字段策略演示
@@ -71,7 +86,6 @@ function demonstrateFieldStrategies() {
     console.log(
       `  主键: ${client.getTablePrimaryKeys(tableName).join(', ') || '无主键'}`
     );
-    console.log(`  有默认ID: ${client.hasDefaultId(tableName)}`);
   });
 
   // 2. 安全查询策略演示
@@ -127,29 +141,13 @@ async function demonstrateQueries() {
 // 最佳实践建议
 function bestPractices() {
   console.log('\n\n=== 最佳实践建议 ===');
-
-  console.log('\n1. 📋 dubhe config配置建议:');
-  console.log('   - 明确指定每个表的keys配置');
-  console.log('   - undefined: 有默认id字段');
-  console.log('   - []: 无主键表');
-  console.log('   - ["field"]: 自定义主键');
-
-  console.log('\n2. 🔍 查询策略建议:');
-  console.log('   - 优先使用自动字段解析');
-  console.log('   - 只在性能优化时手动指定fields');
-  console.log('   - 对未知表使用保守的字段策略');
-
-  console.log('\n3. 🛡️ 错误处理建议:');
-  console.log('   - 使用getTableFields()检查可用字段');
-  console.log('   - 使用hasDefaultId()检查是否有id字段');
-  console.log('   - 对未配置的表使用安全的默认字段');
 }
 
 // 导出演示函数
 export {
   demonstrateFieldStrategies,
   bestPractices,
-  dubheConfig as fieldStrategyDubheConfig,
+  dubheMetadata as fieldStrategyDubheMetadata,
 };
 
 // 如果直接运行此文件

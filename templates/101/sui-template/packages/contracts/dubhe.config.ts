@@ -5,12 +5,12 @@ export const dubheConfig = {
   description: 'counter contract',
   components: {
     counter0: {},
-    counter1: "u32",
+    counter1: 'u32'
   },
   resources: {
-    counter2: { 
+    counter2: {
       fields: {
-        value: "u32"
+        value: 'u32'
       }
     }
   },

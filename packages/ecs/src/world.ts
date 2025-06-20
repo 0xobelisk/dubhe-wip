@@ -642,9 +642,9 @@ export class DubheECSWorld {
         console.log(
           `  - ECS Components: ${ecsComponents.length} (${ecsComponents.map((c) => c.name).join(', ')})`
         );
-        console.log(
-          `  - Global Configs: ${this.getGlobalConfigTables().length}`
-        );
+        // console.log(
+        //   `  - Global Configs: ${this.getGlobalConfigTables().length}`
+        // );
         console.log(`  - Resources: ${this.getResourceTables().length}`);
 
         // Initialize query system with ECS components and their metadata
@@ -1186,62 +1186,62 @@ export class DubheECSWorld {
     return this.config.dubheConfig || null;
   }
 
-  // ============ Global Config Queries ============
+  // // ============ Global Config Queries ============
 
-  /**
-   * Query global config table (table without primary key)
-   */
-  async getGlobalConfig<T>(configType: string): Promise<T | null> {
-    try {
-      console.log(`🌐 Querying global config: ${configType}`);
-      const result = await this.graphqlClient.getAllTables(configType, {
-        first: 1,
-      });
-      const record = result.edges[0]?.node;
+  // /**
+  //  * Query global config table (table without primary key)
+  //  */
+  // async getGlobalConfig<T>(configType: string): Promise<T | null> {
+  //   try {
+  //     console.log(`🌐 Querying global config: ${configType}`);
+  //     const result = await this.graphqlClient.getAllTables(configType, {
+  //       first: 1,
+  //     });
+  //     const record = result.edges[0]?.node;
 
-      if (record) {
-        console.log(`✅ Found ${configType} config`);
-        return record as T;
-      } else {
-        console.log(`⚠️ ${configType} config not found`);
-        return null;
-      }
-    } catch (error) {
-      console.error(
-        `❌ Failed to query ${configType} config:`,
-        formatError(error)
-      );
-      return null;
-    }
-  }
+  //     if (record) {
+  //       console.log(`✅ Found ${configType} config`);
+  //       return record as T;
+  //     } else {
+  //       console.log(`⚠️ ${configType} config not found`);
+  //       return null;
+  //     }
+  //   } catch (error) {
+  //     console.error(
+  //       `❌ Failed to query ${configType} config:`,
+  //       formatError(error)
+  //     );
+  //     return null;
+  //   }
+  // }
 
-  /**
-   * Get list of all global config tables
-   */
-  getGlobalConfigTables(): string[] {
-    if (!this.config.dubheConfig?.components) {
-      return [];
-    }
+  // /**
+  //  * Get list of all global config tables
+  //  */
+  // getGlobalConfigTables(): string[] {
+  //   if (!this.config.dubheConfig?.components) {
+  //     return [];
+  //   }
 
-    const globalTables: string[] = [];
+  //   const globalTables: string[] = [];
 
-    Object.entries(this.config.dubheConfig.components).forEach(
-      ([componentName, component]) => {
-        // Check if it's a config table without primary key
-        if (
-          typeof component === 'object' &&
-          component !== null &&
-          'keys' in component
-        ) {
-          if (Array.isArray(component.keys) && component.keys.length === 0) {
-            globalTables.push(componentName);
-          }
-        }
-      }
-    );
+  //   Object.entries(this.config.dubheConfig.components).forEach(
+  //     ([componentName, component]) => {
+  //       // Check if it's a config table without primary key
+  //       if (
+  //         typeof component === 'object' &&
+  //         component !== null &&
+  //         'keys' in component
+  //       ) {
+  //         if (Array.isArray(component.keys) && component.keys.length === 0) {
+  //           globalTables.push(componentName);
+  //         }
+  //       }
+  //     }
+  //   );
 
-    return globalTables;
-  }
+  //   return globalTables;
+  // }
 
   // ============ Resource Queries (for composite primary keys) ============
 

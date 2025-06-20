@@ -1,6 +1,29 @@
 import { DocumentNode } from '@apollo/client';
 import { DubheConfig } from '@0xobelisk/sui-common';
 
+// DubheMetadata类型定义，用于JSON格式的dubhe配置
+export type DubheMetadata = {
+  components: Array<
+    Record<
+      string,
+      {
+        fields: Array<Record<string, any>>;
+        keys: string[];
+      }
+    >
+  >;
+  resources: Array<
+    Record<
+      string,
+      {
+        fields: Array<Record<string, any>>;
+        keys: string[];
+      }
+    >
+  >;
+  enums: any[];
+};
+
 // 基础分页信息
 export interface PageInfo {
   hasNextPage: boolean;
@@ -247,7 +270,6 @@ export interface ParsedTableInfo {
   tableName: string; // 表名
   fields: string[]; // 所有字段名（包括自动添加的 createdAt, updatedAt）
   primaryKeys: string[]; // 主键字段
-  hasDefaultId: boolean; // 是否有默认的id字段
   enumFields: Record<string, string[]>; // 枚举字段及其可能的值
 }
 
@@ -264,7 +286,7 @@ export interface DubheClientConfig {
   headers?: Record<string, string>;
   fetchOptions?: RequestInit;
   retryOptions?: RetryOptions; // 重试配置
-  dubheConfig?: DubheConfig; // Dubhe配置，用于自动解析字段
+  dubheMetadata?: any; // Dubhe元数据，用于自动解析字段
   cacheConfig?: {
     // 需要分页缓存策略的表名列表
     paginatedTables?: string[];

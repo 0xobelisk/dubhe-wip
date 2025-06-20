@@ -7,9 +7,7 @@
             "entity_id": "address"
           }
         ],
-        "keys": [
-          "entity_id"
-        ]
+        "keys": ["entity_id"]
       }
     },
     {
@@ -22,9 +20,7 @@
             "value": "u32"
           }
         ],
-        "keys": [
-          "entity_id"
-        ]
+        "keys": ["entity_id"]
       }
     }
   ],
