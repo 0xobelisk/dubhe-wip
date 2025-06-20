@@ -11,8 +11,7 @@ export const dubheConfig = {
     counter2: { 
       fields: {
         value: "u32"
-      },
-      keys: []
+      }
     }
   },
   errors: {
