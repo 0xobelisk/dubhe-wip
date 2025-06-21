@@ -58,7 +58,6 @@
   },
   "dependencies": {
     "@0xobelisk/graphql-client": "workspace:*",
-    "@0xobelisk/sui-common": "workspace:*",
     "@apollo/client": "^3.13.8",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@types/pluralize": "^0.0.33",

@@ -1,7 +1,3 @@
-// Import dubhe configuration types from sui-common for better compatibility
-import type { DubheConfig } from '@0xobelisk/sui-common';
-
-// 统一的 DubheMetadata 类型定义
 export type DubheMetadata = {
   components: Array<
     Record<

@@ -1,5 +1,4 @@
 import { DocumentNode } from '@apollo/client';
-import { DubheConfig } from '@0xobelisk/sui-common';
 
 // DubheMetadata type definition for JSON format dubhe configuration
 export type DubheMetadata = {
