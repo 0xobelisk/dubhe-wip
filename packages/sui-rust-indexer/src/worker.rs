@@ -39,6 +39,80 @@ pub struct DubheIndexerWorker {
 }
 
 impl DubheIndexerWorker {
+    pub async fn clear_all_data(&self) -> Result<()> {
+        let mut conn = self.pg_pool.get().await?;
+        
+        println!("🔄 Clearing all indexer data...");
+        
+        // Get all store tables
+        #[derive(QueryableByName)]
+        struct TableName {
+            #[diesel(sql_type = Text)]
+            table_name: String,
+        }
+        
+        let tables: Vec<String> = diesel::sql_query(
+            "SELECT table_name FROM information_schema.tables 
+             WHERE table_schema = 'public' AND table_name LIKE 'store_%'"
+        )
+        .load::<TableName>(&mut conn)
+        .await?
+        .into_iter()
+        .map(|t| t.table_name)
+        .collect();
+        
+        // Drop triggers for all store tables first
+        for table_name in &tables {
+            let trigger_name = format!("_unified_realtime_{}", table_name);
+            let sql = format!("DROP TRIGGER IF EXISTS {} ON {} CASCADE", trigger_name, table_name);
+            println!("  ├─ Dropping trigger: {}", trigger_name);
+            diesel::sql_query(&sql)
+                .execute(&mut conn)
+                .await?;
+        }
+        
+        // Drop all store tables
+        for table_name in tables {
+            let sql = format!("DROP TABLE IF EXISTS {} CASCADE", table_name);
+            println!("  ├─ Dropping table: {}", table_name);
+            diesel::sql_query(&sql)
+                .execute(&mut conn)
+                .await?;
+        }
+        
+        // Drop functions
+        let functions = vec![
+            "simple_change_log",
+            "unified_realtime_notify"
+        ];
+        
+        for function_name in functions {
+            let sql = format!("DROP FUNCTION IF EXISTS {}() CASCADE", function_name);
+            println!("  ├─ Dropping function: {}", function_name);
+            diesel::sql_query(&sql)
+                .execute(&mut conn)
+                .await?;
+        }
+        
+        // Clear metadata tables (excluding simple_logs as it doesn't exist)
+        let metadata_tables = vec![
+            "table_metadata",
+            "table_fields", 
+            "reader_progress"
+        ];
+        
+        for table_name in metadata_tables {
+            let sql = format!("DROP TABLE IF EXISTS {} CASCADE", table_name);
+            println!("  ├─ Dropping table: {}", table_name);
+            diesel::sql_query(&sql)
+                .execute(&mut conn)
+                .await?;
+        }
+        
+        println!("  └─ All indexer data cleared successfully");
+        Ok(())
+    }
+
     pub async fn create_tables_from_config(&mut self, config_path: &str) -> Result<()> {
         let content = fs::read_to_string(config_path)?;
         let json: Value = serde_json::from_str(&content)?;

@@ -42,7 +42,9 @@ struct TableExists {
 // testnet
 // cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
 // localnet
-//cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1
+// cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1
+// localnet with force restart (clear indexer database only)
+// cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1 --force
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -65,6 +67,9 @@ struct Args {
     /// db url
     #[arg(long)]
     db_url: Option<String>,
+    /// Force restart: clear indexer database (only for local nodes)
+    #[arg(long)]
+    force: bool,
 }
 
 struct CustomWorker;
@@ -108,6 +113,23 @@ async fn main() -> Result<()> {
         pg_pool: get_connection_pool(args.db_url.clone()).await,
         package_id: args.package_id,
     };
+
+    // Handle force restart for local nodes only
+    let is_local_node = !args.store_url.starts_with("http");
+    if args.force {
+        if is_local_node {
+            println!("🔄 Force mode enabled for local node");
+            println!("  ├─ Clearing indexer database data...");
+            // Clear database only (not the node's checkpoint data)
+            dubhe_indexer_worker.clear_all_data().await?;
+            println!("  └─ Note: Node checkpoint data (./chk) is preserved");
+            println!("");
+        } else {
+            println!("⚠️  Warning: --force option is only supported for local nodes");
+            println!("   Current store_url appears to be remote: {}", args.store_url);
+            std::process::exit(1);
+        }
+    }
 
     // Create database tables from configuration
     dubhe_indexer_worker.create_tables_from_config(&args.config).await?;

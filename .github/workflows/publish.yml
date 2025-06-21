@@ -50,6 +50,9 @@ jobs:
           cd ../sui-client && pnpm version ${{ env.VERSION }} --no-git-tag-version
           cd ../sui-cli && pnpm version ${{ env.VERSION }} --no-git-tag-version
           cd ../sui-indexer && pnpm version ${{ env.VERSION }} --no-git-tag-version
+          cd ../ecs && pnpm version ${{ env.VERSION }} --no-git-tag-version
+          cd ../graphql-client && pnpm version ${{ env.VERSION }} --no-git-tag-version
+          cd ../graphql-server && pnpm version ${{ env.VERSION }} --no-git-tag-version
           cd ../create-dubhe && pnpm version ${{ env.VERSION }} --no-git-tag-version
 
       - name: Build packages
@@ -58,6 +61,9 @@ jobs:
           cd ../sui-client && pnpm build
           cd ../sui-cli && pnpm build
           cd ../sui-indexer && pnpm build
+          cd ../ecs && pnpm build
+          cd ../graphql-client && pnpm build
+          cd ../graphql-server && pnpm build
           cd ../create-dubhe && pnpm build
 
       - name: Publish packages
@@ -66,6 +72,9 @@ jobs:
           cd ../sui-client && pnpm publish --access public --no-git-checks
           cd ../sui-cli && pnpm publish --access public --no-git-checks
           cd ../sui-indexer && pnpm publish --access public --no-git-checks
+          cd ../ecs && pnpm publish --access public --no-git-checks
+          cd ../graphql-client && pnpm publish --access public --no-git-checks
+          cd ../graphql-server && pnpm publish --access public --no-git-checks
           cd ../create-dubhe && pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

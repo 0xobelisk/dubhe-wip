@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client';
-import { createDubheGraphqlClient, DubheGraphqlClient } from './client';
-import { Connection, StoreTableRow, DubheClientConfig } from './types';
+import { createDubheGraphqlClient, DubheGraphqlClient } from '../src/client';
+import { Connection, StoreTableRow, DubheClientConfig } from '../src/types';
 
 /**
  * 创建基础客户端
@@ -120,8 +120,8 @@ export function exampleSubscription() {
   );
 
   const subscriptions = [
-    basicSubscription.subscribe(),
-    filteredSubscription.subscribe(),
+    basicSubscription.subscribe({}),
+    filteredSubscription.subscribe({}),
   ];
 
   // 10秒后取消订阅
@@ -207,7 +207,7 @@ export function exampleMultiTableSubscription() {
     }
   );
 
-  const subscription = multiTableSub.subscribe();
+  const subscription = multiTableSub.subscribe({});
 
   // 30秒后取消订阅
   setTimeout(() => {
