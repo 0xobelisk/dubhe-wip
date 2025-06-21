@@ -51,6 +51,7 @@
     "chalk": "^5.0.1",
     "child_process": "^1.0.2",
     "chokidar": "^3.5.3",
+    "cli-table3": "^0.6.5",
     "dotenv": "^16.0.3",
     "ejs": "^3.1.8",
     "execa": "^7.0.0",

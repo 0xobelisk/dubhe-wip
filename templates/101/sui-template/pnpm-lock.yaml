@@ -84,6 +84,12 @@ importers:
 
   packages/client:
     dependencies:
+      '@0xobelisk/ecs':
+        specifier: link:../../../../../packages/ecs
+        version: link:../../../../../packages/ecs
+      '@0xobelisk/graphql-client':
+        specifier: link:../../../../../packages/graphql-client
+        version: link:../../../../../packages/graphql-client
       '@0xobelisk/sui-cli':
         specifier: link:../../../../../packages/sui-cli
         version: link:../../../../../packages/sui-cli

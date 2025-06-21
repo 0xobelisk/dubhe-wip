@@ -4,18 +4,16 @@ import chalk from 'chalk';
 import {
   saveContractData,
   updateDubheDependency,
+  updateMoveTomlAddress,
   switchEnv,
   delay,
-  getDubheSchemaId,
-  initializeDubhe
+  getDubheDappHub,
+  initializeDubhe,
+  saveMetadata
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const MAX_RETRIES = 60; // 60s timeout
-const RETRY_INTERVAL = 1000; // 1s retry interval
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 async function removeEnvContent(
   filePath: string,
@@ -154,132 +152,28 @@ interface ObjectChange {
 }
 
 async function waitForNode(dubhe: Dubhe): Promise<string> {
-  let retryCount = 0;
-  let spinnerIndex = 0;
-  const startTime = Date.now();
-  let isInterrupted = false;
-  let chainId = '';
-  let hasShownBalanceWarning = false;
+  const chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
+  console.log(`  ├─ ChainId: ${chainId}`);
+  const address = dubhe.getAddress();
+  const coins = await dubhe.suiInteractor.currentClient.getCoins({
+    owner: address,
+    coinType: '0x2::sui::SUI'
+  });
 
-  const handleInterrupt = () => {
-    isInterrupted = true;
-    process.stdout.write('\r' + ' '.repeat(50) + '\r');
-    console.log('\n  └─ Operation cancelled by user');
-    process.exit(0);
-  };
-  process.on('SIGINT', handleInterrupt);
-
-  try {
-    // Phase 1: Wait for getting chainId
-    while (retryCount < MAX_RETRIES && !isInterrupted && !chainId) {
-      try {
-        chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
-      } catch (error) {
-        // Ignore errors, continue retrying
-      }
-
-      if (isInterrupted) break;
-
-      if (!chainId) {
-        retryCount++;
-        if (retryCount === MAX_RETRIES) {
-          console.log(chalk.red(`  └─ Failed to connect to node after ${MAX_RETRIES} attempts`));
-          console.log(chalk.red('  └─ Please check if the Sui node is running.'));
-          process.exit(1);
-        }
-
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const spinner = SPINNER[spinnerIndex % SPINNER.length];
-        spinnerIndex++;
-
-        process.stdout.write(`\r  ├─ ${spinner} Waiting for node... (${elapsedTime}s)`);
-        await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
-      }
+  if (coins.data.length > 0) {
+    const balance = coins.data.reduce((sum, coin) => sum + Number(coin.balance), 0);
+    if (balance > 0) {
+      console.log(`  ├─ Deployer balance: ${balance / 10 ** 9} SUI`);
+      return chainId;
+    } else {
+      console.log(
+        chalk.yellow(
+          `  ├─ Deployer balance: 0 SUI, please ensure your account has sufficient SUI balance`
+        )
+      );
     }
-
-    // Display chainId
-    process.stdout.write('\r' + ' '.repeat(50) + '\r');
-    console.log(`  ├─ ChainId: ${chainId}`);
-
-    // Phase 2: Check deployer account balance
-    retryCount = 0;
-    while (retryCount < MAX_RETRIES && !isInterrupted) {
-      try {
-        const address = dubhe.getAddress();
-        const coins = await dubhe.suiInteractor.currentClient.getCoins({
-          owner: address,
-          coinType: '0x2::sui::SUI'
-        });
-
-        if (coins.data.length > 0) {
-          const balance = coins.data.reduce((sum, coin) => sum + Number(coin.balance), 0);
-          if (balance > 0) {
-            process.stdout.write('\r' + ' '.repeat(50) + '\r');
-            console.log(`  ├─ Deployer balance: ${balance / 10 ** 9} SUI`);
-            return chainId;
-          } else if (!hasShownBalanceWarning) {
-            process.stdout.write('\r' + ' '.repeat(50) + '\r');
-            console.log(
-              chalk.yellow(
-                `  ├─ Deployer balance: 0 SUI, please ensure your account has sufficient SUI balance`
-              )
-            );
-            hasShownBalanceWarning = true;
-          }
-        } else if (!hasShownBalanceWarning) {
-          process.stdout.write('\r' + ' '.repeat(50) + '\r');
-          console.log(
-            chalk.yellow(
-              `  ├─ No SUI coins found in deployer account, please ensure your account has sufficient SUI balance`
-            )
-          );
-          hasShownBalanceWarning = true;
-        }
-
-        retryCount++;
-        if (retryCount === MAX_RETRIES) {
-          console.log(
-            chalk.red(`  └─ Deployer account has no SUI balance after ${MAX_RETRIES} attempts`)
-          );
-          console.log(chalk.red('  └─ Please ensure your account has sufficient SUI balance.'));
-          process.exit(1);
-        }
-
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const spinner = SPINNER[spinnerIndex % SPINNER.length];
-        spinnerIndex++;
-
-        process.stdout.write(`\r  ├─ ${spinner} Checking deployer balance... (${elapsedTime}s)`);
-        await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
-      } catch (error) {
-        if (isInterrupted) break;
-
-        retryCount++;
-        if (retryCount === MAX_RETRIES) {
-          console.log(
-            chalk.red(`  └─ Failed to check deployer balance after ${MAX_RETRIES} attempts`)
-          );
-          console.log(chalk.red('  └─ Please check your account and network connection.'));
-          process.exit(1);
-        }
-
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const spinner = SPINNER[spinnerIndex % SPINNER.length];
-        spinnerIndex++;
-
-        process.stdout.write(`\r  ├─ ${spinner} Checking deployer balance... (${elapsedTime}s)`);
-        await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
-      }
-    }
-  } finally {
-    process.removeListener('SIGINT', handleInterrupt);
   }
-
-  if (isInterrupted) {
-    process.exit(0);
-  }
-
-  throw new Error('Failed to connect to node');
+  return chainId;
 }
 
 async function publishContract(
@@ -311,51 +205,14 @@ async function publishContract(
   const [upgradeCap] = tx.publish({ modules, dependencies });
   tx.transferObjects([upgradeCap], dubhe.getAddress());
 
-  let result: any = null;
-  let retryCount = 0;
-  let spinnerIndex = 0;
-  const startTime = Date.now();
-  let isInterrupted = false;
-
-  const handleInterrupt = () => {
-    isInterrupted = true;
-    process.stdout.write('\r' + ' '.repeat(50) + '\r');
-    console.log('\n  └─ Operation cancelled by user');
-    process.exit(0);
-  };
-  process.on('SIGINT', handleInterrupt);
-
+  let result;
   try {
-    while (retryCount < MAX_RETRIES && !result && !isInterrupted) {
-      try {
-        result = await dubhe.signAndSendTxn({ tx });
-      } catch (error) {
-        if (isInterrupted) break;
-
-        retryCount++;
-        if (retryCount === MAX_RETRIES) {
-          console.log(chalk.red(`  └─ Publication failed after ${MAX_RETRIES} attempts`));
-          console.log(chalk.red('  └─ Please check your network connection and try again later.'));
-          process.exit(1);
-        }
-
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const spinner = SPINNER[spinnerIndex % SPINNER.length];
-        spinnerIndex++;
-
-        process.stdout.write(`\r  ├─ ${spinner} Retrying... (${elapsedTime}s)`);
-        await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
-      }
-    }
-  } finally {
-    process.removeListener('SIGINT', handleInterrupt);
+    result = await dubhe.signAndSendTxn({ tx });
+  } catch (error: any) {
+    console.error(chalk.red('  └─ Publication failed'));
+    console.error(error.message);
+    process.exit(1);
   }
-
-  if (isInterrupted) {
-    process.exit(0);
-  }
-
-  process.stdout.write('\r' + ' '.repeat(50) + '\r');
 
   if (!result || result.effects?.status.status === 'failure') {
     console.log(chalk.red('  └─ Publication failed'));
@@ -365,8 +222,8 @@ async function publishContract(
   console.log('  ├─ Processing publication results...');
   let version = 1;
   let packageId = '';
-  let schemaId = '';
-  let schemas = dubheConfig.schemas;
+  let dappHub = '';
+  let components = dubheConfig.components;
   let upgradeCapId = '';
 
   let printObjects: any[] = [];
@@ -384,6 +241,13 @@ async function publishContract(
       console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
       upgradeCapId = object.objectId || '';
     }
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType.includes('dapp_hub::DappHub')
+    ) {
+      dappHub = object.objectId || '';
+    }
     if (object.type === 'created') {
       printObjects.push(object);
     }
@@ -398,13 +262,11 @@ async function publishContract(
 
   const deployHookTx = new Transaction();
   let args = [];
-  if (dubheConfig.name !== 'dubhe') {
-    let dubheSchemaId = await getDubheSchemaId(network);
-    args.push(deployHookTx.object(dubheSchemaId));
-  }
+  let dubheDappHub = dubheConfig.name === 'dubhe' ? dappHub : await getDubheDappHub(network);
+  args.push(deployHookTx.object(dubheDappHub));
   args.push(deployHookTx.object('0x6'));
   deployHookTx.moveCall({
-    target: `${packageId}::${dubheConfig.name}_genesis::run`,
+    target: `${packageId}::genesis::run`,
     arguments: args
   });
 
@@ -422,38 +284,28 @@ async function publishContract(
     console.log(`  ├─ Transaction: ${deployHookResult.digest}`);
 
     console.log('\n📋 Created Objects:');
-    deployHookResult.objectChanges?.map((object: ObjectChange) => {
-      if (
-        object.type === 'created' &&
-        object.objectType &&
-        object.objectType.includes('schema::Schema')
-      ) {
-        schemaId = object.objectId || '';
-      }
-      if (
-        object.type === 'created' &&
-        object.objectType &&
-        object.objectType.includes('schema') &&
-        !object.objectType.includes('dynamic_field')
-      ) {
-        printObjects.push(object);
-      }
-    });
-
     printObjects.map((object: ObjectChange) => {
       console.log(`  ├─ Type: ${object.objectType}`);
       console.log(`  └─ ID: ${object.objectId}`);
     });
 
-    saveContractData(
+    await saveContractData(
       dubheConfig.name,
       network,
       packageId,
-      schemaId,
+      dappHub,
       upgradeCapId,
       version,
-      schemas
+      components
     );
+
+    await saveMetadata(dubheConfig.name, network, packageId);
+
+    // Insert package id to dubhe config
+    let config = JSON.parse(fs.readFileSync(`${process.cwd()}/dubhe.config.json`, 'utf-8'));
+    config.package_id = packageId;
+    fs.writeFileSync(`${process.cwd()}/dubhe.config.json`, JSON.stringify(config, null, 2));
+
     console.log('\n✅ Contract Publication Complete\n');
   } else {
     console.log(chalk.yellow('  └─ Deploy hook execution failed'));
@@ -475,9 +327,7 @@ async function checkDubheFramework(projectPath: string): Promise<boolean> {
         '  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe contracts/dubhe'
       )
     );
-    console.log(
-      chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe')
-    );
+    console.log(chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe'));
     console.log(chalk.yellow('  └─ After setup, restart the local node'));
     return false;
   }
@@ -501,56 +351,21 @@ export async function publishDubheFramework(
   const chainId = await waitForNode(dubhe);
 
   await removeEnvContent(`${projectPath}/Move.lock`, network);
+  await updateMoveTomlAddress(projectPath, "0x0");
+
   const [modules, dependencies] = buildContract(projectPath);
   const tx = new Transaction();
   const [upgradeCap] = tx.publish({ modules, dependencies });
   tx.transferObjects([upgradeCap], dubhe.getAddress());
 
-  let result: any = null;
-  let retryCount = 0;
-  let spinnerIndex = 0;
-  const startTime = Date.now();
-  let isInterrupted = false;
-
-  const handleInterrupt = () => {
-    isInterrupted = true;
-    process.stdout.write('\r' + ' '.repeat(50) + '\r');
-    console.log('\n  └─ Operation cancelled by user');
-    process.exit(0);
-  };
-  process.on('SIGINT', handleInterrupt);
-
+  let result;
   try {
-    while (retryCount < MAX_RETRIES && !result && !isInterrupted) {
-      try {
-        result = await dubhe.signAndSendTxn({ tx });
-      } catch (error) {
-        if (isInterrupted) break;
-
-        retryCount++;
-        if (retryCount === MAX_RETRIES) {
-          console.log(chalk.red(`  └─ Publication failed after ${MAX_RETRIES} attempts`));
-          console.log(chalk.red('  └─ Please check your network connection and try again later.'));
-          process.exit(1);
-        }
-
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const spinner = SPINNER[spinnerIndex % SPINNER.length];
-        spinnerIndex++;
-
-        process.stdout.write(`\r  ├─ ${spinner} Retrying... (${elapsedTime}s)`);
-        await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
-      }
-    }
-  } finally {
-    process.removeListener('SIGINT', handleInterrupt);
+    result = await dubhe.signAndSendTxn({ tx });
+  } catch (error: any) {
+    console.error(chalk.red('  └─ Publication failed'));
+    console.error(error.message);
+    process.exit(1);
   }
-
-  if (isInterrupted) {
-    process.exit(0);
-  }
-
-  process.stdout.write('\r' + ' '.repeat(50) + '\r');
 
   if (!result || result.effects?.status.status === 'failure') {
     console.log(chalk.red('  └─ Publication failed'));
@@ -559,8 +374,8 @@ export async function publishDubheFramework(
 
   let version = 1;
   let packageId = '';
-  let schemaId = '';
-  let schemas: Record<string, string> = {};
+  let dappHub = '';
+  let components = {};
   let upgradeCapId = '';
 
   result.objectChanges!.map((object: ObjectChange) => {
@@ -574,14 +389,20 @@ export async function publishDubheFramework(
     ) {
       upgradeCapId = object.objectId || '';
     }
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType.includes('dapp_hub::DappHub')
+    ) {
+      dappHub = object.objectId || '';
+    }
   });
 
   await delay(3000);
-
   const deployHookTx = new Transaction();
   deployHookTx.moveCall({
     target: `${packageId}::dubhe_genesis::run`,
-    arguments: [deployHookTx.object('0x6')]
+    arguments: [deployHookTx.object(dappHub), deployHookTx.object('0x6')]
   });
 
   let deployHookResult;
@@ -593,22 +414,14 @@ export async function publishDubheFramework(
     process.exit(1);
   }
 
-  if (deployHookResult.effects?.status.status === 'success') {
-    deployHookResult.objectChanges?.map((object: ObjectChange) => {
-      if (
-        object.type === 'created' &&
-        object.objectType &&
-        object.objectType.includes('dubhe_schema::Schema')
-      ) {
-        schemaId = object.objectId || '';
-      }
-    });
+  if (deployHookResult.effects?.status.status !== 'success') {
+    throw new Error('Deploy hook execution failed');
   }
 
-  saveContractData('dubhe', network, packageId, schemaId, upgradeCapId, version, schemas);
+  await updateMoveTomlAddress(projectPath, packageId);
+  await saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, components);
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
-  await delay(1000);
 }
 
 export async function publishHandler(
@@ -622,12 +435,15 @@ export async function publishHandler(
     network
   });
 
-  if (network === 'localnet') {
+  const path = process.cwd();
+  const projectPath = `${path}/src/${dubheConfig.name}`;
+
+  if (network === 'localnet' && dubheConfig.name !== 'dubhe') {
     await publishDubheFramework(dubhe, network);
   }
 
-  const path = process.cwd();
-  const projectPath = `${path}/src/${dubheConfig.name}`;
-  await updateDubheDependency(`${projectPath}/Move.toml`, network);
+  if (dubheConfig.name !== 'dubhe') {
+    await updateDubheDependency(`${projectPath}/Move.toml`, network);
+  }
   await publishContract(dubhe, dubheConfig, network, projectPath, gasBudget);
 }

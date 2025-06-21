@@ -17,7 +17,7 @@ Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages
 
 [addresses]
 sui = "0x2"
-${config.name} = "0x0"
+${config.name} = "0x1024"
 `;
   await formatAndWriteMove(code, `${srcPrefix}/src/${config.name}/Move.toml`, 'formatAndWriteMove');
   console.log('✅ Move.toml Generation Complete\n');

@@ -6,18 +6,19 @@ import { FsIibError } from './errors';
 import * as fs from 'fs';
 import chalk from 'chalk';
 import { spawn } from 'child_process';
-import { Dubhe, NetworkType, SuiMoveNormalizedModules } from '@0xobelisk/sui-client';
+import { Dubhe, NetworkType, SuiMoveNormalizedModules, loadMetadata } from '@0xobelisk/sui-client';
 import { DubheCliError } from './errors';
 import packageJson from '../../package.json';
+import { Component, MoveType, EmptyComponent, DubheConfig } from '@0xobelisk/sui-common';
 
 export type DeploymentJsonType = {
   projectName: string;
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
   packageId: string;
-  schemaId: string;
+  dappHub: string;
   upgradeCap: string;
   version: number;
-  schemas: Record<string, string>;
+  components: Record<string, Component | MoveType | EmptyComponent>;
 };
 
 export function validatePrivateKey(privateKey: string): false | string {
@@ -76,43 +77,43 @@ export async function getDeploymentJson(
   }
 }
 
-export async function getDeploymentSchemaId(projectPath: string, network: string): Promise<string> {
+export async function getDeploymentDappHub(projectPath: string, network: string): Promise<string> {
   try {
     const data = await fsAsync.readFile(
       `${projectPath}/.history/sui_${network}/latest.json`,
       'utf8'
     );
     const deployment = JSON.parse(data) as DeploymentJsonType;
-    return deployment.schemaId;
+    return deployment.dappHub;
   } catch (error) {
     return '';
   }
 }
 
-export async function getDubheSchemaId(network: string) {
+export async function getDubheDappHub(network: string) {
   const path = process.cwd();
   const contractPath = `${path}/src/dubhe`;
 
   switch (network) {
     case 'mainnet':
-      return await getDeploymentSchemaId(contractPath, 'mainnet');
+      return await getDeploymentDappHub(contractPath, 'mainnet');
     case 'testnet':
-      return await getDeploymentSchemaId(contractPath, 'testnet');
+      return await getDeploymentDappHub(contractPath, 'testnet');
     case 'devnet':
-      return await getDeploymentSchemaId(contractPath, 'devnet');
+      return await getDeploymentDappHub(contractPath, 'devnet');
     case 'localnet':
-      return await getDeploymentSchemaId(contractPath, 'localnet');
+      return await getDeploymentDappHub(contractPath, 'localnet');
     default:
       throw new Error(`Invalid network: ${network}`);
   }
 }
 
-export async function getOnchainSchemas(
+export async function getOnchainComponents(
   projectPath: string,
   network: string
-): Promise<Record<string, string>> {
+): Promise<Record<string, Component | MoveType | EmptyComponent>> {
   const deployment = await getDeploymentJson(projectPath, network);
-  return deployment.schemas;
+  return deployment.components;
 }
 
 export async function getVersion(projectPath: string, network: string): Promise<number> {
@@ -133,9 +134,9 @@ export async function getOldPackageId(projectPath: string, network: string): Pro
   return deployment.packageId;
 }
 
-export async function getSchemaId(projectPath: string, network: string): Promise<string> {
+export async function getDappHub(projectPath: string, network: string): Promise<string> {
   const deployment = await getDeploymentJson(projectPath, network);
-  return deployment.schemaId;
+  return deployment.dappHub;
 }
 
 export async function getUpgradeCap(projectPath: string, network: string): Promise<string> {
@@ -143,32 +144,60 @@ export async function getUpgradeCap(projectPath: string, network: string): Promi
   return deployment.upgradeCap;
 }
 
-export function saveContractData(
+export async function saveContractData(
   projectName: string,
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
   packageId: string,
-  schemaId: string,
+  dappHub: string,
   upgradeCap: string,
   version: number,
-  schemas: Record<string, string>
+  components: Record<string, Component | MoveType | EmptyComponent>
 ) {
   const DeploymentData: DeploymentJsonType = {
     projectName,
     network,
     packageId,
-    schemaId,
-    schemas,
+    dappHub,
+    components,
     upgradeCap,
     version
   };
 
   const path = process.cwd();
   const storeDeploymentData = JSON.stringify(DeploymentData, null, 2);
-  writeOutput(
+  await writeOutput(
     storeDeploymentData,
     `${path}/src/${projectName}/.history/sui_${network}/latest.json`,
     'Update deploy log'
   );
+}
+
+export async function saveMetadata(
+  projectName: string,
+  network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+  packageId: string
+) {
+  const path = process.cwd();
+
+  // Save metadata files
+  try {
+    const metadata = await loadMetadata(network, packageId);
+    if (metadata) {
+      const metadataJson = JSON.stringify(metadata, null, 2);
+
+      // Save packageId-specific metadata file
+      await writeOutput(
+        metadataJson,
+        `${path}/src/${projectName}/.history/sui_${network}/${packageId}.json`,
+        'Save package metadata'
+      );
+
+      // Save latest metadata.json
+      await writeOutput(metadataJson, `${path}/metadata.json`, 'Save latest metadata');
+    }
+  } catch (error) {
+    console.warn(chalk.yellow(`Warning: Failed to save metadata: ${error}`));
+  }
 }
 
 export async function writeOutput(
@@ -386,4 +415,115 @@ export function initializeDubhe({
     packageId,
     metadata
   });
+}
+
+export function generateConfigJson(config: DubheConfig): string {
+  const components = Object.entries(config.components).map(([name, component]) => {
+    if (typeof component === 'string') {
+      return {
+        [name]: {
+          fields: [
+            { entity_id: 'address' },
+            { value: component }
+          ],
+          keys: ['entity_id']
+        }
+      };
+    }
+
+    if (Object.keys(component as object).length === 0) {
+      return {
+        [name]: {
+          fields: [
+            { entity_id: 'address' }
+          ],
+          keys: ['entity_id']
+        }
+      };
+    }
+
+    const fields = (component as any).fields || {};
+    const keys = (component as any).keys || ['entity_id'];
+
+    // ensure entity_id field exists
+    if (!fields.entity_id && keys.includes('entity_id')) {
+      fields.entity_id = 'address';
+    }
+
+    return {
+      [name]: {
+        fields: Object.entries(fields).map(([fieldName, fieldType]) => ({
+          [fieldName]: fieldType
+        })),
+        keys: keys
+      }
+    };
+  });
+
+  const resources = Object.entries(config.resources).map(([name, resource]) => {
+    if (typeof resource === 'string') {
+      return {
+        [name]: {
+          fields: [
+            { value: resource }
+          ],
+          keys: []
+        }
+      };
+    }
+
+    if (Object.keys(resource as object).length === 0) {
+      return {
+        [name]: {
+          fields: [],
+          keys: []
+        }
+      };
+    }
+
+    const fields = (resource as any).fields || {};
+    const keys = (resource as any).keys || [];
+
+    return {
+      [name]: {
+        fields: Object.entries(fields).map(([fieldName, fieldType]) => ({
+          [fieldName]: fieldType
+        })),
+        keys: keys
+      }
+    };
+  });
+
+  // handle enums
+  const enums = Object.entries(config.enums || {}).map(([name, enumFields]) => {
+    // Sort enum values by first letter
+    let sortedFields = enumFields.sort((a, b) => a.localeCompare(b)).map((value, index) => ({
+      [index]: value
+    }));
+
+    return {
+      [name]: {
+        fields: sortedFields
+      }
+    };
+  });
+
+  return JSON.stringify({
+    components,
+    resources,
+    enums
+  }, null, 2);
+}
+
+/**
+ * Updates the dubhe address in Move.toml file
+ * @param path - Directory path containing Move.toml file
+ * @param packageAddress - New dubhe package address to set
+ */
+export function updateMoveTomlAddress(path: string, packageAddress: string) {
+  const moveTomlPath = `${path}/Move.toml`;
+  const moveTomlContent = fs.readFileSync(moveTomlPath, 'utf-8');
+  // Use regex to match any dubhe address, not just "0x0"
+  const updatedContent = moveTomlContent.replace(/dubhe\s*=\s*"[^"]*"/, `dubhe = "${packageAddress}"`);
+  fs.writeFileSync(moveTomlPath, updatedContent, 'utf-8');
 }

@@ -1,0 +1,100 @@
+{
+      "tables" : [
+            {
+                  "player": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "moveable": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "obstruction": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "encounterable": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "encounter_trigger": {
+                        "schemas": [
+                              { "id": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "position": {
+                        "schemas": [
+                              { "id": "address" },
+                              { "x": "u64" },
+                              { "y": "u64" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "monster": {
+                        "schemas": [
+                              { "id": "address" },
+                              { "monster_type": "u32" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "owned_by": {
+                        "schemas": [
+                              { "id": "address" },
+                              { "value": "address" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {      "encounter": {
+                        "schemas": [
+                              { "id": "address" },
+                              { "monster": "address" },
+                              { "catch_attempts": "u256" }
+                        ],
+                        "key" : ["id"]
+                  }
+            },
+            {
+                  "map_config": {
+                        "schemas": [
+                              { "width": "u64" },
+                              { "height": "u64" },
+                              { "terrain": "vector<u32>" }
+                        ],
+                        "key" : []
+                  }
+            } ,
+            {
+                  "monster_catch_attempt": {
+                        "schemas": [
+                              { "monster": "address" },
+                              { "result": "u32" }
+                        ],
+                        "key" : ["monster"]
+                  }
+            }        
+      ]
+} 

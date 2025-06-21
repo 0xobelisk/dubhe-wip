@@ -1,0 +1,62 @@
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [system]: 🚀 启动 Sui Indexer GraphQL 服务器...[39m [90m{"component":"system","nodeVersion":"v18.20.4","platform":"darwin"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [system]: 正在初始化数据库连接和扫描表结构...[39m [90m{"component":"system","schema":"public","databaseUrl":"postgres://postgres:****@127.0.0.1:5432/postgres"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: 数据库连接成功[39m [90m{"component":"database","schema":"public"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: 扫描表结构完成[39m [90m{"component":"database","tableCount":5,"storeTableCount":4,"tableNames":["store_accounts","store_encounter","store_map_config","store_position","table_fields"]}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [subscription]: 启动统一实时引擎 (Live Queries + Native WebSocket)[39m [90m{"component":"subscription","enableSubscriptions":"true","availableTableCount":5,"storeTablesCount":4}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [system]: 🚀 统一实时引擎启动[39m [90m{"component":"system","port":4001,"enableLiveQueries":true,"enableNativeWebSocket":true,"tablesCount":5}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: 创建 PostGraphile 配置[39m [90m{"component":"server","endpoint":"/graphql","enableCors":"true","enableSubscriptions":"true"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [subscription]: 创建简化订阅插件[39m [90m{"component":"subscription","totalTables":5,"storeTables":4,"storeTableNames":["store_accounts","store_encounter","store_map_config","store_position"]}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: 初始化服务器管理器[39m [90m{"component":"server","port":4000,"endpoint":"/graphql","subscriptions":"true","realtimePort":"4001"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [subscription]: PostGraphile Live Queries已启用，无需额外配置[39m [90m{"component":"subscription"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: 🚀 Sui Indexer GraphQL 服务器启动成功！[39m [90m{"component":"server"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: 服务器地址[39m [90m{"component":"server","url":"http://localhost:4000"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: GraphQL API[39m [90m{"component":"server","url":"http://localhost:4000/graphql"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: 增强版 GraphQL Playground[39m [90m{"component":"server","url":"http://localhost:4000/playground","features":["现代化界面","Schema Explorer","代码导出"],"note":"旧路径 /graphiql 会自动重定向到 /playground"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: WebSocket 订阅[39m [90m{"component":"server","url":"ws://localhost:4000/graphql"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [server]: 服务器配置[39m [90m{"component":"server","environment":"development","schema":"public","totalTables":5,"storeTables":4,"systemTables":1,"cors":"启用","subscriptions":"启用"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [system]: 💡 访问根路径查看详细信息和使用指南[39m [90m{"component":"system"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [system]: 按 Ctrl+C 停止服务器[39m [90m{"component":"system"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [performance]: 服务器启动 completed[39m [90m{"component":"performance","duration":"81ms","port":4000,"tableCount":5,"nodeEnv":"development"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: 开始监听数据库通道[39m [90m{"component":"database","channel":"table_change_store_accounts"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: 开始监听数据库通道[39m [90m{"component":"database","channel":"table_change_store_encounter"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: 开始监听数据库通道[39m [90m{"component":"database","channel":"table_change_store_map_config"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: 开始监听数据库通道[39m [90m{"component":"database","channel":"table_change_store_position"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: 开始监听数据库通道[39m [90m{"component":"database","channel":"table_change_table_fields"}[39m
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [database]: ✅ 数据库变更监听器设置完成[39m [90m{"component":"database"}[39m
+🔍 原始字段列表: [
+  'query',
+  'nodeId',
+  'node',
+  'allStoreAccounts',
+  'allStoreEncounters',
+  'allStoreMapConfigs',
+  'allStorePositions',
+  'allTableFields',
+  'storeAccountByAssetIdAndAccount',
+  'storeEncounterByPlayer',
+  'storePositionByPlayer',
+  'tableFieldByTableNameAndFieldName',
+  'storeAccount',
+  'storeEncounter',
+  'storePosition',
+  'tableField'
+]
+🔄 字段重命名统计: { '原始字段数': 16, '最终字段数': 16, '重命名字段数': 10 }
+📝 重命名映射: {
+  allStoreAccounts: 'accounts',
+  allStoreEncounters: 'encounters',
+  allStoreMapConfigs: 'mapConfigs',
+  allStorePositions: 'positions',
+  storeAccountByAssetIdAndAccount: 'accountByAssetIdAndAccount',
+  storeEncounterByPlayer: 'encounterByPlayer',
+  storePositionByPlayer: 'positionByPlayer',
+  storeAccount: 'account',
+  storeEncounter: 'encounter',
+  storePosition: 'position'
+}
+[2025-06-06 07:48:10] [32mINFO[39m: [36mdubhe-graphql-server [subscription]: 启用PostGraphile原生Live Queries功能[39m [90m{"component":"subscription"}[39m
+[2025-06-06 07:48:31] [32mINFO[39m: [36mdubhe-graphql-server [performance]: GraphQL GET completed[39m [90m{"component":"performance","duration":"1ms","endpoint":"/graphql"}[39m
+[2025-06-06 07:51:36] [32mINFO[39m: [36mdubhe-graphql-server [system]: 收到 SIGTERM 信号，开始优雅关闭服务器...[39m [90m{"component":"system"}[39m
+[2025-06-06 07:51:36] [32mINFO[39m: [36mdubhe-graphql-server [system]: 🛑 开始关闭统一实时引擎...[39m [90m{"component":"system"}[39m
+[2025-06-06 07:51:36] [32mINFO[39m: [36mdubhe-graphql-server [system]: ✅ 统一实时引擎已关闭[39m [90m{"component":"system"}[39m
+[2025-06-06 07:51:36] [32mINFO[39m: [36mdubhe-graphql-server [system]: ⏹️  正在关闭服务器...[39m [90m{"component":"system"}[39m
