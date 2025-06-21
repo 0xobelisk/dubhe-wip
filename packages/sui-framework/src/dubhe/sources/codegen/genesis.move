@@ -2,9 +2,7 @@
 
   use sui::clock::Clock;
 
-  use dubhe::dapp_service;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use dubhe::dapp_key;
 

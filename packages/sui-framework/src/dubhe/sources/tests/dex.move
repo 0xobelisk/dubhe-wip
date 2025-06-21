@@ -9,7 +9,7 @@ module dubhe::dex_tests {
     use dubhe::dex_system;
     use dubhe::assets_tests;
     use dubhe::assets_system;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use sui::test_scenario;
     use sui::test_scenario::Scenario;
     use dubhe::dubhe_config;

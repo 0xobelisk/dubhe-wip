@@ -3,7 +3,7 @@ module dubhe::dex_functions {
     use std::ascii::String;
     use dubhe::dubhe_math;
     use dubhe::assets_functions;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use sui::bcs;
     use sui::address;
     use dubhe::assets_system;

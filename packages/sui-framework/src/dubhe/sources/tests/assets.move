@@ -5,12 +5,12 @@ module dubhe::assets_tests {
     use dubhe::assets_functions;
     use dubhe::init_test::deploy_dapp_for_testing;
     use dubhe::assets_system;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use sui::test_scenario;
     use sui::test_scenario::Scenario;
     use dubhe::asset_type;
     use std::ascii::string;
-    use dubhe::dapp_hub;
+    use dubhe::dapp_service;
     use dubhe::asset_metadata;
     use dubhe::asset_account;
 

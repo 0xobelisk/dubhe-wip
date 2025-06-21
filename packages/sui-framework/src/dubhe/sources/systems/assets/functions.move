@@ -15,7 +15,7 @@ module dubhe::assets_functions {
         account_not_found_error, account_frozen_error, balance_too_low_error,
         invalid_receiver_error, invalid_sender_error, asset_already_frozen_error
     };
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use dubhe::dubhe_config;
 
     public(package) fun do_create(

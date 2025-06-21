@@ -5,7 +5,7 @@ module dubhe::dex_system {
     use dubhe::assets_functions;
     use dubhe::dex_functions;
     use dubhe::asset_metadata;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use dubhe::asset_type;
     use dubhe::dubhe_config;
     use dubhe::errors:: {

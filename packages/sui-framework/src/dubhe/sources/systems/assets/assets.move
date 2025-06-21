@@ -2,7 +2,7 @@ module dubhe::assets_system;
 use dubhe::errors::{
     asset_not_found_error, no_permission_error, not_mintable_error, not_burnable_error, account_not_found_error, asset_not_liquid_error, asset_not_frozen_error
 };
-use dubhe::dapp_hub::DappHub;
+use dubhe::dapp_service::DappHub;
 use dubhe::account_status;
 use dubhe::asset_status;
 use dubhe::assets_functions;

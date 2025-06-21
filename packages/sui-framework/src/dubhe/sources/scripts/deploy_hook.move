@@ -6,9 +6,9 @@
   
   module dubhe::deploy_hook {
 
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::DappHub;
   use dubhe::dubhe_config;
-  use dubhe::wrapper_system;
+  // use dubhe::wrapper_system;
   use sui::sui::SUI;
   use dubhe::dubhe::DUBHE;
   use dubhe::dapp_key;
@@ -27,25 +27,25 @@
       max_swap_path_len
     );
 
-    let sui_asset_id = wrapper_system::do_register<SUI>(
-      dapp_hub,
-      b"Wrapped SUI",
-      b"wSUI",
-      b"Wrapped SUI",
-    9,
-    b"https://cryptologos.cc/logos/sui-sui-logo.png?v=040",
-    );
-    let dubhe_asset_id = wrapper_system::do_register<DUBHE>(
-      dapp_hub,
-      b"Wrapped DUBHE",
-      b"wDUBHE",
-      b"Wrapped DUBHE",
-      7,
-      b"https://raw.githubusercontent.com/0xobelisk/dubhe/refs/heads/main/assets/logo.jpg",
-    );
+    // let sui_asset_id = wrapper_system::do_register<SUI>(
+    //   dapp_hub,
+    //   b"Wrapped SUI",
+    //   b"wSUI",
+    //   b"Wrapped SUI",
+    // 9,
+    // b"https://cryptologos.cc/logos/sui-sui-logo.png?v=040",
+    // );
+    // let dubhe_asset_id = wrapper_system::do_register<DUBHE>(
+    //   dapp_hub,
+    //   b"Wrapped DUBHE",
+    //   b"wDUBHE",
+    //   b"Wrapped DUBHE",
+    //   7,
+    //   b"https://raw.githubusercontent.com/0xobelisk/dubhe/refs/heads/main/assets/logo.jpg",
+    // );
 
-    std::debug::print(&sui_asset_id);
-    std::debug::print(&dubhe_asset_id);
+    // std::debug::print(&sui_asset_id);
+    // std::debug::print(&dubhe_asset_id);
     
   }
 }
