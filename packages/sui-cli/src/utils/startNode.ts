@@ -3,18 +3,104 @@ import chalk from 'chalk';
 import { printDubhe } from './printDubhe';
 import { delay, DubheCliError, validatePrivateKey } from '../utils';
 import { Dubhe } from '@0xobelisk/sui-client';
+import * as fs from 'fs';
+
+export function stopLocalNode(): void {
+  console.log(chalk.yellow('🔔 Stopping existing Local Node...'));
+
+  let processStopped = false;
+
+  if (process.platform === 'win32') {
+    // Windows: Kill all sui.exe processes
+    try {
+      execSync('taskkill /F /IM sui.exe', { stdio: 'ignore' });
+      processStopped = true;
+    } catch (error) {
+      // Process not found
+    }
+  } else {
+    // Unix-like systems: Try multiple patterns to find sui processes
+    const patterns = [
+      'sui start', // Exact match
+      'sui.*start', // Pattern with any flags
+      '^sui', // Any sui command
+      'sui.*--with-faucet' // Match our specific startup pattern
+    ];
+
+    for (const pattern of patterns) {
+      try {
+        const result = execSync(`pgrep -f "${pattern}"`, { stdio: 'pipe' }).toString().trim();
+        if (result) {
+          const pids = result.split('\n').filter((pid) => pid);
+          console.log(chalk.cyan(`  ├─ Found ${pids.length} process(es) matching "${pattern}"`));
+
+          pids.forEach((pid) => {
+            try {
+              // First try graceful termination
+              execSync(`kill -TERM ${pid}`, { stdio: 'ignore' });
+              console.log(chalk.cyan(`  ├─ Sent SIGTERM to process ${pid}`));
+            } catch (error) {
+              // If graceful termination fails, force kill
+              try {
+                execSync(`kill -KILL ${pid}`, { stdio: 'ignore' });
+                console.log(chalk.cyan(`  ├─ Force killed process ${pid}`));
+              } catch (killError) {
+                console.log(chalk.gray(`  ├─ Process ${pid} already terminated`));
+              }
+            }
+          });
+          processStopped = true;
+          break; // Stop after first successful pattern match
+        }
+      } catch (error) {
+        // This pattern didn't match any processes, continue to next pattern
+        continue;
+      }
+    }
+  }
+
+  if (processStopped) {
+    console.log(chalk.green('  └─ Local Node stopped successfully'));
+  } else {
+    console.log(chalk.gray('  └─ No running Local Node found'));
+  }
+}
+
+export function removeDirectory(dirPath: string): void {
+  try {
+    if (fs.existsSync(dirPath)) {
+      console.log(chalk.yellow(`🗑️  Removing directory: ${dirPath}`));
+      fs.rmSync(dirPath, { recursive: true, force: true });
+      console.log(chalk.green('  └─ Directory removed successfully'));
+    } else {
+      console.log(chalk.gray(`  └─ Directory ${dirPath} does not exist`));
+    }
+  } catch (error: any) {
+    console.error(chalk.red(`  └─ Error removing directory: ${error.message}`));
+  }
+}
 
 function isSuiStartRunning(): boolean {
   try {
-    const cmd =
-      process.platform === 'win32'
-        ? `tasklist /FI "IMAGENAME eq sui.exe" /FO CSV /NH`
-        : 'pgrep -f "sui start"';
+    if (process.platform === 'win32') {
+      const result = execSync(`tasklist /FI "IMAGENAME eq sui.exe" /FO CSV /NH`).toString().trim();
+      return result.toLowerCase().includes('sui.exe');
+    } else {
+      // Try multiple patterns to detect running sui processes
+      const patterns = ['sui start', 'sui.*start', '^sui', 'sui.*--with-faucet'];
 
-    const result = execSync(cmd).toString().trim();
-    return process.platform === 'win32'
-      ? result.toLowerCase().includes('sui.exe')
-      : result.length > 0;
+      for (const pattern of patterns) {
+        try {
+          const result = execSync(`pgrep -f "${pattern}"`, { stdio: 'pipe' }).toString().trim();
+          if (result && result.length > 0) {
+            return true;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+      return false;
+    }
   } catch (error) {
     return false;
   }
@@ -78,8 +164,15 @@ function handleProcessSignals(suiProcess: ReturnType<typeof spawn> | null) {
   process.on('SIGTERM', cleanup);
 }
 
-export async function startLocalNode(data_dir: string) {
-  if (isSuiStartRunning()) {
+export async function startLocalNode(data_dir: string, force?: boolean) {
+  if (force) {
+    console.log(chalk.cyan('\n🔄 Force mode enabled'));
+    stopLocalNode();
+    console.log(chalk.yellow('  ├─ Waiting for processes to terminate...'));
+    await delay(3000); // Wait longer for process to fully stop
+    removeDirectory(data_dir);
+    console.log('');
+  } else if (isSuiStartRunning()) {
     console.log(chalk.yellow('\n⚠️  Warning: Local Node Already Running'));
     console.log(chalk.yellow('  ├─ Cannot start a new instance'));
     console.log(chalk.yellow('  └─ Please stop the existing process first'));
@@ -90,10 +183,14 @@ export async function startLocalNode(data_dir: string) {
   console.log('🚀 Starting Local Node...');
   let suiProcess: ReturnType<typeof spawn> | null = null;
   try {
-    suiProcess = spawn('sui', ['start', '--with-faucet', '--force-regenesis', '--data-ingestion-dir', data_dir], {
-      env: { ...process.env, RUST_LOG: 'off,sui_node=info' },
-      stdio: 'ignore'
-    });
+    suiProcess = spawn(
+      'sui',
+      ['start', '--with-faucet', '--force-regenesis', '--data-ingestion-dir', data_dir],
+      {
+        env: { ...process.env, RUST_LOG: 'off,sui_node=info' },
+        stdio: 'ignore'
+      }
+    );
 
     suiProcess.on('error', (error) => {
       console.error(chalk.red('\n❌ Failed to Start Local Node'));
