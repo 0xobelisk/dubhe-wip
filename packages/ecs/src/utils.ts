@@ -1,14 +1,14 @@
-// ECS工具函数
+// ECS utility functions
 
 import { EntityId, ComponentType, QueryChange } from './types';
 import { Connection, StoreTableRow } from '@0xobelisk/graphql-client';
 
 /**
- * 从GraphQL查询结果中提取实体ID
- * @param connection GraphQL查询结果
- * @param options 提取选项
- * @param options.idFields 用作实体ID的字段名数组，默认尝试 ['nodeId', 'entityId']
- * @param options.composite 是否组合多个字段作为ID，默认false
+ * Extract entity IDs from GraphQL query results
+ * @param connection GraphQL query result
+ * @param options Extraction options
+ * @param options.idFields Field names to use as entity ID, defaults to ['nodeId', 'entityId']
+ * @param options.composite Whether to compose multiple fields as ID, defaults to false
  */
 export function extractEntityIds<T extends StoreTableRow>(
   connection: Connection<T>,
@@ -25,28 +25,28 @@ export function extractEntityIds<T extends StoreTableRow>(
       const node = edge.node as any;
 
       if (composite) {
-        // 组合多个字段作为ID
+        // Compose multiple fields as ID
         const idParts = idFields
           .map((field) => node[field] || '')
           .filter(Boolean);
-        return idParts.join('|'); // 使用 | 分隔符组合
+        return idParts.join('|'); // Use | separator to compose
       } else {
-        // 尝试找到第一个存在的字段作为ID
+        // Try to find the first existing field as ID
         for (const field of idFields) {
           if (node[field] !== undefined && node[field] !== null) {
             return node[field] as EntityId;
           }
         }
 
-        // 如果都没找到，返回第一个可用的值或空字符串
+        // If none found, return the first available value or empty string
         return (Object.values(node)[0] as EntityId) || '';
       }
     })
-    .filter(Boolean); // 过滤掉空值
+    .filter(Boolean); // Filter out empty values
 }
 
 /**
- * 计算两个实体ID数组的差异
+ * Calculate differences between two entity ID arrays
  */
 export function calculateDelta(
   oldResults: EntityId[],
@@ -66,7 +66,7 @@ export function calculateDelta(
 }
 
 /**
- * 找到多个实体ID数组的交集
+ * Find intersection of multiple entity ID arrays
  */
 export function findEntityIntersection(entitySets: EntityId[][]): EntityId[] {
   if (entitySets.length === 0) return [];
@@ -79,7 +79,7 @@ export function findEntityIntersection(entitySets: EntityId[][]): EntityId[] {
 }
 
 /**
- * 找到多个实体ID数组的并集
+ * Find union of multiple entity ID arrays
  */
 export function findEntityUnion(entitySets: EntityId[][]): EntityId[] {
   const unionSet = new Set<EntityId>();
@@ -92,7 +92,7 @@ export function findEntityUnion(entitySets: EntityId[][]): EntityId[] {
 }
 
 /**
- * 从批量查询结果中提取实体交集
+ * Extract entity intersection from batch query results
  */
 export function extractIntersectionFromBatchResult(
   batchResult: Record<string, Connection<StoreTableRow>>,
@@ -111,7 +111,7 @@ export function extractIntersectionFromBatchResult(
 }
 
 /**
- * 从批量查询结果中提取实体并集
+ * Extract entity union from batch query results
  */
 export function extractUnionFromBatchResult(
   batchResult: Record<string, Connection<StoreTableRow>>,
@@ -130,7 +130,7 @@ export function extractUnionFromBatchResult(
 }
 
 /**
- * 防抖函数
+ * Debounce function
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
@@ -151,13 +151,13 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 /**
- * 标准化组件类型名称（处理单复数）
+ * Normalize component type name (handle singular/plural)
  */
 export function normalizeComponentType(componentType: ComponentType): {
   singular: string;
   plural: string;
 } {
-  // 简单的单复数转换逻辑
+  // Simple singular/plural conversion logic
   const singular = componentType.endsWith('s')
     ? componentType.slice(0, -1)
     : componentType;
@@ -170,7 +170,7 @@ export function normalizeComponentType(componentType: ComponentType): {
 }
 
 /**
- * 创建缓存键
+ * Create cache key
  */
 export function createCacheKey(
   operation: string,
@@ -183,14 +183,14 @@ export function createCacheKey(
 }
 
 /**
- * 验证实体ID格式
+ * Validate entity ID format
  */
 export function isValidEntityId(entityId: any): entityId is EntityId {
   return typeof entityId === 'string' && entityId.length > 0;
 }
 
 /**
- * 验证组件类型格式
+ * Validate component type format
  */
 export function isValidComponentType(
   componentType: any
@@ -199,7 +199,7 @@ export function isValidComponentType(
 }
 
 /**
- * 深度比较两个对象是否相等
+ * Deep compare two objects for equality
  */
 export function deepEqual(obj1: any, obj2: any): boolean {
   if (obj1 === obj2) return true;
@@ -224,7 +224,7 @@ export function deepEqual(obj1: any, obj2: any): boolean {
 }
 
 /**
- * 安全地解析JSON
+ * Safely parse JSON
  */
 export function safeJsonParse<T = any>(json: string, defaultValue: T): T {
   try {
@@ -235,7 +235,7 @@ export function safeJsonParse<T = any>(json: string, defaultValue: T): T {
 }
 
 /**
- * 格式化错误消息
+ * Format error message
  */
 export function formatError(error: any): string {
   if (error instanceof Error) {
@@ -250,21 +250,21 @@ export function formatError(error: any): string {
 }
 
 /**
- * 创建时间戳
+ * Create timestamp
  */
 export function createTimestamp(): number {
   return Date.now();
 }
 
 /**
- * 限制数组大小
+ * Limit array size
  */
 export function limitArray<T>(array: T[], limit: number): T[] {
   return limit > 0 ? array.slice(0, limit) : array;
 }
 
 /**
- * 分页数组
+ * Paginate array
  */
 export function paginateArray<T>(
   array: T[],

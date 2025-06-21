@@ -1,15 +1,38 @@
-// 导入sui-common的dubhe配置类型，更通用
+// Import dubhe configuration types from sui-common for better compatibility
 import type { DubheConfig } from '@0xobelisk/sui-common';
 
-// ECS类型定义
+// DubheMetadata type definition for JSON format dubhe configuration
+export type DubheMetadata = {
+  components: Array<
+    Record<
+      string,
+      {
+        fields: Array<Record<string, any>>;
+        keys: string[];
+      }
+    >
+  >;
+  resources: Array<
+    Record<
+      string,
+      {
+        fields: Array<Record<string, any>>;
+        keys: string[];
+      }
+    >
+  >;
+  enums: any[];
+};
+
+// ECS type definitions
 
 export type EntityId = string;
 export type ComponentType = string;
 
-// 取消订阅函数
+// Unsubscribe function
 export type Unsubscribe = () => void;
 
-// 组件回调函数
+// Component callback functions
 export type ComponentCallback<T> = (entityId: EntityId, component: T) => void;
 export type ComponentChangeCallback<T> = (
   entityId: EntityId,
@@ -18,22 +41,22 @@ export type ComponentChangeCallback<T> = (
 ) => void;
 export type EntityCallback = (entityId: EntityId) => void;
 
-// 查询变化结果
+// Query change results
 export interface QueryChange {
-  added: EntityId[]; // 新匹配的实体
-  removed: EntityId[]; // 不再匹配的实体
-  current: EntityId[]; // 当前所有匹配的实体
+  added: EntityId[]; // Newly matched entities
+  removed: EntityId[]; // Entities that no longer match
+  current: EntityId[]; // All currently matched entities
 }
 
 export type QueryChangeCallback = (changes: QueryChange) => void;
 
-// 查询监听器
+// Query watcher
 export interface QueryWatcher {
   unsubscribe: Unsubscribe;
   getCurrentResults: () => EntityId[];
 }
 
-// 分页查询结果
+// Paginated query results
 export interface PagedResult<T = EntityId> {
   items: T[];
   totalCount: number;
@@ -42,12 +65,12 @@ export interface PagedResult<T = EntityId> {
   pageSize: number;
 }
 
-// 批量查询结果
+// Batch query results
 export interface BatchQueryResult {
   [componentType: string]: EntityId[];
 }
 
-// 组件变化事件
+// Component change events
 export interface ComponentChangeEvent<T = any> {
   entityId: EntityId;
   componentType: ComponentType;
@@ -57,7 +80,7 @@ export interface ComponentChangeEvent<T = any> {
   timestamp: number;
 }
 
-// 实体变化事件
+// Entity change events
 export interface EntityChangeEvent {
   entityId: EntityId;
   changeType: 'CREATED' | 'DESTROYED';
@@ -65,11 +88,11 @@ export interface EntityChangeEvent {
   timestamp: number;
 }
 
-// 查询选项
+// Query options
 export interface QueryOptions {
-  fields?: string[]; // 允许用户指定需要查询的字段
-  idFields?: string[]; // 用作实体ID的字段名数组，默认尝试 ['nodeId', 'entityId']
-  compositeId?: boolean; // 是否组合多个字段作为ID，默认false
+  fields?: string[]; // Allow users to specify fields to query
+  idFields?: string[]; // Field names to use as entity ID, defaults to ['nodeId', 'entityId']
+  compositeId?: boolean; // Whether to compose multiple fields as ID, defaults to false
   limit?: number;
   offset?: number;
   orderBy?: Array<{
@@ -79,68 +102,82 @@ export interface QueryOptions {
   cache?: boolean;
 }
 
-// 订阅选项
+// Subscription options
 export interface SubscriptionOptions {
   initialEvent?: boolean;
   debounceMs?: number;
   filter?: Record<string, any>;
 }
 
-// 组件发现配置 - 只支持dubhe config自动解析
-export interface ComponentDiscoveryConfig {
-  // Dubhe配置（自动解析模式）
-  dubheConfig: DubheConfig;
-}
-
-// 组件元数据
+// Component metadata
 export interface ComponentMetadata {
   name: ComponentType;
-  tableName: string; // 对应的数据库表名
-  description?: string; // 组件描述
-  fields: ComponentField[]; // 字段信息
-  primaryKeys: string[]; // 🆕 主键字段列表
-  hasDefaultId: boolean; // 🆕 是否有默认ID字段
-  enumFields: string[]; // 🆕 枚举字段列表
-  lastUpdated: number; // 最后更新时间
+  tableName: string; // Corresponding database table name
+  description?: string; // Component description
+  fields: ComponentField[]; // Field information
+  primaryKeys: string[]; // Primary key field list
+  hasDefaultId: boolean; // Whether has default ID field
+  enumFields: string[]; // Enum field list
+  lastUpdated: number; // Last updated timestamp
 }
 
-// 组件字段信息
+// Component field information
 export interface ComponentField {
   name: string;
-  type: string; // GraphQL类型
+  type: string; // GraphQL type
   nullable: boolean;
   description?: string;
-  isEnum?: boolean; // 🆕 是否为枚举字段
-  isPrimaryKey?: boolean; // 🆕 是否为主键字段
+  isEnum?: boolean; // Whether is enum field
+  isPrimaryKey?: boolean; // Whether is primary key field
 }
 
-// 组件发现结果
+// Component discovery results
 export interface ComponentDiscoveryResult {
   components: ComponentMetadata[];
   discoveredAt: number;
   errors?: string[];
-  totalDiscovered?: number; // 🆕 发现的组件总数
-  fromDubheConfig?: boolean; // 🆕 是否来自dubhe配置
+  totalDiscovered?: number; // Total number of discovered components
+  fromDubheMetadata?: boolean; // Whether from dubhe metadata
 }
 
-// ECS世界配置
+// Resource metadata
+export interface ResourceMetadata {
+  name: string;
+  tableName: string; // Corresponding database table name
+  description?: string; // Resource description
+  fields: ComponentField[]; // Field information
+  primaryKeys: string[]; // Primary key field list
+  hasCompositeKeys: boolean; // Whether has composite primary keys
+  hasNoKeys: boolean; // Whether has no primary keys
+  enumFields: string[]; // Enum field list
+  lastUpdated: number; // Last updated timestamp
+}
+
+// Resource discovery results
+export interface ResourceDiscoveryResult {
+  resources: ResourceMetadata[];
+  discoveredAt: number;
+  errors?: string[];
+  totalDiscovered?: number; // Total number of discovered resources
+  fromDubheMetadata?: boolean; // Whether from dubhe metadata
+}
+
+// ECS world configuration
 export interface ECSWorldConfig {
-  // 组件发现配置
+  // Dubhe Metadata (JSON format, optional - if not provided, gets from GraphQL client)
+  dubheMetadata?: DubheMetadata;
 
-  // 🆕 Dubhe配置（可选，如果提供则自动配置组件发现）
-  dubheConfig?: DubheConfig;
-
-  // 查询配置
+  // Query configuration
   queryConfig?: {
-    defaultCacheTimeout?: number; // 默认缓存超时时间
-    maxConcurrentQueries?: number; // 最大并发查询数
-    enableBatchOptimization?: boolean; // 启用批量查询优化
+    defaultCacheTimeout?: number; // Default cache timeout
+    maxConcurrentQueries?: number; // Maximum concurrent queries
+    enableBatchOptimization?: boolean; // Enable batch query optimization
   };
 
-  // 订阅配置
+  // Subscription configuration
   subscriptionConfig?: {
-    defaultDebounceMs?: number; // 默认防抖时间
-    maxSubscriptions?: number; // 最大订阅数
-    reconnectOnError?: boolean; // 错误时自动重连
+    defaultDebounceMs?: number; // Default debounce time
+    maxSubscriptions?: number; // Maximum subscriptions
+    reconnectOnError?: boolean; // Auto reconnect on error
   };
 }

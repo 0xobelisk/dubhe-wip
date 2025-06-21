@@ -1,4 +1,4 @@
-// ECS类型定义
+// ECS type definitions
 export type {
   EntityId,
   ComponentType,
@@ -15,22 +15,25 @@ export type {
   EntityChangeEvent,
   QueryOptions,
   SubscriptionOptions,
-  ComponentDiscoveryConfig,
   ComponentMetadata,
   ComponentField,
   ComponentDiscoveryResult,
+  ResourceMetadata,
+  ResourceDiscoveryResult,
   ECSWorldConfig,
+  DubheMetadata,
 } from './types';
 
-// 主要类导出
+// Main class exports
 export { DubheECSWorld } from './world';
+export { ComponentDiscoverer, ResourceDiscoverer } from './world';
 export { ECSQuery } from './query';
 export { ECSSubscription } from './subscription';
 
-// 工厂函数导出
+// Factory function exports
 export { createECSWorld } from './world';
 
-// 导出工具函数
+// Utility function exports
 export {
   extractEntityIds,
   calculateDelta,
@@ -51,5 +54,5 @@ export {
   paginateArray,
 } from './utils';
 
-// 默认导出主要类
+// Default export main class
 export { DubheECSWorld as default } from './world';

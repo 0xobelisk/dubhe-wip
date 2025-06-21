@@ -1,7 +1,6 @@
-// ECS世界主类实现 - 简化版本，内置组件发现
+// ECS World main class implementation - Simplified version with built-in component discovery
 
 import { DubheGraphqlClient } from '@0xobelisk/graphql-client';
-import { DubheConfig } from '@0xobelisk/sui-common';
 import { ECSQuery } from './query';
 import { ECSSubscription } from './subscription';
 import {
@@ -18,210 +17,40 @@ import {
   ComponentMetadata,
   ComponentDiscoveryResult,
   ComponentField,
+  ResourceMetadata,
+  ResourceDiscoveryResult,
+  DubheMetadata,
 } from './types';
 import { formatError } from './utils';
 
 /**
- * 组件发现器 - 自动解析 dubhe config
+ * Component Discoverer - Supports DubheMetadata JSON format
  */
 export class ComponentDiscoverer {
   private graphqlClient: DubheGraphqlClient;
-  public dubheConfig: DubheConfig;
+  public dubheMetadata: DubheMetadata;
   public discoveryResult: ComponentDiscoveryResult;
   public componentMetadataMap = new Map<ComponentType, ComponentMetadata>();
   public componentTypes: ComponentType[] = [];
 
-  constructor(graphqlClient: DubheGraphqlClient, dubheConfig: DubheConfig) {
+  constructor(graphqlClient: DubheGraphqlClient, dubheMetadata: DubheMetadata) {
     this.graphqlClient = graphqlClient;
-
-    if (!dubheConfig) {
-      throw new Error('DubheConfig is required for component discovery');
-    }
-
-    this.dubheConfig = dubheConfig;
+    this.dubheMetadata = dubheMetadata;
 
     const components: ComponentMetadata[] = [];
     const errors: string[] = [];
 
-    if (!this.dubheConfig.components) {
-      throw new Error('Components section not found in dubhe configuration');
-    }
-
-    for (const [componentName, componentConfig] of Object.entries(
-      this.dubheConfig.components
-    )) {
-      const componentType = this.tableNameToComponentName(componentName);
-
-      try {
-        // Build field information
-        const fields: ComponentField[] = [];
-        const primaryKeys: string[] = [];
-        const enumFields: string[] = [];
-
-        // Handle different component types
-        if (typeof componentConfig === 'string') {
-          // MoveType string, e.g. owned_by: "address"
-          fields.push(
-            {
-              name: 'entityId',
-              type: 'String',
-              nullable: false,
-              isPrimaryKey: true,
-              isEnum: false,
-            },
-            {
-              name: 'value',
-              type: this.dubheTypeToGraphQLType(componentConfig),
-              nullable: true,
-              isPrimaryKey: false,
-              isEnum: this.isEnumType(componentConfig),
-            }
-          );
-          primaryKeys.push('entityId');
-        } else if (
-          typeof componentConfig === 'object' &&
-          componentConfig !== null &&
-          Object.keys(componentConfig).length === 0
-        ) {
-          // EmptyComponent, e.g. player: {}
-          fields.push({
-            name: 'entityId',
-            type: 'String',
-            nullable: false,
-            isPrimaryKey: true,
-            isEnum: false,
-          });
-          primaryKeys.push('entityId');
-        } else if (
-          typeof componentConfig === 'object' &&
-          componentConfig !== null &&
-          'fields' in componentConfig &&
-          componentConfig.fields
-        ) {
-          // Component type with fields definition
-
-          // Analyze primary key configuration
-          let keyStrategy: 'custom' | 'default' | 'none' = 'default';
-          if ('keys' in componentConfig) {
-            if (Array.isArray(componentConfig.keys)) {
-              if (componentConfig.keys.length > 0) {
-                keyStrategy = 'custom';
-              } else {
-                keyStrategy = 'none';
-              }
-            }
-          }
-
-          // First handle business fields
-          for (const [fieldName, fieldType] of Object.entries(
-            componentConfig.fields
-          )) {
-            // According to sui-common definition, fieldType should be MoveType (string)
-            const camelFieldName = this.snakeToCamel(fieldName);
-            const typeStr = String(fieldType);
-
-            // Check if this field is one of the custom primary keys
-            const isCustomKey =
-              keyStrategy === 'custom' &&
-              componentConfig.keys!.includes(fieldName);
-
-            fields.push({
-              name: camelFieldName,
-              type: this.dubheTypeToGraphQLType(typeStr),
-              nullable: !isCustomKey, // 主键字段不可为空
-              isPrimaryKey: isCustomKey,
-              isEnum: this.isEnumType(typeStr),
-            });
-
-            if (isCustomKey) {
-              primaryKeys.push(camelFieldName);
-            }
-
-            // Check if it's an enum type (check if exists in dubheConfig.enums)
-            if (this.isEnumType(typeStr)) {
-              enumFields.push(camelFieldName);
-            }
-          }
-
-          // Add default id field based on primary key strategy
-          if (keyStrategy === 'default') {
-            fields.unshift({
-              name: 'entityId',
-              type: 'String',
-              nullable: false,
-              isPrimaryKey: true,
-              isEnum: false,
-            });
-            primaryKeys.push('entityId');
-          }
-        }
-
-        // Add system fields
-        fields.push(
-          {
-            name: 'createdAt',
-            type: 'String',
-            nullable: false,
-            isPrimaryKey: false,
-            isEnum: false,
-          },
-          {
-            name: 'updatedAt',
-            type: 'String',
-            nullable: false,
-            isPrimaryKey: false,
-            isEnum: false,
-          }
-        );
-
-        // Check if should be registered as ECS component
-        if (primaryKeys.length === 0) {
-          console.log(
-            `⚠️ ${componentType} has no primary key, skipping ECS component registration (recommend using dedicated config query interface)`
-          );
-          continue; // Skip tables without primary keys
-        }
-
-        if (primaryKeys.length > 1) {
-          console.log(
-            `⚠️ ${componentType} has composite primary keys (${primaryKeys.join(', ')}), skipping ECS component registration (recommend using dedicated resource query interface)`
-          );
-          continue; // Skip tables with composite primary keys
-        }
-
-        const metadata: ComponentMetadata = {
-          name: componentType,
-          tableName: componentName,
-          fields,
-          primaryKeys,
-          hasDefaultId:
-            typeof componentConfig !== 'object' ||
-            componentConfig === null ||
-            !('keys' in componentConfig) ||
-            !componentConfig.keys ||
-            componentConfig.keys.length === 0,
-          enumFields,
-          lastUpdated: Date.now(),
-          description: `Auto-discovered component from dubhe config: ${componentName}`,
-        };
-
-        components.push(metadata);
-      } catch (error) {
-        const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
-        errors.push(errorMsg);
-        console.warn(`⚠️ ${errorMsg}`);
-      }
-    }
+    this.parseFromDubheMetadata(components, errors);
 
     const result: ComponentDiscoveryResult = {
       components,
       discoveredAt: Date.now(),
       errors: errors.length > 0 ? errors : undefined,
       totalDiscovered: components.length,
-      fromDubheConfig: true,
+      fromDubheMetadata: true,
     };
 
-    // 缓存发现结果
+    // Cache discovery results
     this.discoveryResult = result;
 
     this.componentTypes = components.map((comp) => comp.name);
@@ -231,215 +60,123 @@ export class ComponentDiscoverer {
     });
   }
 
-  // discover(): ComponentDiscoveryResult {
-  //   // 如果已有缓存，直接返回
-  //   if (this.cachedDiscoveryResult) {
-  //     console.log('📄 Using cached component discovery result');
-  //     return this.cachedDiscoveryResult;
-  //   }
+  /**
+   * Parse components from DubheMetadata JSON format
+   */
+  private parseFromDubheMetadata(
+    components: ComponentMetadata[],
+    errors: string[]
+  ): void {
+    if (!this.dubheMetadata?.components) {
+      return;
+    }
 
-  //   console.log('🔍 Discovering components from dubhe config...');
-  //   const components: ComponentMetadata[] = [];
-  //   const errors: string[] = [];
+    for (const componentRecord of this.dubheMetadata.components) {
+      // 每个 componentRecord 是一个对象，包含一个组件名和其配置
+      for (const [componentName, componentConfig] of Object.entries(
+        componentRecord
+      )) {
+        const componentType = this.tableNameToComponentName(componentName);
 
-  //   if (!this.dubheConfig.components) {
-  //     throw new Error('Components section not found in dubhe configuration');
-  //   }
+        try {
+          // 构建字段信息
+          const fields: ComponentField[] = [];
+          const primaryKeys: string[] = [];
+          const enumFields: string[] = [];
 
-  //   for (const [componentName, componentConfig] of Object.entries(
-  //     this.dubheConfig.components
-  //   )) {
-  //     const componentType = this.tableNameToComponentName(componentName);
+          // JSON 格式中的字段是数组
+          if (componentConfig.fields && Array.isArray(componentConfig.fields)) {
+            for (const fieldRecord of componentConfig.fields) {
+              // 每个 fieldRecord 是一个对象，包含一个字段名和类型
+              for (const [fieldName, fieldType] of Object.entries(
+                fieldRecord
+              )) {
+                const camelFieldName = this.snakeToCamel(fieldName);
+                const typeStr = String(fieldType);
 
-  //     try {
-  //       // Build field information
-  //       const fields: ComponentField[] = [];
-  //       const primaryKeys: string[] = [];
-  //       const enumFields: string[] = [];
+                // 检查是否是主键字段
+                const isCustomKey =
+                  componentConfig.keys &&
+                  componentConfig.keys.includes(fieldName);
 
-  //       // Handle different component types
-  //       if (typeof componentConfig === 'string') {
-  //         // MoveType string, e.g. owned_by: "address"
-  //         fields.push(
-  //           {
-  //             name: 'entity_id',
-  //             type: 'String',
-  //             nullable: false,
-  //             isPrimaryKey: true,
-  //             isEnum: false,
-  //           },
-  //           {
-  //             name: 'value',
-  //             type: this.dubheTypeToGraphQLType(componentConfig),
-  //             nullable: true,
-  //             isPrimaryKey: false,
-  //             isEnum: this.isEnumType(componentConfig),
-  //           }
-  //         );
-  //         primaryKeys.push('entity_id');
-  //       } else if (
-  //         typeof componentConfig === 'object' &&
-  //         componentConfig !== null &&
-  //         Object.keys(componentConfig).length === 0
-  //       ) {
-  //         // EmptyComponent, e.g. player: {}
-  //         fields.push({
-  //           name: 'entity_id',
-  //           type: 'String',
-  //           nullable: false,
-  //           isPrimaryKey: true,
-  //           isEnum: false,
-  //         });
-  //         primaryKeys.push('entity_id');
-  //       } else if (
-  //         typeof componentConfig === 'object' &&
-  //         componentConfig !== null &&
-  //         'fields' in componentConfig &&
-  //         componentConfig.fields
-  //       ) {
-  //         // Component type with fields definition
+                fields.push({
+                  name: camelFieldName,
+                  type: this.dubheTypeToGraphQLType(typeStr),
+                  nullable: !isCustomKey, // 主键字段不可为空
+                  isPrimaryKey: isCustomKey,
+                  isEnum: this.isEnumType(typeStr),
+                });
 
-  //         // Analyze primary key configuration
-  //         let keyStrategy: 'custom' | 'default' | 'none' = 'default';
-  //         if ('keys' in componentConfig) {
-  //           if (Array.isArray(componentConfig.keys)) {
-  //             if (componentConfig.keys.length > 0) {
-  //               keyStrategy = 'custom';
-  //             } else {
-  //               keyStrategy = 'none';
-  //             }
-  //           }
-  //         }
+                if (isCustomKey) {
+                  primaryKeys.push(camelFieldName);
+                }
 
-  //         // First handle business fields
-  //         for (const [fieldName, fieldType] of Object.entries(
-  //           componentConfig.fields
-  //         )) {
-  //           // According to sui-common definition, fieldType should be MoveType (string)
-  //           const camelFieldName = this.snakeToCamel(fieldName);
-  //           const typeStr = String(fieldType);
+                // 检查是否为枚举类型
+                if (this.isEnumType(typeStr)) {
+                  enumFields.push(camelFieldName);
+                }
+              }
+            }
+          }
 
-  //           // Check if this field is one of the custom primary keys
-  //           const isCustomKey =
-  //             keyStrategy === 'custom' &&
-  //             componentConfig.keys!.includes(fieldName);
+          // 如果没有自定义主键，添加默认的 entityId
+          if (primaryKeys.length === 0) {
+            fields.unshift({
+              name: 'entityId',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: true,
+              isEnum: false,
+            });
+            primaryKeys.push('entityId');
+          }
 
-  //           fields.push({
-  //             name: camelFieldName,
-  //             type: this.dubheTypeToGraphQLType(typeStr),
-  //             nullable: !isCustomKey, // 主键字段不可为空
-  //             isPrimaryKey: isCustomKey,
-  //             isEnum: this.isEnumType(typeStr),
-  //           });
+          // 添加系统字段
+          fields.push(
+            {
+              name: 'createdAt',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
+            },
+            {
+              name: 'updatedAt',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
+            }
+          );
 
-  //           if (isCustomKey) {
-  //             primaryKeys.push(camelFieldName);
-  //           }
+          // Check if should register as ECS component
+          if (primaryKeys.length === 0) {
+            continue;
+          }
 
-  //           // Check if it's an enum type (check if exists in dubheConfig.enums)
-  //           if (this.isEnumType(typeStr)) {
-  //             enumFields.push(camelFieldName);
-  //           }
-  //         }
+          if (primaryKeys.length > 1) {
+            continue;
+          }
 
-  //         // Add default id field based on primary key strategy
-  //         if (keyStrategy === 'default') {
-  //           fields.unshift({
-  //             name: 'entity_id',
-  //             type: 'String',
-  //             nullable: false,
-  //             isPrimaryKey: true,
-  //             isEnum: false,
-  //           });
-  //           primaryKeys.push('entity_id');
-  //         }
-  //       }
+          const metadata: ComponentMetadata = {
+            name: componentType,
+            tableName: componentName,
+            fields,
+            primaryKeys,
+            hasDefaultId: primaryKeys.includes('entityId'),
+            enumFields,
+            lastUpdated: Date.now(),
+            description: `Auto-discovered component from dubhe metadata: ${componentName}`,
+          };
 
-  //       // Add system fields
-  //       fields.push(
-  //         {
-  //           name: 'createdAt',
-  //           type: 'String',
-  //           nullable: false,
-  //           isPrimaryKey: false,
-  //           isEnum: false,
-  //         },
-  //         {
-  //           name: 'updatedAt',
-  //           type: 'String',
-  //           nullable: false,
-  //           isPrimaryKey: false,
-  //           isEnum: false,
-  //         }
-  //       );
-
-  //       // Check if should be registered as ECS component
-  //       if (primaryKeys.length === 0) {
-  //         console.log(
-  //           `⚠️ ${componentType} has no primary key, skipping ECS component registration (recommend using dedicated config query interface)`
-  //         );
-  //         continue; // Skip tables without primary keys
-  //       }
-
-  //       if (primaryKeys.length > 1) {
-  //         console.log(
-  //           `⚠️ ${componentType} has composite primary keys (${primaryKeys.join(', ')}), skipping ECS component registration (recommend using dedicated resource query interface)`
-  //         );
-  //         continue; // Skip tables with composite primary keys
-  //       }
-
-  //       const metadata: ComponentMetadata = {
-  //         name: componentType,
-  //         tableName: componentName,
-  //         fields,
-  //         primaryKeys,
-  //         hasDefaultId:
-  //           typeof componentConfig !== 'object' ||
-  //           componentConfig === null ||
-  //           !('keys' in componentConfig) ||
-  //           !componentConfig.keys ||
-  //           componentConfig.keys.length === 0,
-  //         enumFields,
-  //         lastUpdated: Date.now(),
-  //         description: `Auto-discovered component from dubhe config: ${componentName}`,
-  //       };
-
-  //       components.push(metadata);
-  //       console.log(
-  //         `✅ Discovered ECS component: ${componentType} (primaryKey: ${primaryKeys[0]}, fields: ${fields.length})`
-  //       );
-  //     } catch (error) {
-  //       const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
-  //       errors.push(errorMsg);
-  //       console.warn(`⚠️ ${errorMsg}`);
-  //     }
-  //   }
-
-  //   const result: ComponentDiscoveryResult = {
-  //     components,
-  //     discoveredAt: Date.now(),
-  //     errors: errors.length > 0 ? errors : undefined,
-  //     totalDiscovered: components.length,
-  //     fromDubheConfig: true,
-  //   };
-
-  //   // 缓存发现结果
-  //   this.cachedDiscoveryResult = result;
-
-  //   // 构建快速查找缓存
-  //   this.componentMetadataCache.clear();
-  //   this.componentTypesCache = components.map((comp) => comp.name);
-
-  //   components.forEach((comp) => {
-  //     this.componentMetadataCache.set(comp.name, comp);
-  //   });
-
-  //   console.log(
-  //     `✅ Component discovery completed and cached (${components.length} components)`
-  //   );
-
-  //   return result;
-  // }
+          components.push(metadata);
+        } catch (error) {
+          const errorMsg = `Component ${componentType} validation failed: ${formatError(error)}`;
+          errors.push(errorMsg);
+        }
+      }
+    }
+  }
 
   getComponentTypes(): ComponentType[] {
     return this.componentTypes;
@@ -499,11 +236,195 @@ export class ComponentDiscoverer {
     return tableName;
   }
 
-  /**
-   * Check if type is enum
-   */
   private isEnumType(typeStr: string): boolean {
-    return !!(this.dubheConfig?.enums && this.dubheConfig.enums[typeStr]);
+    return this.dubheMetadata.enums.some(
+      (enumDef: any) => typeof enumDef === 'object' && enumDef[typeStr]
+    );
+  }
+}
+
+/**
+ * Resource Discoverer - Supports DubheMetadata JSON format
+ */
+export class ResourceDiscoverer {
+  private graphqlClient: DubheGraphqlClient;
+  public dubheMetadata: DubheMetadata;
+  public discoveryResult: ResourceDiscoveryResult;
+  public resourceMetadataMap = new Map<string, ResourceMetadata>();
+  public resourceTypes: string[] = [];
+
+  constructor(graphqlClient: DubheGraphqlClient, dubheMetadata: DubheMetadata) {
+    this.graphqlClient = graphqlClient;
+    this.dubheMetadata = dubheMetadata;
+
+    const resources: ResourceMetadata[] = [];
+    const errors: string[] = [];
+
+    this.parseFromDubheMetadata(resources, errors);
+
+    const result: ResourceDiscoveryResult = {
+      resources,
+      discoveredAt: Date.now(),
+      errors: errors.length > 0 ? errors : undefined,
+      totalDiscovered: resources.length,
+      fromDubheMetadata: true,
+    };
+
+    // Cache discovery results
+    this.discoveryResult = result;
+
+    this.resourceTypes = resources.map((res) => res.name);
+
+    resources.forEach((res) => {
+      this.resourceMetadataMap.set(res.name, res);
+    });
+  }
+
+  /**
+   * Parse resources from DubheMetadata JSON format
+   */
+  private parseFromDubheMetadata(
+    resources: ResourceMetadata[],
+    errors: string[]
+  ): void {
+    if (!this.dubheMetadata?.resources) {
+      return;
+    }
+
+    for (const resourceRecord of this.dubheMetadata.resources) {
+      // 每个 resourceRecord 是一个对象，包含一个资源名和其配置
+      for (const [resourceName, resourceConfig] of Object.entries(
+        resourceRecord
+      )) {
+        try {
+          // 构建字段信息
+          const fields: ComponentField[] = [];
+          const primaryKeys: string[] = [];
+          const enumFields: string[] = [];
+
+          // JSON 格式中的字段是数组
+          if (resourceConfig.fields && Array.isArray(resourceConfig.fields)) {
+            for (const fieldRecord of resourceConfig.fields) {
+              // 每个 fieldRecord 是一个对象，包含一个字段名和类型
+              for (const [fieldName, fieldType] of Object.entries(
+                fieldRecord
+              )) {
+                const camelFieldName = this.snakeToCamel(fieldName);
+                const typeStr = String(fieldType);
+
+                // 检查是否是主键字段
+                const isCustomKey =
+                  resourceConfig.keys &&
+                  resourceConfig.keys.includes(fieldName);
+
+                fields.push({
+                  name: camelFieldName,
+                  type: this.dubheTypeToGraphQLType(typeStr),
+                  nullable: !isCustomKey, // 主键字段不可为空
+                  isPrimaryKey: isCustomKey,
+                  isEnum: this.isEnumType(typeStr),
+                });
+
+                if (isCustomKey) {
+                  primaryKeys.push(camelFieldName);
+                }
+
+                // 检查是否为枚举类型
+                if (this.isEnumType(typeStr)) {
+                  enumFields.push(camelFieldName);
+                }
+              }
+            }
+          }
+
+          // 添加系统字段
+          fields.push(
+            {
+              name: 'createdAt',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
+            },
+            {
+              name: 'updatedAt',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
+            }
+          );
+
+          const resourceType = resourceName;
+          const metadata: ResourceMetadata = {
+            name: resourceType,
+            tableName: resourceName,
+            fields,
+            primaryKeys,
+            hasCompositeKeys: primaryKeys.length > 1,
+            hasNoKeys: primaryKeys.length === 0,
+            enumFields,
+            lastUpdated: Date.now(),
+            description: `Auto-discovered resource from dubhe metadata: ${resourceName}`,
+          };
+
+          resources.push(metadata);
+        } catch (error) {
+          const errorMsg = `Resource ${resourceName} validation failed: ${formatError(error)}`;
+          errors.push(errorMsg);
+        }
+      }
+    }
+  }
+
+  getResourceTypes(): string[] {
+    return this.resourceTypes;
+  }
+
+  getResourceMetadata(resourceType: string): ResourceMetadata | null {
+    return this.resourceMetadataMap.get(resourceType) || null;
+  }
+
+  private snakeToCamel(str: string): string {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  }
+
+  private dubheTypeToGraphQLType(dubheType: string): string {
+    // 处理向量类型 vector<T>
+    if (dubheType.startsWith('vector<') && dubheType.endsWith('>')) {
+      return 'String'; // GraphQL通常将复杂类型序列化为JSON字符串
+    }
+
+    switch (dubheType) {
+      case 'u8':
+      case 'u16':
+      case 'u32':
+      case 'u64':
+      case 'u128':
+      case 'i8':
+      case 'i16':
+      case 'i32':
+      case 'i64':
+      case 'i128':
+        return 'Int';
+      case 'address':
+      case 'string':
+        return 'String';
+      case 'bool':
+        return 'Boolean';
+      case 'enum':
+        return 'String';
+      default:
+        // If not a known basic type, might be enum or custom type
+        // For unknown types, default to String
+        return 'String';
+    }
+  }
+
+  private isEnumType(typeStr: string): boolean {
+    return this.dubheMetadata.enums.some(
+      (enumDef: any) => typeof enumDef === 'object' && enumDef[typeStr]
+    );
   }
 }
 
@@ -515,8 +436,9 @@ export class DubheECSWorld {
   private querySystem: ECSQuery;
   private subscriptionSystem: ECSSubscription;
   private componentDiscoverer: ComponentDiscoverer;
+  private resourceDiscoverer: ResourceDiscoverer;
   private config: ECSWorldConfig;
-  // public componentMetada
+  private dubheMetadata: DubheMetadata;
 
   constructor(
     graphqlClient: DubheGraphqlClient,
@@ -524,48 +446,57 @@ export class DubheECSWorld {
   ) {
     this.graphqlClient = graphqlClient;
 
-    // Check if GraphQL client contains dubhe config
-    const clientDubheConfig = this.graphqlClient.getDubheConfig();
-    const configDubheConfig = config?.dubheConfig;
-    const dubheConfig = configDubheConfig || clientDubheConfig;
-
-    if (!dubheConfig) {
-      throw new Error(
-        'DubheConfig is required. Please provide it either through config.dubheConfig or ensure your GraphQL client contains dubhe configuration.'
-      );
-    }
-
-    // Set default configuration
+    // 设置默认配置
     this.config = {
-      dubheConfig,
       queryConfig: {
-        defaultCacheTimeout: 5000,
+        defaultCacheTimeout: 5 * 60 * 1000, // 5分钟
         maxConcurrentQueries: 10,
         enableBatchOptimization: true,
       },
       subscriptionConfig: {
         defaultDebounceMs: 100,
-        maxSubscriptions: 100,
+        maxSubscriptions: 50,
         reconnectOnError: true,
       },
       ...config,
     };
 
+    // Get dubheMetadata: prefer from config, otherwise from GraphQL client
+    let dubheMetadata = this.config.dubheMetadata;
+    if (!dubheMetadata) {
+      dubheMetadata = this.graphqlClient.getDubheMetadata();
+      if (!dubheMetadata) {
+        throw new Error(
+          'DubheMetadata is required for ECS World initialization. ' +
+            'Please provide it either in ECSWorldConfig or in GraphQL client configuration.'
+        );
+      }
+    }
+
+    this.dubheMetadata = dubheMetadata;
+
+    // Initialize component and resource discoverers with dubhe metadata
     this.componentDiscoverer = new ComponentDiscoverer(
       graphqlClient,
-      dubheConfig
+      this.dubheMetadata
     );
+    this.resourceDiscoverer = new ResourceDiscoverer(
+      graphqlClient,
+      this.dubheMetadata
+    );
+
+    // Initialize query and subscription systems with component discoverer
     this.querySystem = new ECSQuery(graphqlClient, this.componentDiscoverer);
     this.subscriptionSystem = new ECSSubscription(
       graphqlClient,
       this.componentDiscoverer
     );
 
+    this.initializeWithConfig();
+  }
+
+  private initializeWithConfig(): void {
     try {
-      // console.log('🚀 Initializing ECS world...');
-
-      // Discover available components
-
       // Filter ECS-compliant components (single primary key only)
       const ecsComponents =
         this.componentDiscoverer.discoveryResult.components.filter((comp) => {
@@ -573,19 +504,15 @@ export class DubheECSWorld {
           return comp.primaryKeys.length === 1;
         });
 
-      // console.log(`📊 Component classification:`);
-      // console.log(
-      //   `  - ECS Components: ${ecsComponents.length} (${ecsComponents.map((c) => c.name).join(', ')})`
-      // );
-      // console.log(`  - Global Configs: ${this.getGlobalConfigTables().length}`);
-      // console.log(`  - Resources: ${this.getResourceTables().length}`);
+      // Get all resources
+      const resources = this.resourceDiscoverer.discoveryResult.resources;
 
       // Initialize query system with ECS components and their metadata
       this.querySystem.setAvailableComponents(
         ecsComponents.map((comp) => comp.name)
       );
 
-      // 🆕 Initialize component primary key cache
+      // Initialize component primary key cache
       this.querySystem.initializeComponentMetadata(
         ecsComponents.map((comp) => ({
           name: comp.name,
@@ -593,7 +520,7 @@ export class DubheECSWorld {
         }))
       );
 
-      // 🆕 Initialize subscription system component metadata cache
+      // Initialize subscription system component metadata cache
       this.subscriptionSystem.initializeComponentMetadata(
         ecsComponents.map((comp) => ({
           name: comp.name,
@@ -601,7 +528,6 @@ export class DubheECSWorld {
         }))
       );
     } catch (error) {
-      console.error('❌ ECS world initialization failed:', formatError(error));
       throw error;
     }
   }
@@ -614,97 +540,63 @@ export class DubheECSWorld {
   configure(config: Partial<ECSWorldConfig>): void {
     this.config = { ...this.config, ...config };
 
-    // Recreate component discoverer if configuration changed
-    if (config.dubheConfig) {
-      const newDubheConfig = config.dubheConfig;
-      if (!newDubheConfig) {
-        throw new Error('DubheConfig is required for reconfiguration');
-      }
-
+    // Recreate component and resource discoverers if metadata changed
+    if (config.dubheMetadata) {
+      this.dubheMetadata = config.dubheMetadata;
       this.componentDiscoverer = new ComponentDiscoverer(
         this.graphqlClient,
-        newDubheConfig
+        this.dubheMetadata
+      );
+      this.resourceDiscoverer = new ResourceDiscoverer(
+        this.graphqlClient,
+        this.dubheMetadata
       );
 
-      try {
-        console.log('🚀 Initializing ECS world...');
+      // Update query and subscription systems
+      this.querySystem.setComponentDiscoverer(this.componentDiscoverer);
+      this.subscriptionSystem.setComponentDiscoverer(this.componentDiscoverer);
 
-        // Discover available components
-
-        // Filter ECS-compliant components (single primary key only)
-        const ecsComponents =
-          this.componentDiscoverer.discoveryResult.components.filter((comp) => {
-            // Must have exactly one primary key to be ECS-compliant
-            return comp.primaryKeys.length === 1;
-          });
-
-        console.log(`📊 Component classification:`);
-        console.log(
-          `  - ECS Components: ${ecsComponents.length} (${ecsComponents.map((c) => c.name).join(', ')})`
-        );
-        // console.log(
-        //   `  - Global Configs: ${this.getGlobalConfigTables().length}`
-        // );
-        console.log(`  - Resources: ${this.getResourceTables().length}`);
-
-        // Initialize query system with ECS components and their metadata
-        this.querySystem.setAvailableComponents(
-          ecsComponents.map((comp) => comp.name)
-        );
-
-        // 🆕 Initialize component primary key cache
-        this.querySystem.initializeComponentMetadata(
-          ecsComponents.map((comp) => ({
-            name: comp.name,
-            primaryKeys: comp.primaryKeys,
-          }))
-        );
-
-        // 🆕 Initialize subscription system component metadata cache
-        this.subscriptionSystem.initializeComponentMetadata(
-          ecsComponents.map((comp) => ({
-            name: comp.name,
-            primaryKeys: comp.primaryKeys,
-          }))
-        );
-      } catch (error) {
-        console.error(
-          '❌ ECS world initialization failed:',
-          formatError(error)
-        );
-        throw error;
-      }
+      this.initializeWithConfig();
     }
   }
 
-  // /**
-  //  * Initialize ECS world
-  //  */
-  // initialize(): void {
-
-  // }
-
-  // ============ Component Discovery ============
+  // ============ Component Discovery and Information ============
 
   /**
-   * Discover components
+   * Discover and return all available ECS component types
    */
   discoverComponents(): ComponentType[] {
     return this.componentDiscoverer.getComponentTypes();
   }
 
   /**
-   * Get available components list
+   * Get all available ECS component types (cached)
    */
   getAvailableComponents(): ComponentType[] {
     return this.componentDiscoverer.getComponentTypes();
   }
 
   /**
-   * Get component metadata
+   * Get metadata for a specific ECS component
    */
   getComponentMetadata(componentType: ComponentType): ComponentMetadata | null {
     return this.componentDiscoverer.getComponentMetadata(componentType);
+  }
+
+  // ============ Resource Discovery and Information ============
+
+  /**
+   * Get all available resource types
+   */
+  getAvailableResources(): string[] {
+    return this.resourceDiscoverer.getResourceTypes();
+  }
+
+  /**
+   * Get metadata for a specific resource
+   */
+  getResourceMetadata(resourceType: string): ResourceMetadata | null {
+    return this.resourceDiscoverer.getResourceMetadata(resourceType);
   }
 
   // ============ Entity Queries ============
@@ -821,10 +713,10 @@ export class DubheECSWorld {
     return this.querySystem.getComponents(entityId);
   }
 
-  // ============ 世界查询 ============
+  // ============ World Queries ============
 
   /**
-   * 查询拥有特定组件的所有实体
+   * Query all entities that have a specific component
    */
   async queryWith(
     componentType: ComponentType,
@@ -834,7 +726,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 查询拥有所有指定组件的实体（交集）
+   * Query entities that have all specified components (intersection)
    */
   async queryWithAll(
     componentTypes: ComponentType[],
@@ -844,7 +736,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 查询拥有任意指定组件的实体（并集）
+   * Query entities that have any of the specified components (union)
    */
   async queryWithAny(
     componentTypes: ComponentType[],
@@ -854,7 +746,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 查询拥有包含组件但不拥有排除组件的实体
+   * Query entities that have include components but not exclude components
    */
   async queryWithout(
     includeTypes: ComponentType[],
@@ -864,10 +756,10 @@ export class DubheECSWorld {
     return this.querySystem.queryWithout(includeTypes, excludeTypes, options);
   }
 
-  // ============ 条件查询 ============
+  // ============ Conditional Queries ============
 
   /**
-   * 基于条件查询组件
+   * Query components based on conditions
    */
   async queryWhere<T>(
     componentType: ComponentType,
@@ -878,7 +770,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 范围查询
+   * Range query
    */
   async queryRange(
     componentType: ComponentType,
@@ -891,7 +783,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 分页查询
+   * Paginated query
    */
   async queryPaged(
     componentTypes: ComponentType[],
@@ -901,19 +793,19 @@ export class DubheECSWorld {
     return this.querySystem.queryPaged(componentTypes, page, pageSize);
   }
 
-  // ============ 查询构建器 ============
+  // ============ Query Builder ============
 
   /**
-   * 创建查询构建器
+   * Create query builder
    */
   query() {
     return this.querySystem.query();
   }
 
-  // ============ 订阅系统 ============
+  // ============ Subscription System ============
 
   /**
-   * 监听组件添加事件
+   * Listen to component added events
    */
   onComponentAdded<T>(
     componentType: ComponentType,
@@ -923,7 +815,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 监听组件移除事件
+   * Listen to component removed events
    */
   onComponentRemoved<T>(
     componentType: ComponentType,
@@ -936,7 +828,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 监听组件变化事件
+   * Listen to component changed events
    */
   onComponentChanged<T>(
     componentType: ComponentType,
@@ -949,7 +841,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * 监听特定条件的组件变化
+   * Listen to component changes with specific conditions
    */
   onComponentCondition<T>(
     componentType: ComponentType,
@@ -964,14 +856,14 @@ export class DubheECSWorld {
   }
 
   /**
-   * 监听查询结果变化
+   * Listen to query result changes
    */
   watchQuery(componentTypes: ComponentType[], options?: SubscriptionOptions) {
     return this.subscriptionSystem.watchQuery(componentTypes, options);
   }
 
   /**
-   * 创建实时数据流
+   * Create real-time data stream
    */
   createRealTimeStream<T>(
     componentType: ComponentType,
@@ -983,10 +875,10 @@ export class DubheECSWorld {
     );
   }
 
-  // ============ 便捷方法 ============
+  // ============ Convenience Methods ============
 
   /**
-   * 查询拥有指定组件的实体数据（包含组件数据）
+   * Query entity data with specific component (includes component data)
    */
   async queryWithComponentData<T>(
     componentType: ComponentType,
@@ -1008,13 +900,12 @@ export class DubheECSWorld {
 
       return results;
     } catch (error) {
-      console.error(`查询组件数据失败: ${formatError(error)}`);
       return [];
     }
   }
 
   /**
-   * 查询多组件实体数据
+   * Query multi-component entity data
    */
   async queryMultiComponentData<T1, T2>(
     component1Type: ComponentType,
@@ -1041,13 +932,12 @@ export class DubheECSWorld {
 
       return results;
     } catch (error) {
-      console.error(`查询多组件数据失败: ${formatError(error)}`);
       return [];
     }
   }
 
   /**
-   * 获取实体的完整状态（所有组件数据）
+   * Get complete entity state (all component data)
    */
   async getEntityState(entityId: EntityId): Promise<{
     entityId: EntityId;
@@ -1068,21 +958,20 @@ export class DubheECSWorld {
 
       return { entityId, components };
     } catch (error) {
-      console.error(`Failed to get entity state: ${formatError(error)}`);
       return null;
     }
   }
 
-  // ============ 统计和分析 ============
+  // ============ Statistics and Analysis ============
 
   /**
-   * 获取组件统计信息
+   * Get component statistics
    */
   async getComponentStats(): Promise<Record<ComponentType, number>> {
     try {
       const stats: Record<ComponentType, number> = {};
 
-      // 获取所有可用组件类型
+      // Get all available component types
       const componentTypes = await this.getAvailableComponents();
 
       await Promise.all(
@@ -1098,13 +987,12 @@ export class DubheECSWorld {
 
       return stats;
     } catch (error) {
-      console.error(`Failed to get component stats: ${formatError(error)}`);
       return {};
     }
   }
 
   /**
-   * 查找孤儿实体（只有一个组件的实体）
+   * Find orphan entities (entities with only one component)
    */
   async findOrphanEntities(): Promise<EntityId[]> {
     try {
@@ -1120,146 +1008,91 @@ export class DubheECSWorld {
 
       return orphanEntities;
     } catch (error) {
-      console.error(`Failed to find orphan entities: ${formatError(error)}`);
       return [];
     }
   }
 
-  // ============ 资源管理 ============
+  // ============ Resource Management ============
 
   /**
-   * 取消所有订阅
+   * Unsubscribe all subscriptions
    */
   unsubscribeAll(): void {
     this.subscriptionSystem.unsubscribeAll();
   }
 
   /**
-   * 清理所有缓存
+   * Clear all caches
    */
   clearCache(): void {
     this.querySystem.dispose();
   }
 
   /**
-   * 清理资源
+   * Dispose resources
    */
   dispose(): void {
     this.querySystem.dispose();
     this.subscriptionSystem.dispose();
   }
 
-  // ============ 获取底层客户端 ============
+  // ============ Get Underlying Clients ============
 
   /**
-   * 获取GraphQL客户端（用于高级操作）
+   * Get GraphQL client (for advanced operations)
    */
   getGraphQLClient(): DubheGraphqlClient {
     return this.graphqlClient;
   }
 
   /**
-   * 获取查询系统（用于高级查询操作）
+   * Get query system (for advanced query operations)
    */
   getQuerySystem(): ECSQuery {
     return this.querySystem;
   }
 
   /**
-   * 获取订阅系统（用于高级订阅操作）
+   * Get subscription system (for advanced subscription operations)
    */
   getSubscriptionSystem(): ECSSubscription {
     return this.subscriptionSystem;
   }
 
   /**
-   * 获取ECS世界配置
+   * Get ECS world configuration
    */
   getConfig(): ECSWorldConfig {
     return { ...this.config };
   }
 
   /**
-   * Get dubhe configuration info
+   * Get dubhe metadata info (JSON format)
    */
-  getDubheConfig(): DubheConfig | null {
-    return this.config.dubheConfig || null;
+  getDubheMetadata(): DubheMetadata {
+    return this.dubheMetadata;
   }
 
-  // // ============ Global Config Queries ============
-
-  // /**
-  //  * Query global config table (table without primary key)
-  //  */
-  // async getGlobalConfig<T>(configType: string): Promise<T | null> {
-  //   try {
-  //     console.log(`🌐 Querying global config: ${configType}`);
-  //     const result = await this.graphqlClient.getAllTables(configType, {
-  //       first: 1,
-  //     });
-  //     const record = result.edges[0]?.node;
-
-  //     if (record) {
-  //       console.log(`✅ Found ${configType} config`);
-  //       return record as T;
-  //     } else {
-  //       console.log(`⚠️ ${configType} config not found`);
-  //       return null;
-  //     }
-  //   } catch (error) {
-  //     console.error(
-  //       `❌ Failed to query ${configType} config:`,
-  //       formatError(error)
-  //     );
-  //     return null;
-  //   }
-  // }
-
-  // /**
-  //  * Get list of all global config tables
-  //  */
-  // getGlobalConfigTables(): string[] {
-  //   if (!this.config.dubheConfig?.components) {
-  //     return [];
-  //   }
-
-  //   const globalTables: string[] = [];
-
-  //   Object.entries(this.config.dubheConfig.components).forEach(
-  //     ([componentName, component]) => {
-  //       // Check if it's a config table without primary key
-  //       if (
-  //         typeof component === 'object' &&
-  //         component !== null &&
-  //         'keys' in component
-  //       ) {
-  //         if (Array.isArray(component.keys) && component.keys.length === 0) {
-  //           globalTables.push(componentName);
-  //         }
-  //       }
-  //     }
-  //   );
-
-  //   return globalTables;
-  // }
-
-  // ============ Resource Queries (for composite primary keys) ============
+  // ============ Resource Queries ============
 
   /**
-   * Query resource table with composite primary keys
+   * Query resource by primary keys
    */
   async getResource<T>(
     resourceType: string,
-    keyValues: Record<string, any>,
+    keyValues?: Record<string, any>,
     options?: QueryOptions
   ): Promise<T | null> {
     try {
-      console.log(
-        `🎯 Querying resource: ${resourceType} with keys:`,
-        keyValues
-      );
+      // Verify if it's a known resource type
+      const resourceMetadata =
+        this.resourceDiscoverer.getResourceMetadata(resourceType);
+      if (!resourceMetadata) {
+        return null;
+      }
+      keyValues = keyValues || {};
 
-      // Build where condition for composite keys
+      // Build where condition for keys
       const whereConditions: Record<string, any> = {};
       for (const [key, value] of Object.entries(keyValues)) {
         whereConditions[key] = { equalTo: value };
@@ -1268,29 +1101,19 @@ export class DubheECSWorld {
       const result = await this.graphqlClient.getAllTables(resourceType, {
         first: 1,
         filter: whereConditions,
+        fields: options?.fields || resourceMetadata.fields.map((f) => f.name),
         ...options,
       });
 
       const record = result.edges[0]?.node;
-
-      if (record) {
-        console.log(`✅ Found ${resourceType} resource`);
-        return record as T;
-      } else {
-        console.log(`⚠️ ${resourceType} resource not found with given keys`);
-        return null;
-      }
+      return record ? (record as T) : null;
     } catch (error) {
-      console.error(
-        `❌ Failed to query ${resourceType} resource:`,
-        formatError(error)
-      );
       return null;
     }
   }
 
   /**
-   * Query multiple resources with composite primary keys
+   * Query multiple resources
    */
   async getResources<T>(
     resourceType: string,
@@ -1298,7 +1121,12 @@ export class DubheECSWorld {
     options?: QueryOptions
   ): Promise<T[]> {
     try {
-      console.log(`🎯 Querying multiple resources: ${resourceType}`);
+      // Verify if it's a known resource type
+      const resourceMetadata =
+        this.resourceDiscoverer.getResourceMetadata(resourceType);
+      if (!resourceMetadata) {
+        return [];
+      }
 
       // Build where condition
       const whereConditions: Record<string, any> = {};
@@ -1317,164 +1145,82 @@ export class DubheECSWorld {
       const result = await this.graphqlClient.getAllTables(resourceType, {
         filter:
           Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
+        fields: options?.fields || resourceMetadata.fields.map((f) => f.name),
         ...options,
       });
 
       const records = result.edges.map((edge) => edge.node as T);
-      console.log(`✅ Found ${records.length} ${resourceType} resources`);
       return records;
     } catch (error) {
-      console.error(
-        `❌ Failed to query ${resourceType} resources:`,
-        formatError(error)
+      return [];
+    }
+  }
+
+  /**
+   * Get all resources of a specific type
+   */
+  async getAllResources<T>(
+    resourceType: string,
+    options?: QueryOptions
+  ): Promise<T[]> {
+    return this.getResources<T>(resourceType, undefined, options);
+  }
+
+  /**
+   * Check if a resource exists
+   */
+  async hasResource(
+    resourceType: string,
+    keyValues: Record<string, any>
+  ): Promise<boolean> {
+    const resource = await this.getResource(resourceType, keyValues);
+    return resource !== null;
+  }
+
+  /**
+   * Get resource count
+   */
+  async getResourceCount(resourceType: string): Promise<number> {
+    try {
+      const result = await this.graphqlClient.getAllTables(resourceType, {
+        first: 1, // Only need count, not actual data
+      });
+      return result.totalCount || 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  /**
+   * Subscribe to resource changes
+   */
+  subscribeToResourceChanges<T>(
+    resourceType: string,
+    options?: SubscriptionOptions & {
+      fields?: string[];
+      initialEvent?: boolean;
+      filter?: Record<string, any>;
+    }
+  ) {
+    // Verify if it's a known resource type
+    const resourceMetadata =
+      this.resourceDiscoverer.getResourceMetadata(resourceType);
+    if (!resourceMetadata) {
+      throw new Error(
+        `Unknown resource type: ${resourceType}. Available resources: [${this.getAvailableResources().join(', ')}]`
       );
-      return [];
-    }
-  }
-
-  /**
-   * Get list of all resource tables (tables with composite primary keys)
-   */
-  getResourceTables(): string[] {
-    if (!this.config.dubheConfig?.components) {
-      return [];
     }
 
-    const resourceTables: string[] = [];
+    const subscriptionFields =
+      options?.fields || resourceMetadata.fields.map((f) => f.name);
 
-    Object.entries(this.config.dubheConfig.components).forEach(
-      ([componentName, component]) => {
-        // Check if it's a resource table with composite primary keys
-        if (
-          typeof component === 'object' &&
-          component !== null &&
-          'keys' in component
-        ) {
-          if (Array.isArray(component.keys) && component.keys.length > 1) {
-            resourceTables.push(componentName);
-          }
-        }
-      }
-    );
-
-    return resourceTables;
-  }
-
-  /**
-   * Get resource table metadata (including primary key information)
-   */
-  async getResourceMetadata(resourceType: string): Promise<{
-    tableName: string;
-    primaryKeys: string[];
-    fields: ComponentField[];
-  } | null> {
-    if (!this.config.dubheConfig?.components) {
-      return null;
-    }
-
-    const component = this.config.dubheConfig.components[resourceType];
-    if (!component || typeof component !== 'object' || component === null) {
-      return null;
-    }
-
-    if (
-      !('keys' in component) ||
-      !Array.isArray(component.keys) ||
-      component.keys.length <= 1
-    ) {
-      return null;
-    }
-
-    // Build field information similar to component discovery
-    const fields: ComponentField[] = [];
-    const primaryKeys: string[] = [];
-
-    if ('fields' in component && component.fields) {
-      for (const [fieldName, fieldType] of Object.entries(component.fields)) {
-        const camelFieldName = this.snakeToCamel(fieldName);
-        const typeStr = String(fieldType);
-        const isCustomKey = component.keys!.includes(fieldName);
-
-        fields.push({
-          name: camelFieldName,
-          type: this.dubheTypeToGraphQLType(typeStr),
-          nullable: !isCustomKey,
-          isPrimaryKey: isCustomKey,
-          isEnum: this.isEnumType(typeStr),
-        });
-
-        if (isCustomKey) {
-          primaryKeys.push(camelFieldName);
-        }
-      }
-    }
-
-    // Add system fields
-    fields.push(
+    return this.graphqlClient.subscribeToFilteredTableChanges(
+      resourceType,
+      options?.filter,
       {
-        name: 'createdAt',
-        type: 'String',
-        nullable: false,
-        isPrimaryKey: false,
-        isEnum: false,
-      },
-      {
-        name: 'updatedAt',
-        type: 'String',
-        nullable: false,
-        isPrimaryKey: false,
-        isEnum: false,
+        ...options,
+        fields: subscriptionFields,
       }
-    );
-
-    return {
-      tableName: resourceType,
-      primaryKeys,
-      fields,
-    };
-  }
-
-  // ============ Private Helper Methods ============
-
-  private snakeToCamel(str: string): string {
-    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-  }
-
-  private dubheTypeToGraphQLType(dubheType: string): string {
-    // 处理向量类型 vector<T>
-    if (dubheType.startsWith('vector<') && dubheType.endsWith('>')) {
-      return 'String'; // GraphQL通常将复杂类型序列化为JSON字符串
-    }
-
-    switch (dubheType) {
-      case 'u8':
-      case 'u16':
-      case 'u32':
-      case 'u64':
-      case 'u128':
-      case 'i8':
-      case 'i16':
-      case 'i32':
-      case 'i64':
-      case 'i128':
-        return 'Int';
-      case 'address':
-      case 'string':
-        return 'String';
-      case 'bool':
-        return 'Boolean';
-      case 'enum':
-        return 'String';
-      default:
-        // If not a known basic type, might be enum or custom type
-        // For unknown types, default to String
-        return 'String';
-    }
-  }
-
-  private isEnumType(typeStr: string): boolean {
-    return !!(
-      this.config.dubheConfig?.enums && this.config.dubheConfig.enums[typeStr]
     );
   }
 }

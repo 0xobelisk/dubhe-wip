@@ -451,13 +451,13 @@ export class DubheGraphqlClient {
       }
     `;
 
-    console.log(`
-      query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
-        ${singularTableName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
-          ${this.convertTableFields(tableName, fields)}
-        }
-      }
-    `);
+    // console.log(`
+    //   query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
+    //     ${singularTableName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
+    //       ${this.convertTableFields(tableName, fields)}
+    //     }
+    //   }
+    // `);
     const result = await this.query(query, condition);
 
     if (result.error) {
