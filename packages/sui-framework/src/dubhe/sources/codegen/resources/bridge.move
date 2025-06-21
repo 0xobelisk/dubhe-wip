@@ -82,7 +82,7 @@
     vector[b"min_amount", b"fee", b"opened"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -169,7 +169,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, chain: vector<u8>) {
+  public(package) fun delete(dapp_hub: &mut DappHub, chain: vector<u8>) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&chain));
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
@@ -184,7 +184,7 @@
     min_amount
   }
 
-  public fun set_min_amount(dapp_hub: &mut DappHub, chain: vector<u8>, min_amount: u256) {
+  public(package) fun set_min_amount(dapp_hub: &mut DappHub, chain: vector<u8>, min_amount: u256) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&chain));
     let value = to_bytes(&min_amount);
@@ -200,7 +200,7 @@
     fee
   }
 
-  public fun set_fee(dapp_hub: &mut DappHub, chain: vector<u8>, fee: u256) {
+  public(package) fun set_fee(dapp_hub: &mut DappHub, chain: vector<u8>, fee: u256) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&chain));
     let value = to_bytes(&fee);
@@ -216,7 +216,7 @@
     opened
   }
 
-  public fun set_opened(dapp_hub: &mut DappHub, chain: vector<u8>, opened: bool) {
+  public(package) fun set_opened(dapp_hub: &mut DappHub, chain: vector<u8>, opened: bool) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&chain));
     let value = to_bytes(&opened);
@@ -234,7 +234,7 @@
     (min_amount, fee, opened)
   }
 
-  public fun set(dapp_hub: &mut DappHub, chain: vector<u8>, min_amount: u256, fee: u256, opened: bool) {
+  public(package) fun set(dapp_hub: &mut DappHub, chain: vector<u8>, min_amount: u256, fee: u256, opened: bool) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&chain));
     let value_tuple = encode(min_amount, fee, opened);
@@ -248,7 +248,7 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, chain: vector<u8>, bridge: Bridge) {
+  public(package) fun set_struct(dapp_hub: &mut DappHub, chain: vector<u8>, bridge: Bridge) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&chain));
     let value_tuple = encode_struct(bridge);

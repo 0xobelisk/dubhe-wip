@@ -204,7 +204,7 @@
     vector[b"name", b"symbol", b"description", b"decimals", b"icon_url", b"owner", b"supply", b"accounts", b"status", b"is_mintable", b"is_burnable", b"is_freezable", b"asset_type"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -471,7 +471,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 12)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, asset_id: address) {
+  public(package) fun delete(dapp_hub: &mut DappHub, asset_id: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
@@ -486,7 +486,7 @@
     name
   }
 
-  public fun set_name(dapp_hub: &mut DappHub, asset_id: address, name: vector<u8>) {
+  public(package) fun set_name(dapp_hub: &mut DappHub, asset_id: address, name: vector<u8>) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&name);
@@ -502,7 +502,7 @@
     symbol
   }
 
-  public fun set_symbol(dapp_hub: &mut DappHub, asset_id: address, symbol: vector<u8>) {
+  public(package) fun set_symbol(dapp_hub: &mut DappHub, asset_id: address, symbol: vector<u8>) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&symbol);
@@ -518,7 +518,7 @@
     description
   }
 
-  public fun set_description(dapp_hub: &mut DappHub, asset_id: address, description: vector<u8>) {
+  public(package) fun set_description(dapp_hub: &mut DappHub, asset_id: address, description: vector<u8>) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&description);
@@ -534,7 +534,7 @@
     decimals
   }
 
-  public fun set_decimals(dapp_hub: &mut DappHub, asset_id: address, decimals: u8) {
+  public(package) fun set_decimals(dapp_hub: &mut DappHub, asset_id: address, decimals: u8) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&decimals);
@@ -550,7 +550,7 @@
     icon_url
   }
 
-  public fun set_icon_url(dapp_hub: &mut DappHub, asset_id: address, icon_url: vector<u8>) {
+  public(package) fun set_icon_url(dapp_hub: &mut DappHub, asset_id: address, icon_url: vector<u8>) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&icon_url);
@@ -566,7 +566,7 @@
     owner
   }
 
-  public fun set_owner(dapp_hub: &mut DappHub, asset_id: address, owner: address) {
+  public(package) fun set_owner(dapp_hub: &mut DappHub, asset_id: address, owner: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&owner);
@@ -582,7 +582,7 @@
     supply
   }
 
-  public fun set_supply(dapp_hub: &mut DappHub, asset_id: address, supply: u256) {
+  public(package) fun set_supply(dapp_hub: &mut DappHub, asset_id: address, supply: u256) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&supply);
@@ -598,7 +598,7 @@
     accounts
   }
 
-  public fun set_accounts(dapp_hub: &mut DappHub, asset_id: address, accounts: u256) {
+  public(package) fun set_accounts(dapp_hub: &mut DappHub, asset_id: address, accounts: u256) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&accounts);
@@ -614,7 +614,7 @@
     status
   }
 
-  public fun set_status(dapp_hub: &mut DappHub, asset_id: address, status: AssetStatus) {
+  public(package) fun set_status(dapp_hub: &mut DappHub, asset_id: address, status: AssetStatus) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = dubhe::asset_status::encode(status);
@@ -630,7 +630,7 @@
     is_mintable
   }
 
-  public fun set_is_mintable(dapp_hub: &mut DappHub, asset_id: address, is_mintable: bool) {
+  public(package) fun set_is_mintable(dapp_hub: &mut DappHub, asset_id: address, is_mintable: bool) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&is_mintable);
@@ -646,7 +646,7 @@
     is_burnable
   }
 
-  public fun set_is_burnable(dapp_hub: &mut DappHub, asset_id: address, is_burnable: bool) {
+  public(package) fun set_is_burnable(dapp_hub: &mut DappHub, asset_id: address, is_burnable: bool) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&is_burnable);
@@ -662,7 +662,7 @@
     is_freezable
   }
 
-  public fun set_is_freezable(dapp_hub: &mut DappHub, asset_id: address, is_freezable: bool) {
+  public(package) fun set_is_freezable(dapp_hub: &mut DappHub, asset_id: address, is_freezable: bool) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = to_bytes(&is_freezable);
@@ -678,7 +678,7 @@
     asset_type
   }
 
-  public fun set_asset_type(dapp_hub: &mut DappHub, asset_id: address, asset_type: AssetType) {
+  public(package) fun set_asset_type(dapp_hub: &mut DappHub, asset_id: address, asset_type: AssetType) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value = dubhe::asset_type::encode(asset_type);
@@ -709,7 +709,7 @@
     (name, symbol, description, decimals, icon_url, owner, supply, accounts, status, is_mintable, is_burnable, is_freezable, asset_type)
   }
 
-  public fun set(
+  public(package) fun set(
     dapp_hub: &mut DappHub,
     asset_id: address,
     name: vector<u8>,
@@ -739,7 +739,7 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, asset_id: address, asset_metadata: AssetMetadata) {
+  public(package) fun set_struct(dapp_hub: &mut DappHub, asset_id: address, asset_metadata: AssetMetadata) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     let value_tuple = encode_struct(asset_metadata);

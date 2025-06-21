@@ -13,7 +13,8 @@ module dubhe::dapp_service {
     use dubhe::dapp_state::TableMetadata;
     use dubhe::dapp_state;
     use dubhe::dapp_hub::DappHub;
-
+    use sui::clock::Clock;
+    
     /// Error codes
     const EInvalidTableId: u64 = 1;
     const EInvalidKey: u64 = 2;
@@ -202,6 +203,18 @@ module dubhe::dapp_service {
         field_index: u8
     ) {
         assert!(!has_field<DappKey>(dapp_hub, table_id, key_tuple, field_index), EInvalidFieldIndex);
+    }
+
+    public fun create_dapp<DappKey: copy + drop>(
+        dapp_hub: &mut DappHub,
+        dapp_key: DappKey,
+        name: vector<u8>,
+        description: vector<u8>,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let dapp_state = dapp_state::new(dapp_key, name, description, clock, ctx);
+        dapp_hub.add_dapp(dapp_key, dapp_state);
     }
 
     // public fun upgrade<DappKey: copy + drop>(

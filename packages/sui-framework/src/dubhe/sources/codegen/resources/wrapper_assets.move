@@ -44,7 +44,7 @@
     vector[b"asset_id"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -77,7 +77,7 @@
     dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, coin_type: vector<u8>) {
+  public(package) fun delete(dapp_hub: &mut DappHub, coin_type: vector<u8>) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&coin_type));
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
@@ -92,7 +92,7 @@
     value
   }
 
-  public fun set(dapp_hub: &mut DappHub, coin_type: vector<u8>, value: address) {
+  public(package) fun set(dapp_hub: &mut DappHub, coin_type: vector<u8>, value: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&coin_type));
     let value_tuple = encode(value);

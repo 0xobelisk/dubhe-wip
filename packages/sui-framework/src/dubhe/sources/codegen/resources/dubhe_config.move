@@ -92,7 +92,7 @@
     vector[b"next_asset_id", b"swap_fee", b"fee_to", b"max_swap_path_len"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -182,7 +182,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 3)
   }
 
-  public fun delete(dapp_hub: &mut DappHub) {
+  public(package) fun delete(dapp_hub: &mut DappHub) {
     let key_tuple = vector::empty();
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
@@ -195,7 +195,7 @@
     next_asset_id
   }
 
-  public fun set_next_asset_id(dapp_hub: &mut DappHub, next_asset_id: u256) {
+  public(package) fun set_next_asset_id(dapp_hub: &mut DappHub, next_asset_id: u256) {
     let key_tuple = vector::empty();
     let value = to_bytes(&next_asset_id);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
@@ -209,7 +209,7 @@
     swap_fee
   }
 
-  public fun set_swap_fee(dapp_hub: &mut DappHub, swap_fee: u256) {
+  public(package) fun set_swap_fee(dapp_hub: &mut DappHub, swap_fee: u256) {
     let key_tuple = vector::empty();
     let value = to_bytes(&swap_fee);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
@@ -223,7 +223,7 @@
     fee_to
   }
 
-  public fun set_fee_to(dapp_hub: &mut DappHub, fee_to: address) {
+  public(package) fun set_fee_to(dapp_hub: &mut DappHub, fee_to: address) {
     let key_tuple = vector::empty();
     let value = to_bytes(&fee_to);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 2, value);
@@ -237,7 +237,7 @@
     max_swap_path_len
   }
 
-  public fun set_max_swap_path_len(dapp_hub: &mut DappHub, max_swap_path_len: u64) {
+  public(package) fun set_max_swap_path_len(dapp_hub: &mut DappHub, max_swap_path_len: u64) {
     let key_tuple = vector::empty();
     let value = to_bytes(&max_swap_path_len);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 3, value);
@@ -254,7 +254,13 @@
     (next_asset_id, swap_fee, fee_to, max_swap_path_len)
   }
 
-  public fun set(dapp_hub: &mut DappHub, next_asset_id: u256, swap_fee: u256, fee_to: address, max_swap_path_len: u64) {
+  public(package) fun set(
+    dapp_hub: &mut DappHub,
+    next_asset_id: u256,
+    swap_fee: u256,
+    fee_to: address,
+    max_swap_path_len: u64,
+  ) {
     let key_tuple = vector::empty();
     let value_tuple = encode(next_asset_id, swap_fee, fee_to, max_swap_path_len);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
@@ -266,7 +272,7 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, dubhe_config: DubheConfig) {
+  public(package) fun set_struct(dapp_hub: &mut DappHub, dubhe_config: DubheConfig) {
     let key_tuple = vector::empty();
     let value_tuple = encode_struct(dubhe_config);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);

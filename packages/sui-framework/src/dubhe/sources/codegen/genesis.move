@@ -2,13 +2,11 @@
 
   use sui::clock::Clock;
 
-  use dubhe::dapp_system;
+  use dubhe::dapp_service;
 
   use dubhe::dapp_hub::DappHub;
 
   use dubhe::dapp_key;
-
-  use dubhe::dapp_metadata;
 
   use dubhe::dubhe_config;
 
@@ -25,9 +23,8 @@
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
-    dapp_system::create_dapp(dapp_hub, dapp_key, b"dubhe", b"Dubhe Protocol", clock, ctx);
+    dapp_service::create_dapp(dapp_hub, dapp_key, b"dubhe", b"Dubhe Protocol", clock, ctx);
     // Register tables
-    dapp_metadata::register_table(dapp_hub, ctx);
     dubhe_config::register_table(dapp_hub, ctx);
     asset_metadata::register_table(dapp_hub, ctx);
     asset_account::register_table(dapp_hub, ctx);

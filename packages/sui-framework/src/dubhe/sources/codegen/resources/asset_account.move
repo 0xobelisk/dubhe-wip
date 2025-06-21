@@ -76,7 +76,7 @@
     vector[b"balance", b"status"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -154,7 +154,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, asset_id: address, account: address) {
+  public(package) fun delete(dapp_hub: &mut DappHub, asset_id: address, account: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     key_tuple.push_back(to_bytes(&account));
@@ -171,7 +171,7 @@
     balance
   }
 
-  public fun set_balance(dapp_hub: &mut DappHub, asset_id: address, account: address, balance: u256) {
+  public(package) fun set_balance(dapp_hub: &mut DappHub, asset_id: address, account: address, balance: u256) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     key_tuple.push_back(to_bytes(&account));
@@ -189,7 +189,7 @@
     status
   }
 
-  public fun set_status(dapp_hub: &mut DappHub, asset_id: address, account: address, status: AccountStatus) {
+  public(package) fun set_status(dapp_hub: &mut DappHub, asset_id: address, account: address, status: AccountStatus) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     key_tuple.push_back(to_bytes(&account));
@@ -208,7 +208,13 @@
     (balance, status)
   }
 
-  public fun set(dapp_hub: &mut DappHub, asset_id: address, account: address, balance: u256, status: AccountStatus) {
+  public(package) fun set(
+    dapp_hub: &mut DappHub,
+    asset_id: address,
+    account: address,
+    balance: u256,
+    status: AccountStatus,
+  ) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     key_tuple.push_back(to_bytes(&account));
@@ -224,7 +230,12 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, asset_id: address, account: address, asset_account: AssetAccount) {
+  public(package) fun set_struct(
+    dapp_hub: &mut DappHub,
+    asset_id: address,
+    account: address,
+    asset_account: AssetAccount,
+  ) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset_id));
     key_tuple.push_back(to_bytes(&account));
