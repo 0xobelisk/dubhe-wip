@@ -1,7 +1,7 @@
 import { DocumentNode } from '@apollo/client';
 import { DubheConfig } from '@0xobelisk/sui-common';
 
-// DubheMetadata类型定义，用于JSON格式的dubhe配置
+// DubheMetadata type definition for JSON format dubhe configuration
 export type DubheMetadata = {
   components: Array<
     Record<
@@ -24,7 +24,7 @@ export type DubheMetadata = {
   enums: any[];
 };
 
-// 基础分页信息
+// Basic pagination information
 export interface PageInfo {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
@@ -32,7 +32,7 @@ export interface PageInfo {
   endCursor?: string;
 }
 
-// 连接响应通用类型
+// Connection response common type
 export interface Connection<T> {
   edges: Array<{
     cursor: string;
@@ -42,7 +42,7 @@ export interface Connection<T> {
   totalCount?: number;
 }
 
-// 基础查询参数
+// Basic query parameters
 export interface BaseQueryParams {
   first?: number;
   last?: number;
@@ -50,20 +50,20 @@ export interface BaseQueryParams {
   before?: string;
 }
 
-// 排序参数
+// Sort parameters
 export interface OrderBy {
   field: string;
   direction: 'ASC' | 'DESC';
 }
 
-// JSON路径排序参数
+// JSON path sort parameters
 export interface JsonPathOrder {
   path: string;
   direction: 'ASC' | 'DESC';
   type?: 'STRING' | 'INTEGER' | 'FLOAT' | 'BOOLEAN';
 }
 
-// 查询过滤器基础类型
+// Query filter base type
 export interface FilterCondition {
   equalTo?: any;
   notEqualTo?: any;
@@ -78,7 +78,7 @@ export interface FilterCondition {
   isNull?: boolean;
 }
 
-// 字符串过滤器
+// String filter
 export interface StringFilter extends FilterCondition {
   like?: string;
   notLike?: string;
@@ -90,7 +90,7 @@ export interface StringFilter extends FilterCondition {
   notIncludes?: string;
 }
 
-// 数字过滤器
+// Number filter
 export interface NumberFilter extends FilterCondition {
   lessThan?: number;
   lessThanOrEqualTo?: number;
@@ -98,7 +98,7 @@ export interface NumberFilter extends FilterCondition {
   greaterThanOrEqualTo?: number;
 }
 
-// 日期过滤器
+// Date filter
 export interface DateFilter extends FilterCondition {
   lessThan?: string;
   lessThanOrEqualTo?: string;
@@ -106,14 +106,14 @@ export interface DateFilter extends FilterCondition {
   greaterThanOrEqualTo?: string;
 }
 
-// Store表基础类型（现在API中已去掉store前缀）
+// Store table base type (store prefix removed from API)
 export interface StoreTableRow {
   createdAt: string;
   updatedAt: string;
   [key: string]: any;
 }
 
-// 查询构建器类型
+// Query builder type
 export interface QueryBuilder<T> {
   where?: Record<string, any>;
   orderBy?: OrderBy[];
@@ -123,14 +123,14 @@ export interface QueryBuilder<T> {
   before?: string;
 }
 
-// 订阅类型
+// Subscription type
 export interface SubscriptionOptions {
   onData?: (data: any) => void;
   onError?: (error: Error) => void;
   onComplete?: () => void;
 }
 
-// PostGraphile Listen订阅相关类型
+// PostGraphile Listen subscription related types
 export interface ListenPayload<T = any> {
   query: T;
 }
@@ -139,13 +139,13 @@ export interface ListenSubscriptionResult<T = any> {
   listen: ListenPayload<T>;
 }
 
-// 高级订阅选项
+// Advanced subscription options
 export interface AdvancedSubscriptionOptions extends SubscriptionOptions {
-  initialEvent?: boolean; // 是否立即触发初始事件
-  variables?: Record<string, any>; // 订阅变量
+  initialEvent?: boolean; // Whether to trigger initial event immediately
+  variables?: Record<string, any>; // Subscription variables
 }
 
-// Listen订阅配置
+// Listen subscription configuration
 export interface ListenSubscriptionConfig {
   topic: string;
   initialEvent?: boolean;
@@ -155,31 +155,31 @@ export interface ListenSubscriptionConfig {
   fields?: string[];
 }
 
-// 查询操作类型
+// Query operation type
 export type QueryOperation = 'query' | 'subscription';
 
-// 类型化的GraphQL查询
+// Typed GraphQL query
 export interface TypedDocumentNode<TResult = any, TVariables = any>
   extends DocumentNode {
   __resultType?: TResult;
   __variablesType?: TVariables;
 }
 
-// 重试配置选项
+// Retry configuration options
 export interface RetryOptions {
-  max?: number; // 最大重试次数，默认为3
+  max?: number; // Maximum retry count, defaults to 3
   delay?: {
-    initial?: number; // 初始延迟时间（毫秒），默认300ms
-    max?: number; // 最大延迟时间（毫秒），默认30000ms
-    jitter?: boolean; // 是否添加随机抖动，默认true
+    initial?: number; // Initial delay time (milliseconds), defaults to 300ms
+    max?: number; // Maximum delay time (milliseconds), defaults to 30000ms
+    jitter?: boolean; // Whether to add random jitter, defaults to true
   };
   attempts?: {
-    max?: number; // 最大尝试次数（包括初始请求），默认5
-    retryIf?: (error: any, _operation: any) => boolean; // 自定义重试条件
+    max?: number; // Maximum attempt count (including initial request), defaults to 5
+    retryIf?: (error: any, _operation: any) => boolean; // Custom retry condition
   };
 }
 
-// 查询缓存策略
+// Query cache policy
 export type CachePolicy =
   | 'cache-first'
   | 'network-only'
@@ -187,14 +187,14 @@ export type CachePolicy =
   | 'no-cache'
   | 'standby';
 
-// 分页缓存策略
+// Pagination cache strategy
 export type PaginationCacheStrategy =
-  | 'none' // 不启用分页缓存合并（Apollo默认行为）
-  | 'filter-only' // 只根据过滤条件缓存
-  | 'filter-orderby' // 根据过滤条件和排序缓存
-  | 'table-level'; // 表级别缓存
+  | 'none' // Disable pagination cache merging (Apollo default behavior)
+  | 'filter-only' // Cache only based on filter conditions
+  | 'filter-orderby' // Cache based on filter conditions and sorting
+  | 'table-level'; // Table-level caching
 
-// 查询选项
+// Query options
 export interface QueryOptions {
   cachePolicy?: CachePolicy;
   pollInterval?: number;

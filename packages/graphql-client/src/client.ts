@@ -43,7 +43,7 @@ import {
   DubheMetadata,
 } from './types';
 
-// 转换缓存策略类型
+// Convert cache policy type
 function mapCachePolicyToFetchPolicy(cachePolicy: CachePolicy): FetchPolicy {
   switch (cachePolicy) {
     case 'cache-first':
@@ -68,41 +68,41 @@ export class DubheGraphqlClient {
   private parsedTables: Map<string, ParsedTableInfo> = new Map();
 
   constructor(config: DubheClientConfig) {
-    // 保存dubhe元数据
+    // Save dubhe metadata
     this.dubheMetadata = config.dubheMetadata;
 
-    // 如果提供了dubhe元数据，解析表信息
+    // If dubhe metadata is provided, parse table information
     if (this.dubheMetadata) {
       this.parseTableInfoFromConfig();
     }
 
-    // 创建HTTP Link
+    // Create HTTP Link
     const httpLink = createHttpLink({
       uri: config.endpoint,
       headers: config.headers,
       fetch: (input, init) => fetch(input, { ...config.fetchOptions, ...init }),
     });
 
-    // 创建重试链接
+    // Create retry link
     const retryLink = new RetryLink({
       delay: {
-        // 初始重试延迟时间（毫秒）
+        // Initial retry delay time (milliseconds)
         initial: config.retryOptions?.delay?.initial || 300,
-        // 最大重试延迟时间（毫秒）
+        // Maximum retry delay time (milliseconds)
         max: config.retryOptions?.delay?.max || 5000,
-        // 是否添加随机抖动以避免雷击效应，默认开启
+        // Whether to add random jitter to avoid thundering herd, enabled by default
         jitter: config.retryOptions?.delay?.jitter !== false,
       },
       attempts: {
-        // 最大尝试次数（包括初始请求）
+        // Maximum number of attempts (including initial request)
         max: config.retryOptions?.attempts?.max || 5,
-        // 自定义重试条件函数
+        // Custom retry condition function
         retryIf:
           config.retryOptions?.attempts?.retryIf ||
           ((error, _operation) => {
-            // 默认重试策略：
-            // 1. 网络连接错误
-            // 2. 服务器错误但没有GraphQL错误（表示服务暂时不可用）
+            // Default retry strategy:
+            // 1. Network connection errors
+            // 2. Server errors but no GraphQL errors (indicates service temporarily unavailable)
             return Boolean(
               error &&
                 (error.networkError ||
@@ -112,36 +112,32 @@ export class DubheGraphqlClient {
       },
     });
 
-    // 组合HTTP链接和重试链接
+    // Combine HTTP link and retry link
     const httpWithRetryLink = from([retryLink, httpLink]);
 
     let link: ApolloLink = httpWithRetryLink;
 
-    // 如果提供了订阅端点，创建WebSocket Link
+    // If subscription endpoint is provided, create WebSocket Link
     if (config.subscriptionEndpoint) {
-      // 在Node.js环境中自动导入ws模块
+      // Automatically import ws module in Node.js environment
       let webSocketImpl;
       try {
-        // 检查是否在Node.js环境中
+        // Check if in Node.js environment
         if (typeof window === 'undefined' && typeof global !== 'undefined') {
-          // Node.js环境，需要导入ws
+          // Node.js environment, need to import ws
           const wsModule = require('ws');
           webSocketImpl = wsModule.default || wsModule;
-          console.log('✅ 成功导入 ws 模块用于 WebSocket 支持');
 
-          // 在Node.js环境中设置全局WebSocket，避免apollo client内部错误
+          // Set global WebSocket in Node.js environment to avoid apollo client internal errors
           if (typeof (global as any).WebSocket === 'undefined') {
             (global as any).WebSocket = webSocketImpl;
           }
         } else {
-          // 浏览器环境，使用原生WebSocket
+          // Browser environment, use native WebSocket
           webSocketImpl = WebSocket;
         }
       } catch (error) {
-        console.warn(
-          '⚠️ 警告：无法导入ws模块，WebSocket功能可能不可用:',
-          error
-        );
+        // Ignore ws import errors
       }
 
       const clientOptions: any = {
@@ -151,7 +147,7 @@ export class DubheGraphqlClient {
         },
       };
 
-      // 只有在Node.js环境且成功导入ws时才添加webSocketImpl
+      // Only add webSocketImpl if in Node.js environment and ws was successfully imported
       if (webSocketImpl && typeof window === 'undefined') {
         clientOptions.webSocketImpl = webSocketImpl;
       }
@@ -160,7 +156,7 @@ export class DubheGraphqlClient {
 
       const wsLink = new GraphQLWsLink(this.subscriptionClient);
 
-      // 使用split来决定使用哪个link
+      // Use split to decide which link to use
       link = split(
         ({ query }) => {
           const definition = getMainDefinition(query);
@@ -174,7 +170,7 @@ export class DubheGraphqlClient {
       );
     }
 
-    // 创建Apollo Client实例
+    // Create Apollo Client instance
     this.apolloClient = new ApolloClient({
       link,
       cache:
@@ -182,13 +178,13 @@ export class DubheGraphqlClient {
         config.cacheConfig.paginatedTables.length > 0
           ? new InMemoryCache({
               typePolicies: {
-                // 为Connection类型配置缓存策略
+                // Configure cache strategy for Connection type
                 Query: {
                   fields: this.buildCacheFields(config.cacheConfig),
                 },
               },
             })
-          : new InMemoryCache(), // 默认使用简单缓存
+          : new InMemoryCache(), // Use simple cache by default
       defaultOptions: {
         watchQuery: {
           errorPolicy: 'all',
@@ -202,7 +198,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 执行GraphQL查询
+   * Execute GraphQL query
    */
   async query<
     TData,
@@ -243,7 +239,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 执行GraphQL订阅
+   * Execute GraphQL subscription
    */
   subscribe<TData, TVariables extends OperationVariables = OperationVariables>(
     subscription: TypedDocumentNode<TData, TVariables>,
@@ -286,25 +282,25 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 查询所有表数据 - 已适配去掉store前缀的API
+   * Query all table data - Adapted to API without store prefix
    *
-   * OrderBy字段名支持：
+   * OrderBy field name support:
    * - camelCase: { field: 'updatedAt', direction: 'DESC' } → UPDATED_AT_DESC
    * - snake_case: { field: 'updated_at', direction: 'DESC' } → UPDATED_AT_DESC
    *
-   * 使用示例：
+   * Usage examples:
    * ```ts
-   * // 使用 camelCase 字段名
+   * // Using camelCase field names
    * const result = await client.getAllTables('account', {
    *   orderBy: [{ field: 'updatedAt', direction: 'DESC' }]
    * });
    *
-   * // 使用 snake_case 字段名
+   * // Using snake_case field names
    * const result = await client.getAllTables('account', {
    *   orderBy: [{ field: 'updated_at', direction: 'DESC' }]
    * });
    *
-   * // 混合使用
+   * // Mixed usage
    * const result = await client.getAllTables('account', {
    *   orderBy: [
    *     { field: 'updatedAt', direction: 'DESC' },
@@ -318,16 +314,16 @@ export class DubheGraphqlClient {
     params?: BaseQueryParams & {
       filter?: Record<string, any>;
       orderBy?: OrderBy[];
-      fields?: string[]; // 允许用户指定需要查询的字段，如果不指定则自动从dubhe config解析
+      fields?: string[]; // Allow users to specify fields to query, auto-parse from dubhe config if not specified
     }
   ): Promise<Connection<T>> {
-    // 确保使用复数形式的表名
+    // Ensure using plural form of table name
     const pluralTableName = this.getPluralTableName(tableName);
 
-    // 转换OrderBy为枚举值
+    // Convert OrderBy to enum values
     const orderByEnums = convertOrderByToEnum(params?.orderBy);
 
-    // 动态构建查询
+    // Dynamically build query
     const query = gql`
       query GetAllTables(
         $first: Int
@@ -362,43 +358,7 @@ export class DubheGraphqlClient {
       }
     `;
 
-    console.log(
-      'query:',
-      `
-      query GetAllTables(
-        $first: Int
-        $last: Int
-        $after: Cursor
-        $before: Cursor
-        $filter: ${this.getFilterTypeName(tableName)}
-        $orderBy: [${this.getOrderByTypeName(tableName)}!]
-      ) {
-        ${pluralTableName}(
-          first: $first
-          last: $last
-          after: $after
-          before: $before
-          filter: $filter
-          orderBy: $orderBy
-        ) {
-          totalCount
-          pageInfo {
-            hasNextPage
-            hasPreviousPage
-            startCursor
-            endCursor
-          }
-          edges {
-            cursor
-            node {
-              ${this.convertTableFields(tableName, params?.fields)}
-            }
-          }
-        }
-      }
-    `
-    );
-    // 构建查询参数，使用枚举值
+    // Build query parameters using enum values
     const queryParams = {
       first: params?.first,
       last: params?.last,
@@ -407,9 +367,6 @@ export class DubheGraphqlClient {
       filter: params?.filter,
       orderBy: orderByEnums,
     };
-
-    // // 添加调试日志
-    console.log('queryParams:', JSON.stringify(queryParams, null, 2));
 
     // const result = await this.query(query, queryParams, {
     //   cachePolicy: 'no-cache',
@@ -430,17 +387,17 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 根据条件获取单个表记录 - 已适配去掉store前缀的API
+   * Get single table record by condition - Adapted to API without store prefix
    */
   async getTableByCondition<T extends StoreTableRow>(
     tableName: string,
     condition: Record<string, any>,
-    fields?: string[] // 允许用户指定需要查询的字段
+    fields?: string[] // Allow users to specify fields to query
   ): Promise<T | null> {
-    // 构建查询字段名，例如：accountByAssetIdAndAccount
+    // Build query field name, e.g.: accountByAssetIdAndAccount
     const conditionKeys = Object.keys(condition);
 
-    // 使用单数形式的表名进行单个记录查询
+    // Use singular form of table name for single record query
     const singularTableName = this.getSingularTableName(tableName);
 
     const query = gql`
@@ -451,13 +408,6 @@ export class DubheGraphqlClient {
       }
     `;
 
-    // console.log(`
-    //   query GetTableByCondition(${conditionKeys.map((key, index) => `$${key}: String!`).join(', ')}) {
-    //     ${singularTableName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
-    //       ${this.convertTableFields(tableName, fields)}
-    //     }
-    //   }
-    // `);
     const result = await this.query(query, condition);
 
     if (result.error) {
@@ -468,24 +418,24 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 订阅表数据变更 - 使用PostGraphile的listen订阅功能
+   * Subscribe to table data changes - Using PostGraphile's listen subscription feature
    */
   subscribeToTableChanges<T extends StoreTableRow>(
     tableName: string,
     options?: SubscriptionOptions & {
-      fields?: string[]; // 允许用户指定需要订阅的字段
-      initialEvent?: boolean; // 是否立即触发初始事件
-      first?: number; // 限制返回的记录数
-      topicPrefix?: string; // 自定义topic前缀，默认使用表名
+      fields?: string[]; // Allow users to specify fields to subscribe to
+      initialEvent?: boolean; // Whether to trigger initial event immediately
+      first?: number; // Limit the number of returned records
+      topicPrefix?: string; // Custom topic prefix, defaults to table name
     }
   ): Observable<SubscriptionResult<{ listen: { query: any } }>> {
-    // PostGraphile会自动为所有topic添加 'postgraphile:' 前缀
-    // 所以这里我们使用更简洁的topic命名
+    // PostGraphile automatically adds 'postgraphile:' prefix to all topics
+    // So here we use more concise topic naming
     const topic = options?.topicPrefix
       ? `${options.topicPrefix}${tableName}`
       : `store_${this.getSingularTableName(tableName)}`;
 
-    const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
+    const pluralTableName = this.getPluralTableName(tableName); // Ensure using plural form
     const fields = this.convertTableFields(tableName, options?.fields);
 
     const subscription = gql`
@@ -506,24 +456,6 @@ export class DubheGraphqlClient {
         }
       }
     `;
-    console.log(`
-      subscription ListenToTableChanges($topic: String!, $initialEvent: Boolean) {
-        listen(topic: $topic, initialEvent: $initialEvent) {
-          query {
-            ${pluralTableName}(first: ${options?.first || 10}, orderBy: UPDATED_AT_DESC) {
-              totalCount
-              nodes {
-                ${fields}
-              }
-              pageInfo {
-                hasNextPage
-                endCursor
-              }
-            }
-          }
-        }
-      }
-    `);
 
     return this.subscribe(
       subscription,
@@ -536,7 +468,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 高级listen订阅 - 支持自定义查询
+   * Advanced listen subscription - Support custom queries
    */
   subscribeWithListen<T = any>(
     topic: string,
@@ -568,7 +500,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 订阅特定条件的数据变更
+   * Subscribe to data changes with specific conditions
    */
   subscribeToFilteredTableChanges<T extends StoreTableRow>(
     tableName: string,
@@ -578,15 +510,15 @@ export class DubheGraphqlClient {
       initialEvent?: boolean;
       orderBy?: OrderBy[];
       first?: number;
-      topicPrefix?: string; // 自定义topic前缀
+      topicPrefix?: string; // Custom topic prefix
     }
   ): Observable<SubscriptionResult<{ listen: { query: any } }>> {
-    // 改进topic命名，支持自定义前缀
+    // Improved topic naming, support custom prefix
     const topic = options?.topicPrefix
       ? `${options.topicPrefix}${tableName}`
       : `store_${this.getSingularTableName(tableName)}`;
 
-    const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
+    const pluralTableName = this.getPluralTableName(tableName); // Ensure using plural form
     const fields = this.convertTableFields(tableName, options?.fields);
     const orderByEnum = convertOrderByToEnum(options?.orderBy);
     const first = options?.first || 10;
@@ -634,7 +566,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 订阅多个表的数据变更 - 支持表名列表批量订阅
+   * Subscribe to multiple table data changes - Support batch subscription of table name list
    */
   subscribeToMultipleTables<T extends StoreTableRow>(
     tableConfigs: MultiTableSubscriptionConfig[],
@@ -644,7 +576,7 @@ export class DubheGraphqlClient {
       const subscriptions: Array<{ tableName: string; subscription: any }> = [];
       const latestData: MultiTableSubscriptionData = {};
 
-      // 为每个表创建独立的订阅
+      // Create independent subscription for each table
       tableConfigs.forEach(({ tableName, options }) => {
         const subscription = this.subscribeToFilteredTableChanges<T>(
           tableName,
@@ -652,34 +584,34 @@ export class DubheGraphqlClient {
           {
             ...options,
             onData: (data) => {
-              // 更新该表的最新数据
+              // Update latest data for this table
               latestData[tableName] = data;
 
-              // 调用表级别的回调
+              // Call table-level callback
               if (options?.onData) {
                 options.onData(data);
               }
 
-              // 调用全局回调
+              // Call global callback
               if (globalOptions?.onData) {
                 globalOptions.onData(latestData);
               }
 
-              // 发送完整的多表数据
+              // Send complete multi-table data
               observer.next({ ...latestData });
             },
             onError: (error) => {
-              // 调用表级别的错误回调
+              // Call table-level error callback
               if (options?.onError) {
                 options.onError(error);
               }
 
-              // 调用全局错误回调
+              // Call global error callback
               if (globalOptions?.onError) {
                 globalOptions.onError(error);
               }
 
-              // 发送错误
+              // Send error
               observer.error(error);
             },
           }
@@ -688,16 +620,16 @@ export class DubheGraphqlClient {
         subscriptions.push({ tableName, subscription });
       });
 
-      // 启动所有订阅
+      // Start all subscriptions
       const activeSubscriptions = subscriptions.map(({ subscription }) =>
         subscription.subscribe()
       );
 
-      // 返回清理函数
+      // Return cleanup function
       return () => {
         activeSubscriptions.forEach((sub) => sub.unsubscribe());
 
-        // 调用完成回调
+        // Call completion callback
         if (globalOptions?.onComplete) {
           globalOptions.onComplete();
         }
@@ -706,7 +638,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 简化版多表订阅 - 支持表名数组和统一配置
+   * Simplified multi-table subscription - Support table name array and unified configuration
    */
   subscribeToTableList<T extends StoreTableRow>(
     tableNames: string[],
@@ -723,7 +655,7 @@ export class DubheGraphqlClient {
         tableName,
         options: {
           ...options,
-          // 为每个表使用相同的配置
+          // Use same configuration for each table
           fields: options?.fields,
           filter: options?.filter,
           initialEvent: options?.initialEvent,
@@ -737,7 +669,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 构建动态查询 - 已适配去掉store前缀的API
+   * Build dynamic query - Adapted to API without store prefix
    */
   buildQuery(
     tableName: string,
@@ -749,7 +681,7 @@ export class DubheGraphqlClient {
       after?: string;
     }
   ): TypedDocumentNode {
-    const pluralTableName = this.getPluralTableName(tableName); // 确保使用复数形式
+    const pluralTableName = this.getPluralTableName(tableName); // Ensure using plural form
     const fieldSelection = fields.join('\n        ');
 
     return gql`
@@ -782,7 +714,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 批量查询多个表 - 已适配去掉store前缀的API
+   * Batch query multiple tables - Adapted to API without store prefix
    */
   async batchQuery<T extends Record<string, any>>(
     queries: Array<{
@@ -791,7 +723,7 @@ export class DubheGraphqlClient {
       params?: BaseQueryParams & {
         filter?: Record<string, any>;
         orderBy?: OrderBy[];
-        fields?: string[]; // 允许用户指定需要查询的字段
+        fields?: string[]; // Allow users to specify fields to query
       };
     }>
   ): Promise<Record<string, Connection<StoreTableRow>>> {
@@ -812,24 +744,24 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 实时数据流监听 - 已适配去掉store前缀的API
+   * Real-time data stream listener - Adapted to API without store prefix
    */
   createRealTimeDataStream<T extends StoreTableRow>(
     tableName: string,
     initialQuery?: BaseQueryParams & { filter?: Record<string, any> }
   ): Observable<Connection<T>> {
     return new Observable((observer: any) => {
-      // 首先执行初始查询
+      // First execute initial query
       this.getAllTables<T>(tableName, initialQuery)
         .then((initialData) => {
           observer.next(initialData);
         })
         .catch((error) => observer.error(error));
 
-      // 然后订阅实时更新
+      // Then subscribe to real-time updates
       const subscription = this.subscribeToTableChanges<T>(tableName, {
         onData: () => {
-          // 当有数据变更时，重新执行查询
+          // When data changes, re-execute query
           this.getAllTables<T>(tableName, initialQuery)
             .then((updatedData) => {
               observer.next(updatedData);
@@ -843,13 +775,13 @@ export class DubheGraphqlClient {
     });
   }
 
-  // 改进的表名处理方法
+  // Improved table name handling methods
   private getFilterTypeName(tableName: string): string {
-    // 转换为单数形式并应用PascalCase转换
+    // Convert to singular form and apply PascalCase conversion
     const singularName = this.getSingularTableName(tableName);
     const pascalCaseName = this.toPascalCase(singularName);
 
-    // 如果已经以Store开头，就不再添加Store前缀
+    // If already starts with Store, don't add Store prefix again
     if (pascalCaseName.startsWith('Store')) {
       return `${pascalCaseName}Filter`;
     }
@@ -858,11 +790,11 @@ export class DubheGraphqlClient {
   }
 
   private getOrderByTypeName(tableName: string): string {
-    // 转换为复数形式并应用PascalCase转换
+    // Convert to plural form and apply PascalCase conversion
     const pluralName = this.getPluralTableName(tableName);
     const pascalCaseName = this.toPascalCase(pluralName);
 
-    // 如果已经以Store开头，就不再添加Store前缀
+    // If already starts with Store, don't add Store prefix again
     if (pascalCaseName.startsWith('Store')) {
       return `${pascalCaseName}OrderBy`;
     }
@@ -871,36 +803,36 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 将单数表名转换为复数形式（使用pluralize库确保正确性）
+   * Convert singular table name to plural form (using pluralize library for correctness)
    */
   private getPluralTableName(tableName: string): string {
-    // 先转换为camelCase
+    // First convert to camelCase
     const camelCaseName = this.toCamelCase(tableName);
 
-    // 使用pluralize库进行复数化
+    // Use pluralize library for pluralization
     return pluralize.plural(camelCaseName);
   }
 
   /**
-   * 将复数表名转换为单数形式（使用pluralize库确保正确性）
+   * Convert plural table name to singular form (using pluralize library for correctness)
    */
   private getSingularTableName(tableName: string): string {
-    // 先转换为camelCase
+    // First convert to camelCase
     const camelCaseName = this.toCamelCase(tableName);
 
-    // 使用pluralize库进行单数化
+    // Use pluralize library for singularization
     return pluralize.singular(camelCaseName);
   }
 
   /**
-   * 转换snake_case到camelCase
+   * Convert snake_case to camelCase
    */
   private toCamelCase(str: string): string {
     return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
   }
 
   /**
-   * 转换snake_case到PascalCase
+   * Convert snake_case to PascalCase
    */
   private toPascalCase(str: string): string {
     const camelCase = this.toCamelCase(str);
@@ -908,28 +840,28 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 转换camelCase或snake_case到SNAKE_CASE（用于GraphQL枚举值）
-   * 例如：updatedAt -> UPDATED_AT, updated_at -> UPDATED_AT
+   * Convert camelCase or snake_case to SNAKE_CASE (for GraphQL enum values)
+   * Example: updatedAt -> UPDATED_AT, updated_at -> UPDATED_AT
    */
   private toSnakeCase(str: string): string {
-    // 如果已经是snake_case，直接转大写
+    // If already snake_case, convert to uppercase directly
     if (str.includes('_')) {
       return str.toUpperCase();
     }
 
-    // 如果是camelCase，先转换为snake_case再转大写
+    // If camelCase, first convert to snake_case then uppercase
     return str
-      .replace(/([A-Z])/g, '_$1') // 在大写字母前添加下划线
-      .toLowerCase() // 转小写
-      .replace(/^_/, '') // 移除开头的下划线
-      .toUpperCase(); // 转大写
+      .replace(/([A-Z])/g, '_$1') // Add underscore before uppercase letters
+      .toLowerCase() // Convert to lowercase
+      .replace(/^_/, '') // Remove leading underscore
+      .toUpperCase(); // Convert to uppercase
   }
 
   // private buildSingleQueryName(
   //   tableName: string,
   //   conditionKeys: string[]
   // ): string {
-  //   // 使用camelCase转换
+  //   // Use camelCase conversion
   //   const camelCaseTableName = this.toCamelCase(tableName);
   //   const capitalizedKeys = conditionKeys.map(
   //     (key) => key.charAt(0).toUpperCase() + key.slice(1)
@@ -938,28 +870,28 @@ export class DubheGraphqlClient {
   // }
 
   /**
-   * 清除Apollo Client缓存
+   * Clear Apollo Client cache
    */
   async clearCache(): Promise<void> {
     await this.apolloClient.clearStore();
   }
 
   /**
-   * 重置Apollo Client缓存
+   * Reset Apollo Client cache
    */
   async resetCache(): Promise<void> {
     await this.apolloClient.resetStore();
   }
 
   /**
-   * 获取Apollo Client实例（用于高级用法）
+   * Get Apollo Client instance (for advanced usage)
    */
   getApolloClient(): ApolloClient<NormalizedCacheObject> {
     return this.apolloClient;
   }
 
   /**
-   * 关闭客户端连接
+   * Close client connection
    */
   close(): void {
     if (this.subscriptionClient) {
@@ -968,32 +900,32 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 获取 Dubhe 元数据
+   * Get Dubhe metadata
    */
   getDubheMetadata(): DubheMetadata | undefined {
     return this.dubheMetadata;
   }
 
   /**
-   * 构建动态缓存字段配置
+   * Build dynamic cache field configuration
    */
   private buildCacheFields(
     cacheConfig?: DubheClientConfig['cacheConfig']
   ): Record<string, any> {
     const fields: Record<string, any> = {};
 
-    // 如果没有配置，返回空的字段配置
+    // If no configuration, return empty field configuration
     if (!cacheConfig) {
       return fields;
     }
 
-    // 为每个配置的表创建分页缓存策略
+    // Create pagination cache strategy for each configured table
     if (cacheConfig.paginatedTables) {
       cacheConfig.paginatedTables.forEach((tableName) => {
-        // 确保使用复数形式的表名
+        // Ensure using plural form of table name
         const pluralTableName = this.getPluralTableName(tableName);
 
-        // 检查是否有自定义合并策略
+        // Check if there's a custom merge strategy
         const customStrategy =
           cacheConfig.customMergeStrategies?.[pluralTableName];
 
@@ -1004,11 +936,11 @@ export class DubheGraphqlClient {
       });
     }
 
-    // 应用自定义合并策略（如果有的话）
+    // Apply custom merge strategies (if any)
     if (cacheConfig.customMergeStrategies) {
       Object.entries(cacheConfig.customMergeStrategies).forEach(
         ([tableName, strategy]) => {
-          // 如果表名还没有被配置过，添加它
+          // If table name hasn't been configured yet, add it
           if (!fields[tableName]) {
             fields[tableName] = {
               keyArgs: strategy.keyArgs || ['filter', 'orderBy'],
@@ -1023,10 +955,10 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 默认的分页合并策略
+   * Default pagination merge strategy
    */
   private defaultMergeStrategy(existing = { edges: [] }, incoming: any) {
-    // 安全检查，确保incoming有edges属性
+    // Safety check, ensure incoming has edges property
     if (!incoming || !Array.isArray(incoming.edges)) {
       return existing;
     }
@@ -1037,7 +969,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 从dubhe元数据中解析表信息
+   * Parse table information from dubhe metadata
    */
   private parseTableInfoFromConfig(): void {
     if (!this.dubheMetadata) {
@@ -1046,7 +978,7 @@ export class DubheGraphqlClient {
 
     const { components = [], resources = [], enums = [] } = this.dubheMetadata;
 
-    // 处理components数组
+    // Process components array
     components.forEach((componentObj: any) => {
       Object.entries(componentObj).forEach(
         ([componentName, componentData]: [string, any]) => {
@@ -1055,7 +987,7 @@ export class DubheGraphqlClient {
       );
     });
 
-    // 处理resources数组
+    // Process resources array
     resources.forEach((resourceObj: any) => {
       Object.entries(resourceObj).forEach(
         ([resourceName, resourceData]: [string, any]) => {
@@ -1066,7 +998,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 处理单个表的数据
+   * Process data for a single table
    */
   private processTableData(
     tableName: string,
@@ -1077,17 +1009,17 @@ export class DubheGraphqlClient {
     const fields: string[] = [];
     const enumFields: Record<string, string[]> = {};
 
-    // 处理字段数组
+    // Process fields array
     if (tableData.fields && Array.isArray(tableData.fields)) {
       tableData.fields.forEach((fieldObj: any) => {
         Object.entries(fieldObj).forEach(
           ([fieldName, fieldType]: [string, any]) => {
             const fieldNameCamelCase = this.toCamelCase(fieldName);
             fields.push(fieldNameCamelCase);
-            // // 检查是否是枚举类型
+            // Check if it's an enum type
             // const typeStr = String(fieldType);
             // if (enums.length > 0) {
-            //   // 这里可以根据需要处理枚举类型
+            //   // Process enum types as needed here
             //   // enumFields[fieldNameCamelCase] = [...];
             // }
           }
@@ -1095,17 +1027,17 @@ export class DubheGraphqlClient {
       });
     }
 
-    // 添加系统字段
+    // Add system fields
     fields.push('createdAt', 'updatedAt');
 
-    // 处理主键
+    // Process primary keys
     const primaryKeys: string[] = tableData.keys.map((key: string) =>
       this.toCamelCase(key)
     );
 
     const tableInfo: ParsedTableInfo = {
       tableName: snakeTableName,
-      fields: [...new Set(fields)], // 去重
+      fields: [...new Set(fields)], // Remove duplicates
       primaryKeys,
       enumFields,
     };
@@ -1115,15 +1047,15 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 获取表的字段信息
+   * Get table field information
    */
   getTableFields(tableName: string): string[] {
-    // 直接使用getMinimalFields，逻辑更清晰
+    // Use getMinimalFields directly for clearer logic
     return this.getMinimalFields(tableName);
   }
 
   /**
-   * 获取表的主键信息
+   * Get table primary key information
    */
   getTablePrimaryKeys(tableName: string): string[] {
     const tableInfo =
@@ -1133,7 +1065,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 获取表的枚举字段信息
+   * Get table enum field information
    */
   getTableEnumFields(tableName: string): Record<string, string[]> {
     const tableInfo =
@@ -1143,17 +1075,17 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 获取所有解析的表信息
+   * Get all parsed table information
    */
   getAllTableInfo(): Map<string, ParsedTableInfo> {
     return new Map(this.parsedTables);
   }
 
   /**
-   * 获取表的最小字段集（用于fallback）
+   * Get table's minimal field set (for fallback)
    */
   getMinimalFields(tableName: string): string[] {
-    // 如果有配置，使用配置中的字段
+    // If there's configuration, use fields from configuration
     const tableInfo =
       this.parsedTables.get(tableName) ||
       this.parsedTables.get(this.toSnakeCase(tableName));
@@ -1166,7 +1098,7 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * 转换表字段为GraphQL查询字符串
+   * Convert table fields to GraphQL query string
    */
   private convertTableFields(
     tableName: string,
@@ -1177,7 +1109,7 @@ export class DubheGraphqlClient {
     if (customFields && customFields.length > 0) {
       fields = customFields;
     } else {
-      // 尝试从dubhe配置中获取字段
+      // Try to get fields from dubhe configuration
       const autoFields = this.getTableFields(tableName);
       if (autoFields.length > 0) {
         fields = autoFields;
@@ -1192,16 +1124,16 @@ export class DubheGraphqlClient {
   }
 }
 
-// 导出便利函数
+// Export convenience function
 export function createDubheGraphqlClient(
   config: DubheClientConfig
 ): DubheGraphqlClient {
   return new DubheGraphqlClient(config);
 }
 
-// 导出常用的GraphQL查询构建器
+// Export common GraphQL query builders
 export const QueryBuilders = {
-  // 构建基础查询 - 已适配去掉store前缀的API
+  // Build basic query - Adapted to API without store prefix
   basic: (
     tableName: string,
     fields: string[] = ['createdAt', 'updatedAt']
@@ -1227,7 +1159,7 @@ export const QueryBuilders = {
     }
   `,
 
-  // 构建订阅查询 - 已适配去掉store前缀的API
+  // Build subscription query - Adapted to API without store prefix
   subscription: (tableName: string) => gql`
     subscription ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Subscription {
       ${tableName.charAt(0).toLowerCase() + tableName.slice(1)}Changed {
@@ -1239,9 +1171,9 @@ export const QueryBuilders = {
 };
 
 /**
- * 辅助函数：转换OrderBy格式
- * 支持camelCase和snake_case字段名转换为GraphQL枚举值
- * 例如：updatedAt -> UPDATED_AT_ASC, updated_at -> UPDATED_AT_ASC
+ * Helper function: Convert OrderBy format
+ * Support camelCase and snake_case field names conversion to GraphQL enum values
+ * Example: updatedAt -> UPDATED_AT_ASC, updated_at -> UPDATED_AT_ASC
  */
 function convertOrderByToEnum(orderBy?: OrderBy[]): string[] {
   if (!orderBy || orderBy.length === 0) {
@@ -1249,29 +1181,29 @@ function convertOrderByToEnum(orderBy?: OrderBy[]): string[] {
   }
 
   return orderBy.map((order) => {
-    // 使用统一的转换函数处理字段名
+    // Use unified conversion function to handle field names
     const field = toSnakeCaseForEnum(order.field);
     const direction = order.direction === 'DESC' ? 'DESC' : 'ASC';
 
-    // 将字段名和方向组合成枚举值
+    // Combine field name and direction into enum value
     return `${field}_${direction}`;
   });
 }
 
 /**
- * 转换camelCase或snake_case到SNAKE_CASE（用于GraphQL枚举值）
- * 例如：updatedAt -> UPDATED_AT, updated_at -> UPDATED_AT
+ * Convert camelCase or snake_case to SNAKE_CASE (for GraphQL enum values)
+ * Example: updatedAt -> UPDATED_AT, updated_at -> UPDATED_AT
  */
 function toSnakeCaseForEnum(str: string): string {
-  // 如果已经是snake_case，直接转大写
+  // If already snake_case, convert to uppercase directly
   if (str.includes('_')) {
     return str.toUpperCase();
   }
 
-  // 如果是camelCase，先转换为snake_case再转大写
+  // If camelCase, first convert to snake_case then uppercase
   return str
-    .replace(/([A-Z])/g, '_$1') // 在大写字母前添加下划线
-    .toLowerCase() // 转小写
-    .replace(/^_/, '') // 移除开头的下划线
-    .toUpperCase(); // 转大写
+    .replace(/([A-Z])/g, '_$1') // Add underscore before uppercase letters
+    .toLowerCase() // Convert to lowercase
+    .replace(/^_/, '') // Remove leading underscore
+    .toUpperCase(); // Convert to uppercase
 }

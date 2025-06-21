@@ -1,106 +1,90 @@
 /**
- * DubheGraphqlClient 使用示例 - 支持自动解析 dubhe config
+ * DubheGraphqlClient usage example - Support automatic dubhe config parsing
  *
- * 这个示例展示了如何使用新的 dubhe config 自动解析功能，
- * 让客户端自动识别表的字段信息，无需手动指定。
+ * This example demonstrates how to use the new dubhe config automatic parsing feature,
+ * allowing the client to automatically identify table field information without manual specification.
  */
 
 import { createDubheGraphqlClient } from './client';
 import { DubheMetadata } from './types';
 
-// 1. 导入JSON格式的dubhe配置
+// 1. Import JSON format dubhe configuration
 import dubheConfigJson from '../dubhe.config_1.json';
 
-// 2. 创建客户端实例
+// 2. Create client instance
 const client = createDubheGraphqlClient({
-  endpoint: 'http://localhost:8080/v1/graphql',
-  subscriptionEndpoint: 'ws://localhost:8080/v1/graphql',
-  dubheMetadata: dubheConfigJson as unknown as DubheMetadata,
+  endpoint: 'http://localhost:3000/graphql',
+  subscriptionEndpoint: 'ws://localhost:3000/graphql',
+  headers: {
+    Authorization: 'Bearer your-token',
+  },
 });
 
-// 3. 使用示例
+// 3. Usage example
 async function exampleUsage() {
   try {
-    // 查询counter0表的数据
-    const result = await client.getAllTables('counter0', {
+    // Query Counter0 table data
+    const result = await client.getAllTables('Counter0', {
       first: 10,
       orderBy: [{ field: 'updatedAt', direction: 'DESC' }],
     });
 
-    console.log('Counter0数据:', result);
-
-    // 查询counter1表的数据
-    const counter1Result = await client.getAllTables('counter1', {
+    // Query Counter1 table data
+    const counter1Result = await client.getAllTables('Counter1', {
+      filter: { value: { greaterThan: 10 } },
       first: 5,
-      filter: { value: { greaterThan: 0 } },
     });
 
-    console.log('Counter1数据:', counter1Result);
-
-    // 根据条件查询单个记录
-    const singleRecord = await client.getTableByCondition('counter1', {
-      entityId: '0x123...',
+    // Query single record by condition
+    const singleRecord = await client.getTableByCondition('Counter0', {
+      entityId: 'some-entity-id',
     });
 
-    console.log('单个记录:', singleRecord);
-
-    // 订阅数据变更
-    const subscription = client.subscribeToTableChanges('counter0', {
+    // Subscribe to data changes
+    const subscription = client.subscribeToTableChanges('Counter0', {
       onData: (data) => {
-        console.log('收到数据变更:', data);
+        // Handle data changes
       },
       onError: (error) => {
-        console.error('订阅错误:', error);
+        // Handle errors
       },
+      initialEvent: true,
     });
 
-    // 批量查询多个表
+    // Batch query multiple tables
     const batchResult = await client.batchQuery([
-      {
-        key: 'counters0',
-        tableName: 'counter0',
-        params: { first: 5 },
-      },
-      {
-        key: 'counters1',
-        tableName: 'counter1',
-        params: { first: 5 },
-      },
+      { key: 'counter0', tableName: 'Counter0', params: { first: 10 } },
+      { key: 'counter1', tableName: 'Counter1', params: { first: 5 } },
     ]);
 
-    console.log('批量查询结果:', batchResult);
+    // Get table field information
+    const counter0Fields = client.getTableFields('Counter0');
 
-    // 获取表字段信息
-    const counter0Fields = client.getTableFields('counter0');
-    console.log('Counter0字段:', counter0Fields);
+    // Get primary key information
+    const counter0PrimaryKeys = client.getTablePrimaryKeys('Counter0');
 
-    // 获取主键信息
-    const counter0PrimaryKeys = client.getTablePrimaryKeys('counter0');
-    console.log('Counter0主键:', counter0PrimaryKeys);
+    // Multi-table subscription
+    const multiSub = client.subscribeToTableList(['Counter0', 'Counter1'], {
+      initialEvent: true,
+      first: 10,
+    });
 
-    // 多表订阅
-    const multiTableSubscription = client.subscribeToTableList(
-      ['counter0', 'counter1'],
-      {
-        onData: (allData) => {
-          console.log('多表数据:', allData);
-        },
-        first: 10,
-        initialEvent: true,
-      }
-    );
+    // Get table information and metadata
+    const metadata = client.getDubheMetadata();
+    const allTableInfo = client.getAllTableInfo();
+
+    // Clean up
+    subscription.subscribe().unsubscribe();
+    multiSub.subscribe().unsubscribe();
+    client.close();
   } catch (error) {
-    console.error('使用错误:', error);
+    console.error('Usage error:', error);
   }
 }
 
-// 输出配置信息
-console.log('Dubhe元数据:', client.getDubheMetadata());
-console.log('所有表信息:', client.getAllTableInfo());
-
 export { exampleUsage };
 
-// 如果直接运行此文件，执行示例
+// Run example if module is executed directly
 if (require.main === module) {
   exampleUsage().catch(console.error);
 }

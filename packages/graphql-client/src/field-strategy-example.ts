@@ -1,44 +1,45 @@
 /**
- * 字段策略示例 - 展示如何处理不同类型的表结构
+ * Field Strategy Example - Demonstrates different field query strategies
+ * Shows how to query table fields safely based on dubhe configuration
  */
 
 import { createDubheGraphqlClient } from './client';
 import { DubheMetadata } from './types';
 
-// 示例dubhe metadata，包含不同类型的表（JSON格式）
+// Example dubhe metadata containing different types of tables (JSON format)
 const dubheMetadata: DubheMetadata = {
   components: [
     {
-      // 1. 有默认id字段的表
+      // 1. Table with default id field
       Player: {
         fields: [
           { entity_id: 'address' },
           { name: 'string' },
           { level: 'u32' },
         ],
-        keys: ['entity_id'], // 空keys表示使用默认entityId
+        keys: ['entity_id'], // Empty keys means using default entityId
       },
     },
     {
-      // 2. 自定义主键（没有id字段）
+      // 2. Custom primary key (no id field)
       Position: {
         fields: [{ x: 'u32' }, { y: 'u32' }],
-        keys: ['x', 'y'], // 复合主键，没有id字段
+        keys: ['x', 'y'], // Composite primary key, no id field
       },
     },
     {
-      // 3. 单一自定义主键
+      // 3. Single custom primary key
       UserProfile: {
         fields: [
           { user_id: 'string' },
           { bio: 'string' },
           { avatar: 'string' },
         ],
-        keys: ['user_id'], // 使用user_id作为主键
+        keys: ['user_id'], // Use user_id as primary key
       },
     },
     {
-      // 4. 无主键表
+      // 4. No primary key table
       GameLog: {
         fields: [
           { entity_id: 'address' },
@@ -46,20 +47,20 @@ const dubheMetadata: DubheMetadata = {
           { timestamp: 'u64' },
           { data: 'string' },
         ],
-        keys: ['entity_id'], // 无主键
+        keys: ['entity_id'], // No primary key
       },
     },
   ],
   resources: [
     // {
-    //   // 4. 无主键表
+    //   // 4. No primary key table
     //   GameLog: {
     //     fields: [
     //       { action: 'string' },
     //       { timestamp: 'u64' },
     //       { data: 'string' },
     //     ],
-    //     keys: [], // 无主键
+    //     keys: [], // No primary key
     //   },
     // },
   ],
@@ -71,86 +72,66 @@ const client = createDubheGraphqlClient({
   dubheMetadata: dubheMetadata,
 });
 
-// 字段策略演示
+// Field strategy demonstration
 function demonstrateFieldStrategies() {
-  console.log('=== 字段策略演示 ===\n');
-
-  // 1. 检查各表的字段配置
-  console.log('1. 各表字段分析:');
-
+  // 1. Check field configuration for each table
   const tables = ['player', 'position', 'userProfile', 'gameLog'];
 
+  // Analyze table fields and primary keys
   tables.forEach((tableName) => {
-    console.log(`\n表: ${tableName}`);
-    console.log(`  字段: ${client.getTableFields(tableName).join(', ')}`);
-    console.log(
-      `  主键: ${client.getTablePrimaryKeys(tableName).join(', ') || '无主键'}`
-    );
+    client.getTableFields(tableName);
+    client.getTablePrimaryKeys(tableName);
   });
 
-  // 2. 安全查询策略演示
-  console.log('\n\n2. 安全查询策略:');
-  console.log('对于未知表，只查询系统字段，避免GraphQL错误');
+  // 2. Safe query strategy demonstration
+  // For unknown tables, only query system fields to avoid GraphQL errors
 
-  // 假设这是一个没有在dubhe config中定义的表
+  // Assume this is a table not defined in dubhe config
   const unknownTableFields = client.getTableFields('unknown_table');
-  console.log(`未知表字段: ${unknownTableFields.join(', ')}`);
-  console.log('✅ 安全：只包含createdAt和updatedAt，不包含可能不存在的id字段');
+  // Safe: Only includes createdAt and updatedAt, doesn't include potentially non-existent id field
 
-  // 3. 精确查询策略
-  console.log('\n\n3. 基于配置的精确查询:');
+  // 3. Precise query strategy
+  // Player table - has default id field
+  client.getTableFields('player');
 
-  // Player表 - 有默认id字段
-  console.log(
-    `Player表（有默认id）: ${client.getTableFields('player').join(', ')}`
-  );
+  // Position table - no id field, has composite primary key
+  client.getTableFields('position');
 
-  // Position表 - 没有id字段，有复合主键
-  console.log(
-    `Position表（复合主键）: ${client.getTableFields('position').join(', ')}`
-  );
+  // GameLog table - no primary key
+  client.getTableFields('gameLog');
 
-  // GameLog表 - 无主键
-  console.log(
-    `GameLog表（无主键）: ${client.getTableFields('gameLog').join(', ')}`
-  );
-
-  // 4. 实际查询演示（伪代码）
-  console.log('\n\n4. 查询演示:');
+  // 4. Actual query demonstration (pseudocode)
   demonstrateQueries();
 }
 
 async function demonstrateQueries() {
   try {
-    // ✅ 安全：自动使用正确的字段
-    console.log('查询Player表（自动包含id字段）...');
+    // Safe: automatically use correct fields
+    // Query Player table (automatically include id field)
     // const players = await client.getAllTables('player');
-
-    console.log('查询Position表（自动不包含id字段）...');
+    // Query Position table (automatically exclude id field)
     // const positions = await client.getAllTables('position');
-
-    console.log('查询GameLog表（无主键表）...');
+    // Query GameLog table (no primary key table)
     // const gameLogs = await client.getAllTables('gameLog');
-
-    console.log('✅ 所有查询都会使用正确的字段集，避免GraphQL错误');
+    // All queries will use correct field set, avoiding GraphQL errors
   } catch (error: any) {
-    console.log('查询示例（需要实际GraphQL服务器）:', error.message);
+    // Query example (requires actual GraphQL server)
   }
 }
 
-// 最佳实践建议
+// Best practices recommendations
 function bestPractices() {
-  console.log('\n\n=== 最佳实践建议 ===');
+  // Field strategy best practices would be documented here
 }
 
-// 导出演示函数
+// Export demonstration functions
 export {
   demonstrateFieldStrategies,
   bestPractices,
   dubheMetadata as fieldStrategyDubheMetadata,
 };
 
-// 如果直接运行此文件
+// Run directly if executed as main module
 if (require.main === module) {
   demonstrateFieldStrategies();
   bestPractices();
