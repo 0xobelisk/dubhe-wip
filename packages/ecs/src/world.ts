@@ -1,4 +1,4 @@
-// ECS World main class implementation - Simplified version with built-in component discovery
+// ECS World main class implementation
 
 import { DubheGraphqlClient } from '@0xobelisk/graphql-client';
 import { ECSQuery } from './query';
@@ -50,9 +50,7 @@ export class ComponentDiscoverer {
       fromDubheMetadata: true,
     };
 
-    // Cache discovery results
     this.discoveryResult = result;
-
     this.componentTypes = components.map((comp) => comp.name);
 
     components.forEach((comp) => {
@@ -72,29 +70,24 @@ export class ComponentDiscoverer {
     }
 
     for (const componentRecord of this.dubheMetadata.components) {
-      // 每个 componentRecord 是一个对象，包含一个组件名和其配置
       for (const [componentName, componentConfig] of Object.entries(
         componentRecord
       )) {
         const componentType = this.tableNameToComponentName(componentName);
 
         try {
-          // 构建字段信息
           const fields: ComponentField[] = [];
           const primaryKeys: string[] = [];
           const enumFields: string[] = [];
 
-          // JSON 格式中的字段是数组
           if (componentConfig.fields && Array.isArray(componentConfig.fields)) {
             for (const fieldRecord of componentConfig.fields) {
-              // 每个 fieldRecord 是一个对象，包含一个字段名和类型
               for (const [fieldName, fieldType] of Object.entries(
                 fieldRecord
               )) {
                 const camelFieldName = this.snakeToCamel(fieldName);
                 const typeStr = String(fieldType);
 
-                // 检查是否是主键字段
                 const isCustomKey =
                   componentConfig.keys &&
                   componentConfig.keys.includes(fieldName);
@@ -102,7 +95,7 @@ export class ComponentDiscoverer {
                 fields.push({
                   name: camelFieldName,
                   type: this.dubheTypeToGraphQLType(typeStr),
-                  nullable: !isCustomKey, // 主键字段不可为空
+                  nullable: !isCustomKey,
                   isPrimaryKey: isCustomKey,
                   isEnum: this.isEnumType(typeStr),
                 });
@@ -111,7 +104,6 @@ export class ComponentDiscoverer {
                   primaryKeys.push(camelFieldName);
                 }
 
-                // 检查是否为枚举类型
                 if (this.isEnumType(typeStr)) {
                   enumFields.push(camelFieldName);
                 }
@@ -119,7 +111,7 @@ export class ComponentDiscoverer {
             }
           }
 
-          // 如果没有自定义主键，添加默认的 entityId
+          // Add default entityId if no custom primary key
           if (primaryKeys.length === 0) {
             fields.unshift({
               name: 'entityId',
@@ -131,7 +123,7 @@ export class ComponentDiscoverer {
             primaryKeys.push('entityId');
           }
 
-          // 添加系统字段
+          // Add system fields
           fields.push(
             {
               name: 'createdAt',
@@ -149,12 +141,8 @@ export class ComponentDiscoverer {
             }
           );
 
-          // Check if should register as ECS component
-          if (primaryKeys.length === 0) {
-            continue;
-          }
-
-          if (primaryKeys.length > 1) {
+          // Only register as ECS component if it has a single primary key
+          if (primaryKeys.length !== 1) {
             continue;
           }
 
@@ -166,7 +154,7 @@ export class ComponentDiscoverer {
             hasDefaultId: primaryKeys.includes('entityId'),
             enumFields,
             lastUpdated: Date.now(),
-            description: `Auto-discovered component from dubhe metadata: ${componentName}`,
+            description: `Auto-discovered component: ${componentName}`,
           };
 
           components.push(metadata);
@@ -191,9 +179,8 @@ export class ComponentDiscoverer {
   }
 
   private dubheTypeToGraphQLType(dubheType: string): string {
-    // 处理向量类型 vector<T>
     if (dubheType.startsWith('vector<') && dubheType.endsWith('>')) {
-      return 'String'; // GraphQL通常将复杂类型序列化为JSON字符串
+      return 'String';
     }
 
     switch (dubheType) {
@@ -216,8 +203,6 @@ export class ComponentDiscoverer {
       case 'enum':
         return 'String';
       default:
-        // If not a known basic type, might be enum or custom type
-        // For unknown types, default to String
         return 'String';
     }
   }
@@ -270,9 +255,7 @@ export class ResourceDiscoverer {
       fromDubheMetadata: true,
     };
 
-    // Cache discovery results
     this.discoveryResult = result;
-
     this.resourceTypes = resources.map((res) => res.name);
 
     resources.forEach((res) => {
@@ -292,27 +275,22 @@ export class ResourceDiscoverer {
     }
 
     for (const resourceRecord of this.dubheMetadata.resources) {
-      // 每个 resourceRecord 是一个对象，包含一个资源名和其配置
       for (const [resourceName, resourceConfig] of Object.entries(
         resourceRecord
       )) {
         try {
-          // 构建字段信息
           const fields: ComponentField[] = [];
           const primaryKeys: string[] = [];
           const enumFields: string[] = [];
 
-          // JSON 格式中的字段是数组
           if (resourceConfig.fields && Array.isArray(resourceConfig.fields)) {
             for (const fieldRecord of resourceConfig.fields) {
-              // 每个 fieldRecord 是一个对象，包含一个字段名和类型
               for (const [fieldName, fieldType] of Object.entries(
                 fieldRecord
               )) {
                 const camelFieldName = this.snakeToCamel(fieldName);
                 const typeStr = String(fieldType);
 
-                // 检查是否是主键字段
                 const isCustomKey =
                   resourceConfig.keys &&
                   resourceConfig.keys.includes(fieldName);
@@ -320,7 +298,7 @@ export class ResourceDiscoverer {
                 fields.push({
                   name: camelFieldName,
                   type: this.dubheTypeToGraphQLType(typeStr),
-                  nullable: !isCustomKey, // 主键字段不可为空
+                  nullable: !isCustomKey,
                   isPrimaryKey: isCustomKey,
                   isEnum: this.isEnumType(typeStr),
                 });
@@ -329,7 +307,6 @@ export class ResourceDiscoverer {
                   primaryKeys.push(camelFieldName);
                 }
 
-                // 检查是否为枚举类型
                 if (this.isEnumType(typeStr)) {
                   enumFields.push(camelFieldName);
                 }
@@ -337,7 +314,7 @@ export class ResourceDiscoverer {
             }
           }
 
-          // 添加系统字段
+          // Add system fields
           fields.push(
             {
               name: 'createdAt',
@@ -365,7 +342,7 @@ export class ResourceDiscoverer {
             hasNoKeys: primaryKeys.length === 0,
             enumFields,
             lastUpdated: Date.now(),
-            description: `Auto-discovered resource from dubhe metadata: ${resourceName}`,
+            description: `Auto-discovered resource: ${resourceName}`,
           };
 
           resources.push(metadata);
@@ -390,9 +367,8 @@ export class ResourceDiscoverer {
   }
 
   private dubheTypeToGraphQLType(dubheType: string): string {
-    // 处理向量类型 vector<T>
     if (dubheType.startsWith('vector<') && dubheType.endsWith('>')) {
-      return 'String'; // GraphQL通常将复杂类型序列化为JSON字符串
+      return 'String';
     }
 
     switch (dubheType) {
@@ -415,8 +391,6 @@ export class ResourceDiscoverer {
       case 'enum':
         return 'String';
       default:
-        // If not a known basic type, might be enum or custom type
-        // For unknown types, default to String
         return 'String';
     }
   }
@@ -429,7 +403,7 @@ export class ResourceDiscoverer {
 }
 
 /**
- * ECS World - Simplified version with built-in component discovery
+ * ECS World - Main ECS world class
  */
 export class DubheECSWorld {
   private graphqlClient: DubheGraphqlClient;
@@ -446,10 +420,9 @@ export class DubheECSWorld {
   ) {
     this.graphqlClient = graphqlClient;
 
-    // 设置默认配置
     this.config = {
       queryConfig: {
-        defaultCacheTimeout: 5 * 60 * 1000, // 5分钟
+        defaultCacheTimeout: 5 * 60 * 1000,
         maxConcurrentQueries: 10,
         enableBatchOptimization: true,
       },
@@ -461,7 +434,7 @@ export class DubheECSWorld {
       ...config,
     };
 
-    // Get dubheMetadata: prefer from config, otherwise from GraphQL client
+    // Get dubheMetadata from config or GraphQL client
     let dubheMetadata = this.config.dubheMetadata;
     if (!dubheMetadata) {
       dubheMetadata = this.graphqlClient.getDubheMetadata();
@@ -475,7 +448,7 @@ export class DubheECSWorld {
 
     this.dubheMetadata = dubheMetadata;
 
-    // Initialize component and resource discoverers with dubhe metadata
+    // Initialize discoverers
     this.componentDiscoverer = new ComponentDiscoverer(
       graphqlClient,
       this.dubheMetadata
@@ -485,7 +458,7 @@ export class DubheECSWorld {
       this.dubheMetadata
     );
 
-    // Initialize query and subscription systems with component discoverer
+    // Initialize systems
     this.querySystem = new ECSQuery(graphqlClient, this.componentDiscoverer);
     this.subscriptionSystem = new ECSSubscription(
       graphqlClient,
@@ -497,7 +470,7 @@ export class DubheECSWorld {
 
   private initializeWithConfig(): void {
     try {
-      // Filter ECS-compliant components (single primary key only)
+      // Get ECS-compliant components (single primary key only)
       const ecsComponents =
         this.componentDiscoverer.discoveryResult.components.filter((comp) => {
           // Must have exactly one primary key to be ECS-compliant
@@ -520,6 +493,11 @@ export class DubheECSWorld {
         }))
       );
 
+      // Initialize subscription system with ECS components and metadata
+      this.subscriptionSystem.setAvailableComponents(
+        ecsComponents.map((comp) => comp.name)
+      );
+
       // Initialize subscription system component metadata cache
       this.subscriptionSystem.initializeComponentMetadata(
         ecsComponents.map((comp) => ({
@@ -527,8 +505,17 @@ export class DubheECSWorld {
           primaryKeys: comp.primaryKeys,
         }))
       );
+
+      // Configure systems with settings
+      if (this.config.queryConfig) {
+        // Configure query system
+      }
+
+      if (this.config.subscriptionConfig) {
+        // Configure subscription system
+      }
     } catch (error) {
-      throw error;
+      throw new Error(`Failed to initialize ECS World: ${formatError(error)}`);
     }
   }
 

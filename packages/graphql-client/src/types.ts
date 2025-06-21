@@ -106,7 +106,7 @@ export interface DateFilter extends FilterCondition {
   greaterThanOrEqualTo?: string;
 }
 
-// Store table base type (store prefix removed from API)
+// Store table base type
 export interface StoreTableRow {
   createdAt: string;
   updatedAt: string;
@@ -141,8 +141,8 @@ export interface ListenSubscriptionResult<T = any> {
 
 // Advanced subscription options
 export interface AdvancedSubscriptionOptions extends SubscriptionOptions {
-  initialEvent?: boolean; // Whether to trigger initial event immediately
-  variables?: Record<string, any>; // Subscription variables
+  initialEvent?: boolean;
+  variables?: Record<string, any>;
 }
 
 // Listen subscription configuration
@@ -167,15 +167,15 @@ export interface TypedDocumentNode<TResult = any, TVariables = any>
 
 // Retry configuration options
 export interface RetryOptions {
-  max?: number; // Maximum retry count, defaults to 3
+  max?: number;
   delay?: {
-    initial?: number; // Initial delay time (milliseconds), defaults to 300ms
-    max?: number; // Maximum delay time (milliseconds), defaults to 30000ms
-    jitter?: boolean; // Whether to add random jitter, defaults to true
+    initial?: number;
+    max?: number;
+    jitter?: boolean;
   };
   attempts?: {
-    max?: number; // Maximum attempt count (including initial request), defaults to 5
-    retryIf?: (error: any, _operation: any) => boolean; // Custom retry condition
+    max?: number;
+    retryIf?: (error: any, _operation: any) => boolean;
   };
 }
 
@@ -189,10 +189,10 @@ export type CachePolicy =
 
 // Pagination cache strategy
 export type PaginationCacheStrategy =
-  | 'none' // Disable pagination cache merging (Apollo default behavior)
-  | 'filter-only' // Cache only based on filter conditions
-  | 'filter-orderby' // Cache based on filter conditions and sorting
-  | 'table-level'; // Table-level caching
+  | 'none'
+  | 'filter-only'
+  | 'filter-orderby'
+  | 'table-level';
 
 // Query options
 export interface QueryOptions {
@@ -201,7 +201,7 @@ export interface QueryOptions {
   notifyOnNetworkStatusChange?: boolean;
 }
 
-// 错误类型
+// GraphQL error types
 export interface GraphQLFormattedError {
   message: string;
   locations?: Array<{
@@ -212,7 +212,7 @@ export interface GraphQLFormattedError {
   extensions?: any;
 }
 
-// 查询结果
+// Query result
 export interface QueryResult<TData = any> {
   data?: TData;
   loading: boolean;
@@ -221,32 +221,32 @@ export interface QueryResult<TData = any> {
   refetch: () => Promise<QueryResult<TData>>;
 }
 
-// 订阅结果
+// Subscription result
 export interface SubscriptionResult<TData = any> {
   data?: TData;
   loading: boolean;
   error?: Error;
 }
 
-// 多表订阅配置
+// Multi-table subscription configuration
 export interface MultiTableSubscriptionConfig {
   tableName: string;
   options?: SubscriptionOptions & {
-    fields?: string[]; // 允许用户指定需要订阅的字段
-    filter?: Record<string, any>; // 过滤条件
-    initialEvent?: boolean; // 是否立即触发初始事件
-    first?: number; // 限制返回的记录数
-    orderBy?: OrderBy[]; // 排序条件
-    topicPrefix?: string; // 自定义topic前缀，默认使用表名
+    fields?: string[];
+    filter?: Record<string, any>;
+    initialEvent?: boolean;
+    first?: number;
+    orderBy?: OrderBy[];
+    topicPrefix?: string;
   };
 }
 
-// 多表订阅结果
+// Multi-table subscription result
 export interface MultiTableSubscriptionResult {
   [tableName: string]: SubscriptionResult<{ listen: { query: any } }>;
 }
 
-// 多表订阅数据结果
+// Multi-table subscription data result
 export interface MultiTableSubscriptionData {
   [tableName: string]: {
     listen: {
@@ -255,44 +255,35 @@ export interface MultiTableSubscriptionData {
   };
 }
 
-// Dubhe Config 相关类型定义
+// Dubhe component field
 export interface DubheComponentField {
-  type: string; // 字段类型，如 'u64', 'address', 'MonsterType' 等
+  type: string;
 }
 
 export interface DubheComponent {
-  fields?: Record<string, string | DubheComponentField>; // 字段定义
-  keys?: string[]; // 主键字段列表，[] 表示没有主键，undefined 表示默认id主键
+  fields?: Record<string, string | DubheComponentField>;
+  keys?: string[];
 }
 
-// 自动解析的字段信息
+// Auto-parsed field information
 export interface ParsedTableInfo {
-  tableName: string; // 表名
-  fields: string[]; // 所有字段名（包括自动添加的 createdAt, updatedAt）
-  primaryKeys: string[]; // 主键字段
-  enumFields: Record<string, string[]>; // 枚举字段及其可能的值
+  tableName: string;
+  fields: string[];
+  primaryKeys: string[];
+  enumFields: Record<string, string[]>;
 }
 
-// 表字段配置策略
-export type FieldStrategy =
-  | 'strict' // 严格模式：只使用dubhe config中定义的字段
-  | 'safe' // 安全模式：默认只查询系统字段
-  | 'legacy'; // 兼容模式：默认包含id字段（向后兼容）
-
-// 客户端配置
+// Client configuration
 export interface DubheClientConfig {
   endpoint: string;
   subscriptionEndpoint?: string;
   headers?: Record<string, string>;
   fetchOptions?: RequestInit;
-  retryOptions?: RetryOptions; // 重试配置
-  dubheMetadata?: any; // Dubhe元数据，用于自动解析字段
+  retryOptions?: RetryOptions;
+  dubheMetadata?: any;
   cacheConfig?: {
-    // 需要分页缓存策略的表名列表
     paginatedTables?: string[];
-    // 分页缓存策略
     strategy?: PaginationCacheStrategy;
-    // 自定义缓存合并策略（可选）
     customMergeStrategies?: Record<
       string,
       {

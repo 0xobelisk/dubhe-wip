@@ -31,6 +31,10 @@ async function testMonsterHunterECS() {
   // 2. 创建 ECS world（自动使用 dubhe-config 模式）
   console.log('🌍 创建 ECS world...');
   world = createECSWorld(client);
+  const components = await world.getAvailableComponents();
+  console.log('components', components);
+  const resources = await world.getAvailableResources();
+  console.log('resources', resources);
 
   const entity = await world.getEntity(
     '0xd7b69493da10a0e733b13d3213b20beb1630a50b949876b352b002f4818a9388'

@@ -60,6 +60,7 @@ export class ECSSubscription {
   private subscriptions = new Map<string, any>();
   private queryWatchers = new Map<string, QueryWatcherImpl>();
   private componentDiscoverer: ComponentDiscoverer | null = null;
+  private availableComponents: ComponentType[] = [];
   // Component primary key cache - consistent with implementation in query.ts
   private componentPrimaryKeys = new Map<ComponentType, string>();
 
@@ -69,6 +70,13 @@ export class ECSSubscription {
   ) {
     this.graphqlClient = graphqlClient;
     this.componentDiscoverer = componentDiscoverer || null;
+  }
+
+  /**
+   * Set available component list
+   */
+  setAvailableComponents(componentTypes: ComponentType[]): void {
+    this.availableComponents = componentTypes;
   }
 
   /**
@@ -98,6 +106,13 @@ export class ECSSubscription {
    */
   setComponentDiscoverer(discoverer: ComponentDiscoverer): void {
     this.componentDiscoverer = discoverer;
+  }
+
+  /**
+   * Validate if component type is ECS-compliant
+   */
+  private isECSComponent(componentType: ComponentType): boolean {
+    return this.availableComponents.includes(componentType);
   }
 
   /**
@@ -147,6 +162,17 @@ export class ECSSubscription {
     if (!isValidComponentType(componentType)) {
       return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
         observer.error(new Error(`Invalid component type: ${componentType}`));
+      });
+    }
+
+    // Validate if it's an ECS-compliant component
+    if (!this.isECSComponent(componentType)) {
+      return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
+        observer.error(
+          new Error(
+            `Component type ${componentType} is not ECS-compliant or not available`
+          )
+        );
       });
     }
 
@@ -242,6 +268,17 @@ export class ECSSubscription {
     if (!isValidComponentType(componentType)) {
       return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
         observer.error(new Error(`Invalid component type: ${componentType}`));
+      });
+    }
+
+    // Validate if it's an ECS-compliant component
+    if (!this.isECSComponent(componentType)) {
+      return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
+        observer.error(
+          new Error(
+            `Component type ${componentType} is not ECS-compliant or not available`
+          )
+        );
       });
     }
 
@@ -350,6 +387,17 @@ export class ECSSubscription {
       });
     }
 
+    // Validate if it's an ECS-compliant component
+    if (!this.isECSComponent(componentType)) {
+      return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
+        observer.error(
+          new Error(
+            `Component type ${componentType} is not ECS-compliant or not available`
+          )
+        );
+      });
+    }
+
     return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
       let subscription: any = null;
 
@@ -447,6 +495,17 @@ export class ECSSubscription {
     if (!isValidComponentType(componentType)) {
       return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
         observer.error(new Error(`Invalid component type: ${componentType}`));
+      });
+    }
+
+    // Validate if it's an ECS-compliant component
+    if (!this.isECSComponent(componentType)) {
+      return new Observable((observer: Observer<ECSSubscriptionResult<T>>) => {
+        observer.error(
+          new Error(
+            `Component type ${componentType} is not ECS-compliant or not available`
+          )
+        );
       });
     }
 

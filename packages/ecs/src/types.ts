@@ -1,7 +1,7 @@
 // Import dubhe configuration types from sui-common for better compatibility
 import type { DubheConfig } from '@0xobelisk/sui-common';
 
-// DubheMetadata type definition for JSON format dubhe configuration
+// 统一的 DubheMetadata 类型定义
 export type DubheMetadata = {
   components: Array<
     Record<
@@ -90,7 +90,7 @@ export interface EntityChangeEvent {
 
 // Query options
 export interface QueryOptions {
-  fields?: string[]; // Allow users to specify fields to query
+  fields?: string[]; // Field names to query
   idFields?: string[]; // Field names to use as entity ID, defaults to ['nodeId', 'entityId']
   compositeId?: boolean; // Whether to compose multiple fields as ID, defaults to false
   limit?: number;

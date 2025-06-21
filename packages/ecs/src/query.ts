@@ -146,9 +146,9 @@ export class ECSQuery {
     try {
       // Check entity existence by querying any possible component tables
       // This can be optimized to query a dedicated entity table
-      const tables = await this.getAvailableTables();
-
-      for (const table of tables.slice(0, 3)) {
+      const tables = await this.getAvailableComponents();
+      for (const table of tables) {
+        // for (const table of tables.slice(0, 3)) {
         // Only check first 3 tables to avoid too many queries
         try {
           const condition = this.buildEntityCondition(table, entityId);
@@ -173,7 +173,7 @@ export class ECSQuery {
    */
   async getAllEntities(): Promise<EntityId[]> {
     try {
-      const tables = await this.getAvailableTables();
+      const tables = await this.getAvailableComponents();
 
       // Query all tables in parallel using cached field information
       const queries = await Promise.all(
@@ -282,7 +282,7 @@ export class ECSQuery {
     if (!isValidEntityId(entityId)) return [];
 
     try {
-      const tables = await this.getAvailableTables();
+      const tables = await this.getAvailableComponents();
       const componentTypes: ComponentType[] = [];
 
       // Check if entity exists in each table
@@ -317,7 +317,6 @@ export class ECSQuery {
   ): Record<string, any> {
     // Get primary key field name from cache
     const primaryKeyField = this.componentPrimaryKeys.get(componentType);
-
     if (primaryKeyField) {
       return { [primaryKeyField]: entityId };
     } else {
@@ -682,9 +681,9 @@ export class ECSQuery {
   }
 
   /**
-   * Get available table list
+   * Get available component list
    */
-  private async getAvailableTables(): Promise<string[]> {
+  private async getAvailableComponents(): Promise<string[]> {
     if (this.availableComponents.length > 0) {
       return this.availableComponents;
     }
