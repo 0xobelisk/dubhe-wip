@@ -179,16 +179,16 @@ export default function Home() {
         })
         .subscribe({
           next: (result: any) => {
-            if (result.data) {
+            if (result) {
               console.log(
-                `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.data.entityId} 的 counter1 组件发生变化:`
+                `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.entityId} 的 counter1 组件发生变化:`
               );
-              console.log(`  - 变化类型: ${result.data.changeType}`);
-              console.log(`  - 组件数据:`, result.data.data);
-              console.log(`  - 时间戳: ${result.data.timestamp}`);
+              console.log(`  - 变化类型: ${result.changeType}`);
+              console.log(`  - 组件数据:`, result.data);
+              console.log(`  - 时间戳: ${result.timestamp}`);
 
               // ECS 组件数据在 result.data.data 中
-              const componentData = result.data.data as any;
+              const componentData = result.data as any;
               if (componentData?.value !== undefined) {
                 setValue(componentData.value);
                 toast('Counter ECS Updated', {

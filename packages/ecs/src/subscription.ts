@@ -25,21 +25,13 @@ import { ComponentDiscoverer } from './world';
 import pluralize from 'pluralize';
 
 /**
- * ECS component change event
+ * ECS subscription result
  */
-export interface ComponentChangeResult<T = any> {
+export interface ECSSubscriptionResult<T = any> {
   entityId: EntityId;
   data: T | null;
   changeType: 'added' | 'updated' | 'removed';
   timestamp: number;
-}
-
-/**
- * ECS subscription result
- */
-export interface ECSSubscriptionResult<T = any> {
-  data?: ComponentChangeResult<T>;
-  loading: boolean;
   error?: Error;
 }
 
@@ -48,7 +40,6 @@ export interface ECSSubscriptionResult<T = any> {
  */
 export interface QueryChangeResult {
   changes: QueryChange;
-  loading: boolean;
   error?: Error;
 }
 
@@ -196,8 +187,6 @@ export class ECSSubscription {
               fields: subscriptionFields,
               onData: (data) => {
                 try {
-                  observer.next({ loading: false });
-
                   // Process batch data
                   const pluralTableName =
                     this.getPluralTableName(componentType);
@@ -210,13 +199,10 @@ export class ECSSubscription {
                           this.extractEntityId(node, componentType);
                         if (entityId) {
                           const result: ECSSubscriptionResult<T> = {
-                            data: {
-                              entityId,
-                              data: node as T,
-                              changeType: 'added',
-                              timestamp: Date.now(),
-                            },
-                            loading: false,
+                            entityId,
+                            data: node as T,
+                            changeType: 'added',
+                            timestamp: Date.now(),
                           };
                           debouncedEmit(result);
                         }
@@ -224,17 +210,11 @@ export class ECSSubscription {
                     });
                   }
                 } catch (error) {
-                  observer.next({
-                    loading: false,
-                    error: error as Error,
-                  });
+                  observer.error(error);
                 }
               },
               onError: (error) => {
-                observer.next({
-                  loading: false,
-                  error: error as Error,
-                });
+                observer.error(error);
               },
               onComplete: () => {
                 observer.complete();
@@ -304,8 +284,6 @@ export class ECSSubscription {
             fields: ['updatedAt'], // Removal detection only needs basic fields
             onData: (data) => {
               try {
-                observer.next({ loading: false });
-
                 // Get current entity list
                 const pluralTableName = this.getPluralTableName(componentType);
                 const nodes =
@@ -328,30 +306,21 @@ export class ECSSubscription {
 
                 removedEntities.forEach((entityId) => {
                   const result: ECSSubscriptionResult<T> = {
-                    data: {
-                      entityId,
-                      data: null,
-                      changeType: 'removed',
-                      timestamp: Date.now(),
-                    },
-                    loading: false,
+                    entityId,
+                    data: null,
+                    changeType: 'removed',
+                    timestamp: Date.now(),
                   };
                   debouncedEmit(result);
                 });
 
                 lastKnownEntities = currentEntities;
               } catch (error) {
-                observer.next({
-                  loading: false,
-                  error: error as Error,
-                });
+                observer.error(error);
               }
             },
             onError: (error) => {
-              observer.next({
-                loading: false,
-                error: error as Error,
-              });
+              observer.error(error);
             },
             onComplete: () => {
               observer.complete();
@@ -418,8 +387,6 @@ export class ECSSubscription {
               fields: subscriptionFields,
               onData: (data) => {
                 try {
-                  observer.next({ loading: false });
-
                   // Get plural table name correctly
                   const pluralTableName =
                     this.getPluralTableName(componentType);
@@ -436,13 +403,10 @@ export class ECSSubscription {
 
                         if (entityId) {
                           const result: ECSSubscriptionResult<T> = {
-                            data: {
-                              entityId,
-                              data: node as T,
-                              changeType: 'updated',
-                              timestamp: Date.now(),
-                            },
-                            loading: false,
+                            entityId,
+                            data: node as T,
+                            changeType: 'updated',
+                            timestamp: Date.now(),
                           };
                           debouncedEmit(result);
                         }
@@ -450,17 +414,11 @@ export class ECSSubscription {
                     });
                   }
                 } catch (error) {
-                  observer.next({
-                    loading: false,
-                    error: error as Error,
-                  });
+                  observer.error(error);
                 }
               },
               onError: (error) => {
-                observer.next({
-                  loading: false,
-                  error: error as Error,
-                });
+                observer.error(error);
               },
               onComplete: () => {
                 observer.complete();
@@ -530,8 +488,6 @@ export class ECSSubscription {
               fields: subscriptionFields,
               onData: (data) => {
                 try {
-                  observer.next({ loading: false });
-
                   const pluralTableName =
                     this.getPluralTableName(componentType);
                   const nodes =
@@ -544,30 +500,21 @@ export class ECSSubscription {
                         this.extractEntityId(node, componentType);
                       if (entityId) {
                         const result: ECSSubscriptionResult<T> = {
-                          data: {
-                            entityId,
-                            data: node as T,
-                            changeType: 'updated',
-                            timestamp: Date.now(),
-                          },
-                          loading: false,
+                          entityId,
+                          data: node as T,
+                          changeType: 'updated',
+                          timestamp: Date.now(),
                         };
                         debouncedEmit(result);
                       }
                     }
                   });
                 } catch (error) {
-                  observer.next({
-                    loading: false,
-                    error: error as Error,
-                  });
+                  observer.error(error);
                 }
               },
               onError: (error) => {
-                observer.next({
-                  loading: false,
-                  error: error as Error,
-                });
+                observer.error(error);
               },
               onComplete: () => {
                 observer.complete();
@@ -614,7 +561,6 @@ export class ECSSubscription {
         (changes: QueryChange) => {
           const result: QueryChangeResult = {
             changes,
-            loading: false,
           };
 
           if (options?.debounceMs) {

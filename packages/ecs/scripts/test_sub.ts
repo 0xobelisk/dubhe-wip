@@ -7,7 +7,7 @@
 
 import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
 import { createECSWorld, DubheECSWorld } from '../src';
-import { dubheConfig } from '../dubhe.config';
+import dubheMetadata from '../dubhe.config_1.json';
 
 // GraphQL 端点配置
 const GRAPHQL_ENDPOINT =
@@ -26,7 +26,7 @@ async function testMonsterHunterECS() {
     console.log('🔌 创建 GraphQL client...');
     const client = createDubheGraphqlClient({
       endpoint: GRAPHQL_ENDPOINT,
-      dubheConfig: dubheConfig,
+      dubheMetadata,
     });
 
     // 2. 创建 ECS world（自动使用 dubhe-config 模式）
@@ -39,27 +39,18 @@ async function testMonsterHunterECS() {
     const subscription = world
       .onComponentChanged<any>('counter1', {
         initialEvent: true,
-        debounceMs: 500, // 500ms 防抖
+        // debounceMs: 500, // 500ms 防抖
       })
       .subscribe({
         next: (result: any) => {
-          if (result.data) {
-            console.log(
-              `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.data.entityId} 的 counter1 组件发生变化:`
-            );
-            console.log(`  - 变化类型: ${result.data.changeType}`);
-            console.log(`  - 组件数据:`, result.data.data);
-            console.log(`  - 时间戳: ${result.data.timestamp}`);
-            console.log('---');
-          }
-
-          if (result.error) {
-            console.error('❌ 订阅错误:', result.error);
-          }
-
-          if (result.loading) {
-            console.log('⏳ 数据加载中...');
-          }
+          // 更严格地检查result对象的结构
+          console.log(
+            `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.entityId} 的 counter1 组件发生变化:`
+          );
+          console.log(`  - 变化类型: ${result.changeType}`);
+          console.log(`  - 组件数据:`, result.data);
+          console.log(`  - 时间戳: ${result.timestamp}`);
+          console.log('---');
         },
         error: (error: any) => {
           console.error('❌ 订阅失败:', error);
@@ -69,16 +60,16 @@ async function testMonsterHunterECS() {
         },
       });
 
-    // 4. 查询一个实体作为测试
-    console.log('🔍 查询实体数据...');
-    try {
-      const entity = await world.getEntity(
-        '0xd7b69493da10a0e733b13d3213b20beb1630a50b949876b352b002f4818a9388'
-      );
-      console.log('📊 实体数据:', entity);
-    } catch (error) {
-      console.log('⚠️ 实体查询失败，可能实体不存在');
-    }
+    // // 4. 查询一个实体作为测试
+    // console.log('🔍 查询实体数据...');
+    // try {
+    //   const entity = await world.getEntity(
+    //     '0xd7b69493da10a0e733b13d3213b20beb1630a50b949876b352b002f4818a9388'
+    //   );
+    //   console.log('📊 实体数据:', entity);
+    // } catch (error) {
+    //   console.log('⚠️ 实体查询失败，可能实体不存在');
+    // }
 
     // 5. 查询所有实体
     console.log('🔍 查询所有实体...');
@@ -99,7 +90,7 @@ async function testMonsterHunterECS() {
       subscription.unsubscribe();
       console.log('✅ 测试完成');
       process.exit(0);
-    }, 30000);
+    }, 3000000);
   } catch (error) {
     console.error('❌ 测试失败:', error);
     process.exit(1);
