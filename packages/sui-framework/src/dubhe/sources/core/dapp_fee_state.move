@@ -1,16 +1,16 @@
 module dubhe::dapp_fee_state;
 
-/// Storage structure
+/// Structure for managing transaction fees and usage statistics
 public struct DappFeeState has store {
-    /// 
+    /// Base fee charged for each transaction
     base_fee: u256,
-    /// 
+    /// Fee per byte of data stored
     byte_fee: u256,
-    /// 
+    /// Total size of all stored data in bytes
     total_bytes_size: u256,
-    /// 
+    /// Total amount of fees recharged/deposited
     total_recharged: u256,
-    /// 
+    /// Total amount of fees paid/consumed
     total_paid: u256,
 }
 

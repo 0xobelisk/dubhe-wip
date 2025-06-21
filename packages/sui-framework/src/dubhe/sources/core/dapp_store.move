@@ -18,16 +18,22 @@ module dubhe::dapp_store {
     const EInvalidKey: u64 = 2;
     const EInvalidValue: u64 = 3;
 
-    /// Storage structure
+    /// Storage structure for DApp data and state management
     public struct DappStore has key, store {
+        /// The unique identifier of the DappStore instance
         id: UID,
+        /// The unique key identifier for the DApp
         dapp_key: String,
+        /// Metadata containing DApp information like name, description, and version
         dapp_metadata: DappMetadata,
+        /// State for managing transaction fees and usage statistics
         dapp_fee_state: DappFeeState,
+        /// Stores metadata for each table, indexed by table_id
         table_metadatas: Table<vector<u8>, TableMetadata>,
-        // table_id => key_tuple => value_tuple
+        /// Stores the actual data tables, where each table contains key-value pairs
+        /// table_id => (key_tuple => value_tuple)
         tables: Table<vector<u8>, Table<vector<vector<u8>>, vector<vector<u8>>>>,
-        // Object
+        /// Storage for miscellaneous objects that don't fit into the table structure
         objects: Bag,
     }
 
