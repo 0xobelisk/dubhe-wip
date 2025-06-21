@@ -1,68 +1,68 @@
 import { Plugin } from 'postgraphile';
 
-// 全字段过滤插件 - 确保所有字段都支持过滤
+// All fields filter plugin - ensure all fields support filtering
 export const AllFieldsFilterPlugin: Plugin = (builder) => {
-  // 扩展过滤器输入类型，为所有字段添加过滤支持
+  // Extend filter input type, add filter support for all fields
   builder.hook('GraphQLInputObjectType:fields', (fields, build, context) => {
     const {
       scope: { isPgConnectionFilter, pgIntrospection: table }
     } = context;
 
-    // 只处理连接过滤器
+    // Only handle connection filters
     if (!isPgConnectionFilter || !table || table.kind !== 'class') {
       return fields;
     }
 
     const enhancedFields = { ...fields };
 
-    // 为表的每个字段添加过滤器
+    // Add filters for each field of the table
     table.attributes.forEach((attr: any) => {
       const fieldName = build.inflection.column(attr);
 
-      // 跳过已经存在的字段
+      // Skip fields that already exist
       if (enhancedFields[fieldName]) {
         return;
       }
 
-      // 根据字段类型确定过滤器类型
+      // Determine filter type based on field type
       let filterType;
       const pgType = attr.type;
 
-      // 特殊处理BigInt类型
+      // Special handling for BigInt type
       if (pgType.name === 'int8' || pgType.name === 'bigint') {
-        // 对于BigInt类型，尝试使用StringFilter（因为BigInt在GraphQL中表示为字符串）
+        // For BigInt type, try to use StringFilter (because BigInt is represented as string in GraphQL)
         filterType = build.getTypeByName('StringFilter');
       } else {
-        // 根据PostgreSQL类型映射到GraphQL过滤器类型
+        // Map PostgreSQL types to GraphQL filter types
         switch (pgType.category) {
-          case 'S': // 字符串类型
+          case 'S': // String type
             filterType = build.getTypeByName('StringFilter');
             break;
-          case 'N': // 数值类型
+          case 'N': // Numeric type
             if (pgType.name.includes('int')) {
               filterType = build.getTypeByName('IntFilter');
             } else {
               filterType = build.getTypeByName('FloatFilter');
             }
             break;
-          case 'B': // 布尔类型
+          case 'B': // Boolean type
             filterType = build.getTypeByName('BooleanFilter');
             break;
-          case 'D': // 日期时间类型
+          case 'D': // Date/time type
             filterType = build.getTypeByName('DatetimeFilter');
             break;
           default:
-            // 对于其他类型，使用字符串过滤器作为默认
+            // For other types, use string filter as default
             filterType = build.getTypeByName('StringFilter');
         }
       }
 
-      // 如果找不到特定的过滤器类型，使用字符串过滤器
+      // If specific filter type not found, use string filter
       if (!filterType) {
         filterType = build.getTypeByName('StringFilter');
       }
 
-      // 添加字段过滤器
+      // Add field filter
       if (filterType) {
         enhancedFields[fieldName] = {
           type: filterType,
@@ -74,7 +74,7 @@ export const AllFieldsFilterPlugin: Plugin = (builder) => {
     return enhancedFields;
   });
 
-  // 确保为所有字段生成排序选项
+  // Ensure sorting options are generated for all fields
   builder.hook('GraphQLEnumType:values', (values, build, context) => {
     const {
       scope: { isPgRowSortEnum, pgIntrospection: table }
@@ -86,12 +86,12 @@ export const AllFieldsFilterPlugin: Plugin = (builder) => {
 
     const enhancedValues = { ...values };
 
-    // 为每个字段添加ASC和DESC排序选项
+    // Add ASC and DESC sorting options for each field
     table.attributes.forEach((attr: any) => {
       const columnName = build.inflection.column(attr);
       const enumName = build.inflection.constantCase(columnName);
 
-      // 添加升序排序
+      // Add ascending sort
       const ascKey = `${enumName}_ASC`;
       if (!enhancedValues[ascKey]) {
         enhancedValues[ascKey] = {
@@ -103,7 +103,7 @@ export const AllFieldsFilterPlugin: Plugin = (builder) => {
         };
       }
 
-      // 添加降序排序
+      // Add descending sort
       const descKey = `${enumName}_DESC`;
       if (!enhancedValues[descKey]) {
         enhancedValues[descKey] = {
@@ -119,7 +119,7 @@ export const AllFieldsFilterPlugin: Plugin = (builder) => {
     return enhancedValues;
   });
 
-  // 扩展条件过滤器以支持所有字段
+  // Extend condition filters to support all fields
   builder.hook('GraphQLInputObjectType:fields', (fields, build, context) => {
     const {
       scope: { isPgCondition, pgIntrospection: table }
@@ -131,16 +131,16 @@ export const AllFieldsFilterPlugin: Plugin = (builder) => {
 
     const enhancedFields = { ...fields };
 
-    // 为每个字段添加条件过滤
+    // Add condition filters for each field
     table.attributes.forEach((attr: any) => {
       const fieldName = build.inflection.column(attr);
 
-      // 跳过已经存在的字段
+      // Skip fields that already exist
       if (enhancedFields[fieldName]) {
         return;
       }
 
-      // 获取GraphQL类型
+      // Get GraphQL type
       const gqlType = build.pgGetGqlTypeByTypeIdAndModifier(attr.typeId, attr.typeModifier);
 
       if (gqlType) {

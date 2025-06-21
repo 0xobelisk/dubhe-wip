@@ -1,49 +1,35 @@
 import type { DynamicTable } from './database-introspector';
 
 export interface WelcomePageConfig {
-	port: string | number;
-	graphqlEndpoint: string;
-	nodeEnv: string;
-	schema: string;
-	enableCors: string;
-	enableSubscriptions: string;
+  port: string | number;
+  graphqlEndpoint: string;
+  nodeEnv: string;
+  schema: string;
+  enableCors: string;
+  enableSubscriptions: string;
 }
 
-// 创建自定义欢迎页面
-export function createWelcomePage(
-	tables: DynamicTable[],
-	config: WelcomePageConfig
-): string {
-	const {
-		port,
-		graphqlEndpoint,
-		nodeEnv,
-		schema,
-		enableCors,
-		enableSubscriptions,
-	} = config;
+// Create custom welcome page
+export function createWelcomePage(tables: DynamicTable[], config: WelcomePageConfig): string {
+  const { port, graphqlEndpoint, nodeEnv, schema, enableCors, enableSubscriptions } = config;
 
-	const tableList = tables
-		.map(table => {
-			const keyFields = table.fields
-				.filter(f => f.is_key)
-				.map(f => f.field_name);
-			const valueFields = table.fields
-				.filter(f => !f.is_key)
-				.map(f => f.field_name);
-			return `
+  const tableList = tables
+    .map((table) => {
+      const keyFields = table.fields.filter((f) => f.is_key).map((f) => f.field_name);
+      const valueFields = table.fields.filter((f) => !f.is_key).map((f) => f.field_name);
+      return `
 			<div class="table-info">
 				<h3>📊 ${table.table_name}</h3>
 				<div class="fields">
-					<div><strong>键字段:</strong> ${keyFields.join(', ') || '无'}</div>
-					<div><strong>值字段:</strong> ${valueFields.join(', ')}</div>
+					<div><strong>Key Fields:</strong> ${keyFields.join(', ') || 'None'}</div>
+					<div><strong>Value Fields:</strong> ${valueFields.join(', ')}</div>
 				</div>
 			</div>
 		`;
-		})
-		.join('');
+    })
+    .join('');
 
-	return `
+  return `
 		<!DOCTYPE html>
 		<html>
 			<head>
@@ -159,75 +145,71 @@ export function createWelcomePage(
 			<body>
 				<div class="container">
 					<h1>🚀 Sui Indexer GraphQL API</h1>
-					<p class="subtitle">动态扫描数据库，自动生成 GraphQL API</p>
-					<p class="status">● 服务器状态：正常运行 | 已扫描 <span class="highlight">${
-						tables.length
-					}</span> 个表</p>
+					<p class="subtitle">Dynamically scan database, automatically generate GraphQL API</p>
+					<p class="status">● Server Status: Running Normally | Scanned <span class="highlight">${
+            tables.length
+          }</span> tables</p>
 					
 					${
-						enableSubscriptions === 'false'
-							? `
+            enableSubscriptions === 'false'
+              ? `
 					<div class="warning">
-						<h4>⚠️ WebSocket 订阅功能已临时禁用</h4>
-						<p>正在修复 subscription 配置问题。基本的 GraphQL 查询和变更功能完全正常。</p>
+						<h4>⚠️ WebSocket subscription feature is temporarily disabled</h4>
+						<p>Currently fixing subscription configuration issues. Basic GraphQL query and mutation functions work perfectly.</p>
 					</div>
 					`
-							: `
+              : `
 					<div class="status">
-						<p>📡 实时订阅功能：${enableSubscriptions === 'true' ? '已启用' : '已禁用'}</p>
+						<p>📡 Real-time subscription feature: ${enableSubscriptions === 'true' ? 'Enabled' : 'Disabled'}</p>
 					</div>
 					`
-					}
+          }
 					
 					<div class="center">
 						<a href="${graphqlEndpoint}" class="link">📊 GraphQL API</a>
-						<a href="/playground" class="link">🎮 增强版 GraphQL Playground</a>
+						<a href="/playground" class="link">🎮 Enhanced GraphQL Playground</a>
 					</div>
 
 					<div class="info-grid">
 						<div class="info-card">
-							<h3>🎯 核心特性</h3>
+							<h3>🎯 Core Features</h3>
 							<ul>
-								<li>✨ 自动扫描 sui-rust-indexer 数据库</li>
-								<li>🔄 动态生成 GraphQL schema</li>
-								<li>📡 支持实时订阅功能 ${enableSubscriptions === 'true' ? '✅' : '⚠️'}</li>
-								<li>🚀 完整的 CRUD 操作</li>
-								<li>🛡️ PostGraphile 强大功能</li>
+								<li>✨ Auto-scan sui-rust-indexer database</li>
+								<li>🔄 Dynamically generate GraphQL schema</li>
+								<li>📡 Support real-time subscription features ${enableSubscriptions === 'true' ? '✅' : '⚠️'}</li>
+								<li>🚀 Complete CRUD operations</li>
+								<li>🛡️ PostGraphile powerful features</li>
 							</ul>
 						</div>
 						
 						<div class="info-card">
-							<h3>📊 服务器信息</h3>
+							<h3>📊 Server Information</h3>
 							<ul>
-								<li>环境: ${nodeEnv}</li>
-								<li>端口: ${port}</li>
-								<li>数据库模式: ${schema}</li>
-								<li>CORS: ${enableCors === 'true' ? '启用' : '禁用'}</li>
-								<li>订阅: ${enableSubscriptions === 'true' ? '启用' : '禁用'}</li>
+								<li>Environment: ${nodeEnv}</li>
+								<li>Port: ${port}</li>
+								<li>Database Schema: ${schema}</li>
+								<li>CORS: ${enableCors === 'true' ? 'Enabled' : 'Disabled'}</li>
+								<li>Subscriptions: ${enableSubscriptions === 'true' ? 'Enabled' : 'Disabled'}</li>
 							</ul>
 						</div>
 					</div>
 
-					<h2>📋 检测到的数据表</h2>
+					<h2>📋 Detected Data Tables</h2>
 					${tableList}
 					
 					<div style="margin-top: 40px; padding: 20px; background: #e3f2fd; border-radius: 8px;">
-						<h3>💡 使用提示</h3>
-						<p>1. 访问 <strong>增强版 GraphQL Playground</strong> 享受更好的查询体验</p>
-						<p>   • 📊 可视化 Schema Explorer - 点击式查询构建</p>
-						<p>   • 🎨 现代化 UI 界面和增强的代码高亮</p>
-						<p>   • 📝 代码导出功能 - 生成多种语言的客户端代码</p>
-						<p>   • ⌨️ 快捷键支持 - Ctrl/Cmd+Enter 执行查询</p>
-						<p>2. 所有表都支持标准的 GraphQL 查询、变更${
-							enableSubscriptions === 'true' ? '和订阅' : ''
-						}操作</p>
-						<p>3. 动态表（store_*）会根据 table_fields 元数据自动生成字段</p>
-						<p>4. 系统表提供 sui-indexer 的核心数据访问</p>
-						${
-							enableSubscriptions === 'true'
-								? '<p>5. 使用 WebSocket 进行实时数据订阅</p>'
-								: ''
-						}
+						<h3>💡 Usage Tips</h3>
+						<p>1. Visit <strong>Enhanced GraphQL Playground</strong> for better query experience</p>
+						<p>   • 📊 Visual Schema Explorer - Click-to-build queries</p>
+						<p>   • 🎨 Modern UI interface and enhanced code highlighting</p>
+						<p>   • 📝 Code export feature - Generate client code in multiple languages</p>
+						<p>   • ⌨️ Keyboard shortcuts support - Ctrl/Cmd+Enter to execute queries</p>
+						<p>2. All tables support standard GraphQL query, mutation${
+              enableSubscriptions === 'true' ? ' and subscription' : ''
+            } operations</p>
+						<p>3. Dynamic tables (store_*) automatically generate fields based on table_fields metadata</p>
+						<p>4. System tables provide core data access for sui-indexer</p>
+						${enableSubscriptions === 'true' ? '<p>5. Use WebSocket for real-time data subscriptions</p>' : ''}
 					</div>
 				</div>
 			</body>

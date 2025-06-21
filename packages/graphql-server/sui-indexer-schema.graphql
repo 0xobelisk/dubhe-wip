@@ -223,13 +223,13 @@ type Query implements Node {
     nodeId: ID!
   ): TableMetadatum
 
-  """获取所有store表的Schema信息"""
+  """Get Schema information for all store tables"""
   storeSchema: JSON
 
-  """查询指定store表的数据"""
+  """Query data from specified store table"""
   storeData(table: String!): JSON
 
-  """获取所有可用的store表名列表"""
+  """Get list of all available store table names"""
   availableStoreTables: [String!]!
 }
 

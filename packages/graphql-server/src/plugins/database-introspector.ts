@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-// 数据库表结构接口
+// Database table structure interface
 export interface TableField {
   field_name: string;
   field_type: string;
@@ -13,11 +13,11 @@ export interface DynamicTable {
   fields: TableField[];
 }
 
-// 扫描数据库表结构
+// Scan database table structure
 export class DatabaseIntrospector {
   constructor(private pool: Pool, private schema: string = 'public') {}
 
-  // 获取所有动态创建的 store_* 表
+  // Get all dynamically created store_* tables
   async getStoreTables(): Promise<string[]> {
     const result = await this.pool.query(
       `
@@ -33,7 +33,7 @@ export class DatabaseIntrospector {
     return result.rows.map((row) => row.table_name);
   }
 
-  // 获取系统表（dubhe 相关表）
+  // Get system tables (dubhe related tables)
   async getSystemTables(): Promise<string[]> {
     const result = await this.pool.query(
       `
@@ -49,9 +49,9 @@ export class DatabaseIntrospector {
     return result.rows.map((row) => row.table_name);
   }
 
-  // 从 table_fields 表获取动态表的字段信息
+  // Get dynamic table field information from table_fields table
   async getDynamicTableFields(tableName: string): Promise<TableField[]> {
-    // 提取表名（去掉 store_ 前缀）
+    // Extract table name (remove store_ prefix)
     const baseTableName = tableName.replace('store_', '');
 
     const result = await this.pool.query(
@@ -67,7 +67,7 @@ export class DatabaseIntrospector {
     return result.rows;
   }
 
-  // 从系统表获取字段信息
+  // Get field information from system tables
   async getSystemTableFields(tableName: string): Promise<TableField[]> {
     const result = await this.pool.query(
       `
@@ -86,13 +86,13 @@ export class DatabaseIntrospector {
     return result.rows;
   }
 
-  // 获取所有表的完整信息
+  // Get complete information for all tables
   async getAllTables(): Promise<DynamicTable[]> {
     const storeTables = await this.getStoreTables();
     const systemTables = await this.getSystemTables();
     const allTables: DynamicTable[] = [];
 
-    // 处理动态表
+    // Process dynamic tables
     for (const tableName of storeTables) {
       const fields = await this.getDynamicTableFields(tableName);
       allTables.push({
@@ -101,7 +101,7 @@ export class DatabaseIntrospector {
       });
     }
 
-    // 处理系统表
+    // Process system tables
     for (const tableName of systemTables) {
       const fields = await this.getSystemTableFields(tableName);
       allTables.push({
@@ -113,13 +113,13 @@ export class DatabaseIntrospector {
     return allTables;
   }
 
-  // 测试数据库连接
+  // Test database connection
   async testConnection(): Promise<boolean> {
     try {
       await this.pool.query('SELECT NOW() as current_time');
       return true;
     } catch (error) {
-      console.error('数据库连接测试失败:', error);
+      console.error('Database connection test failed:', error);
       return false;
     }
   }

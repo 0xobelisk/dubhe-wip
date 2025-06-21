@@ -1,206 +1,186 @@
-// 订阅配置管理器 - 支持三种订阅模式的动态配置
+// Subscription configuration manager - supports dynamic configuration for three subscription modes
 
 export interface SubscriptionCapabilities {
-	liveQueries: boolean;
-	pgSubscriptions: boolean;
-	nativeWebSocket: boolean;
+  liveQueries: boolean;
+  pgSubscriptions: boolean;
+  nativeWebSocket: boolean;
 }
 
 export interface SubscriptionConfig {
-	// 基础配置
-	enableSubscriptions: boolean;
+  // Basic configuration
+  enableSubscriptions: boolean;
 
-	// 能力配置
-	capabilities: SubscriptionCapabilities;
+  // Capability configuration
+  capabilities: SubscriptionCapabilities;
 
-	// 数据库配置检测
-	walLevel: 'minimal' | 'replica' | 'logical';
-	pgVersion: string;
+  // Database configuration detection
+  walLevel: 'minimal' | 'replica' | 'logical';
+  pgVersion: string;
 
-	// 端口配置
-	graphqlPort: number;
-	websocketPort?: number;
+  // Port configuration
+  graphqlPort: number;
+  websocketPort?: number;
 
-	// 性能配置
-	maxConnections: number;
-	heartbeatInterval: number;
+  // Performance configuration
+  maxConnections: number;
+  heartbeatInterval: number;
 
-	// 调试配置
-	enableNotificationLogging: boolean;
-	enablePerformanceMetrics: boolean;
+  // Debug configuration
+  enableNotificationLogging: boolean;
+  enablePerformanceMetrics: boolean;
 }
 
 export class SubscriptionConfigManager {
-	private config: SubscriptionConfig;
+  private config: SubscriptionConfig;
 
-	constructor(envVars: Record<string, string>) {
-		this.config = this.parseEnvironmentVariables(envVars);
-	}
+  constructor(envVars: Record<string, string>) {
+    this.config = this.parseEnvironmentVariables(envVars);
+  }
 
-	// 从环境变量解析配置
-	private parseEnvironmentVariables(
-		env: Record<string, string>
-	): SubscriptionConfig {
-		const enableSubscriptions = env.ENABLE_SUBSCRIPTIONS !== 'false'; // 默认启用，除非明确设置为false
+  // Parse configuration from environment variables
+  private parseEnvironmentVariables(env: Record<string, string>): SubscriptionConfig {
+    const enableSubscriptions = env.ENABLE_SUBSCRIPTIONS !== 'false'; // Default enabled unless explicitly set to false
 
-		// 自动检测WAL级别（实际应用中通过数据库查询）
-		const walLevel = this.detectWalLevel(env.DATABASE_URL);
+    // Auto-detect WAL level (in actual applications, query through database)
+    const walLevel = this.detectWalLevel(env.DATABASE_URL);
 
-		// 根据WAL级别和环境变量确定能力 - 默认启用所有功能
-		const capabilities: SubscriptionCapabilities = {
-			liveQueries:
-				enableSubscriptions &&
-				env.ENABLE_LIVE_QUERIES !== 'false' &&
-				walLevel === 'logical',
+    // Determine capabilities based on WAL level and environment variables - default enable all features
+    const capabilities: SubscriptionCapabilities = {
+      liveQueries:
+        enableSubscriptions && env.ENABLE_LIVE_QUERIES !== 'false' && walLevel === 'logical',
 
-			pgSubscriptions:
-				enableSubscriptions && env.ENABLE_PG_SUBSCRIPTIONS !== 'false',
+      pgSubscriptions: enableSubscriptions && env.ENABLE_PG_SUBSCRIPTIONS !== 'false',
 
-			nativeWebSocket:
-				enableSubscriptions && env.ENABLE_NATIVE_WEBSOCKET !== 'false',
-		};
+      nativeWebSocket: enableSubscriptions && env.ENABLE_NATIVE_WEBSOCKET !== 'false'
+    };
 
-		return {
-			enableSubscriptions,
-			capabilities,
-			walLevel,
-			pgVersion: '13+', // 实际应用中通过查询获取
+    return {
+      enableSubscriptions,
+      capabilities,
+      walLevel,
+      pgVersion: '13+', // In actual applications, get through query
 
-			graphqlPort: parseInt(env.PORT || '4000'),
-			websocketPort: env.REALTIME_PORT
-				? parseInt(env.REALTIME_PORT)
-				: undefined,
+      graphqlPort: parseInt(env.PORT || '4000'),
+      websocketPort: env.REALTIME_PORT ? parseInt(env.REALTIME_PORT) : undefined,
 
-			maxConnections: parseInt(
-				env.MAX_SUBSCRIPTION_CONNECTIONS || '1000'
-			),
-			heartbeatInterval: parseInt(
-				env.SUBSCRIPTION_HEARTBEAT_INTERVAL || '30000'
-			),
+      maxConnections: parseInt(env.MAX_SUBSCRIPTION_CONNECTIONS || '1000'),
+      heartbeatInterval: parseInt(env.SUBSCRIPTION_HEARTBEAT_INTERVAL || '30000'),
 
-			enableNotificationLogging: env.DEBUG_NOTIFICATIONS === 'true',
-			enablePerformanceMetrics:
-				env.ENABLE_SUBSCRIPTION_METRICS === 'true',
-		};
-	}
+      enableNotificationLogging: env.DEBUG_NOTIFICATIONS === 'true',
+      enablePerformanceMetrics: env.ENABLE_SUBSCRIPTION_METRICS === 'true'
+    };
+  }
 
-	// 检测数据库WAL级别
-	private detectWalLevel(
-		databaseUrl?: string
-	): 'minimal' | 'replica' | 'logical' {
-		// 实际应用中应该查询数据库
-		// SELECT setting FROM pg_settings WHERE name = 'wal_level';
+  // Detect database WAL level
+  private detectWalLevel(databaseUrl?: string): 'minimal' | 'replica' | 'logical' {
+    // In actual applications should query database
+    // SELECT setting FROM pg_settings WHERE name = 'wal_level';
 
-		// 目前返回默认值
-		return 'replica';
-	}
+    // Currently return default value
+    return 'replica';
+  }
 
-	// 获取当前配置
-	getConfig(): SubscriptionConfig {
-		return { ...this.config };
-	}
+  // Get current configuration
+  getConfig(): SubscriptionConfig {
+    return { ...this.config };
+  }
 
-	// 检查特定能力是否可用
-	isCapabilityEnabled(capability: keyof SubscriptionCapabilities): boolean {
-		return this.config.capabilities[capability];
-	}
+  // Check if specific capability is available
+  isCapabilityEnabled(capability: keyof SubscriptionCapabilities): boolean {
+    return this.config.capabilities[capability];
+  }
 
-	// 获取推荐的订阅方法
-	getRecommendedSubscriptionMethod(): string {
-		if (this.config.capabilities.liveQueries) {
-			return 'live-queries';
-		} else if (this.config.capabilities.pgSubscriptions) {
-			return 'pg-subscriptions';
-		} else if (this.config.capabilities.nativeWebSocket) {
-			return 'native-websocket';
-		} else {
-			return 'none';
-		}
-	}
+  // Get recommended subscription method
+  getRecommendedSubscriptionMethod(): string {
+    if (this.config.capabilities.liveQueries) {
+      return 'live-queries';
+    } else if (this.config.capabilities.pgSubscriptions) {
+      return 'pg-subscriptions';
+    } else if (this.config.capabilities.nativeWebSocket) {
+      return 'native-websocket';
+    } else {
+      return 'none';
+    }
+  }
 
-	// 生成客户端配置
-	generateClientConfig() {
-		const baseUrl = `http://localhost:${this.config.graphqlPort}`;
+  // Generate client configuration
+  generateClientConfig() {
+    const baseUrl = `http://localhost:${this.config.graphqlPort}`;
 
-		return {
-			graphqlEndpoint: `${baseUrl}/graphql`,
-			subscriptionEndpoint:
-				this.config.capabilities.pgSubscriptions ||
-				this.config.capabilities.liveQueries
-					? `ws://localhost:${this.config.graphqlPort}/graphql`
-					: undefined,
-			nativeWebSocketEndpoint: this.config.capabilities.nativeWebSocket
-				? `ws://localhost:${
-						this.config.websocketPort || this.config.graphqlPort
-				  }`
-				: undefined,
-			capabilities: this.config.capabilities,
-			recommendedMethod: this.getRecommendedSubscriptionMethod(),
-		};
-	}
+    return {
+      graphqlEndpoint: `${baseUrl}/graphql`,
+      subscriptionEndpoint:
+        this.config.capabilities.pgSubscriptions || this.config.capabilities.liveQueries
+          ? `ws://localhost:${this.config.graphqlPort}/graphql`
+          : undefined,
+      nativeWebSocketEndpoint: this.config.capabilities.nativeWebSocket
+        ? `ws://localhost:${this.config.websocketPort || this.config.graphqlPort}`
+        : undefined,
+      capabilities: this.config.capabilities,
+      recommendedMethod: this.getRecommendedSubscriptionMethod()
+    };
+  }
 
-	// 生成PostGraphile配置 - 简化版本，只保留listen订阅
-	generatePostGraphileConfig() {
-		return {
-			subscriptions: this.config.enableSubscriptions,
-			live: false, // 禁用live queries，只使用listen订阅
-			simpleSubscriptions: this.config.capabilities.pgSubscriptions,
+  // Generate PostGraphile configuration - simplified version, only keep listen subscriptions
+  generatePostGraphileConfig() {
+    return {
+      subscriptions: this.config.enableSubscriptions,
+      live: false, // Disable live queries, only use listen subscriptions
+      simpleSubscriptions: this.config.capabilities.pgSubscriptions,
 
-			// 性能配置 - 为listen订阅优化
-			pgSettings: {
-				statement_timeout: '30s',
-				default_transaction_isolation: 'read committed',
-			},
+      // Performance configuration - optimized for listen subscriptions
+      pgSettings: {
+        statement_timeout: '30s',
+        default_transaction_isolation: 'read committed'
+      },
 
-			// 监控配置
-			allowExplain: this.config.enablePerformanceMetrics,
-			disableQueryLog: !this.config.enableNotificationLogging,
-		};
-	}
+      // Monitoring configuration
+      allowExplain: this.config.enablePerformanceMetrics,
+      disableQueryLog: !this.config.enableNotificationLogging
+    };
+  }
 
-	// 生成环境变量说明
-	generateDocumentation(): string {
-		return `
-# 📡 订阅系统配置指南
+  // Generate environment variable documentation
+  generateDocumentation(): string {
+    return `
+# 📡 Subscription System Configuration Guide
 
-## 基础配置
-ENABLE_SUBSCRIPTIONS=false         # 禁用订阅功能（默认启用，设置为false禁用）
+## Basic Configuration
+ENABLE_SUBSCRIPTIONS=false         # Disable subscription features (default enabled, set to false to disable)
 
-## 能力配置 (可选，默认自动检测)
-ENABLE_LIVE_QUERIES=true           # 启用@live指令 (需要wal_level=logical)
-ENABLE_PG_SUBSCRIPTIONS=true       # 启用PostgreSQL订阅 
-ENABLE_NATIVE_WEBSOCKET=true       # 启用原生WebSocket
+## Capability Configuration (optional, auto-detect by default)
+ENABLE_LIVE_QUERIES=true           # Enable @live directive (requires wal_level=logical)
+ENABLE_PG_SUBSCRIPTIONS=true       # Enable PostgreSQL subscriptions 
+ENABLE_NATIVE_WEBSOCKET=true       # Enable native WebSocket
 
-## 端口配置
-PORT=4000                          # GraphQL端口
-REALTIME_PORT=4001                 # 原生WebSocket端口 (可选)
+## Port Configuration
+PORT=4000                          # GraphQL port
+REALTIME_PORT=4001                 # Native WebSocket port (optional)
 
-## 性能配置
-MAX_SUBSCRIPTION_CONNECTIONS=1000  # 最大连接数
-SUBSCRIPTION_HEARTBEAT_INTERVAL=30000  # 心跳间隔(ms)
+## Performance Configuration
+MAX_SUBSCRIPTION_CONNECTIONS=1000  # Maximum connections
+SUBSCRIPTION_HEARTBEAT_INTERVAL=30000  # Heartbeat interval (ms)
 
-## 调试配置
-DEBUG_NOTIFICATIONS=false         # 通知日志
-ENABLE_SUBSCRIPTION_METRICS=false # 性能指标
+## Debug Configuration
+DEBUG_NOTIFICATIONS=false         # Notification logging
+ENABLE_SUBSCRIPTION_METRICS=false # Performance metrics
 
-## 当前配置状态:
-- 订阅功能: ${this.config.enableSubscriptions ? '✅ 已启用' : '❌ 已禁用'}
-- Live Queries: ${
-			this.config.capabilities.liveQueries ? '✅ 可用' : '❌ 不可用'
-		}
+## Current Configuration Status:
+- Subscription Features: ${this.config.enableSubscriptions ? '✅ Enabled' : '❌ Disabled'}
+- Live Queries: ${this.config.capabilities.liveQueries ? '✅ Available' : '❌ Not Available'}
 - PG Subscriptions: ${
-			this.config.capabilities.pgSubscriptions ? '✅ 可用' : '❌ 不可用'
-		}  
+      this.config.capabilities.pgSubscriptions ? '✅ Available' : '❌ Not Available'
+    }  
 - Native WebSocket: ${
-			this.config.capabilities.nativeWebSocket ? '✅ 可用' : '❌ 不可用'
-		}
+      this.config.capabilities.nativeWebSocket ? '✅ Available' : '❌ Not Available'
+    }
 - WAL Level: ${this.config.walLevel}
-- 推荐方法: ${this.getRecommendedSubscriptionMethod()}
+- Recommended Method: ${this.getRecommendedSubscriptionMethod()}
 		`;
-	}
+  }
 }
 
-// 导出单例实例
+// Export singleton instance
 export const subscriptionConfig = new SubscriptionConfigManager(
-	process.env as Record<string, string>
+  process.env as Record<string, string>
 );

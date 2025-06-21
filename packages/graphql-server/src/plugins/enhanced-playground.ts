@@ -1,20 +1,20 @@
-// 增强版 GraphQL Playground 插件
-// 基于 GraphiQL 和 Explorer 插件提供更好的可视化体验
+// Enhanced GraphQL Playground plugin
+// Provides better visual experience based on GraphiQL and Explorer plugin
 
 import type { IncomingMessage, ServerResponse } from 'http';
 
 export interface PlaygroundOptions {
-	url: string;
-	subscriptionUrl?: string;
-	title?: string;
-	subtitle?: string;
+  url: string;
+  subscriptionUrl?: string;
+  title?: string;
+  subtitle?: string;
 }
 
 export function createEnhancedPlayground(
-	options: PlaygroundOptions
+  options: PlaygroundOptions
 ): (req: IncomingMessage, res: ServerResponse, config?: any) => string {
-	return (_req: IncomingMessage, _res: ServerResponse, _config?: any) => {
-		return `
+  return (_req: IncomingMessage, _res: ServerResponse, _config?: any) => {
+    return `
     
             <!--
  *  Copyright (c) 2021 GraphQL Contributors
@@ -101,5 +101,5 @@ export function createEnhancedPlayground(
     </script>
   </body>
 </html>`;
-	};
+  };
 }
