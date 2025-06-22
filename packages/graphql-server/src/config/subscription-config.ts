@@ -15,7 +15,6 @@ export interface SubscriptionConfig {
 
   // Database configuration detection
   walLevel: 'minimal' | 'replica' | 'logical';
-  pgVersion: string;
 
   // Port configuration
   graphqlPort: number;
@@ -30,44 +29,58 @@ export interface SubscriptionConfig {
   enablePerformanceMetrics: boolean;
 }
 
+// Subscription configuration input parameter interface
+export interface SubscriptionConfigInput {
+  enableSubscriptions: boolean;
+  databaseUrl: string;
+  port: string;
+  enableLiveQueries?: boolean;
+  enablePgSubscriptions?: boolean;
+  enableNativeWebSocket?: boolean;
+  realtimePort?: string;
+  maxConnections?: string;
+  heartbeatInterval?: string;
+  debugNotifications?: boolean;
+  enableMetrics?: boolean;
+}
+
 export class SubscriptionConfigManager {
   private config: SubscriptionConfig;
 
-  constructor(envVars: Record<string, string>) {
-    this.config = this.parseEnvironmentVariables(envVars);
+  constructor(configInput: SubscriptionConfigInput) {
+    this.config = this.parseConfigInput(configInput);
   }
 
-  // Parse configuration from environment variables
-  private parseEnvironmentVariables(env: Record<string, string>): SubscriptionConfig {
-    const enableSubscriptions = env.ENABLE_SUBSCRIPTIONS !== 'false'; // Default enabled unless explicitly set to false
+  // Parse configuration from input parameters
+  private parseConfigInput(input: SubscriptionConfigInput): SubscriptionConfig {
+    const enableSubscriptions = input.enableSubscriptions;
 
     // Auto-detect WAL level (in actual applications, query through database)
-    const walLevel = this.detectWalLevel(env.DATABASE_URL);
+    const walLevel = this.detectWalLevel(input.databaseUrl);
 
-    // Determine capabilities based on WAL level and environment variables - default enable all features
+    // Determine capabilities based on input parameters - default enable all features when subscriptions are enabled
     const capabilities: SubscriptionCapabilities = {
       liveQueries:
-        enableSubscriptions && env.ENABLE_LIVE_QUERIES !== 'false' && walLevel === 'logical',
+        enableSubscriptions && input.enableLiveQueries !== false && walLevel === 'logical',
 
-      pgSubscriptions: enableSubscriptions && env.ENABLE_PG_SUBSCRIPTIONS !== 'false',
+      pgSubscriptions: enableSubscriptions && input.enablePgSubscriptions !== false,
 
-      nativeWebSocket: enableSubscriptions && env.ENABLE_NATIVE_WEBSOCKET !== 'false'
+      nativeWebSocket: enableSubscriptions && input.enableNativeWebSocket !== false
     };
 
     return {
       enableSubscriptions,
       capabilities,
       walLevel,
-      pgVersion: '13+', // In actual applications, get through query
 
-      graphqlPort: parseInt(env.PORT || '4000'),
-      websocketPort: env.REALTIME_PORT ? parseInt(env.REALTIME_PORT) : undefined,
+      graphqlPort: parseInt(input.port),
+      websocketPort: input.realtimePort ? parseInt(input.realtimePort) : undefined,
 
-      maxConnections: parseInt(env.MAX_SUBSCRIPTION_CONNECTIONS || '1000'),
-      heartbeatInterval: parseInt(env.SUBSCRIPTION_HEARTBEAT_INTERVAL || '30000'),
+      maxConnections: parseInt(input.maxConnections || '1000'),
+      heartbeatInterval: parseInt(input.heartbeatInterval || '30000'),
 
-      enableNotificationLogging: env.DEBUG_NOTIFICATIONS === 'true',
-      enablePerformanceMetrics: env.ENABLE_SUBSCRIPTION_METRICS === 'true'
+      enableNotificationLogging: input.debugNotifications === true,
+      enablePerformanceMetrics: input.enableMetrics === true
     };
   }
 
@@ -83,11 +96,6 @@ export class SubscriptionConfigManager {
   // Get current configuration
   getConfig(): SubscriptionConfig {
     return { ...this.config };
-  }
-
-  // Check if specific capability is available
-  isCapabilityEnabled(capability: keyof SubscriptionCapabilities): boolean {
-    return this.config.capabilities[capability];
   }
 
   // Get recommended subscription method
@@ -146,24 +154,32 @@ export class SubscriptionConfigManager {
 # 📡 Subscription System Configuration Guide
 
 ## Basic Configuration
-ENABLE_SUBSCRIPTIONS=false         # Disable subscription features (default enabled, set to false to disable)
+enableSubscriptions=${
+      this.config.enableSubscriptions
+    }         # Enable/disable subscription features
 
 ## Capability Configuration (optional, auto-detect by default)
-ENABLE_LIVE_QUERIES=true           # Enable @live directive (requires wal_level=logical)
-ENABLE_PG_SUBSCRIPTIONS=true       # Enable PostgreSQL subscriptions 
-ENABLE_NATIVE_WEBSOCKET=true       # Enable native WebSocket
+enableLiveQueries=${
+      this.config.capabilities.liveQueries
+    }           # Enable @live directive (requires wal_level=logical)
+enablePgSubscriptions=${
+      this.config.capabilities.pgSubscriptions
+    }       # Enable PostgreSQL subscriptions 
+enableNativeWebSocket=${this.config.capabilities.nativeWebSocket}       # Enable native WebSocket
 
 ## Port Configuration
-PORT=4000                          # GraphQL port
-REALTIME_PORT=4001                 # Native WebSocket port (optional)
+port=${this.config.graphqlPort}                          # GraphQL port
+realtimePort=${
+      this.config.websocketPort || 'undefined'
+    }                 # Native WebSocket port (optional)
 
 ## Performance Configuration
-MAX_SUBSCRIPTION_CONNECTIONS=1000  # Maximum connections
-SUBSCRIPTION_HEARTBEAT_INTERVAL=30000  # Heartbeat interval (ms)
+maxConnections=${this.config.maxConnections}  # Maximum connections
+heartbeatInterval=${this.config.heartbeatInterval}  # Heartbeat interval (ms)
 
 ## Debug Configuration
-DEBUG_NOTIFICATIONS=false         # Notification logging
-ENABLE_SUBSCRIPTION_METRICS=false # Performance metrics
+debugNotifications=${this.config.enableNotificationLogging}         # Notification logging
+enableMetrics=${this.config.enablePerformanceMetrics} # Performance metrics
 
 ## Current Configuration Status:
 - Subscription Features: ${this.config.enableSubscriptions ? '✅ Enabled' : '❌ Disabled'}
@@ -180,7 +196,48 @@ ENABLE_SUBSCRIPTION_METRICS=false # Performance metrics
   }
 }
 
-// Export singleton instance
-export const subscriptionConfig = new SubscriptionConfigManager(
-  process.env as Record<string, string>
-);
+// Export singleton instance - lazy initialization
+let _subscriptionConfigInstance: SubscriptionConfigManager | null = null;
+
+export const subscriptionConfig = {
+  getConfig(): SubscriptionConfig {
+    if (!_subscriptionConfigInstance) {
+      throw new Error(
+        'Subscription config not initialized. Call refresh() first with configuration.'
+      );
+    }
+    return _subscriptionConfigInstance.getConfig();
+  },
+
+  generateClientConfig() {
+    if (!_subscriptionConfigInstance) {
+      throw new Error(
+        'Subscription config not initialized. Call refresh() first with configuration.'
+      );
+    }
+    return _subscriptionConfigInstance.generateClientConfig();
+  },
+
+  generatePostGraphileConfig() {
+    if (!_subscriptionConfigInstance) {
+      throw new Error(
+        'Subscription config not initialized. Call refresh() first with configuration.'
+      );
+    }
+    return _subscriptionConfigInstance.generatePostGraphileConfig();
+  },
+
+  generateDocumentation(): string {
+    if (!_subscriptionConfigInstance) {
+      throw new Error(
+        'Subscription config not initialized. Call refresh() first with configuration.'
+      );
+    }
+    return _subscriptionConfigInstance.generateDocumentation();
+  },
+
+  // Initialize/refresh configuration with input parameters
+  refresh(configInput: SubscriptionConfigInput) {
+    _subscriptionConfigInstance = new SubscriptionConfigManager(configInput);
+  }
+};

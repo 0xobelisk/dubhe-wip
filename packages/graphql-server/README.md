@@ -906,3 +906,210 @@ DISABLE_QUERY_LOG=false     # 设置为true禁用SQL查询日志
 ENABLE_QUERY_LOG=false      # 生产环境中设置为true启用查询日志
 QUERY_TIMEOUT=30000         # GraphQL查询超时时间（毫秒）
 ```
+
+# Dubhe GraphQL Server
+
+一个为区块链数据索引设计的强大GraphQL服务器。
+
+## 功能特性
+
+- 🚀 高性能 GraphQL API
+- 📡 实时订阅支持 (WebSocket)
+- 🔍 动态查询和过滤
+- 📊 数据库连接池管理
+- 🛡️ 类型安全的TypeScript实现
+- 🔧 灵活的配置选项
+
+## 安装
+
+```bash
+# 使用npm
+npm install @0xobelisk/graphql-server
+
+# 使用yarn
+yarn add @0xobelisk/graphql-server
+
+# 使用pnpm
+pnpm add @0xobelisk/graphql-server
+```
+
+## CLI使用方法
+
+安装包后，你可以使用CLI命令行工具：
+
+### 1. 启动服务器
+
+```bash
+# 使用默认配置启动
+dubhe-graphql-server start
+
+# 自定义端口和数据库
+dubhe-graphql-server start -p 3000 -d postgres://user:pass@localhost/mydb
+
+# 禁用CORS和订阅功能
+dubhe-graphql-server start --no-cors --no-subscriptions
+
+# 生产环境模式启动
+dubhe-graphql-server start --env production
+```
+
+### 2. 检查服务器健康状态
+
+```bash
+# 检查本地服务器
+dubhe-graphql-server health
+
+# 检查远程服务器
+dubhe-graphql-server health -u https://api.example.com
+```
+
+### 3. 显示当前配置
+
+```bash
+dubhe-graphql-server config
+```
+
+### 4. 生成配置文件
+
+```bash
+# 生成默认.env文件
+dubhe-graphql-server init
+
+# 生成到指定文件
+dubhe-graphql-server init -o .env.local
+```
+
+### CLI选项说明
+
+| 选项 | 简写 | 默认值 | 说明 |
+|------|------|--------|------|
+| `--port` | `-p` | `4000` | 服务器端口 |
+| `--database-url` | `-d` | `postgres://postgres:postgres@127.0.0.1:5432/postgres` | 数据库连接URL |
+| `--schema` | `-s` | `public` | PostgreSQL模式名称 |
+| `--endpoint` | `-e` | `/graphql` | GraphQL端点路径 |
+| `--cors` | - | `true` | 启用CORS (使用 --no-cors 禁用) |
+| `--subscriptions` | - | `true` | 启用GraphQL订阅 (使用 --no-subscriptions 禁用) |
+| `--env` | - | `development` | 环境模式 (development/production) |
+
+## Docker使用
+
+### 使用预构建镜像
+
+```bash
+docker run -p 4000:4000 \
+  -e DATABASE_URL=postgres://user:pass@host:5432/db \
+  @0xobelisk/graphql-server:latest
+```
+
+### 在Docker中使用CLI
+
+```dockerfile
+FROM node:18-alpine
+
+# 安装包
+RUN npm install -g @0xobelisk/graphql-server
+
+# 启动服务器
+CMD ["dubhe-graphql-server", "start"]
+```
+
+## 环境变量配置
+
+创建 `.env` 文件或设置环境变量：
+
+```env
+# 服务器配置
+PORT=4000
+NODE_ENV=development
+
+# 数据库配置
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres
+PG_SCHEMA=public
+
+# GraphQL配置
+GRAPHQL_ENDPOINT=/graphql
+ENABLE_CORS=true
+ENABLE_SUBSCRIPTIONS=true
+```
+
+## 程序化使用
+
+你也可以在代码中直接使用：
+
+```typescript
+import { startServer } from '@0xobelisk/graphql-server';
+
+// 设置环境变量
+process.env.PORT = '4000';
+process.env.DATABASE_URL = 'postgres://...';
+
+// 启动服务器
+await startServer();
+```
+
+## API端点
+
+服务器启动后，可以访问以下端点：
+
+- `http://localhost:4000/` - 欢迎页面
+- `http://localhost:4000/graphql` - GraphQL API端点
+- `http://localhost:4000/playground` - GraphQL Playground
+- `http://localhost:4000/health` - 健康检查
+- `http://localhost:4000/subscription-config` - 订阅配置信息
+- `http://localhost:4000/subscription-docs` - 订阅使用文档
+
+## 订阅功能
+
+服务器支持GraphQL订阅，可以实时监听数据变化：
+
+```graphql
+subscription {
+  storeRecordUpdated {
+    id
+    tableName
+    operation
+    data
+  }
+}
+```
+
+## 故障排除
+
+### 常见问题
+
+1. **数据库连接失败**
+   - 检查 `DATABASE_URL` 是否正确
+   - 确保数据库服务器正在运行
+   - 验证数据库用户权限
+
+2. **表结构未找到**
+   - 确保 sui-rust-indexer 正在运行
+   - 检查数据库中是否存在预期的表结构
+
+3. **端口被占用**
+   - 使用 `-p` 或 `--port` 指定其他端口
+   - 检查是否有其他进程占用端口
+
+### 调试模式
+
+在开发环境下，设置 `NODE_ENV=development` 可以获得更详细的日志输出。
+
+## 开发
+
+```bash
+# 安装依赖
+pnpm install
+
+# 开发模式启动
+pnpm dev
+
+# 构建
+pnpm build
+
+# 生产模式启动
+pnpm start
+```
+
+## 许可证
+
+MIT License

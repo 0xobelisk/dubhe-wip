@@ -2,30 +2,34 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# 安装 pnpm
+# Install pnpm
 RUN npm install -g pnpm
 
-# 复制依赖文件
+# Copy dependency files
 COPY package.json pnpm-lock.yaml* ./
 
-# 安装依赖
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# 复制源代码
+# Copy source code
 COPY . .
 
-# 构建项目
+# Build project
 RUN pnpm build
 
-# 创建非root用户
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
-# 设置用户
+# Set user
 USER nodejs
 
-# 暴露端口
+# Expose port
 EXPOSE 4000
 
-# 启动应用
-CMD ["pnpm", "start"] 
+# Start application (can use CLI or direct start)
+# Start using CLI method
+CMD ["node", "dist/cli.js", "start"]
+
+# Or start directly (optional)
+# CMD ["pnpm", "start"] 
