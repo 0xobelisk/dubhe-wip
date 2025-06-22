@@ -18,7 +18,7 @@ export interface ComponentLoggerMethods {
 }
 
 /**
- * 基于Pino的高性能日志系统
+ * High-performance logging system based on Pino
  */
 export class Logger {
   private pinoInstance: pino.Logger;
@@ -39,7 +39,7 @@ export class Logger {
   }
 
   /**
-   * 确保日志目录存在
+   * Ensure logs directory exists
    */
   private ensureLogsDirectory(): void {
     if (this.config.enableFileLogging && !fs.existsSync(this.config.logsDir)) {
@@ -48,7 +48,7 @@ export class Logger {
   }
 
   /**
-   * 创建Pino实例
+   * Create Pino instance
    */
   private createPinoInstance(): pino.Logger {
     const pinoOptions: pino.LoggerOptions = {
@@ -68,10 +68,10 @@ export class Logger {
       }
     };
 
-    // 如果启用文件日志，使用multistream
+    // If file logging is enabled, use multistream
     if (this.config.enableFileLogging) {
       const streams = [
-        // Pretty打印到控制台
+        // Pretty print to console
         {
           stream: pino.transport({
             target: 'pino-pretty',
@@ -85,7 +85,7 @@ export class Logger {
             }
           })
         },
-        // JSON格式到文件
+        // JSON format to file
         {
           stream: pino.destination({
             dest: path.join(this.config.logsDir, 'combined.log'),
@@ -97,7 +97,7 @@ export class Logger {
       return pino(pinoOptions, pino.multistream(streams));
     }
 
-    // 只输出到控制台的pretty格式
+    // Only output to console in pretty format
     return pino({
       ...pinoOptions,
       transport: {
@@ -115,7 +115,7 @@ export class Logger {
   }
 
   /**
-   * 设置异常处理器
+   * Setup exception handlers
    */
   private setupExceptionHandlers(): void {
     process.on('uncaughtException', (error) => {
@@ -130,7 +130,7 @@ export class Logger {
   }
 
   /**
-   * 创建带组件上下文的logger
+   * Create component logger with context
    */
   public createComponentLogger(component: string): ComponentLoggerMethods {
     const componentLogger = this.pinoInstance.child({ component });
@@ -157,14 +157,14 @@ export class Logger {
   }
 
   /**
-   * 获取原始Pino实例
+   * Get raw Pino instance
    */
   public getPinoInstance(): pino.Logger {
     return this.pinoInstance;
   }
 
   /**
-   * 记录性能指标
+   * Log performance metrics
    */
   public logPerformance(operation: string, startTime: number, meta?: any): void {
     const duration = Date.now() - startTime;
@@ -176,7 +176,7 @@ export class Logger {
   }
 
   /**
-   * 记录Express HTTP请求
+   * Log Express HTTP requests
    */
   public logExpress(
     method: string,
@@ -189,7 +189,7 @@ export class Logger {
     const httpLogger = this.createComponentLogger('express');
     const message = `${method} ${path} - ${statusCode} (${duration}ms)`;
 
-    // 根据状态码选择日志级别
+    // Choose log level based on status code
     if (statusCode >= 500) {
       httpLogger.error(message, meta);
     } else if (statusCode >= 400) {
@@ -200,7 +200,7 @@ export class Logger {
   }
 
   /**
-   * 记录数据库操作
+   * Log database operations
    */
   public logDatabaseOperation(operation: string, table?: string, meta?: any): void {
     const dbLogger = this.createComponentLogger('database');
@@ -211,7 +211,7 @@ export class Logger {
   }
 
   /**
-   * 记录WebSocket事件
+   * Log WebSocket events
    */
   public logWebSocketEvent(event: string, clientCount?: number, meta?: any): void {
     const wsLogger = this.createComponentLogger('websocket');
@@ -222,7 +222,7 @@ export class Logger {
   }
 
   /**
-   * 记录GraphQL查询
+   * Log GraphQL queries
    */
   public logGraphQLQuery(operation: string, query?: string, variables?: any): void {
     const gqlLogger = this.createComponentLogger('graphql');
@@ -233,10 +233,10 @@ export class Logger {
   }
 }
 
-// 创建默认logger实例
+// Create default logger instance
 const defaultLogger = new Logger();
 
-// 导出预定义的组件logger（保持向后兼容）
+// Export predefined component loggers (maintain backward compatibility)
 export const dbLogger = defaultLogger.createComponentLogger('database');
 export const serverLogger = defaultLogger.createComponentLogger('server');
 export const httpLogger = defaultLogger.createComponentLogger('express');
@@ -247,7 +247,7 @@ export const systemLogger = defaultLogger.createComponentLogger('system');
 export const authLogger = defaultLogger.createComponentLogger('auth');
 export const perfLogger = defaultLogger.createComponentLogger('performance');
 
-// 导出工具函数（保持向后兼容）
+// Export utility functions (maintain backward compatibility)
 export const createComponentLogger = (component: string) =>
   defaultLogger.createComponentLogger(component);
 
@@ -271,5 +271,5 @@ export const logWebSocketEvent = (event: string, clientCount?: number, meta?: an
 export const logGraphQLQuery = (operation: string, query?: string, variables?: any) =>
   defaultLogger.logGraphQLQuery(operation, query, variables);
 
-// 默认导出（保持向后兼容）
+// Default export (maintain backward compatibility)
 export default defaultLogger.getPinoInstance();

@@ -21,75 +21,75 @@ export interface PostGraphileConfigOptions {
   queryTimeout: number;
 }
 
-// 创建 PostGraphile 配置
+// Create PostGraphile configuration
 export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
   const { port, nodeEnv, graphqlEndpoint, enableSubscriptions, enableCors, availableTables } =
     options;
 
-  // 构建GraphQL和WebSocket端点URL
+  // Build GraphQL and WebSocket endpoint URLs
   const baseUrl = `http://localhost:${port}`;
   const graphqlUrl = `${baseUrl}${graphqlEndpoint}`;
   const subscriptionUrl =
     enableSubscriptions === 'true' ? `ws://localhost:${port}${graphqlEndpoint}` : undefined;
 
-  // 创建插件钩子以支持WebSocket和订阅
+  // Create plugin hook to support WebSocket and subscriptions
   const pluginHook = makePluginHook([PgPubSub]);
 
   const config = {
-    // 基础配置 - 关闭默认GraphiQL
+    // Basic configuration - disable default GraphiQL
     graphiql: false,
     enhanceGraphiql: false,
     showErrorStack: nodeEnv === 'development',
     extendedErrors: nodeEnv === 'development' ? ['hint', 'detail', 'errcode'] : [],
 
-    // 功能配置 - 启用订阅
+    // Feature configuration - enable subscriptions
     subscriptions: enableSubscriptions === 'true',
-    live: enableSubscriptions === 'true', // 启用live功能以支持订阅
+    live: enableSubscriptions === 'true', // Enable live functionality to support subscriptions
     enableQueryBatching: true,
     enableCors: enableCors === 'true',
 
-    // 添加插件钩子以支持WebSocket
+    // Add plugin hook to support WebSocket
     pluginHook,
 
-    // 禁用所有mutation功能 - 只保留查询和订阅
+    // Disable all mutation functionality - only keep queries and subscriptions
     disableDefaultMutations: true,
 
-    // Schema 配置
+    // Schema configuration
     dynamicJson: true,
     setofFunctionsContainNulls: false,
     ignoreRBAC: false,
     ignoreIndexes: true,
 
-    // 日志控制配置
-    // 通过CLI参数控制SQL查询日志
+    // Log control configuration
+    // Control SQL query logs through CLI parameters
     disableQueryLog:
       options.disableQueryLog || (nodeEnv === 'production' && !options.enableQueryLog),
 
-    // 启用查询执行计划解释（仅开发环境）
+    // Enable query execution plan explanation (development environment only)
     allowExplain: nodeEnv === 'development',
 
-    // 监控PostgreSQL变化（仅开发环境）
+    // Monitor PostgreSQL changes (development environment only)
     watchPg: nodeEnv === 'development',
 
-    // GraphQL查询超时设置
+    // GraphQL query timeout setting
     queryTimeout: options.queryTimeout,
 
-    // GraphQL 端点 - 明确指定路由
+    // GraphQL endpoint - explicitly specify route
     graphqlRoute: graphqlEndpoint,
-    graphiqlRoute: '/graphiql', // GraphiQL界面路由
+    graphiqlRoute: '/graphiql', // GraphiQL interface route
 
-    // 添加自定义插件
+    // Add custom plugins
     appendPlugins: [
-      QueryFilterPlugin, // 必须在SimpleNamingPlugin之前执行
-      PgSimplifyInflectorPlugin, // 简化字段名，去掉ByXxxAndYyy后缀
-      SimpleNamingPlugin, // 已修复字段丢失问题
+      QueryFilterPlugin, // Must execute before SimpleNamingPlugin
+      PgSimplifyInflectorPlugin, // Simplify field names, remove ByXxxAndYyy suffixes
+      SimpleNamingPlugin, // Fixed field loss issue
       ConnectionFilterPlugin,
       AllFieldsFilterPlugin
     ],
 
-    // Connection Filter 插件的高级配置选项
+    // Advanced configuration options for Connection Filter plugin
     graphileBuildOptions: {
-      // 启用所有支持的操作符
+      // Enable all supported operators
       connectionFilterAllowedOperators: [
         'isNull',
         'equalTo',
@@ -122,7 +122,7 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
         'notEndsWithInsensitive'
       ],
 
-      // 支持所有字段类型的过滤 - 明确允许所有类型
+      // Support filtering for all field types - explicitly allow all types
       connectionFilterAllowedFieldTypes: [
         'String',
         'Int',
@@ -136,68 +136,68 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
         'BigInt'
       ],
 
-      // 启用逻辑操作符 (and, or, not)
+      // Enable logical operators (and, or, not)
       connectionFilterLogicalOperators: true,
 
-      // 启用关系过滤
+      // Enable relationship filtering
       connectionFilterRelations: true,
 
-      // 启用计算列过滤
+      // Enable computed column filtering
       connectionFilterComputedColumns: true,
 
-      // 启用数组过滤
+      // Enable array filtering
       connectionFilterArrays: true,
 
-      // 启用函数过滤
+      // Enable function filtering
       connectionFilterSetofFunctions: true,
 
-      // 允许空输入和空对象输入
+      // Allow null input and empty object input
       connectionFilterAllowNullInput: true,
       connectionFilterAllowEmptyObjectInput: true
     },
 
-    // 只包含检测到的表
+    // Only include detected tables
     includeExtensionResources: false,
 
-    // 排除不需要的表
+    // Exclude unnecessary tables
     ignoreTable: (tableName: string) => {
-      // 如果没有检测到任何表，允许所有表
+      // If no tables detected, allow all tables
       if (availableTables.length === 0) {
         return false;
       }
-      // 否则只包含检测到的表
+      // Otherwise only include detected tables
       return !availableTables.includes(tableName);
     },
 
-    // 导出 schema（开发环境）
+    // Export schema (development environment)
     exportGqlSchemaPath: nodeEnv === 'development' ? 'sui-indexer-schema.graphql' : undefined
   };
 
-  // 如果启用订阅，添加额外的PostgreSQL订阅配置
+  // If subscriptions are enabled, add additional PostgreSQL subscription configuration
   if (enableSubscriptions === 'true') {
     return {
       ...config,
-      // 使用专用数据库连接用于订阅
+      // Use dedicated database connection for subscriptions
       ownerConnectionString: options.databaseUrl,
 
-      // WebSocket配置
+      // WebSocket configuration
       websocketMiddlewares: [],
 
-      // PostgreSQL设置 - 为订阅优化
+      // PostgreSQL settings - optimized for subscriptions
       pgSettings: {
         statement_timeout: '30s',
-        // 为订阅设置适当的事务隔离级别
+        // Set appropriate transaction isolation level for subscriptions
         default_transaction_isolation: 'read committed'
       },
 
-      // 连接失败时重试
+      // Retry on connection failure
       retryOnInitFail: true,
 
-      // 性能优化
+      // Performance optimization
       pgDefaultRole: undefined,
       jwtSecret: undefined,
 
-      // 开发环境的额外配置
+      // Additional configuration for development environment
       ...(nodeEnv === 'development' && {
         queryCache: true,
         allowExplain: true
@@ -208,11 +208,11 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
   return config;
 }
 
-// 导出增强版playground的HTML生成器
+// Export enhanced playground HTML generator
 export function createPlaygroundHtml(options: PostGraphileConfigOptions): string {
   const { port, graphqlEndpoint, enableSubscriptions, availableTables } = options;
 
-  // 构建GraphQL和WebSocket端点URL
+  // Build GraphQL and WebSocket endpoint URLs
   const baseUrl = `http://localhost:${port}`;
   const graphqlUrl = `${baseUrl}${graphqlEndpoint}`;
   const subscriptionUrl =
@@ -222,8 +222,10 @@ export function createPlaygroundHtml(options: PostGraphileConfigOptions): string
     url: graphqlUrl,
     subscriptionUrl,
     title: 'Sui Indexer GraphQL Playground',
-    subtitle: `强大的GraphQL API | 已发现 ${availableTables.length} 个表 | ${
-      enableSubscriptions === 'true' ? '支持实时订阅' : '实时订阅已禁用'
+    subtitle: `Powerful GraphQL API | ${availableTables.length} tables discovered | ${
+      enableSubscriptions === 'true'
+        ? 'Real-time subscriptions supported'
+        : 'Real-time subscriptions disabled'
     }`
   })(null as any, null as any, {});
 }

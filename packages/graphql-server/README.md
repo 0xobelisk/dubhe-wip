@@ -1,119 +1,119 @@
 # 🚀 Universal GraphQL Server
 
-一个智能的 GraphQL 服务器适配器，能够自动连接到 `sui-rust-indexer` 创建的数据库，并动态生成完整的 GraphQL API。
+An intelligent GraphQL server adapter that can automatically connect to databases created by `sui-rust-indexer` and dynamically generate complete GraphQL APIs.
 
-## ✨ 核心特性
+## ✨ Core Features
 
-### 🎯 智能数据库适配
-- **动态扫描**: 自动扫描 `sui-rust-indexer` 创建的所有表结构
-- **PostGraphile 驱动**: 基于强大的 PostGraphile 自动生成 GraphQL API
-- **零配置**: 无需手动定义 schema，基于现有数据库自动推断
+### 🎯 Intelligent Database Adaptation
+- **Dynamic Scanning**: Automatically scans all table structures created by `sui-rust-indexer`
+- **PostGraphile Powered**: Based on the powerful PostGraphile to automatically generate GraphQL APIs
+- **Zero Configuration**: No need to manually define schemas, automatically inferred from existing databases
 
-### 🔍 高级过滤功能
-- **丰富的操作符**: 支持等于、大于、小于、包含、模糊匹配等20+种过滤操作符
-- **逻辑组合**: 支持AND、OR、NOT逻辑操作符进行复杂条件组合
-- **全字段过滤**: 自动为所有字段生成相应的过滤器
-- **类型智能**: 根据字段类型自动提供合适的过滤操作符
-- **关系过滤**: 支持基于关联表字段进行过滤
+### 🔍 Advanced Filtering Features
+- **Rich Operators**: Supports 20+ filtering operators including equals, greater than, less than, contains, fuzzy matching, etc.
+- **Logical Combinations**: Supports AND, OR, NOT logical operators for complex condition combinations
+- **Full Field Filtering**: Automatically generates corresponding filters for all fields
+- **Type Intelligence**: Automatically provides appropriate filtering operators based on field types
+- **Relationship Filtering**: Supports filtering based on related table fields
 
-### 📈 增强的排序和分页
-- **全字段排序**: 支持对任意字段进行升序/降序排序
-- **多字段排序**: 支持同时按多个字段排序
-- **高效分页**: Relay风格的cursor分页和offset分页
-- **性能优化**: 智能查询优化和索引建议
+### 📈 Enhanced Sorting and Pagination
+- **Full Field Sorting**: Supports ascending/descending sorting on any field
+- **Multi-Field Sorting**: Supports sorting by multiple fields simultaneously
+- **Efficient Pagination**: Relay-style cursor pagination and offset pagination
+- **Performance Optimization**: Intelligent query optimization and index suggestions
 
-### 📡 实时功能
-- **WebSocket 支持**: 完整的 GraphQL 订阅功能
-- **实时查询**: PostGraphile Live Queries 支持
-- **数据监听**: 可选的数据库变更监听
+### 📡 Real-time Features
+- **WebSocket Support**: Complete GraphQL subscription functionality
+- **Real-time Queries**: PostGraphile Live Queries support
+- **Data Monitoring**: Optional database change monitoring
 
-### 🛠️ 开发体验
-- **GraphiQL**: 内置的 GraphQL 查询界面
-- **自动文档**: 基于数据库结构自动生成的 API 文档
-- **类型安全**: 完整的 TypeScript 支持
-- **美观界面**: 现代化的欢迎页面和信息展示
+### 🛠️ Developer Experience
+- **GraphiQL**: Built-in GraphQL query interface
+- **Auto Documentation**: API documentation automatically generated based on database structure
+- **Type Safety**: Complete TypeScript support
+- **Beautiful Interface**: Modern welcome page and information display
 
-## 📦 安装
+## 📦 Installation
 
 ```bash
-# 进入项目目录
+# Enter project directory
 cd packages/universal-graphql-server
 
-# 安装依赖
+# Install dependencies
 pnpm install
 
-# 或使用 npm
+# Or use npm
 npm install
 ```
 
-## 🔧 配置
+## 🔧 Configuration
 
-### 环境变量
+### Environment Variables
 
-创建 `.env` 文件：
+Create `.env` file:
 
 ```env
-# 数据库配置（连接到 sui-rust-indexer 的数据库）
+# Database configuration (connect to sui-rust-indexer database)
 DATABASE_URL=postgres://username:password@localhost:5432/sui_indexer_db
 
-# 服务器配置
+# Server configuration
 PORT=4000
 NODE_ENV=development
 
-# GraphQL 配置
+# GraphQL configuration
 GRAPHQL_ENDPOINT=/graphql
 PG_SCHEMA=public
 
-# 功能开关
+# Feature toggles
 ENABLE_CORS=true
 ENABLE_SUBSCRIPTIONS=true
 ```
 
-### 前置条件
+### Prerequisites
 
-确保 `sui-rust-indexer` 已经运行并创建了数据库表：
+Ensure `sui-rust-indexer` is running and has created database tables:
 
-1. **系统表**: `__dubheStoreTransactions`, `__dubheStoreSchemas`, `__dubheStoreEvents`
-2. **元数据表**: `table_fields` （存储动态表结构信息）
-3. **动态表**: `store_*` 表（根据配置文件动态创建）
+1. **System tables**: `__dubheStoreTransactions`, `__dubheStoreSchemas`, `__dubheStoreEvents`
+2. **Metadata tables**: `table_fields` (stores dynamic table structure information)
+3. **Dynamic tables**: `store_*` tables (dynamically created based on configuration files)
 
-## 🚀 运行
+## 🚀 Running
 
-### 开发模式
+### Development Mode
 
 ```bash
-# 启动开发服务器（支持热重载）
+# Start development server (supports hot reload)
 pnpm dev
 
-# 或使用 npm
+# Or use npm
 npm run dev
 ```
 
-### 生产模式
+### Production Mode
 
 ```bash
-# 构建项目
+# Build project
 pnpm build
 
-# 启动生产服务器
+# Start production server
 pnpm start
 ```
 
-## 📊 访问端点
+## 📊 Access Endpoints
 
-启动服务器后，你可以访问：
+After starting the server, you can access:
 
-- **欢迎页面**: `http://localhost:4000` - 查看扫描到的表和系统信息
-- **GraphQL API**: `http://localhost:4000/graphql` - API 端点
-- **GraphiQL**: `http://localhost:4000/graphiql` - 交互式查询界面
-- **WebSocket**: `ws://localhost:4000/graphql` - 订阅功能
+- **Welcome Page**: `http://localhost:4000` - View scanned tables and system information
+- **GraphQL API**: `http://localhost:4000/graphql` - API endpoint
+- **GraphiQL**: `http://localhost:4000/graphiql` - Interactive query interface
+- **WebSocket**: `ws://localhost:4000/graphql` - Subscription functionality
 
-## 🎮 使用示例
+## 🎮 Usage Examples
 
-### 查询系统表
+### Query System Tables
 
 ```graphql
-# 查询 Schemas 表
+# Query Schemas table
 query GetSchemas {
   allDubheStoreSchemas(first: 10) {
     nodes {
@@ -129,7 +129,7 @@ query GetSchemas {
   }
 }
 
-# 查询 Transactions 表
+# Query Transactions table
 query GetTransactions {
   allDubheStoreTransactions(first: 10) {
     nodes {
@@ -146,7 +146,7 @@ query GetTransactions {
   }
 }
 
-# 查询 Events 表
+# Query Events table
 query GetEvents {
   allDubheStoreEvents(first: 10) {
     nodes {
@@ -162,12 +162,12 @@ query GetEvents {
 }
 ```
 
-### 查询动态表
+### Query Dynamic Tables
 
-如果 `sui-rust-indexer` 创建了动态表（例如从 `config.json` 配置），你可以查询它们：
+If `sui-rust-indexer` has created dynamic tables (e.g., from `config.json` configuration), you can query them:
 
 ```graphql
-# 查询 store_accounts 表（如果存在）
+# Query store_accounts table (if exists)
 query GetAccounts {
   allStoreAccounts {
     nodes {
@@ -178,7 +178,7 @@ query GetAccounts {
   }
 }
 
-# 查询 store_position 表（如果存在）
+# Query store_position table (if exists)
 query GetPositions {
   allStorePositions {
     nodes {
@@ -190,10 +190,10 @@ query GetPositions {
 }
 ```
 
-### 实时订阅
+### Real-time Subscriptions
 
 ```graphql
-# 订阅 Schemas 变更
+# Subscribe to Schema changes
 subscription OnSchemaChanges {
   allDubheStoreSchemas(first: 1, orderBy: [CREATED_AT_DESC]) {
     nodes {
@@ -205,7 +205,7 @@ subscription OnSchemaChanges {
   }
 }
 
-# 订阅 Events
+# Subscribe to Events
 subscription OnNewEvents {
   allDubheStoreEvents(first: 1, orderBy: [CREATED_AT_DESC]) {
     nodes {
@@ -218,10 +218,10 @@ subscription OnNewEvents {
 }
 ```
 
-### 高级查询
+### Advanced Queries
 
 ```graphql
-# 分页查询
+# Paginated query
 query GetSchemasPaginated($after: Cursor) {
   allDubheStoreSchemas(first: 10, after: $after) {
     pageInfo {
@@ -236,7 +236,7 @@ query GetSchemasPaginated($after: Cursor) {
   }
 }
 
-# 条件过滤
+# Conditional filtering
 query GetSchemasByName($name: String!) {
   allDubheStoreSchemas(condition: { name: $name }) {
     nodes {
@@ -249,7 +249,7 @@ query GetSchemasByName($name: String!) {
   }
 }
 
-# 排序查询
+# Sorted query
 query GetRecentTransactions {
   allDubheStoreTransactions(
     first: 20, 
@@ -266,12 +266,12 @@ query GetRecentTransactions {
 }
 ```
 
-### 高级过滤查询
+### Advanced Filtering Queries
 
-现在支持强大的过滤功能，包括多种操作符和逻辑组合：
+Now supports powerful filtering functionality including multiple operators and logical combinations:
 
 ```graphql
-# 基础过滤 - 使用大于操作符
+# Basic filtering - using greater than operator
 query GetHighValueAccounts {
   storeAccounts(filter: {
     balance: { gt: "1000" }
@@ -284,7 +284,7 @@ query GetHighValueAccounts {
   }
 }
 
-# 多条件过滤 - 隐式AND组合
+# Multi-condition filtering - implicit AND combination
 query GetSpecificAccounts {
   storeAccounts(filter: {
     balance: { gte: "100", lte: "10000" },
@@ -298,7 +298,7 @@ query GetSpecificAccounts {
   }
 }
 
-# 逻辑操作符 - OR组合
+# Logical operators - OR combination
 query GetAccountsWithConditions {
   storeAccounts(filter: {
     or: [
@@ -314,7 +314,7 @@ query GetAccountsWithConditions {
   }
 }
 
-# 复杂逻辑组合 - AND, OR, NOT
+# Complex logical combinations - AND, OR, NOT
 query GetComplexFilteredAccounts {
   storeAccounts(filter: {
     and: [
@@ -339,7 +339,7 @@ query GetComplexFilteredAccounts {
   }
 }
 
-# 字符串模糊搜索
+# String fuzzy search
 query SearchPlayers {
   storeEncounters(filter: {
     player: { includesInsensitive: "alice" },
@@ -353,7 +353,7 @@ query SearchPlayers {
   }
 }
 
-# 数组和范围查询
+# Array and range queries
 query GetPositionsInRange {
   storePositions(filter: {
     player: { in: ["player1", "player2", "player3"] },
@@ -369,12 +369,12 @@ query GetPositionsInRange {
 }
 ```
 
-### 增强的排序功能
+### Enhanced Sorting Features
 
-支持所有字段的多种排序组合：
+Supports multiple sorting combinations for all fields:
 
 ```graphql
-# 单字段排序
+# Single field sorting
 query GetAccountsByBalance {
   storeAccounts(
     orderBy: [BALANCE_DESC]
@@ -387,7 +387,7 @@ query GetAccountsByBalance {
   }
 }
 
-# 多字段排序
+# Multi-field sorting
 query GetAccountsMultiSort {
   storeAccounts(
     orderBy: [ASSET_ID_ASC, BALANCE_DESC]
@@ -400,7 +400,7 @@ query GetAccountsMultiSort {
   }
 }
 
-# 过滤 + 排序 + 分页
+# Filtering + Sorting + Pagination
 query GetFilteredSortedPaginated($after: Cursor) {
   storeAccounts(
     filter: {
@@ -429,16 +429,16 @@ query GetFilteredSortedPaginated($after: Cursor) {
 }
 ```
 
-> 📖 **详细过滤功能文档**: 查看 [高级过滤和查询功能使用指南](./ADVANCED_FILTERING_GUIDE.md) 了解所有支持的操作符、使用示例和最佳实践。
+> 📖 **Detailed Filtering Documentation**: See [Advanced Filtering and Query Features Guide](./ADVANCED_FILTERING_GUIDE.md) for all supported operators, usage examples, and best practices.
 
-## 🏗️ 架构说明
+## 🏗️ Architecture Overview
 
-### 工作原理
+### How It Works
 
 ```
-sui-rust-indexer 数据库
+sui-rust-indexer database
          ↓
-  [数据库内省器]
+  [Database Introspector]
          ↓
    [PostGraphile]
          ↓
@@ -447,154 +447,154 @@ sui-rust-indexer 数据库
    [WebSocket]
 ```
 
-1. **数据库扫描**: 启动时自动扫描数据库中的所有表
-2. **结构解析**: 从 `table_fields` 元数据表读取动态表结构
-3. **Schema 生成**: PostGraphile 基于表结构自动生成 GraphQL schema
-4. **API 服务**: 提供完整的 GraphQL CRUD 操作和订阅功能
+1. **Database Scanning**: Automatically scans all tables in the database at startup
+2. **Structure Parsing**: Reads dynamic table structures from `table_fields` metadata table
+3. **Schema Generation**: PostGraphile automatically generates GraphQL schema based on table structures
+4. **API Service**: Provides complete GraphQL CRUD operations and subscription functionality
 
-### 支持的表类型
+### Supported Table Types
 
-1. **系统表**: 
-   - `__dubheStoreTransactions` - 交易记录
-   - `__dubheStoreSchemas` - Schema 数据
-   - `__dubheStoreEvents` - 事件记录
-   - `table_fields` - 表结构元数据
+1. **System Tables**: 
+   - `__dubheStoreTransactions` - Transaction records
+   - `__dubheStoreSchemas` - Schema data
+   - `__dubheStoreEvents` - Event records
+   - `table_fields` - Table structure metadata
 
-2. **动态表**: 
-   - `store_*` - 根据 `sui-rust-indexer` 配置动态创建的表
+2. **Dynamic Tables**: 
+   - `store_*` - Tables dynamically created based on `sui-rust-indexer` configuration
 
-## 🚀 部署
+## 🚀 Deployment
 
-### Docker 部署
+### Docker Deployment
 
 ```bash
-# 使用提供的 docker-compose
+# Use provided docker-compose
 docker-compose up -d
 ```
 
-### 手动部署
+### Manual Deployment
 
 ```bash
-# 构建项目
+# Build project
 pnpm build
 
-# 设置环境变量
+# Set environment variables
 export DATABASE_URL="postgres://..."
 export PORT=4000
 
-# 启动服务器
+# Start server
 pnpm start
 ```
 
-## 🔧 配置选项
+## 🔧 Configuration Options
 
-### PostGraphile 特性
+### PostGraphile Features
 
-- ✅ **自动 CRUD**: 所有表自动支持增删改查
-- ✅ **关系查询**: 自动处理表之间的关系
-- ✅ **分页**: Relay 风格的连接分页
-- ✅ **订阅**: GraphQL 订阅和 Live Queries
-- ✅ **过滤排序**: 强大的查询条件和排序
-- ✅ **权限控制**: 基于 PostgreSQL 的行级安全
+- ✅ **Auto CRUD**: All tables automatically support create, read, update, delete
+- ✅ **Relationship Queries**: Automatically handles relationships between tables
+- ✅ **Pagination**: Relay-style connection pagination
+- ✅ **Subscriptions**: GraphQL subscriptions and Live Queries
+- ✅ **Filtering and Sorting**: Powerful query conditions and sorting
+- ✅ **Permission Control**: PostgreSQL row-level security based
 
-### 自定义配置
+### Custom Configuration
 
-在 `src/index.ts` 中可以修改 PostGraphile 配置：
+In `src/index.ts`, you can modify PostGraphile configuration:
 
 ```typescript
 const createPostGraphileConfig = (availableTables: string[]) => {
   return {
-    // 添加插件
+    // Add plugins
     appendPlugins: [
       require('@graphile-contrib/pg-simplify-inflector'),
       require('postgraphile-plugin-connection-filter')
     ],
     
-    // 自定义命名
+    // Custom naming
     inflection: {
-      // 自定义表名映射
+      // Custom table name mapping
     },
     
-    // 添加自定义字段
+    // Add custom fields
     makeAddInflectorsPlugin: (inflectors) => {
-      // 自定义逻辑
+      // Custom logic
     }
   };
 };
 ```
 
-## 🛡️ 安全配置
+## 🛡️ Security Configuration
 
-### 数据库权限
+### Database Permissions
 
 ```sql
--- 创建只读用户
+-- Create read-only user
 CREATE USER graphql_readonly WITH PASSWORD 'secure_password';
 
--- 授予查询权限
+-- Grant query permissions
 GRANT CONNECT ON DATABASE sui_indexer TO graphql_readonly;
 GRANT USAGE ON SCHEMA public TO graphql_readonly;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO graphql_readonly;
 
--- 如需写入权限
+-- If write permissions needed
 GRANT INSERT, UPDATE, DELETE ON specific_tables TO graphql_readonly;
 ```
 
-### 生产环境配置
+### Production Environment Configuration
 
 ```env
 NODE_ENV=production
 ENABLE_CORS=false
-# 或设置特定来源
+# Or set specific origins
 CORS_ORIGIN=https://yourdomain.com
 ```
 
-## 📋 故障排除
+## 📋 Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **数据库连接失败**
+1. **Database Connection Failed**
    ```
-   解决方案：检查 DATABASE_URL 和数据库服务状态
-   ```
-
-2. **表扫描为空**
-   ```
-   解决方案：确保 sui-rust-indexer 已运行并创建了表
+   Solution: Check DATABASE_URL and database service status
    ```
 
-3. **schema 生成失败**
+2. **Table Scan Empty**
    ```
-   解决方案：检查 table_fields 表是否存在且有数据
-   ```
-
-4. **WebSocket 连接失败**
-   ```
-   解决方案：检查防火墙设置和 ENABLE_SUBSCRIPTIONS 配置
+   Solution: Ensure sui-rust-indexer is running and has created tables
    ```
 
-### 调试模式
+3. **Schema Generation Failed**
+   ```
+   Solution: Check if table_fields table exists and has data
+   ```
+
+4. **WebSocket Connection Failed**
+   ```
+   Solution: Check firewall settings and ENABLE_SUBSCRIPTIONS configuration
+   ```
+
+### Debug Mode
 
 ```bash
-# 启用详细日志
+# Enable verbose logging
 DEBUG=postgraphile:* pnpm dev
 
-# 查看生成的 schema
+# View generated schema
 ls -la *.graphql
 ```
 
-## 🤝 集成指南
+## 🤝 Integration Guide
 
-### 与 sui-rust-indexer 集成
+### Integration with sui-rust-indexer
 
-1. **启动顺序**: 先启动 `sui-rust-indexer`，再启动 GraphQL 服务器
-2. **数据库共享**: 两个服务共享同一个 PostgreSQL 数据库
-3. **配置同步**: 确保数据库连接配置一致
+1. **Startup Order**: Start `sui-rust-indexer` first, then GraphQL server
+2. **Database Sharing**: Both services share the same PostgreSQL database
+3. **Configuration Sync**: Ensure database connection configurations are consistent
 
-### 与前端集成
+### Integration with Frontend
 
 ```typescript
-// Apollo Client 配置
+// Apollo Client configuration
 import { ApolloClient, InMemoryCache, split, HttpLink } from '@apollo/client';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
@@ -625,66 +625,66 @@ const client = new ApolloClient({
 });
 ```
 
-## 📄 许可证
+## 📄 License
 
 MIT License
 
-## WebSocket Subscription 支持
+## WebSocket Subscription Support
 
-本服务器现已支持通过 WebSocket 进行实时数据订阅，使用 PostgreSQL 的 LISTEN/NOTIFY 机制。
+This server now supports real-time data subscriptions via WebSocket using PostgreSQL's LISTEN/NOTIFY mechanism.
 
-### 环境变量配置
+### Environment Variable Configuration
 
-创建 `.env` 文件并配置以下变量：
+Create `.env` file and configure the following variables:
 
 ```bash
-# 数据库连接 URL
-# 注意：对于 WebSocket 订阅，请使用直接连接而不是连接池
+# Database connection URL
+# Note: For WebSocket subscriptions, use direct connection instead of connection pooling
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres
 
-# 服务器端口
+# Server port
 PORT=4000
 
-# 环境模式
+# Environment mode
 NODE_ENV=development
 
-# GraphQL 端点路径
+# GraphQL endpoint path
 GRAPHQL_ENDPOINT=/graphql
 
 # PostgreSQL Schema
 PG_SCHEMA=public
 
-# 启用 CORS
+# Enable CORS
 ENABLE_CORS=true
 
-# 启用 WebSocket 订阅
-# 设置为 true 以启用实时订阅功能
+# Enable WebSocket subscriptions
+# Set to true to enable real-time subscription functionality
 ENABLE_SUBSCRIPTIONS=true
 ```
 
-### 订阅类型
+### Subscription Types
 
-1. **特定 Store 表订阅** - 自动为每个 `store_*` 表生成订阅
-2. **所有 Store 表订阅** - 订阅所有 store 表的变更
-3. **任意表订阅** - 订阅任意表的变更
-4. **系统事件订阅** - 订阅系统级事件
+1. **Specific Store Table Subscriptions** - Automatically generate subscriptions for each `store_*` table
+2. **All Store Table Subscriptions** - Subscribe to changes across all store tables
+3. **Arbitrary Table Subscriptions** - Subscribe to changes in any table
+4. **System Event Subscriptions** - Subscribe to system-level events
 
-### 测试订阅
+### Testing Subscriptions
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 启动服务器
+# Start server
 npm run dev
 
-# 在另一个终端测试订阅
+# Test subscriptions in another terminal
 npm run test:subscription
 ```
 
-### 使用示例
+### Usage Examples
 
-在 GraphiQL 中运行：
+Run in GraphiQL:
 
 ```graphql
 subscription {
@@ -698,139 +698,139 @@ subscription {
 }
 ```
 
-详细使用指南请参考 [SUBSCRIPTION_USAGE.md](./SUBSCRIPTION_USAGE.md)。
+For detailed usage guide, refer to [SUBSCRIPTION_USAGE.md](./SUBSCRIPTION_USAGE.md).
 
-### 注意事项
+### Notes
 
-1. WebSocket 订阅不兼容 Neon 连接池，请使用直接数据库连接
-2. 确保 PostgreSQL 支持 LISTEN/NOTIFY
-3. sui-rust-indexer 会自动创建必要的触发器
-4. 大量订阅可能影响性能，请合理使用
+1. WebSocket subscriptions are not compatible with Neon connection pooling, use direct database connections
+2. Ensure PostgreSQL supports LISTEN/NOTIFY
+3. sui-rust-indexer will automatically create necessary triggers
+4. Large numbers of subscriptions may affect performance, use reasonably
 
-## 📄 许可证
+## 📄 License
 
 MIT License
 
 ---
 
-💡 **提示**: 这个服务器设计为 `sui-rust-indexer` 的完美伴侣，提供强大的 GraphQL 接口来访问索引的数据。无需手动配置 schema，一切都是自动的！
+💡 **Tip**: This server is designed as the perfect companion to `sui-rust-indexer`, providing a powerful GraphQL interface to access indexed data. No manual schema configuration needed - everything is automatic!
 
-# 🔧 主要特性
+# 🔧 Main Features
 
-- 🚀 **自动扫描数据库表结构**：无需手动配置，自动适配 sui-rust-indexer 的动态表
-- 📊 **完整的 GraphQL API**：为所有表自动生成 CRUD 操作
-- 📡 **实时订阅支持**：WebSocket 订阅数据变更
-- 🎮 **增强版 GraphQL Playground**：现代化的查询界面，支持 Schema Explorer 和代码导出
-- 🔍 **智能过滤和分页**：支持复杂查询条件
-- 🎯 **开发友好**：提供详细的欢迎页面和使用指南
-- 📝 **结构化日志系统**：使用 Winston 提供专业的日志记录和监控
+- 🚀 **Automatic Database Table Structure Scanning**: No manual configuration needed, automatically adapts to sui-rust-indexer's dynamic tables
+- 📊 **Complete GraphQL API**: Automatically generates CRUD operations for all tables
+- 📡 **Real-time Subscription Support**: WebSocket subscriptions for data changes
+- 🎮 **Enhanced GraphQL Playground**: Modern query interface with Schema Explorer and code export
+- 🔍 **Smart Filtering and Pagination**: Supports complex query conditions
+- 🎯 **Developer Friendly**: Provides detailed welcome page and usage guide
+- 📝 **Structured Logging System**: Uses Winston for professional logging and monitoring
 
-## 📋 环境要求
+## 📋 System Requirements
 
 - Node.js 18.0.0+
-- PostgreSQL 数据库（由 sui-rust-indexer 管理）
+- PostgreSQL database (managed by sui-rust-indexer)
 - TypeScript 5.0+
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 2. 配置环境变量
+### 2. Configure Environment Variables
 
-复制并编辑环境变量文件：
+Copy and edit environment variable file:
 
 ```bash
 cp .env.example .env
 ```
 
-主要配置项：
+Main configuration items:
 
 ```bash
-# 数据库连接
+# Database connection
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres
 
-# 服务器配置
+# Server configuration
 PORT=4000
 GRAPHQL_ENDPOINT=/graphql
 PG_SCHEMA=public
 
-# 功能开关
+# Feature toggles
 ENABLE_CORS=true
 ENABLE_SUBSCRIPTIONS=true
 REALTIME_PORT=4001
 
-# 日志配置
+# Logging configuration
 LOG_LEVEL=info  # error, warn, info, debug, verbose
 ```
 
-### 3. 启动服务器
+### 3. Start Server
 
 ```bash
-# 开发模式（支持热重载）
+# Development mode (supports hot reload)
 npm run dev
 
-# 生产模式
+# Production mode
 npm run build
 npm start
 ```
 
-### 4. 访问服务
+### 4. Access Services
 
-- 🏠 **主页**：http://localhost:4000 - 服务器信息和使用指南
-- 🎮 **GraphQL Playground**：http://localhost:4000/playground - 现代化查询界面
-- 📊 **GraphQL API**：http://localhost:4000/graphql - API 端点
-- 📡 **WebSocket 订阅**：ws://localhost:4000/graphql - 实时订阅
+- 🏠 **Homepage**: http://localhost:4000 - Server information and usage guide
+- 🎮 **GraphQL Playground**: http://localhost:4000/playground - Modern query interface
+- 📊 **GraphQL API**: http://localhost:4000/graphql - API endpoint
+- 📡 **WebSocket Subscriptions**: ws://localhost:4000/graphql - Real-time subscriptions
 
-## 📊 日志系统
+## 📊 Logging System
 
-本项目使用专业的 Winston 日志系统，提供结构化的日志记录：
+This project uses a professional Winston logging system providing structured logging:
 
-### 主要特性
+### Main Features
 
-- 🎨 **彩色输出**：不同级别使用不同颜色
-- 📁 **文件记录**：自动保存到 `logs/` 目录
-- 🏷️ **组件标识**：明确标识日志来源
-- 📊 **结构化数据**：支持附加元数据
-- ⚡ **性能监控**：内置性能指标记录
-- 🔒 **敏感信息保护**：自动隐藏密码等敏感信息
+- 🎨 **Colored Output**: Different colors for different levels
+- 📁 **File Recording**: Automatically saves to `logs/` directory
+- 🏷️ **Component Identification**: Clear identification of log sources
+- 📊 **Structured Data**: Supports additional metadata
+- ⚡ **Performance Monitoring**: Built-in performance metrics recording
+- 🔒 **Sensitive Information Protection**: Automatically hides passwords and other sensitive info
 
-### 日志级别
+### Log Levels
 
 ```bash
-export LOG_LEVEL=debug  # 显示所有级别的日志
-export LOG_LEVEL=info   # 默认级别，生产环境推荐
-export LOG_LEVEL=warn   # 只显示警告和错误
+export LOG_LEVEL=debug  # Show all levels of logs
+export LOG_LEVEL=info   # Default level, recommended for production
+export LOG_LEVEL=warn   # Only show warnings and errors
 ```
 
-### 日志文件
+### Log Files
 
-- `logs/combined.log`：所有日志（JSON格式）
-- `logs/error.log`：错误日志
-- `logs/exceptions.log`：未捕获异常
-- `logs/rejections.log`：Promise拒绝
+- `logs/combined.log`: All logs (JSON format)
+- `logs/error.log`: Error logs
+- `logs/exceptions.log`: Uncaught exceptions
+- `logs/rejections.log`: Promise rejections
 
-详细使用说明请参考：[LOGGING.md](./LOGGING.md)
+For detailed usage instructions, refer to: [LOGGING.md](./LOGGING.md)
 
-## 🎮 使用 GraphQL Playground
+## 🎮 Using GraphQL Playground
 
-访问 http://localhost:4000/playground 体验增强版 GraphQL Playground：
+Visit http://localhost:4000/playground to experience the enhanced GraphQL Playground:
 
-### 主要功能
+### Main Features
 
-- 📊 **Schema Explorer**：可视化浏览 GraphQL Schema
-- 🔍 **智能补全**：自动补全查询语句
-- 📝 **查询历史**：保存和管理查询历史
-- 📋 **代码导出**：支持多种语言的代码生成
-- 🎨 **现代化界面**：美观的用户界面
+- 📊 **Schema Explorer**: Visually browse GraphQL Schema
+- 🔍 **Smart Completion**: Auto-complete query statements
+- 📝 **Query History**: Save and manage query history
+- 📋 **Code Export**: Supports code generation in multiple languages
+- 🎨 **Modern Interface**: Beautiful user interface
 
-### 示例查询
+### Example Queries
 
 ```graphql
-# 查询所有动态表
+# Query all dynamic tables
 {
   __schema {
     queryType {
@@ -842,22 +842,22 @@ export LOG_LEVEL=warn   # 只显示警告和错误
   }
 }
 
-# 如果有 store_accounts 表
+# If store_accounts table exists
 {
   allStoreAccounts(first: 10) {
     edges {
       node {
         id
-        # 其他字段根据表结构动态生成
+        # Other fields dynamically generated based on table structure
       }
     }
   }
 }
 ```
 
-### 实时订阅
+### Real-time Subscriptions
 
-如果启用了订阅功能，可以使用实时订阅：
+If subscription functionality is enabled, you can use real-time subscriptions:
 
 ```graphql
 subscription {
@@ -870,41 +870,41 @@ subscription {
 }
 ```
 
-## 🔧 配置选项
+## 🔧 Configuration Options
 
-### 数据库配置
+### Database Configuration
 
 ```bash
 DATABASE_URL=postgres://username:password@host:port/database
-PG_SCHEMA=public  # 要扫描的数据库模式
+PG_SCHEMA=public  # Database schema to scan
 ```
 
-### 服务器配置
+### Server Configuration
 
 ```bash
-PORT=4000                    # HTTP 服务器端口
-GRAPHQL_ENDPOINT=/graphql    # GraphQL API 路径
-ENABLE_CORS=true            # 是否启用 CORS
+PORT=4000                    # HTTP server port
+GRAPHQL_ENDPOINT=/graphql    # GraphQL API path
+ENABLE_CORS=true            # Whether to enable CORS
 ```
 
-### 订阅配置
+### Subscription Configuration
 
 ```bash
-ENABLE_SUBSCRIPTIONS=true    # 是否启用订阅功能
-REALTIME_PORT=4001          # WebSocket 服务器端口
+ENABLE_SUBSCRIPTIONS=true    # Whether to enable subscription functionality
+REALTIME_PORT=4001          # WebSocket server port
 ```
 
-### 日志配置
+### Logging Configuration
 
 ```bash
-LOG_LEVEL=info              # 日志级别
-LOG_TO_FILE=true           # 是否保存到文件
-LOG_DIR=./logs             # 日志文件目录
+LOG_LEVEL=info              # Log level
+LOG_TO_FILE=true           # Whether to save to files
+LOG_DIR=./logs             # Log file directory
 
-# PostGraphile SQL查询日志控制
-DISABLE_QUERY_LOG=false     # 设置为true禁用SQL查询日志
-ENABLE_QUERY_LOG=false      # 生产环境中设置为true启用查询日志
-QUERY_TIMEOUT=30000         # GraphQL查询超时时间（毫秒）
+# PostGraphile SQL query log control
+DISABLE_QUERY_LOG=false     # Set to true to disable SQL query logs
+ENABLE_QUERY_LOG=false      # Set to true in production to enable query logs
+QUERY_TIMEOUT=30000         # GraphQL query timeout (milliseconds)
 ```
 
 # Dubhe GraphQL Server
