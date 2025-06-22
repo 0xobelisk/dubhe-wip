@@ -1,7 +1,6 @@
 #[test_only]
 module dubhe::dex_tests {
     use std::debug;
-    use std::ascii;
     use std::u128;
     use dubhe::dex_functions;
     use dubhe::init_test::deploy_dapp_for_testing;
@@ -13,8 +12,6 @@ module dubhe::dex_tests {
     use sui::test_scenario;
     use sui::test_scenario::Scenario;
     use dubhe::dubhe_config;
-    use std::address;
-    use dubhe::dubhe;
 
     public struct USDT has store, drop {  }
 
@@ -63,15 +60,14 @@ module dubhe::dex_tests {
     #[test]
     public fun create_pool() {
         let (mut dapp_hub, mut scenario, asset_0, asset_1, asset_2) = init_test();
-        let ctx =  test_scenario::ctx(&mut scenario);
         
         let pool_address = dex_functions::pair_for(asset_0, asset_1);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1);
         std::debug::print(&asset_pools::get_struct(&dapp_hub, asset_0, asset_1));
         assert!(pool_address == asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1));
 
         let pool_address = dex_functions::pair_for(asset_2, asset_1);
-        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2);
         std::debug::print(&asset_pools::get_struct(&dapp_hub, asset_2, asset_1));
         assert!(asset_pools::get_pool_address(&dapp_hub, asset_2, asset_1) == pool_address);
 
@@ -85,9 +81,8 @@ module dubhe::dex_tests {
     public fun create_same_pool_twice_should_fail() {
         let (mut dapp_hub, mut scenario, asset_0, asset_1, _) = init_test();
 
-        let ctx =  test_scenario::ctx(&mut scenario);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dex_system::create_pool(&mut dapp_hub, asset_1, asset_0, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_0);
 
         dapp_hub.destroy();
     
@@ -101,9 +96,9 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xfee);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_2);
 
         assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 20000 * DECIMAL, ctx);
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 20000 * DECIMAL, ctx);
@@ -167,9 +162,9 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xB);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_2);
 
         assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 100000 * DECIMAL, ctx);
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100000 * DECIMAL, ctx);
@@ -255,8 +250,8 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xB);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2);
 
         assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);
@@ -316,8 +311,8 @@ module dubhe::dex_tests {
         dubhe_config::set_fee_to(&mut dapp_hub, @0xB);
 
         let ctx =  test_scenario::ctx(&mut scenario);
-        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1, ctx);
-        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2, ctx);
+        dex_system::create_pool(&mut dapp_hub, asset_0, asset_1);
+        dex_system::create_pool(&mut dapp_hub, asset_1, asset_2);
 
         assets_system::mint(&mut dapp_hub, asset_0, ctx.sender(), 10000 * DECIMAL, ctx);
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 1000 * DECIMAL, ctx);

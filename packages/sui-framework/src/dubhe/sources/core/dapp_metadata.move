@@ -2,7 +2,7 @@ module dubhe::dapp_metadata;
 use std::ascii::String;
 
 /// Dapp metadata structure
-public struct DappMetadata has store {
+public struct DappMetadata has copy, drop, store {
     name: String,
     description: String,
     website_url: String,
@@ -10,6 +10,7 @@ public struct DappMetadata has store {
     partners: vector<String>,
     package_ids: vector<address>,
     created_at: u64,
+    admin: address,
     version: u32
 }
 
@@ -21,6 +22,7 @@ public fun new(
     partners: vector<String>,
     package_ids: vector<address>,
     created_at: u64,
+    admin: address,
     version: u32
 ): DappMetadata {
     DappMetadata {
@@ -31,6 +33,7 @@ public fun new(
         partners,
         package_ids,
         created_at,
+        admin,
         version
     }
 }
@@ -64,6 +67,10 @@ public fun get_created_at(self: &DappMetadata): u64 {
     self.created_at
 }
 
+public fun get_admin(self: &DappMetadata): address {
+    self.admin
+}
+
 public fun get_version(self: &DappMetadata): u32 {
     self.version
 }
@@ -94,6 +101,10 @@ public(package) fun set_package_ids(self: &mut DappMetadata, package_ids: vector
 
 public(package) fun set_created_at(self: &mut DappMetadata, created_at: u64) {
     self.created_at = created_at;
+}
+
+public(package) fun set_admin(self: &mut DappMetadata, admin: address) {
+    self.admin = admin;
 }
 
 public(package) fun set_version(self: &mut DappMetadata, version: u32) {

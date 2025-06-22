@@ -57,6 +57,7 @@ module dubhe::dapp_store {
                 vector::empty(), 
                 vector::empty(), 
                 clock::timestamp_ms(clock),
+                ctx.sender(),
                 1
             ),
             dapp_fee_state: dapp_fee_state::default(),
@@ -130,13 +131,13 @@ module dubhe::dapp_store {
         let value_tuple = if (table.contains(key_tuple)) {
             table.borrow_mut(key_tuple)
         } else {
-                // Create a new record
+            // Create a new record
             let mut new_value = vector::empty();
             let metadata = self.table_metadatas.borrow(table_id);
-            let field_count = vector::length(&metadata.get_value_schemas());
+            let field_len = metadata.get_value_schemas().length();
             let mut i = 0;
-            while (i < field_count) {
-                vector::push_back(&mut new_value, vector::empty());
+            while (i < field_len) {
+                new_value.push_back(vector::empty());
                 i = i + 1;
             };
             table.add(key_tuple, new_value);
@@ -144,7 +145,7 @@ module dubhe::dapp_store {
         };
 
         // Update field
-        *vector::borrow_mut(value_tuple, field_index as u64) = value;
+        *value_tuple.borrow_mut(field_index as u64) = value;
     }
 
     /// Get a record
@@ -197,9 +198,8 @@ module dubhe::dapp_store {
         };
         let value_tuple = table.borrow(key_tuple);
         let mut i = 0;
-        while (i < vector::length(value_tuple)) {
-            let value = vector::borrow(value_tuple, i);
-            if (value.is_empty()) {
+        while (i < value_tuple.length()) {
+            if (value_tuple.borrow(i).is_empty()) {
                 return false
             };
             i = i + 1;
@@ -221,10 +221,10 @@ module dubhe::dapp_store {
             return false
         };
         let value_tuple = table.borrow(key_tuple);
-        if (vector::length(value_tuple) <= field_index as u64) {
+        if (value_tuple.length() <= field_index as u64) {
             return false
         };
-        if (vector::borrow(value_tuple, field_index as u64).is_empty()) {
+        if (value_tuple.borrow(field_index as u64).is_empty()) {
             return false
         };
         true
@@ -234,10 +234,9 @@ module dubhe::dapp_store {
         self: &mut DappStore,
         table_id: vector<u8>,
         key_tuple: vector<vector<u8>>
-    ) {
-    assert!(self.tables.contains(table_id), EInvalidTableId);
-        let table = self.tables.borrow_mut(table_id);
-        table.remove(key_tuple);
+    ): vector<vector<u8>> {
+        assert!(self.tables.contains(table_id), EInvalidTableId);
+        self.tables.borrow_mut(table_id).remove(key_tuple)
     }
 
 public(package) fun calculate_bytes_size_and_fee(fee_state: &DappFeeState, key_tuple: vector<vector<u8>>, value_tuple: vector<vector<u8>>): (u256, u256) {
@@ -273,5 +272,21 @@ public(package) fun charge_fee(self: &mut DappStore, key_tuple: vector<vector<u8
 
     public fun get_dapp_key(self: &DappStore): String {
         self.dapp_key
+    }
+
+    public fun get_dapp_metadata(self: &DappStore): DappMetadata {
+        self.dapp_metadata
+    }
+
+    public fun get_objects(self: &DappStore): &Bag {
+        &self.objects
+    }
+
+    public(package) fun get_mut_objects(self: &mut DappStore): &mut Bag {
+        &mut self.objects
+    }
+
+    public(package) fun set_dapp_metadata(self: &mut DappStore, dapp_metadata: DappMetadata) {
+        self.dapp_metadata = dapp_metadata
     }
 }

@@ -1,7 +1,5 @@
 #[test_only]
 module dubhe::assets_tests {
-    use std::ascii;
-    use std::ascii::String;
     use dubhe::assets_functions;
     use dubhe::init_test::deploy_dapp_for_testing;
     use dubhe::assets_system;
@@ -9,10 +7,6 @@ module dubhe::assets_tests {
     use sui::test_scenario;
     use sui::test_scenario::Scenario;
     use dubhe::asset_type;
-    use std::ascii::string;
-    use dubhe::dapp_service;
-    use dubhe::asset_metadata;
-    use dubhe::asset_account;
 
     public fun create_assets(
         dapp_hub: &mut DappHub, 
@@ -69,18 +63,18 @@ module dubhe::assets_tests {
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::mint(&mut dapp_hub, asset1, ctx.sender(), 100, ctx);
         assets_system::mint(&mut dapp_hub, asset2, ctx.sender(), 100, ctx);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, ctx.sender()) == 100, 0);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, @0x10000) == 0, 0);
-        assert!(assets_system::supply_of(&mut dapp_hub, asset1) == 100, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, ctx.sender()) == 100, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, @0x10000) == 0, 0);
+        assert!(assets_system::supply_of(&dapp_hub, asset1) == 100, 0);
 
         assets_system::transfer(&mut dapp_hub, asset1, @0x0002, 50, ctx);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, ctx.sender()) == 50, 0);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, @0x0002) == 50, 0);
-        assert!(assets_system::supply_of(&mut dapp_hub, asset1) == 100, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, ctx.sender()) == 50, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, @0x0002) == 50, 0);
+        assert!(assets_system::supply_of(&dapp_hub, asset1) == 100, 0);
 
         assets_system::burn(&mut dapp_hub, asset1, ctx.sender(), 50, ctx);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, ctx.sender()) == 0, 0);
-        assert!(assets_system::supply_of(&mut dapp_hub, asset1) == 50, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, ctx.sender()) == 0, 0);
+        assert!(assets_system::supply_of(&dapp_hub, asset1) == 50, 0);
 
         dapp_hub.destroy();
         scenario.end();

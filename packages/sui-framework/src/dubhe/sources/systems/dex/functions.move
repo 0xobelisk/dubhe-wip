@@ -1,6 +1,4 @@
 module dubhe::dex_functions {
-    use std::ascii;
-    use std::ascii::String;
     use dubhe::dubhe_math;
     use dubhe::assets_functions;
     use dubhe::dapp_service::DappHub;
@@ -8,7 +6,6 @@ module dubhe::dex_functions {
     use sui::address;
     use dubhe::assets_system;
     use dubhe::errors::{
-        pool_not_found_error,
        reserves_cannot_be_zero_error, amount_cannot_be_zero_error,
         liquidity_cannot_be_zero_error, below_min_amount_error
     };
@@ -19,7 +16,6 @@ module dubhe::dex_functions {
     use dubhe::asset_pools::AssetPools;
     use dubhe::dubhe_config;
     use dubhe::asset_metadata::AssetMetadata;
-    use dubhe::dubhe;
 
     const MINIMUM_LIQUIDITY: u256 = 1000;
 
@@ -132,7 +128,7 @@ module dubhe::dex_functions {
 
 
     // this low-level function should be called from a contract which performs important safety checks
-    public(package) fun mint(dapp_hub: &mut DappHub, asset_a: address, asset_b: address, to: address, ctx: &TxContext): u256 {
+    public(package) fun mint(dapp_hub: &mut DappHub, asset_a: address, asset_b: address, to: address): u256 {
         let (asset_0, asset_1) = sort_assets(asset_a, asset_b);
         let (reserve0, reserve1) = get_reserves(dapp_hub, asset_0, asset_1); // gas savings
         let mut pool = get_pool(dapp_hub, asset_a, asset_b);
@@ -163,7 +159,7 @@ module dubhe::dex_functions {
     }
 
      // this low-level function should be called from a contract which performs important safety checks
-    public(package) fun burn(dapp_hub: &mut DappHub, asset_a: address, asset_b: address, to: address, ctx: &TxContext) : (u256, u256) {
+    public(package) fun burn(dapp_hub: &mut DappHub, asset_a: address, asset_b: address, to: address) : (u256, u256) {
         let (asset_0, asset_1) = sort_assets(asset_a, asset_b);
         let (reserve0, reserve1) = get_reserves(dapp_hub, asset_0, asset_1);
         let mut pool = get_pool(dapp_hub, asset_a, asset_b);
@@ -191,7 +187,7 @@ module dubhe::dex_functions {
 
 
     public(package) fun do_add_liquidity(
-        dapp_hub: &mut DappHub, 
+        dapp_hub: &DappHub, 
         asset_a: address, 
         asset_b: address, 
         amount_a_desired: u256, 
@@ -226,7 +222,6 @@ module dubhe::dex_functions {
         amount0_out: u256, 
         amount1_out: u256, 
         to: address, 
-        ctx: &TxContext
     ) {
         let (reserve_0, reserve_1) = get_reserves(dapp_hub, asset_0, asset_1);
         let mut pool = get_pool(dapp_hub, asset_0, asset_1);
@@ -274,7 +269,7 @@ module dubhe::dex_functions {
                 to
             };
 
-            swap(dapp_hub, asset_0, asset_1, amount0_out, amount1_out, to, ctx);
+            swap(dapp_hub, asset_0, asset_1, amount0_out, amount1_out, to);
             i = i + 1;
        };
     }

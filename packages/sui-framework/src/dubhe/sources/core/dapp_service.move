@@ -1,29 +1,22 @@
 module dubhe::dapp_service {
-    use sui::object::{Self, UID};
-    use sui::table::{Self, Table};
-    use sui::tx_context::{Self, TxContext};
     use std::ascii::String;
-    use std::ascii::string;
-    use sui::event;
-    use std::vector;
     use dubhe::table_id;
     use dubhe::dubhe_events::{emit_store_set_field, emit_store_set_record, emit_store_delete_record};
     use std::type_name;
     use dubhe::dapp_store::DappStore;
-    use dubhe::table_metadata::TableMetadata;
     use dubhe::dapp_store;
     use sui::clock::Clock;
     use sui::object_table;
     use sui::object_table::ObjectTable;
+    use sui::bag::Bag;
 
     /// Error codes
-    const EInvalidTableId: u64 = 1;
     const EInvalidKey: u64 = 2;
-    const EInvalidValue: u64 = 3;
     const EInvalidFieldIndex: u64 = 4;
-    const EInvalidFieldType: u64 = 5;
     const ENoPermissionPackageId: u64 = 6;
     const EInvalidPackageId: u64 = 7;
+    const ENoPermissionAdmin: u64 = 8;
+    const EInvalidVersion: u64 = 9;
 
 
     /// Storage structure
@@ -49,7 +42,7 @@ module dubhe::dapp_service {
     /// Register a new table
     public fun register_table<DappKey: copy + drop>(
         self: &mut DappHub,
-        dapp_key: DappKey,
+        _: DappKey,
         table_id: vector<u8>,
         name: vector<u8>,
         key_schemas: vector<vector<u8>>,
@@ -74,7 +67,7 @@ module dubhe::dapp_service {
     /// Set a record
     public fun set_record<DappKey: copy + drop>(
         self: &mut DappHub,
-        dapp_key: DappKey,
+        _: DappKey,
         table_id: vector<u8>,
         key_tuple: vector<vector<u8>>,
         value_tuple: vector<vector<u8>>
@@ -111,7 +104,7 @@ module dubhe::dapp_service {
     /// Set a field
     public fun set_field<DappKey: copy + drop>(
         self: &mut DappHub,
-        dapp_key: DappKey,
+        _: DappKey,
         table_id: vector<u8>,
         key_tuple: vector<vector<u8>>,
         field_index: u8,
@@ -148,7 +141,7 @@ module dubhe::dapp_service {
 
     public fun delete_record<DappKey: copy + drop>(
         self: &mut DappHub,
-        dapp_key: DappKey,
+        _: DappKey,
         table_id: vector<u8>,
         key_tuple: vector<vector<u8>>
     ) {
@@ -246,6 +239,15 @@ module dubhe::dapp_service {
         assert!(!has_field<DappKey>(self, table_id, key_tuple, field_index), EInvalidFieldIndex);
     }
 
+    public fun get_objects<DappKey: copy + drop>(
+        self: &mut DappHub,
+        _: DappKey,
+    ): &mut Bag {
+        let dapp_key = type_name::get<DappKey>().into_string();
+        let dapp_store = self.dapp_stores.borrow_mut(dapp_key);
+        dapp_store.get_mut_objects()
+    }
+
     public fun create_dapp<DappKey: copy + drop>(
         self: &mut DappHub,
         dapp_key: DappKey,
@@ -259,19 +261,43 @@ module dubhe::dapp_service {
         self.dapp_stores.add(dapp_key, dapp_store);
     }
 
-    // public fun upgrade<DappKey: copy + drop>(
-    //     self: &mut DappHub,
-    //     _: DappKey,
-    //     new_package_id: address,
-    //     new_version: u32
-    // ) {
-    //     let dapp_key = type_name::get<DappKey>().into_string();
-    //     let dapp_store = self.dapp_stores.borrow_mut(dapp_key);
-    //     assert!(dapp_store.get_dapp_key() == dapp_key, ENoPermissionPackageId);
-    //     assert!(dapp_store.packages().contains(&new_package_id), EInvalidPackageId);
-    //     dapp_store.mut_packages().push_back(new_package_id);
-    //     *dapp_store.mut_version() = new_version;
-    // } 
+    public fun upgrade_dapp<DappKey: copy + drop>(
+        self: &mut DappHub,
+        _: DappKey,
+        new_package_id: address,
+        new_version: u32
+    ) {
+        let dapp_key = type_name::get<DappKey>().into_string();
+        let dapp_store = self.dapp_stores.borrow_mut(dapp_key);
+        assert!(dapp_store.get_dapp_key() == dapp_key, ENoPermissionPackageId);
+        let mut dapp_metadata = dapp_store.get_dapp_metadata();
+        let mut package_ids = dapp_metadata.get_package_ids();
+        assert!(!package_ids.contains(&new_package_id), EInvalidPackageId);
+        package_ids.push_back(new_package_id);
+        dapp_metadata.set_package_ids(package_ids);
+        dapp_metadata.set_version(new_version);
+        dapp_store.set_dapp_metadata(dapp_metadata);
+    } 
+
+    public fun ensure_dapp_admin<DappKey: copy + drop>(
+        self: &DappHub,
+        admin: address
+    ) {
+        let dapp_key = type_name::get<DappKey>().into_string();
+        let dapp_store = self.dapp_stores.borrow(dapp_key);
+         let dapp_metadata = dapp_store.get_dapp_metadata();
+        assert!(dapp_metadata.get_admin() == admin, ENoPermissionAdmin);
+    }
+
+    public fun ensure_latest_version<DappKey: copy + drop>(
+        self: &DappHub,
+        version: u32
+    ) {
+        let dapp_key = type_name::get<DappKey>().into_string();
+        let dapp_store = self.dapp_stores.borrow(dapp_key);
+        let dapp_metadata = dapp_store.get_dapp_metadata();
+        assert!(dapp_metadata.get_version() == version, EInvalidVersion);
+    }
 
     #[test_only]
     public fun create_dapp_hub_for_testing(ctx: &mut TxContext): DappHub {

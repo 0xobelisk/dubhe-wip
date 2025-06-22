@@ -1,8 +1,5 @@
 module dubhe::assets_functions {
     use std::u256;
-    use std::ascii::String;
-    use std::ascii::string;
-    use std::type_name;
     use dubhe::account_status;
     use dubhe::asset_account;
     use dubhe::entity_id::asset_to_entity_id;
