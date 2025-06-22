@@ -177,29 +177,29 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
   if (enableSubscriptions === 'true') {
     return {
       ...config,
-      // Use dedicated database connection for subscriptions
+      // Use dedicated subscription connection pool
       ownerConnectionString: options.databaseUrl,
 
       // WebSocket configuration
       websocketMiddlewares: [],
 
-      // PostgreSQL settings - optimized for subscriptions
+      // PostgreSQL settings - optimized for long-running subscriptions
       pgSettings: {
-        statement_timeout: '30s',
-        // Set appropriate transaction isolation level for subscriptions
+        statement_timeout: '0', // No timeout for subscription queries
+        idle_in_transaction_session_timeout: '0', // Allow long transactions
         default_transaction_isolation: 'read committed'
       },
 
       // Retry on connection failure
       retryOnInitFail: true,
 
-      // Performance optimization
+      // Performance optimization for subscriptions
       pgDefaultRole: undefined,
       jwtSecret: undefined,
 
       // Additional configuration for development environment
       ...(nodeEnv === 'development' && {
-        queryCache: true,
+        queryCache: false, // Disable cache for real-time data
         allowExplain: true
       })
     };

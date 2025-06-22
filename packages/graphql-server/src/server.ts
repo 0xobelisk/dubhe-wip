@@ -92,9 +92,43 @@ export const startServer = async (config: ServerConfig): Promise<void> => {
 
   subscriptionConfig.refresh(subscriptionConfigInput);
 
-  // Create database connection pool
+  // === Unified Connection Pool Architecture: Single pool handles all operations ===
+
+  systemLogger.info('🔄 Connection pool configuration', {
+    maxConnections: config.maxConnections,
+    strategy: 'single-pool-unified',
+    operations: ['query', 'mutation', 'subscription']
+  });
+
+  // Unified connection pool - handles all GraphQL operations
   const pgPool = new Pool({
-    connectionString: DATABASE_URL
+    connectionString: DATABASE_URL,
+
+    // === Connection Pool Configuration ===
+    max: config.maxConnections, // Use configured maximum connections
+    min: Math.min(5, Math.floor(config.maxConnections * 0.1)), // Keep minimum connections
+
+    // === Balanced Configuration: Support both short-term queries and long-term subscriptions ===
+    connectionTimeoutMillis: 10000, // 10 second timeout (balanced value)
+    idleTimeoutMillis: 600000, // 10 minute idle cleanup (support subscriptions but not too long)
+    maxLifetimeSeconds: 3600, // 1 hour rotation (prevent connection leaks)
+
+    allowExitOnIdle: config.env === 'development'
+  });
+
+  // Add connection pool event listeners
+  pgPool.on('connect', (client) => {
+    dbLogger.debug('📤 New connection established', {
+      totalCount: pgPool.totalCount,
+      idleCount: pgPool.idleCount,
+      waitingCount: pgPool.waitingCount
+    });
+  });
+
+  pgPool.on('error', (err, client) => {
+    dbLogger.error('❌ Connection pool error', err, {
+      totalCount: pgPool.totalCount
+    });
   });
 
   const startTime = Date.now();
