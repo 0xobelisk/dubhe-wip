@@ -26,6 +26,7 @@ dotenv.config();
 
 // Server configuration interface
 export interface ServerConfig {
+  // Basic server configuration
   port: string;
   databaseUrl: string;
   schema: string;
@@ -33,10 +34,31 @@ export interface ServerConfig {
   cors: boolean;
   subscriptions: boolean;
   env: string;
+
+  // Debug configuration
+  debug: boolean;
+
+  // Performance configuration
+  queryTimeout: number;
+  maxConnections: number;
+  heartbeatInterval: number;
+  enableMetrics: boolean;
+
+  // Subscription capabilities
+  enableLiveQueries: boolean;
+  enablePgSubscriptions: boolean;
+  enableNativeWebSocket: boolean;
+  realtimePort?: number;
+
+  // Internal debug flags
+  debugNotifications: boolean;
 }
 
 // Start server
 export const startServer = async (config: ServerConfig): Promise<void> => {
+  // Set log level from config to environment (for logger compatibility)
+  process.env.LOG_LEVEL = config.debug ? 'debug' : 'info';
+
   // Extract variables from config
   const {
     port: PORT,
@@ -57,15 +79,15 @@ export const startServer = async (config: ServerConfig): Promise<void> => {
     enableSubscriptions: ENABLE_SUBSCRIPTIONS_BOOL,
     databaseUrl: DATABASE_URL,
     port: PORT,
-    // Additional optional configurations can be added as needed, using default values here
-    enableLiveQueries: undefined, // Use default value
-    enablePgSubscriptions: undefined, // Use default value
-    enableNativeWebSocket: undefined, // Use default value
-    realtimePort: undefined, // Use default value
-    maxConnections: undefined, // Use default value
-    heartbeatInterval: undefined, // Use default value
-    debugNotifications: NODE_ENV === 'development', // Enable debugging in development environment
-    enableMetrics: NODE_ENV === 'development' // Enable performance metrics in development environment
+    // Use configuration from ServerConfig instead of defaults
+    enableLiveQueries: config.enableLiveQueries,
+    enablePgSubscriptions: config.enablePgSubscriptions,
+    enableNativeWebSocket: config.enableNativeWebSocket,
+    realtimePort: config.realtimePort?.toString(),
+    maxConnections: config.maxConnections.toString(),
+    heartbeatInterval: config.heartbeatInterval.toString(),
+    debugNotifications: config.debugNotifications,
+    enableMetrics: config.enableMetrics
   };
 
   subscriptionConfig.refresh(subscriptionConfigInput);
@@ -127,13 +149,20 @@ export const startServer = async (config: ServerConfig): Promise<void> => {
       enableSubscriptions: ENABLE_SUBSCRIPTIONS,
       enableCors: ENABLE_CORS ? 'true' : 'false',
       databaseUrl: DATABASE_URL,
-      availableTables: tableNames
+      availableTables: tableNames,
+      // Pass additional configuration from CLI
+      disableQueryLog: !config.debug, // Disable query log unless debug mode
+      enableQueryLog: config.debug, // Enable query log in debug mode
+      queryTimeout: config.queryTimeout
     };
 
     serverLogger.info('Creating PostGraphile configuration', {
       endpoint: GRAPHQL_ENDPOINT,
       enableCors: ENABLE_CORS,
-      enableSubscriptions: ENABLE_SUBSCRIPTIONS
+      enableSubscriptions: ENABLE_SUBSCRIPTIONS,
+      debug: config.debug,
+      disableQueryLog: !config.debug,
+      enableQueryLog: config.debug
     });
 
     // Use simplified configuration

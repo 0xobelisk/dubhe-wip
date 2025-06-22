@@ -15,6 +15,10 @@ export interface PostGraphileConfigOptions {
   enableCors: string;
   databaseUrl: string;
   availableTables: string[];
+  // Additional configuration from CLI
+  disableQueryLog: boolean;
+  enableQueryLog: boolean;
+  queryTimeout: number;
 }
 
 // 创建 PostGraphile 配置
@@ -57,10 +61,9 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
     ignoreIndexes: true,
 
     // 日志控制配置
-    // 通过环境变量控制SQL查询日志: DISABLE_QUERY_LOG=true 禁用查询日志
+    // 通过CLI参数控制SQL查询日志
     disableQueryLog:
-      process.env.DISABLE_QUERY_LOG === 'true' ||
-      (nodeEnv === 'production' && process.env.ENABLE_QUERY_LOG !== 'true'),
+      options.disableQueryLog || (nodeEnv === 'production' && !options.enableQueryLog),
 
     // 启用查询执行计划解释（仅开发环境）
     allowExplain: nodeEnv === 'development',
@@ -69,7 +72,7 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
     watchPg: nodeEnv === 'development',
 
     // GraphQL查询超时设置
-    queryTimeout: parseInt(process.env.QUERY_TIMEOUT || '30000'),
+    queryTimeout: options.queryTimeout,
 
     // GraphQL 端点 - 明确指定路由
     graphqlRoute: graphqlEndpoint,
