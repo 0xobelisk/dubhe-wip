@@ -5,6 +5,7 @@ import { hideBin } from 'yargs/helpers';
 import * as dotenv from 'dotenv';
 import { startServer, ServerConfig } from './server';
 import { systemLogger } from './utils/logger';
+import packageJson from '../package.json';
 
 // Load environment variables
 dotenv.config();
@@ -57,7 +58,7 @@ interface InitArgs {
 const cli = yargs(hideBin(process.argv))
   .scriptName('dubhe-graphql-server')
   .usage('$0 <command> [options]')
-  .version('1.2.0')
+  .version(packageJson.version)
   .help('help')
   .alias('h', 'help')
   .alias('v', 'version')
