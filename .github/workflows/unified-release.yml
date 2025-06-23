@@ -43,21 +43,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x64 (native) - Use higher performance runner
-          - platform: linux-x64
+          # Ubuntu x86_64 (native) - Use higher performance runner
+          - platform: ubuntu-x86_64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_ext: ''
             native_build: true
-          # Linux ARM64 (native on ARM64 runner) - Reference Sui's ARM64 configuration
-          - platform: linux-arm64
+          # Ubuntu ARM64 (native on ARM64 runner) - Reference Sui's ARM64 configuration
+          - platform: ubuntu-arm64
             os: ubuntu-24.04-arm # or consider ubuntu-arm64 if available
             target: aarch64-unknown-linux-gnu
             binary_ext: ''
             native_build: true
 
-          # macOS x64 (Intel)
-          - platform: macos-x64
+          # macOS x86_64 (Intel)
+          - platform: macos-x86_64
             os: macos-13
             target: x86_64-apple-darwin
             binary_ext: ''
@@ -69,12 +69,12 @@ jobs:
             binary_ext: ''
             native_build: true
 
-          # Windows x64 - Consider using dedicated instance (temporarily commented out to save time)
-          # - platform: windows-x64
-          #   os: windows-latest # or windows-ghcloud if available
-          #   target: x86_64-pc-windows-msvc
-          #   binary_ext: .exe
-          #   native_build: true
+          # Windows x86_64
+          - platform: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_ext: .exe
+            native_build: true
 
     steps:
       - name: Checkout code
@@ -139,7 +139,7 @@ jobs:
         run: |
           mkdir -p dist
           binary_name="dubhe-indexer${{ matrix.binary_ext }}"
-          archive_name="dubhe-sui-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}"
+          archive_name="dubhe-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}"
 
           # Copy binary file
           cp target/${{ matrix.target }}/release/${binary_name} dist/
@@ -168,7 +168,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dubhe-sui-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}
+          name: dubhe-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}
           path: ${{ env.ARCHIVE_PATH }}
           retention-days: 30
 
@@ -288,26 +288,26 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: linux-x64
+            platform: ubuntu-x86_64
             binary_ext: ''
           - os: ubuntu-24.04-arm
-            platform: linux-arm64
+            platform: ubuntu-arm64
             binary_ext: ''
           - os: macos-13
-            platform: macos-x64
+            platform: macos-x86_64
             binary_ext: ''
           - os: macos-latest
             platform: macos-arm64
             binary_ext: ''
-          # - os: windows-latest
-          #   platform: windows-x64
-          #   binary_ext: '.exe'
+          - os: windows-latest
+            platform: windows-x86_64
+            binary_ext: '.exe'
 
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dubhe-sui-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}
+          name: dubhe-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}
           path: ./test-binary
 
       - name: Test binary file
@@ -370,7 +370,7 @@ jobs:
       - name: Generate release notes
         run: |
           cat > release_notes.md << 'EOF'
-          ## 🚀 Dubhe Unified Release
+          ## 🚀 Dubhe Release
 
           ### 📦 Contents
 
@@ -384,7 +384,7 @@ jobs:
           - `@0xobelisk/graphql-server`
           - `@0xobelisk/create-dubhe`
 
-          #### Rust Binaries (dubhe-sui-indexer)
+          #### Rust Binaries (dubhe-indexer)
 
           **Supported Platforms:**
           - **Linux**: x86_64, ARM64
@@ -401,8 +401,8 @@ jobs:
           ```
 
           #### Binary Usage
-          1. Download the corresponding `dubhe-sui-indexer` file for your system
-          2. Extract: `tar -xzf dubhe-sui-indexer-*.tar.gz`
+          1. Download the corresponding `dubhe-indexer` file for your system
+          2. Extract: `tar -xzf dubhe-indexer-*.tar.gz`
           3. Run: `./dubhe-indexer --help`
 
           ### 🔗 Usage Examples
@@ -433,7 +433,7 @@ jobs:
           body_path: release_notes.md
           generate_release_notes: true
           tag_name: ${{ needs.get-version.outputs.version }}
-          name: 'Dubhe Unified Release ${{ needs.get-version.outputs.version }}'
+          name: '${{ needs.get-version.outputs.version }}'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
