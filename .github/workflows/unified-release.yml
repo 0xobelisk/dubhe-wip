@@ -10,12 +10,10 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
-  # Step 1: Update all version numbers
-  update-versions:
-    name: Update All Versions
+  # Step 1: Prepare versions (local only, no commit)
+  prepare-versions:
+    name: Prepare Versions
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
       version_no_v: ${{ steps.get_version.outputs.VERSION_NO_V }}
@@ -45,7 +43,7 @@ jobs:
         with:
           version: 9
 
-      - name: Update Rust project version
+      - name: Update Rust project version (local only)
         run: |
           VERSION_NO_V="${{ steps.get_version.outputs.VERSION_NO_V }}"
 
@@ -58,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Update Node.js project versions
+      - name: Update Node.js project versions (local only)
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
 
@@ -74,23 +72,19 @@ jobs:
 
           echo "✅ Updated all Node.js project versions to: ${VERSION}"
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit all version updates
-        run: |
-          git add .
-          git commit -m "chore: bump all versions to ${{ steps.get_version.outputs.VERSION }}"
-          git push origin HEAD:main
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      - name: Upload version changes as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-changes
+          path: |
+            packages/*/package.json
+            packages/sui-rust-indexer/Cargo.toml
+          retention-days: 1
 
   # Step 2: Build Rust binaries
   build-rust:
     name: Build Rust ${{ matrix.platform }}
-    needs: update-versions
+    needs: prepare-versions
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -125,8 +119,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download version changes
+        uses: actions/download-artifact@v4
         with:
-          ref: main # Get updated main branch code
+          name: version-changes
+          path: .
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -162,7 +160,7 @@ jobs:
         run: |
           mkdir -p dist
           binary_name="dubhe-indexer${{ matrix.binary_ext }}"
-          archive_name="dubhe-sui-indexer-${{ needs.update-versions.outputs.version }}-${{ matrix.platform }}"
+          archive_name="dubhe-sui-indexer-${{ needs.prepare-versions.outputs.version }}-${{ matrix.platform }}"
 
           # Copy binary file
           cp target/${{ matrix.target }}/release/${binary_name} dist/
@@ -178,14 +176,20 @@ jobs:
       - name: Calculate file hash
         shell: bash
         run: |
-          hash=$(shasum -a 256 "${{ env.ARCHIVE_PATH }}" | cut -d' ' -f1)
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            # Use PowerShell Get-FileHash on Windows
+            hash=$(powershell -Command "(Get-FileHash '${{ env.ARCHIVE_PATH }}' -Algorithm SHA256).Hash.ToLower()")
+          else
+            # Use shasum on Unix-like systems
+            hash=$(shasum -a 256 "${{ env.ARCHIVE_PATH }}" | cut -d' ' -f1)
+          fi
           echo "ARCHIVE_HASH=$hash" >> $GITHUB_ENV
           echo "Archive hash: $hash"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dubhe-sui-indexer-${{ needs.update-versions.outputs.version }}-${{ matrix.platform }}
+          name: dubhe-sui-indexer-${{ needs.prepare-versions.outputs.version }}-${{ matrix.platform }}
           path: ${{ env.ARCHIVE_PATH }}
           retention-days: 30
 
@@ -202,7 +206,7 @@ jobs:
   # Step 3: Build and publish Node.js packages
   build-and-publish-npm:
     name: Build and Publish NPM Packages
-    needs: update-versions
+    needs: prepare-versions
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -210,8 +214,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download version changes
+        uses: actions/download-artifact@v4
         with:
-          ref: main # Get updated main branch code
+          name: version-changes
+          path: .
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -227,6 +235,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Check if NPM packages already exist
+        run: |
+          VERSION="${{ needs.prepare-versions.outputs.version }}"
+          echo "Checking if packages with version ${VERSION} already exist..."
+
+          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          for package in "${packages[@]}"; do
+            if npm view @0xobelisk/$package@${VERSION} > /dev/null 2>&1; then
+              echo "❌ Package @0xobelisk/$package@${VERSION} already exists"
+              exit 1
+            else
+              echo "✅ Package @0xobelisk/$package@${VERSION} is available"
+            fi
+          done
+
       - name: Build packages
         run: |
           cd packages/sui-common && pnpm build
@@ -237,6 +260,19 @@ jobs:
           cd ../ecs && pnpm build
           cd ../graphql-server && pnpm build
           cd ../create-dubhe && pnpm build
+
+      - name: Verify build outputs
+        run: |
+          echo "Verifying all packages have dist directories..."
+          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          for package in "${packages[@]}"; do
+            if [ -d "packages/$package/dist" ] || [ -d "packages/$package/lib" ] || [ -f "packages/$package/index.js" ]; then
+              echo "✅ Package $package build output found"
+            else
+              echo "❌ Package $package build output missing"
+              exit 1
+            fi
+          done
 
       - name: Publish packages
         run: |
@@ -251,18 +287,80 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # Step 4: Create GitHub Release
+  # Step 4: Test binary files
+  test-binaries:
+    name: Test Binary ${{ matrix.platform }}
+    needs: [prepare-versions, build-rust]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+            binary_ext: ''
+          - os: ubuntu-latest
+            platform: linux-arm64
+            binary_ext: ''
+          - os: macos-latest
+            platform: macos-x64
+            binary_ext: ''
+          - os: macos-latest
+            platform: macos-arm64
+            binary_ext: ''
+          - os: windows-latest
+            platform: windows-x64
+            binary_ext: '.exe'
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dubhe-sui-indexer-${{ needs.prepare-versions.outputs.version }}-${{ matrix.platform }}
+          path: ./test-binary
+
+      - name: Test binary file
+        shell: bash
+        run: |
+          cd test-binary
+
+          echo "📁 test-binary directory contents:"
+          ls -la
+
+          echo "📦 Extracting tar.gz files..."
+          tar -xzf *.tar.gz
+
+          echo "📁 Files after extraction:"
+          ls -la
+
+          # Set binary file name
+          binary_name="dubhe-indexer${{ matrix.binary_ext }}"
+
+          if [[ -f "$binary_name" ]]; then
+            echo "✅ Found binary file: $binary_name"
+            
+            # Unix systems need executable permissions
+            if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
+              chmod +x "$binary_name"
+            fi
+            
+            echo "🧪 Testing binary file..."
+            ./"$binary_name" --help
+            echo "✅ Binary file test passed!"
+          else
+            echo "❌ Binary file not found: $binary_name"
+            exit 1
+          fi
+
+  # Step 5: Create GitHub Release
   create-github-release:
     name: Create GitHub Release
-    needs: [update-versions, build-rust, build-and-publish-npm]
+    needs: [prepare-versions, build-rust, build-and-publish-npm, test-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: main
 
       - name: Download all Rust build artifacts
         uses: actions/download-artifact@v4
@@ -305,9 +403,9 @@ jobs:
 
           #### NPM Package Installation
           ```bash
-          npm install @0xobelisk/create-dubhe@${{ needs.update-versions.outputs.version }}
+          npm install @0xobelisk/create-dubhe@${{ needs.prepare-versions.outputs.version }}
           # or
-          pnpm add @0xobelisk/sui-client@${{ needs.update-versions.outputs.version }}
+          pnpm add @0xobelisk/sui-client@${{ needs.prepare-versions.outputs.version }}
           ```
 
           #### Binary Usage
@@ -319,7 +417,7 @@ jobs:
 
           ```bash
           # Create new project
-          npx @0xobelisk/create-dubhe@${{ needs.update-versions.outputs.version }}
+          npx @0xobelisk/create-dubhe@${{ needs.prepare-versions.outputs.version }}
 
           # Run indexer
           ./dubhe-indexer --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
@@ -342,65 +440,77 @@ jobs:
           files: ./release/*
           body_path: release_notes.md
           generate_release_notes: true
-          tag_name: ${{ needs.update-versions.outputs.version }}
-          name: 'Dubhe Unified Release ${{ needs.update-versions.outputs.version }}'
+          tag_name: ${{ needs.prepare-versions.outputs.version }}
+          name: 'Dubhe Unified Release ${{ needs.prepare-versions.outputs.version }}'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
-  # Step 5: Test binary files
-  test-binaries:
-    name: Test Binary ${{ matrix.platform }}
-    needs: [update-versions, build-rust]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux-x64
-            binary_ext: ''
-          - os: macos-latest
-            platform: macos-arm64
-            binary_ext: ''
-          - os: windows-latest
-            platform: windows-x64
-            binary_ext: '.exe'
-
+  # Step 6: Commit version updates (ONLY after successful release)
+  commit-version-updates:
+    name: Commit Version Updates
+    needs:
+      [prepare-versions, build-rust, build-and-publish-npm, test-binaries, create-github-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Download build artifacts
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Download version changes
         uses: actions/download-artifact@v4
         with:
-          name: dubhe-sui-indexer-${{ needs.update-versions.outputs.version }}-${{ matrix.platform }}
-          path: ./test-binary
+          name: version-changes
+          path: .
 
-      - name: Test binary file
-        shell: bash
+      - name: Configure Git
         run: |
-          cd test-binary
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          echo "📁 test-binary directory contents:"
-          ls -la
+      - name: Commit all version updates
+        run: |
+          git add .
+          git commit -m "chore: bump all versions to ${{ needs.prepare-versions.outputs.version }}"
+          git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
-          echo "📦 Extracting tar.gz files..."
-          tar -xzf *.tar.gz
+      - name: Success notification
+        run: |
+          echo "🎉 Release completed successfully!"
+          echo "✅ All packages published"
+          echo "✅ GitHub Release created"
+          echo "✅ Version updates committed to main branch"
+          echo "📦 Released version: ${{ needs.prepare-versions.outputs.version }}"
+          echo ""
+          echo "📋 Release Summary:"
+          echo "- NPM packages: https://www.npmjs.com/search?q=%40obelisk"
+          echo "- GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare-versions.outputs.version }}"
+          echo "- Binary downloads available in the release page"
 
-          echo "📁 Files after extraction:"
-          ls -la
+      - name: Cleanup artifacts
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Clean up temporary artifacts to save storage
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
 
-          # Set binary file name
-          binary_name="dubhe-indexer${{ matrix.binary_ext }}"
-
-          if [[ -f "$binary_name" ]]; then
-            echo "✅ Found binary file: $binary_name"
-            
-            # Unix systems need executable permissions
-            if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
-              chmod +x "$binary_name"
-            fi
-            
-            echo "🧪 Testing binary file..."
-            ./"$binary_name" --help
-            echo "✅ Binary file test passed!"
-          else
-            echo "❌ Binary file not found: $binary_name"
-            exit 1
-          fi
+            for (const artifact of artifacts.data.artifacts) {
+              if (artifact.name === 'version-changes') {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id,
+                });
+                console.log(`Deleted artifact: ${artifact.name}`);
+              }
+            }
