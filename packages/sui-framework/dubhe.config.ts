@@ -9,6 +9,7 @@ export const dubheConfig = {
         AssetType: ['Lp', 'Wrapped', 'Private', 'Package'],
     },
     resources: {
+        dubhe_asset_id: 'address',
         dubhe_config: {
             fields: {
                 next_asset_id: 'u256',

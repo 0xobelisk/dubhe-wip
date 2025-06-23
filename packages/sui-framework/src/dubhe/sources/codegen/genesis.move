@@ -6,6 +6,8 @@
 
   use dubhe::dapp_key;
 
+  use dubhe::dubhe_asset_id;
+
   use dubhe::dubhe_config;
 
   use dubhe::asset_metadata;
@@ -23,6 +25,7 @@
     let dapp_key = dapp_key::new();
     dapp_service::create_dapp(dapp_hub, dapp_key, b"dubhe", b"Dubhe Protocol", clock, ctx);
     // Register tables
+    dubhe_asset_id::register_table(dapp_hub, ctx);
     dubhe_config::register_table(dapp_hub, ctx);
     asset_metadata::register_table(dapp_hub, ctx);
     asset_account::register_table(dapp_hub, ctx);

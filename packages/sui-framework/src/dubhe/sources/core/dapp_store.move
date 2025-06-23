@@ -270,6 +270,12 @@ public(package) fun charge_fee(self: &mut DappStore, key_tuple: vector<vector<u8
    fee_state.set_total_recharged(total_recharged - fee);
 }
 
+public(package) fun recharge(self: &mut DappStore, amount: u256) {
+    let fee_state = &mut self.dapp_fee_state;
+    let total_recharged = fee_state.get_total_recharged();
+    fee_state.set_total_recharged(total_recharged + amount);
+}
+
     public fun get_dapp_key(self: &DappStore): String {
         self.dapp_key
     }

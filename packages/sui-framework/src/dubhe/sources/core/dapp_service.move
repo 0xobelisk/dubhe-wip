@@ -248,6 +248,13 @@ module dubhe::dapp_service {
         dapp_store.get_mut_objects()
     }
 
+    public(package) fun get_dapp_store(
+        self: &mut DappHub,
+        dapp_key: String
+    ): &mut DappStore {
+        self.dapp_stores.borrow_mut(dapp_key)
+    }
+
     public fun create_dapp<DappKey: copy + drop>(
         self: &mut DappHub,
         dapp_key: DappKey,

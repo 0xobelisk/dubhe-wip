@@ -8,6 +8,7 @@
 
   use dubhe::dapp_service::DappHub;
   use dubhe::dubhe_config;
+  use dubhe::dubhe_asset_id;
   use dubhe::wrapper_system;
   use sui::sui::SUI;
   use dubhe::dubhe::DUBHE;
@@ -42,6 +43,7 @@
       7,
       b"https://raw.githubusercontent.com/0xobelisk/dubhe/refs/heads/main/assets/logo.jpg",
     );
+    dubhe_asset_id::set(dapp_hub, dubhe_asset_id);
 
     std::debug::print(&sui_asset_id);
     std::debug::print(&dubhe_asset_id);
