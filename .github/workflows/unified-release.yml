@@ -8,11 +8,11 @@ on:
 env:
   CARGO_TERM_COLOR: always
   NODE_OPTIONS: '--max-old-space-size=4096'
-  # 借鉴 Sui 项目的 Rust 优化配置
-  CARGO_INCREMENTAL: 0 # 禁用增量编译，CI 环境下更快
-  CARGO_NET_RETRY: 10 # 增加网络重试次数
+  # Rust optimization configuration borrowed from Sui project
+  CARGO_INCREMENTAL: 0 # Disable incremental compilation for faster CI builds
+  CARGO_NET_RETRY: 10 # Increase network retry count
   RUSTUP_MAX_RETRIES: 10
-  RUST_BACKTRACE: short # 简短的错误堆栈
+  RUST_BACKTRACE: short # Short error backtraces
 
 jobs:
   # Step 1: Get version info (simple)
@@ -38,40 +38,40 @@ jobs:
     name: Build Rust ${{ matrix.platform }}
     needs: get-version
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120 # 添加超时控制
+    timeout-minutes: 120 # Add timeout control
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux x64 (native) - 使用更高性能的运行器
+          # Linux x64 (native) - Use higher performance runner
           - platform: linux-x64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_ext: ''
             native_build: true
-          # Linux ARM64 (native on ARM64 runner) - 参考 Sui 的 ARM64 配置
+          # Linux ARM64 (native on ARM64 runner) - Reference Sui's ARM64 configuration
           - platform: linux-arm64
-            os: ubuntu-24.04-arm # 或考虑 ubuntu-arm64 如果可用
+            os: ubuntu-24.04-arm # or consider ubuntu-arm64 if available
             target: aarch64-unknown-linux-gnu
             binary_ext: ''
             native_build: true
 
-          # macOS x64 (Intel) - 使用大型实例
+          # macOS x64 (Intel)
           - platform: macos-x64
-            os: macos-15-large # 改用大型实例以提高性能
+            os: macos-13
             target: x86_64-apple-darwin
             binary_ext: ''
             native_build: true
-          # macOS ARM64 (Apple Silicon) - 使用超大型实例
+          # macOS ARM64 (Apple Silicon)
           - platform: macos-arm64
-            os: macos-15-xlarge # 如果可用，否则保持 macos-latest
+            os: macos-latest
             target: aarch64-apple-darwin
             binary_ext: ''
             native_build: true
 
-          # Windows x64 - 考虑使用专用实例 (暂时注释掉以节省时间)
+          # Windows x64 - Consider using dedicated instance (temporarily commented out to save time)
           # - platform: windows-x64
-          #   os: windows-latest # 或 windows-ghcloud 如果可用
+          #   os: windows-latest # or windows-ghcloud if available
           #   target: x86_64-pc-windows-msvc
           #   binary_ext: .exe
           #   native_build: true
@@ -293,10 +293,10 @@ jobs:
           - os: ubuntu-24.04-arm
             platform: linux-arm64
             binary_ext: ''
-          - os: macos-15-large
+          - os: macos-13
             platform: macos-x64
             binary_ext: ''
-          - os: macos-15-xlarge
+          - os: macos-latest
             platform: macos-arm64
             binary_ext: ''
           # - os: windows-latest
