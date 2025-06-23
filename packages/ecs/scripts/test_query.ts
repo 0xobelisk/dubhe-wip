@@ -41,9 +41,15 @@ async function testMonsterHunterECS() {
   );
   console.log(entity);
 
+  const component = await world.getComponent(
+    '0xd7b69493da10a0e733b13d3213b20beb1630a50b949876b352b002f4818a9388',
+    'counter1'
+  );
+  console.log(component);
+
   // const resource = await world.getResources('counter2');
   const resource = await world.getResource('counter2', {
-    value: '100',
+    value: '1',
   });
   console.log(resource);
 }

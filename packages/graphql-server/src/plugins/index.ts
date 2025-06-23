@@ -1,4 +1,4 @@
-// 插件统一导出入口
+// Unified export entry point for plugins
 export * from './database-introspector';
 export * from './welcome-page';
 export * from './postgraphile-config';

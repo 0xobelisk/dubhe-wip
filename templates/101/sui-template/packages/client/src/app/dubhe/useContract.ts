@@ -1,5 +1,5 @@
 import { NETWORK, PACKAGE_ID } from 'contracts/deployment';
-import { dubheConfig } from 'contracts/dubhe.config';
+import dubheMetadata from 'contracts/dubhe.config.json';
 import metadata from 'contracts/metadata.json';
 import { Dubhe, SuiMoveNormalizedModules } from '@0xobelisk/sui-client';
 import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
@@ -28,7 +28,7 @@ export function useContract() {
       endpoint: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
       subscriptionEndpoint:
         process.env.NEXT_PUBLIC_GRAPHQL_WS_ENDPOINT || 'ws://localhost:4000/graphql',
-      dubheConfig: dubheConfig
+      dubheMetadata
     });
   }, []);
 
