@@ -12,7 +12,7 @@ It comes with
 
 ## Installation
 
-We don’t recommend installing the CLI globally.
+We don't recommend installing the CLI globally.
 
 Instead, you should add the CLI as a dev dependency to your project (done automatically if you start from a starter kit using `pnpm create dubhe`), and use it with `pnpm build` inside your project directory.
 
