@@ -1,9 +1,8 @@
-name: Sui Rust Indexer - 跨平台发布
+# ⚠️ 已被 unified-release.yml 替代，防止冲突已禁用
+name: Sui Rust Indexer - 跨平台发布 (DISABLED)
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch: # 手动触发，不再自动运行
 
 env:
   CARGO_TERM_COLOR: always
@@ -21,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: 获取版本号
         id: get_version
@@ -50,7 +49,7 @@ jobs:
           git commit -m "chore(sui-rust-indexer): bump version to ${{ steps.get_version.outputs.VERSION }}"
           git push origin HEAD:main
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
   build:
     name: 构建 ${{ matrix.platform }}
@@ -65,31 +64,26 @@ jobs:
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_ext: ''
-            archive_ext: tar.gz
           - platform: linux-arm64
             os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             binary_ext: ''
-            archive_ext: tar.gz
 
           # macOS
           - platform: macos-x64
             os: macos-latest
             target: x86_64-apple-darwin
             binary_ext: ''
-            archive_ext: tar.gz
           - platform: macos-arm64
             os: macos-latest
             target: aarch64-apple-darwin
             binary_ext: ''
-            archive_ext: tar.gz
 
           # Windows
           - platform: windows-x64
             os: windows-latest
             target: x86_64-pc-windows-msvc
             binary_ext: .exe
-            archive_ext: zip
 
     steps:
       - name: 检出代码
@@ -125,18 +119,18 @@ jobs:
         run: |
           cargo build --release --target ${{ matrix.target }}
 
-      - name: 准备发布文件 (Unix)
-        if: matrix.os != 'windows-latest'
+      - name: 准备发布文件
         working-directory: packages/sui-rust-indexer
+        shell: bash
         run: |
           mkdir -p dist
-          binary_name="dubhe-indexer"
+          binary_name="dubhe-indexer${{ matrix.binary_ext }}"
           archive_name="dubhe-sui-indexer-${{ github.ref_name || 'latest' }}-${{ matrix.platform }}"
 
           # 复制二进制文件
           cp target/${{ matrix.target }}/release/${binary_name} dist/
 
-          # 创建压缩包
+          # 统一创建 tar.gz 压缩包
           cd dist
           tar -czf ${archive_name}.tar.gz ${binary_name}
 
@@ -144,40 +138,17 @@ jobs:
           echo "ARCHIVE_NAME=${archive_name}" >> $GITHUB_ENV
           echo "ARCHIVE_PATH=packages/sui-rust-indexer/dist/${archive_name}.tar.gz" >> $GITHUB_ENV
 
-      - name: 准备发布文件 (Windows)
-        if: matrix.os == 'windows-latest'
-        working-directory: packages/sui-rust-indexer
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path dist -Force
-          $binaryName = "dubhe-indexer.exe"
-          $archiveName = "dubhe-sui-indexer-${{ github.ref_name || 'latest' }}-${{ matrix.platform }}"
-
-          # 复制二进制文件
-          Copy-Item "target/${{ matrix.target }}/release/$binaryName" "dist/"
-
-          # 创建压缩包
-          Compress-Archive -Path "dist/$binaryName" -DestinationPath "dist/$archiveName.zip"
-
-          # 输出信息供后续步骤使用
-          echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
-          echo "ARCHIVE_PATH=packages/sui-rust-indexer/dist/$archiveName.zip" >> $env:GITHUB_ENV
-
       - name: 计算文件哈希
         shell: bash
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            hash=$(sha256sum "${{ env.ARCHIVE_PATH }}" | cut -d' ' -f1)
-          else
-            hash=$(shasum -a 256 "${{ env.ARCHIVE_PATH }}" | cut -d' ' -f1)
-          fi
+          hash=$(shasum -a 256 "${{ env.ARCHIVE_PATH }}" | cut -d' ' -f1)
           echo "ARCHIVE_HASH=$hash" >> $GITHUB_ENV
           echo "Archive hash: $hash"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARCHIVE_NAME }}
+          name: dubhe-sui-indexer-${{ github.ref_name || 'latest' }}-${{ matrix.platform }}
           path: ${{ env.ARCHIVE_PATH }}
           retention-days: 30
 
@@ -195,6 +166,8 @@ jobs:
     name: 创建发布版本
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -207,7 +180,7 @@ jobs:
       - name: 准备发布文件
         run: |
           mkdir -p ./release
-          find ./artifacts -name "*.tar.gz" -o -name "*.zip" | while read file; do
+          find ./artifacts -name "*.tar.gz" | while read file; do
             cp "$file" ./release/
           done
           ls -la ./release
@@ -270,7 +243,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: 'Dubhe Sui Indexer ${{ github.ref_name }}'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
   test-binaries:
     name: 测试二进制文件
@@ -281,10 +254,13 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x64
+            binary_ext: ''
           - os: macos-latest
             platform: macos-arm64
+            binary_ext: ''
           - os: windows-latest
             platform: windows-x64
+            binary_ext: '.exe'
 
     steps:
       - name: 下载构建产物
@@ -293,22 +269,34 @@ jobs:
           name: dubhe-sui-indexer-${{ github.ref_name || 'latest' }}-${{ matrix.platform }}
           path: ./test-binary
 
-      - name: 测试二进制文件 (Unix)
-        if: matrix.os != 'windows-latest'
+      - name: 测试二进制文件
+        shell: bash
         run: |
           cd test-binary
-          if [[ -f *.tar.gz ]]; then
-            tar -xzf *.tar.gz
-          fi
-          chmod +x dubhe-indexer
-          ./dubhe-indexer --help
 
-      - name: 测试二进制文件 (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          cd test-binary
-          if (Test-Path "*.zip") {
-            Expand-Archive -Path "*.zip" -DestinationPath "." -Force
-          }
-          .\dubhe-indexer.exe --help
+          echo "📁 test-binary 目录内容:"
+          ls -la
+
+          echo "📦 解压缩 tar.gz 文件..."
+          tar -xzf *.tar.gz
+
+          echo "📁 解压后的文件:"
+          ls -la
+
+          # 设置二进制文件名
+          binary_name="dubhe-indexer${{ matrix.binary_ext }}"
+
+          if [[ -f "$binary_name" ]]; then
+            echo "✅ 找到二进制文件: $binary_name"
+            
+            # Unix系统需要设置执行权限
+            if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
+              chmod +x "$binary_name"
+            fi
+            
+            echo "🧪 测试二进制文件..."
+            ./"$binary_name" --help
+          else
+            echo "❌ 未找到二进制文件: $binary_name"
+            exit 1
+          fi

@@ -1,9 +1,8 @@
-name: Release Packages
+# ⚠️ 已被 unified-release.yml 替代，防止冲突已禁用
+name: Release Packages (DISABLED)
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch: # 手动触发，不再自动运行
 
 env:
   NODE_OPTIONS: '--max-old-space-size=4096'
