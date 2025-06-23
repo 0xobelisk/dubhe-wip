@@ -87,7 +87,7 @@ jobs:
           echo "Updating Rust project version to: ${VERSION_NO_V}"
 
           # Update sui-rust-indexer Cargo.toml (cross-platform compatible)
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          if [[ "${{ matrix.os }}" == macos-* ]]; then
             # macOS requires backup extension parameter
             sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
           else
