@@ -235,9 +235,9 @@ async function fetchGitHubReleases(
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(
-        chalk.gray(`Fetching release info for ${repo}... (attempt ${attempt}/${retries})`)
-      );
+      if (attempt > 1) {
+        console.log(chalk.gray(`     Retry ${attempt}/${retries}...`));
+      }
 
       const response = await fetch(url, {
         headers: {
@@ -256,18 +256,18 @@ async function fetchGitHubReleases(
       }
 
       const releases = await response.json();
-      console.log(chalk.green(`✓ Successfully fetched ${releases.length} releases`));
       return releases;
     } catch (error) {
-      console.log(
-        chalk.yellow(
-          `⚠️ Attempt ${attempt} failed: ${error instanceof Error ? error.message : String(error)}`
-        )
-      );
+      if (attempt > 1) {
+        console.log(
+          chalk.yellow(
+            `     ⚠️ Attempt ${attempt} failed: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
+      }
 
       if (attempt === retries) {
-        console.error(chalk.red(`❌ Failed to fetch releases after ${retries} attempts`));
-        console.log(chalk.gray('Please check your network connection or try again later'));
+        console.error(chalk.red(`   ❌ Failed to fetch releases after ${retries} attempts`));
         return [];
       }
 
@@ -338,9 +338,7 @@ async function autoAddToShellConfig(installDir: string): Promise<void> {
     // Detect current shell
     const shell = detectCurrentShell();
     if (!shell) {
-      console.log(chalk.gray(`Please add ${installDir} to your PATH environment variable:`));
-      console.log(chalk.gray(`  export PATH="$PATH:${installDir}"`));
-      console.log(chalk.gray(`Add the above command to your shell configuration file`));
+      console.log(chalk.gray(`Please add to PATH: export PATH="$PATH:${installDir}"`));
       return;
     }
 
@@ -354,7 +352,7 @@ async function autoAddToShellConfig(installDir: string): Promise<void> {
     if (fs.existsSync(configFile)) {
       const content = fs.readFileSync(configFile, 'utf8');
       if (content.includes(installDir)) {
-        console.log(chalk.green(`✓ PATH already configured in ${configFile}`));
+        console.log(chalk.green(`     ✓ PATH already configured in ${configFile}`));
         return;
       }
     }
@@ -365,18 +363,15 @@ async function autoAddToShellConfig(installDir: string): Promise<void> {
 
     fs.appendFileSync(configFile, `\n${pathLine}\n`);
 
-    console.log(chalk.green(`✓ Automatically added ${installDir} to PATH in ${configFile}`));
-    console.log(chalk.blue(`📝 To apply the changes, run:`));
-    console.log(chalk.green(`  source ${configFile}`));
-    console.log(chalk.gray(`Or restart your terminal`));
+    console.log(chalk.green(`     ✓ Automatically added to PATH in ${configFile}`));
+    console.log(chalk.blue(`     📝 To apply changes: source ${configFile} or restart terminal`));
   } catch (error) {
     console.log(
       chalk.yellow(
-        `⚠️ Could not auto-configure PATH: ${error instanceof Error ? error.message : String(error)}`
+        `     ⚠️ Could not auto-configure PATH: ${error instanceof Error ? error.message : String(error)}`
       )
     );
-    console.log(chalk.gray(`Please manually add ${installDir} to your PATH environment variable:`));
-    console.log(chalk.gray(`  export PATH="$PATH:${installDir}"`));
+    console.log(chalk.gray(`     Please manually add to PATH: export PATH="$PATH:${installDir}"`));
   }
 }
 
@@ -455,14 +450,14 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
   }
 
   const systemInfo = getSystemInfo();
-  console.log(chalk.blue(`\n🔄 Starting download and installation of ${config.name}...`));
-  console.log(chalk.gray(`System info: ${systemInfo.platform}/${systemInfo.arch}`));
+  console.log(chalk.gray(`   System: ${systemInfo.platform}/${systemInfo.arch}`));
 
   try {
     // Fetch releases
+    console.log(chalk.gray(`   Fetching release information...`));
     const releases = await fetchGitHubReleases(config.repo, 10);
     if (releases.length === 0) {
-      console.error(`Unable to fetch releases for ${config.name}`);
+      console.error(chalk.red(`   ❌ Unable to fetch releases for ${config.name}`));
       return false;
     }
 
@@ -505,8 +500,8 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
       return false;
     }
 
-    console.log(chalk.green(`✓ Found compatible version: ${selectedRelease.tag_name}`));
-    console.log(chalk.gray(`  Download file: ${asset.name}`));
+    console.log(chalk.green(`   ✓ Found compatible version: ${selectedRelease.tag_name}`));
+    console.log(chalk.gray(`   Download file: ${asset.name}`));
 
     // Verify download link
     try {
@@ -516,33 +511,30 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
       });
       if (!headResponse.ok) {
         console.log(
-          chalk.yellow(`⚠️ Warning: Unable to access download file (${headResponse.status})`)
+          chalk.yellow(`   ⚠️ Warning: Unable to access download file (${headResponse.status})`)
         );
-        console.log(chalk.gray(`  Possible cause: File does not exist or network issue`));
       } else {
         const fileSize = headResponse.headers.get('content-length');
         if (fileSize) {
           console.log(
             chalk.gray(
-              `  File size: ${Math.round((parseInt(fileSize) / 1024 / 1024) * 100) / 100} MB`
+              `   File size: ${Math.round((parseInt(fileSize) / 1024 / 1024) * 100) / 100} MB`
             )
           );
         }
       }
     } catch (error) {
-      console.log(chalk.yellow(`⚠️ Warning: Unable to verify download file`));
-      console.log(chalk.gray(`  Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.log(chalk.yellow(`   ⚠️ Warning: Unable to verify download file`));
     }
 
     // Create install directory
     if (!fs.existsSync(config.installDir)) {
       fs.mkdirSync(config.installDir, { recursive: true });
-      console.log(chalk.gray(`Created install directory: ${config.installDir}`));
+      console.log(chalk.gray(`   Created install directory: ${config.installDir}`));
     }
 
     // Download file with retry and progress bar
-    console.log(chalk.blue('📥 Starting file download...'));
-    console.log(chalk.gray(`  Download URL: ${asset.browser_download_url}`));
+    console.log(chalk.blue(`   📥 Downloading...`));
 
     const tempFile = path.join(os.tmpdir(), asset.name);
     const maxRetries = 3;
@@ -550,28 +542,27 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 1) {
-          console.log(chalk.gray(`  Attempt ${attempt} to download...`));
+          console.log(chalk.gray(`   Attempt ${attempt} to download...`));
         }
 
         await downloadFileWithProgress(asset.browser_download_url, tempFile);
-        console.log(chalk.gray(`  Temporary file: ${tempFile}`));
         break;
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        console.log(chalk.yellow(`⚠️ Download failed (attempt ${attempt}): ${errorMsg}`));
+        console.log(chalk.yellow(`   ⚠️ Download failed (attempt ${attempt}): ${errorMsg}`));
 
         if (attempt === maxRetries) {
           throw new Error(`Download failed after ${maxRetries} attempts: ${errorMsg}`);
         }
 
         // Wait before retry
-        console.log(chalk.gray(`  Waiting ${attempt * 2} seconds before retry...`));
+        console.log(chalk.gray(`   Waiting ${attempt * 2} seconds before retry...`));
         await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
       }
     }
 
     // Extract and install
-    console.log(chalk.blue('📦 Extracting and installing...'));
+    console.log(chalk.blue('   📦 Extracting and installing...'));
 
     const extractDir = path.join(os.tmpdir(), `extract_${Date.now()}`);
     fs.mkdirSync(extractDir, { recursive: true });
@@ -640,22 +631,19 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
     fs.rmSync(tempFile, { force: true });
     fs.rmSync(extractDir, { recursive: true, force: true });
 
-    console.log(chalk.green(`✅ ${config.name} installed successfully!`));
-    console.log(chalk.gray(`  Install location: ${targetPath}`));
-    console.log(chalk.gray(`  Version: ${selectedRelease.tag_name}`));
+    console.log(chalk.green(`   ✅ Installation completed!`));
+    console.log(chalk.gray(`   Location: ${targetPath}`));
+    console.log(chalk.gray(`   Version: ${selectedRelease.tag_name}`));
 
     // Check if install directory is in PATH
     const currentPath = process.env.PATH || '';
     if (!currentPath.includes(config.installDir)) {
       console.log(
-        chalk.yellow('\n⚠️  Warning: Install directory is not in PATH environment variable')
+        chalk.yellow('   ⚠️  Warning: Install directory is not in PATH environment variable')
       );
 
       if (process.platform === 'win32') {
-        console.log(
-          chalk.gray(`Please add ${config.installDir} to your PATH environment variable:`)
-        );
-        console.log(chalk.gray(`  set PATH=%PATH%;${config.installDir}`));
+        console.log(chalk.gray(`     Please add to PATH: set PATH=%PATH%;${config.installDir}`));
       } else {
         // Auto-add to shell configuration file
         await autoAddToShellConfig(config.installDir);
@@ -726,6 +714,19 @@ async function selectVersion(toolName: string): Promise<string | null> {
   }
 }
 
+// Check if binary exists in install directory
+function checkBinaryExists(toolName: string): boolean {
+  const config = TOOL_CONFIGS[toolName];
+  if (!config) return false;
+
+  const binaryPath = path.join(
+    config.installDir,
+    config.binaryName + (process.platform === 'win32' ? '.exe' : '')
+  );
+
+  return fs.existsSync(binaryPath);
+}
+
 // Check if command is available in PATH
 async function checkCommand(
   command: string,
@@ -741,6 +742,19 @@ async function checkCommand(
         message: `Installed ${version}`
       };
     } else {
+      // Check if binary exists in install directory but not in PATH
+      if (checkBinaryExists(command)) {
+        const shell = detectCurrentShell();
+        const shellConfig = shell ? shell.configFile : '~/.zshrc (or ~/.bashrc)';
+
+        return {
+          name: command,
+          status: 'warning',
+          message: 'Installed but not in PATH',
+          fixSuggestion: `Binary exists in install directory. Please apply PATH changes: source ${shellConfig} (or restart terminal), then run dubhe doctor again`
+        };
+      }
+
       return {
         name: command,
         status: 'error',
@@ -749,6 +763,19 @@ async function checkCommand(
       };
     }
   } catch (error) {
+    // Check if binary exists in install directory but not in PATH
+    if (checkBinaryExists(command)) {
+      const shell = detectCurrentShell();
+      const shellConfig = shell ? shell.configFile : '~/.zshrc (or ~/.bashrc)';
+
+      return {
+        name: command,
+        status: 'warning',
+        message: 'Installed but not in PATH',
+        fixSuggestion: `Binary exists in install directory. Please apply PATH changes: source ${shellConfig} (or restart terminal), then run dubhe doctor again`
+      };
+    }
+
     return {
       name: command,
       status: 'error',
@@ -1073,35 +1100,159 @@ async function runDoctorChecks(options: {
   console.log(`   ${chalk.yellow('! Warning:')} ${summary.warning} items`);
   console.log(`   ${chalk.red('✗ Failed:')} ${summary.error} items`);
 
-  // Show install suggestions for failed tools
-  const failedTools = results.filter((r) => r.status === 'error' && TOOL_CONFIGS[r.name]);
-  if (failedTools.length > 0) {
-    console.log(chalk.blue('\n💡 Auto-install suggestions:'));
-    failedTools.forEach((tool) => {
-      console.log(chalk.gray(`   dubhe doctor --install ${tool.name}  # Install ${tool.name}`));
+  // Handle missing tools
+  const allFailedTools = results.filter((r) => r.status === 'error');
+  const autoInstallableTools = allFailedTools.filter((r) => TOOL_CONFIGS[r.name]);
+  const manualInstallTools = allFailedTools.filter((r) => !TOOL_CONFIGS[r.name]);
+
+  // Show manual installation suggestions for non-auto-installable tools
+  if (manualInstallTools.length > 0) {
+    console.log(chalk.blue('\n🔧 Missing tools that require manual installation:'));
+    manualInstallTools.forEach((tool) => {
+      console.log(`   ${chalk.red('✗')} ${tool.name}: ${tool.fixSuggestion || tool.message}`);
     });
-    console.log(
-      chalk.gray(
-        '   dubhe doctor --install <tool> --select-version  # Install with version selection'
-      )
-    );
   }
 
-  if (summary.error > 0) {
-    console.log(
-      chalk.red(
-        '\n❌ Your environment has some issues, please fix them according to the suggestions above.'
-      )
+  // Auto-install missing tools that support it
+  if (autoInstallableTools.length > 0) {
+    // Check if any of the tools are already installed in the install directory
+    const alreadyInstalledTools = autoInstallableTools.filter((tool) =>
+      checkBinaryExists(tool.name)
     );
-    process.exit(1);
-  } else if (summary.warning > 0) {
-    console.log(
-      chalk.yellow(
-        '\n⚠️  Your environment is basically ready, but we recommend fixing the warnings for better development experience.'
-      )
-    );
-  } else {
-    console.log(chalk.green('\n✅ Congratulations! Your development environment is fully ready!'));
+    const notInstalledTools = autoInstallableTools.filter((tool) => !checkBinaryExists(tool.name));
+
+    if (alreadyInstalledTools.length > 0) {
+      const installedNames = alreadyInstalledTools.map((tool) => tool.name).join(', ');
+      const installDir = TOOL_CONFIGS[alreadyInstalledTools[0].name]?.installDir || '~/.dubhe/bin';
+      const shell = detectCurrentShell();
+      const shellConfig = shell ? shell.configFile : '~/.zshrc (or ~/.bashrc)';
+
+      console.log(chalk.yellow(`\n⚠️  Tools already installed but not in PATH: ${installedNames}`));
+      console.log(chalk.gray(`   Location: ${installDir}`));
+      console.log(chalk.blue('   To fix this, apply PATH changes:'));
+      console.log(chalk.green(`     source ${shellConfig}`));
+      console.log(chalk.blue('   Or restart your terminal, then run: dubhe doctor'));
+      console.log(
+        chalk.gray(
+          `   If you want to reinstall, remove the files from ${installDir} and run dubhe doctor again`
+        )
+      );
+    }
+
+    if (notInstalledTools.length > 0) {
+      const notInstalledNames = notInstalledTools.map((tool) => tool.name).join(', ');
+      console.log(chalk.blue(`\n🚀 Auto-installable tools detected: ${notInstalledNames}`));
+
+      try {
+        const answer = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'installAll',
+            message: `Would you like to automatically install these tools? (${notInstalledNames})`,
+            default: true
+          }
+        ]);
+
+        if (answer.installAll) {
+          console.log(chalk.blue('\n📦 Starting installation of auto-installable tools...\n'));
+
+          let installationResults: Array<{ name: string; success: boolean }> = [];
+
+          for (const tool of notInstalledTools) {
+            console.log(chalk.blue(`${'='.repeat(60)}`));
+            console.log(chalk.blue(`📦 Installing ${tool.name}...`));
+            console.log(chalk.blue(`${'='.repeat(60)}`));
+
+            const success = await downloadAndInstallTool(tool.name);
+            installationResults.push({ name: tool.name, success });
+
+            if (success) {
+              console.log(chalk.green(`\n✅ ${tool.name} installation completed successfully!`));
+            } else {
+              console.log(chalk.red(`\n❌ ${tool.name} installation failed`));
+              console.log(
+                chalk.gray(`   Manual installation: dubhe doctor --install ${tool.name}`)
+              );
+            }
+            console.log(''); // Add spacing between tools
+          }
+
+          // Show installation summary
+          console.log(chalk.blue(`${'='.repeat(60)}`));
+          console.log(chalk.bold('📋 Installation Summary:'));
+          console.log(chalk.blue(`${'='.repeat(60)}`));
+
+          installationResults.forEach((result) => {
+            const status = result.success ? chalk.green('✅ Success') : chalk.red('❌ Failed');
+            console.log(`   ${result.name}: ${status}`);
+          });
+
+          const successCount = installationResults.filter((r) => r.success).length;
+          const failureCount = installationResults.length - successCount;
+
+          console.log(
+            `\n   ${chalk.green('Successful:')} ${successCount}/${installationResults.length}`
+          );
+          if (failureCount > 0) {
+            console.log(`   ${chalk.red('Failed:')} ${failureCount}/${installationResults.length}`);
+          }
+
+          // Check if any tools were successfully installed
+          if (successCount > 0) {
+            const shell = detectCurrentShell();
+            const shellConfig = shell ? shell.configFile : '~/.zshrc (or ~/.bashrc)';
+
+            console.log(chalk.blue('\n🔄 Next Steps:'));
+            console.log(chalk.yellow('   1. Apply PATH changes by running:'));
+            console.log(chalk.green(`      source ${shellConfig}`));
+            console.log(chalk.yellow('   2. Or restart your terminal'));
+            console.log(chalk.yellow('   3. Then run the doctor check again:'));
+            console.log(chalk.green('      dubhe doctor'));
+            console.log(
+              chalk.gray('\n   This will verify that all tools are properly configured.')
+            );
+          } else {
+            console.log(
+              chalk.red('\n❌ All installations failed. Please check the error messages above.')
+            );
+          }
+        } else {
+          console.log(
+            chalk.gray('\nAuto-installation skipped. You can install them manually later:')
+          );
+          notInstalledTools.forEach((tool) => {
+            console.log(chalk.gray(`   dubhe doctor --install ${tool.name}`));
+          });
+        }
+      } catch (error) {
+        console.log(chalk.gray('\nInstallation cancelled. You can install them manually later:'));
+        notInstalledTools.forEach((tool) => {
+          console.log(chalk.gray(`   dubhe doctor --install ${tool.name}`));
+        });
+      }
+    }
+  }
+
+  // If no auto-installable tools are missing, show final status
+  if (autoInstallableTools.length === 0) {
+    if (summary.error > 0) {
+      console.log(
+        chalk.red(
+          '\n❌ Your environment has some issues. Please fix them according to the suggestions above.'
+        )
+      );
+      process.exit(1);
+    } else if (summary.warning > 0) {
+      console.log(
+        chalk.yellow(
+          '\n⚠️  Your environment is basically ready, but we recommend fixing the warnings for better development experience.'
+        )
+      );
+    } else {
+      console.log(
+        chalk.green('\n✅ Congratulations! Your development environment is fully ready!')
+      );
+    }
   }
 
   console.log(

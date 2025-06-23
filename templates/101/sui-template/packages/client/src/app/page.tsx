@@ -16,27 +16,27 @@ export default function Home() {
   const { contract, graphqlClient, ecsWorld, network, packageId, address } = useContract();
 
   /**
-   * 初始化ECS World
+   * Initialize ECS World
    */
   const initializeECS = async () => {
     try {
-      console.log('🎮 初始化 ECS World...');
-      // ECS World 在 useContract 中已经创建，这里可以做额外的初始化工作
+      console.log('🎮 Initializing ECS World...');
+      // ECS World is already created in useContract, additional initialization work can be done here
       setEcsInitialized(true);
-      console.log('✅ ECS World 初始化成功');
+      console.log('✅ ECS World initialized successfully');
     } catch (error) {
-      console.error('❌ ECS World 初始化失败:', error);
+      console.error('❌ ECS World initialization failed:', error);
     }
   };
 
   /**
-   * 使用GraphQL客户端查询counter值
+   * Query counter value using GraphQL client
    */
   const queryCounterValueWithGraphQL = async () => {
     try {
-      console.log('🔍 使用 GraphQL 查询 counter 值...');
+      console.log('🔍 Querying counter value with GraphQL...');
 
-      // 查询 counter1 组件（包含 value 字段）
+      // Query counter1 component (contains value field)
       const result = await graphqlClient.getAllTables('counter1', {
         first: 1,
         orderBy: [{ field: 'createdAt', direction: 'DESC' }]
@@ -44,40 +44,40 @@ export default function Home() {
 
       if (result.edges.length > 0) {
         const counterData = result.edges[0].node as any;
-        console.log('📊 Counter 数据:', counterData);
+        console.log('📊 Counter data:', counterData);
         setValue(counterData.value || 0);
       } else {
-        console.log('📊 未找到 counter 数据，设置默认值 0');
+        console.log('📊 No counter data found, setting default value 0');
         setValue(0);
       }
     } catch (error) {
-      console.error('❌ GraphQL 查询失败:', error);
-      // 如果查询失败，设置默认值
+      console.error('❌ GraphQL query failed:', error);
+      // If query fails, set default value
       setValue(0);
     }
   };
 
   /**
-   * 使用ECS World查询counter值
+   * Query counter value using ECS World
    */
   const queryCounterValueWithECS = async () => {
     try {
-      console.log('🎮 使用 ECS World 查询 counter 值...');
+      console.log('🎮 Querying counter value with ECS World...');
 
-      // 获取拥有 counter1 组件的实体
+      // Get entities with counter1 component
       if (address) {
         console.log('address', address);
-        // 获取第一个实体的 counter1 组件数据
+        // Get counter1 component data from first entity
         const counterComponent = (await ecsWorld.getComponent(address, 'counter1')) as any;
-        console.log('📊 Counter 组件数据:', counterComponent);
+        console.log('📊 Counter component data:', counterComponent);
         setValue(counterComponent?.value || 0);
       } else {
-        console.log('📊 未找到 counter1 组件，设置默认值 0');
+        console.log('📊 No counter1 component found, setting default value 0');
         setValue(0);
       }
     } catch (error) {
-      console.error('❌ ECS 查询失败:', error);
-      // 如果查询失败，尝试GraphQL查询
+      console.error('❌ ECS query failed:', error);
+      // If query fails, try GraphQL query
       await queryCounterValueWithGraphQL();
     }
   };
@@ -114,7 +114,7 @@ export default function Home() {
         }
       });
     } catch (error) {
-      console.error('❌ 合约调用失败:', error);
+      console.error('❌ Contract call failed:', error);
       toast.error('Transaction failed. Please try again.');
     } finally {
       setLoading(false);
@@ -122,19 +122,19 @@ export default function Home() {
   };
 
   /**
-   * 使用GraphQL订阅counter变化
+   * Subscribe to counter changes using GraphQL
    */
   const subscribeToCounterWithGraphQL = () => {
     try {
-      console.log('📡 开始 GraphQL 订阅 counter 变化...');
+      console.log('📡 Starting GraphQL subscription for counter changes...');
 
       const observable = graphqlClient.subscribeToTableChanges('counter1', {
-        // initialEvent: true, // 🔑 重要：设置 initialEvent 为 true
+        // initialEvent: true, // 🔑 Important: set initialEvent to true
         onData: (data: any) => {
-          console.log('📢 GraphQL 收到 counter 更新:', data);
+          console.log('📢 GraphQL received counter update:', data);
 
-          // GraphQL 订阅数据结构：data.listen.query.counter1s.nodes
-          console.log('完整数据结构:', JSON.stringify(data, null, 2));
+          // GraphQL subscription data structure: data.listen.query.counter1s.nodes
+          console.log('Complete data structure:', JSON.stringify(data, null, 2));
           const nodes = data?.listen?.query?.counter1s?.nodes;
           console.log('nodes:', nodes);
           if (nodes && Array.isArray(nodes) && nodes.length > 0) {
@@ -148,46 +148,46 @@ export default function Home() {
           }
         },
         onError: (error: any) => {
-          console.error('❌ GraphQL 订阅错误:', error);
+          console.error('❌ GraphQL subscription error:', error);
         },
         onComplete: () => {
-          console.log('✅ GraphQL 订阅完成');
+          console.log('✅ GraphQL subscription completed');
         }
       });
 
-      // 启动订阅并返回 Subscription 对象
+      // Start subscription and return Subscription object
       const subscription = observable.subscribe({});
 
-      return subscription; // 返回 Subscription 对象，有 unsubscribe 方法
+      return subscription; // Return Subscription object with unsubscribe method
     } catch (error) {
-      console.error('❌ GraphQL 订阅设置失败:', error);
+      console.error('❌ GraphQL subscription setup failed:', error);
       return null;
     }
   };
 
   /**
-   * 使用ECS World订阅counter变化
+   * Subscribe to counter changes using ECS World
    */
   const subscribeToCounterWithECS = () => {
     try {
-      console.log('🎮 开始 ECS 订阅 counter1 组件变化...');
+      console.log('🎮 Starting ECS subscription for counter1 component changes...');
 
       const subscription = ecsWorld
         .onComponentChanged<any>('counter1', {
           // initialEvent: true,
-          // debounceMs: 500 // 500ms 防抖
+          // debounceMs: 500 // 500ms debounce
         })
         .subscribe({
           next: (result: any) => {
             if (result) {
               console.log(
-                `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.entityId} 的 counter1 组件发生变化:`
+                `📢 [${new Date().toLocaleTimeString()}] counter1 component changed for entity ${result.entityId}:`
               );
-              console.log(`  - 变化类型: ${result.changeType}`);
-              console.log(`  - 组件数据:`, result.data);
-              console.log(`  - 时间戳: ${result.timestamp}`);
+              console.log(`  - Change type: ${result.changeType}`);
+              console.log(`  - Component data:`, result.data);
+              console.log(`  - Timestamp: ${result.timestamp}`);
 
-              // ECS 组件数据在 result.data.data 中
+              // ECS component data is in result.data
               const componentData = result.data as any;
               if (componentData?.value !== undefined) {
                 setValue(componentData.value);
@@ -198,49 +198,49 @@ export default function Home() {
             }
 
             if (result.error) {
-              console.error('❌ 订阅错误:', result.error);
+              console.error('❌ Subscription error:', result.error);
             }
 
             if (result.loading) {
-              console.log('⏳ 数据加载中...');
+              console.log('⏳ Data loading...');
             }
           },
           error: (error: any) => {
-            console.error('❌ ECS 订阅失败:', error);
+            console.error('❌ ECS subscription failed:', error);
           },
           complete: () => {
-            console.log('✅ ECS 订阅完成');
+            console.log('✅ ECS subscription completed');
           }
         });
 
       return subscription;
     } catch (error) {
-      console.error('❌ ECS 订阅设置失败:', error);
+      console.error('❌ ECS subscription setup failed:', error);
       return null;
     }
   };
 
   useEffect(() => {
     const initializeAndSubscribe = async () => {
-      // 初始化ECS
+      // Initialize ECS
       await initializeECS();
 
-      // 查询初始值（优先使用ECS，失败则回退到GraphQL）
+      // Query initial value (prefer ECS, fallback to GraphQL on failure)
       await queryCounterValueWithECS();
 
-      // 设置订阅
+      // Set up subscriptions
       let graphqlSubscription: any = null;
       let ecsSubscription: any = null;
 
       if (ecsInitialized) {
-        // 尝试ECS订阅
+        // Try ECS subscription
         ecsSubscription = subscribeToCounterWithECS();
       }
 
-      // 同时设置GraphQL订阅作为备选
+      // Also set up GraphQL subscription as backup
       graphqlSubscription = subscribeToCounterWithGraphQL();
 
-      // 清理函数
+      // Cleanup function
       return () => {
         if (ecsSubscription) {
           ecsSubscription.unsubscribe();
@@ -267,7 +267,7 @@ export default function Home() {
           <div className="flex flex-col gap-6 mt-12">
             <div className="flex flex-col gap-4">
               <div className="text-sm text-gray-600">
-                ECS Status: {ecsInitialized ? '✅ 已初始化' : '⏳ 初始化中...'}
+                ECS Status: {ecsInitialized ? '✅ Initialized' : '⏳ Initializing...'}
               </div>
               You account already have some sui from {network}
               <div className="flex flex-col gap-6 text-2xl text-green-600 mt-6 ">
@@ -289,7 +289,7 @@ export default function Home() {
                     onClick={() => queryCounterValueWithECS()}
                     disabled={loading}
                   >
-                    🎮 ECS 查询
+                    🎮 ECS Query
                   </button>
                   <button
                     type="button"
@@ -297,7 +297,7 @@ export default function Home() {
                     onClick={() => queryCounterValueWithGraphQL()}
                     disabled={loading}
                   >
-                    📊 GraphQL 查询
+                    📊 GraphQL Query
                   </button>
                 </div>
               </div>

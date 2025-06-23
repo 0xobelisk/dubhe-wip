@@ -10,9 +10,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export function useContract() {
-  // 缓存 Dubhe 合约实例
+  // Cache Dubhe contract instance
   const contract = useMemo(() => {
-    console.log('🔧 创建 Dubhe 合约实例...');
+    console.log('🔧 Creating Dubhe contract instance...');
     return new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
@@ -21,9 +21,9 @@ export function useContract() {
     });
   }, []);
 
-  // 缓存 GraphQL 客户端实例
+  // Cache GraphQL client instance
   const graphqlClient = useMemo(() => {
-    console.log('🔧 创建 GraphQL 客户端...');
+    console.log('🔧 Creating GraphQL client...');
     return createDubheGraphqlClient({
       endpoint: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
       subscriptionEndpoint:
@@ -32,22 +32,22 @@ export function useContract() {
     });
   }, []);
 
-  // 缓存 ECS World 实例
+  // Cache ECS World instance
   const ecsWorld = useMemo(() => {
-    console.log('🔧 创建 ECS World...');
+    console.log('🔧 Creating ECS World...');
     return createECSWorld(graphqlClient, {
       queryConfig: {
-        enableBatchOptimization: true, // 启用批量查询优化
-        defaultCacheTimeout: 5000 // 5秒缓存超时
+        enableBatchOptimization: true, // Enable batch query optimization
+        defaultCacheTimeout: 5000 // 5 second cache timeout
       },
       subscriptionConfig: {
-        defaultDebounceMs: 100, // 100ms 防抖
-        reconnectOnError: true // 错误时自动重连
+        defaultDebounceMs: 100, // 100ms debounce
+        reconnectOnError: true // Auto-reconnect on error
       }
     });
   }, [graphqlClient]);
 
-  // 缓存地址（避免每次重新计算）
+  // Cache address (avoid recalculating each time)
   const address = useMemo(() => {
     return contract.getAddress();
   }, [contract]);
