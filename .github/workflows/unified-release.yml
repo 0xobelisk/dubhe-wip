@@ -126,6 +126,18 @@ jobs:
           name: version-changes
           path: .
 
+      - name: Verify Rust version update
+        run: |
+          VERSION="${{ needs.prepare-versions.outputs.version }}"
+          echo "Expected version: ${VERSION}"
+          current_version=$(grep '^version = ' packages/sui-rust-indexer/Cargo.toml | cut -d'"' -f2)
+          echo "Cargo.toml version: $current_version"
+          if [ "$current_version" != "${VERSION#v}" ]; then
+            echo "❌ Version mismatch in Cargo.toml: expected ${VERSION#v}, got $current_version"
+            exit 1
+          fi
+          echo "✅ Rust project version verified"
+
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -220,6 +232,23 @@ jobs:
         with:
           name: version-changes
           path: .
+
+      - name: Verify version updates
+        run: |
+          VERSION="${{ needs.prepare-versions.outputs.version }}"
+          echo "Expected version: ${VERSION}"
+          echo "Checking all package.json files..."
+
+          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          for package in "${packages[@]}"; do
+            current_version=$(grep '"version"' "packages/$package/package.json" | cut -d'"' -f4)
+            echo "Package $package: $current_version"
+            if [ "$current_version" != "${VERSION#v}" ]; then
+              echo "❌ Version mismatch for $package: expected ${VERSION#v}, got $current_version"
+              exit 1
+            fi
+          done
+          echo "✅ All package versions verified"
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
