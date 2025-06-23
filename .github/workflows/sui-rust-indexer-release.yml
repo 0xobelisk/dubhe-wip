@@ -1,0 +1,311 @@
+name: Sui Rust Indexer - 跨平台发布
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  update-version:
+    name: 更新版本号
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 获取版本号
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: 更新 Cargo.toml 版本
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          # 移除 v 前缀
+          VERSION=${VERSION#v}
+
+          # 使用 sed 更新 Cargo.toml 中的版本
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" packages/sui-rust-indexer/Cargo.toml
+
+          echo "✅ 已更新版本到: ${VERSION}"
+          cat packages/sui-rust-indexer/Cargo.toml | grep -E "^(name|version)"
+
+      - name: 配置 Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 提交版本更新
+        run: |
+          git add packages/sui-rust-indexer/Cargo.toml
+          git commit -m "chore(sui-rust-indexer): bump version to ${{ steps.get_version.outputs.VERSION }}"
+          git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: 构建 ${{ matrix.platform }}
+    needs: update-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - platform: linux-x64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_ext: ''
+            archive_ext: tar.gz
+          - platform: linux-arm64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            binary_ext: ''
+            archive_ext: tar.gz
+
+          # macOS
+          - platform: macos-x64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            binary_ext: ''
+            archive_ext: tar.gz
+          - platform: macos-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            binary_ext: ''
+            archive_ext: tar.gz
+
+          # Windows
+          - platform: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_ext: .exe
+            archive_ext: zip
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          ref: main # 获取更新后的主分支代码
+
+      - name: 设置 Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: 配置 Rust 缓存
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/sui-rust-indexer
+
+      - name: 安装 Linux 交叉编译依赖
+        if: matrix.os == 'ubuntu-latest' && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: 配置交叉编译环境变量
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      - name: 编译项目
+        working-directory: packages/sui-rust-indexer
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: 准备发布文件 (Unix)
+        if: matrix.os != 'windows-latest'
+        working-directory: packages/sui-rust-indexer
+        run: |
+          mkdir -p dist
+          binary_name="dubhe-indexer"
+          archive_name="dubhe-sui-indexer-${{ github.ref_name || 'latest' }}-${{ matrix.platform }}"
+
+          # 复制二进制文件
+          cp target/${{ matrix.target }}/release/${binary_name} dist/
+
+          # 创建压缩包
+          cd dist
+          tar -czf ${archive_name}.tar.gz ${binary_name}
+
+          # 输出信息供后续步骤使用
+          echo "ARCHIVE_NAME=${archive_name}" >> $GITHUB_ENV
+          echo "ARCHIVE_PATH=packages/sui-rust-indexer/dist/${archive_name}.tar.gz" >> $GITHUB_ENV
+
+      - name: 准备发布文件 (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: packages/sui-rust-indexer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force
+          $binaryName = "dubhe-indexer.exe"
+          $archiveName = "dubhe-sui-indexer-${{ github.ref_name || 'latest' }}-${{ matrix.platform }}"
+
+          # 复制二进制文件
+          Copy-Item "target/${{ matrix.target }}/release/$binaryName" "dist/"
+
+          # 创建压缩包
+          Compress-Archive -Path "dist/$binaryName" -DestinationPath "dist/$archiveName.zip"
+
+          # 输出信息供后续步骤使用
+          echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
+          echo "ARCHIVE_PATH=packages/sui-rust-indexer/dist/$archiveName.zip" >> $env:GITHUB_ENV
+
+      - name: 计算文件哈希
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            hash=$(sha256sum "${{ env.ARCHIVE_PATH }}" | cut -d' ' -f1)
+          else
+            hash=$(shasum -a 256 "${{ env.ARCHIVE_PATH }}" | cut -d' ' -f1)
+          fi
+          echo "ARCHIVE_HASH=$hash" >> $GITHUB_ENV
+          echo "Archive hash: $hash"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARCHIVE_NAME }}
+          path: ${{ env.ARCHIVE_PATH }}
+          retention-days: 30
+
+      - name: 显示构建信息
+        run: |
+          echo "✅ 构建完成:"
+          echo "  平台: ${{ matrix.platform }}"
+          echo "  目标: ${{ matrix.target }}"
+          echo "  文件: ${{ env.ARCHIVE_PATH }}"
+          echo "  哈希: ${{ env.ARCHIVE_HASH }}"
+          ls -la "${{ env.ARCHIVE_PATH }}"
+
+  create-release:
+    name: 创建发布版本
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: 准备发布文件
+        run: |
+          mkdir -p ./release
+          find ./artifacts -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            cp "$file" ./release/
+          done
+          ls -la ./release
+
+      - name: 生成发布说明
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## 🚀 Dubhe Sui Rust Indexer 发布版本
+
+          ### 📦 支持的平台
+
+          - **Linux**
+            - x86_64 (Intel/AMD 64位)
+            - ARM64 (Apple Silicon, AWS Graviton 等)
+
+          - **macOS** 
+            - x86_64 (Intel Mac)
+            - ARM64 (Apple Silicon M1/M2/M3)
+
+          - **Windows**
+            - x86_64 (64位 Windows)
+
+          ### 📥 下载说明
+
+          1. 根据你的系统选择对应的文件下载
+          2. 解压缩文件
+          3. 将可执行文件放到 PATH 环境变量中的目录
+          4. 运行 `dubhe-indexer --help` 查看使用说明
+
+          ### 🔗 使用示例
+
+          ```bash
+          # 查看帮助
+          ./dubhe-indexer --help
+
+          # 运行索引器 (testnet)
+          ./dubhe-indexer --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
+
+          # 运行索引器 (localnet)
+          ./dubhe-indexer --config dubhe.config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1
+          ```
+
+          ### 📋 文件清单
+
+          EOF
+
+          # 添加文件列表
+          for file in ./release/*; do
+            filename=$(basename "$file")
+            size=$(ls -lh "$file" | awk '{print $5}')
+            echo "- \`$filename\` ($size)" >> release_notes.md
+          done
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./release/*
+          body_path: release_notes.md
+          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+          name: 'Dubhe Sui Indexer ${{ github.ref_name }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-binaries:
+    name: 测试二进制文件
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x64
+
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: dubhe-sui-indexer-${{ github.ref_name || 'latest' }}-${{ matrix.platform }}
+          path: ./test-binary
+
+      - name: 测试二进制文件 (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd test-binary
+          if [[ -f *.tar.gz ]]; then
+            tar -xzf *.tar.gz
+          fi
+          chmod +x dubhe-indexer
+          ./dubhe-indexer --help
+
+      - name: 测试二进制文件 (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cd test-binary
+          if (Test-Path "*.zip") {
+            Expand-Archive -Path "*.zip" -DestinationPath "." -Force
+          }
+          .\dubhe-indexer.exe --help
