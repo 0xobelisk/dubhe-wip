@@ -10,81 +10,28 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
-  # Step 1: Prepare versions (local only, no commit)
-  prepare-versions:
-    name: Prepare Versions
+  # Step 1: Get version info (simple)
+  get-version:
+    name: Get Version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
       version_no_v: ${{ steps.get_version.outputs.VERSION_NO_V }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
-
-      - name: Get version
+      - name: Get version from tag
         id: get_version
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
           VERSION_NO_V=${VERSION#v}
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "VERSION_NO_V=${VERSION_NO_V}" >> $GITHUB_OUTPUT
-          echo "Version: ${VERSION}"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Update Rust project version (local only)
-        run: |
-          VERSION_NO_V="${{ steps.get_version.outputs.VERSION_NO_V }}"
-
-          # Update sui-rust-indexer Cargo.toml
-          sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
-
-          echo "✅ Updated Rust project version to: ${VERSION_NO_V}"
-          cat packages/sui-rust-indexer/Cargo.toml | grep -E "^(name|version)"
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Update Node.js project versions (local only)
-        run: |
-          VERSION="${{ steps.get_version.outputs.VERSION }}"
-
-          # Update all npm package versions
-          cd packages/sui-common && pnpm version ${VERSION} --no-git-tag-version
-          cd ../sui-client && pnpm version ${VERSION} --no-git-tag-version
-          cd ../sui-cli && pnpm version ${VERSION} --no-git-tag-version
-          cd ../sui-indexer && pnpm version ${VERSION} --no-git-tag-version
-          cd ../graphql-client && pnpm version ${VERSION} --no-git-tag-version
-          cd ../ecs && pnpm version ${VERSION} --no-git-tag-version
-          cd ../graphql-server && pnpm version ${VERSION} --no-git-tag-version
-          cd ../create-dubhe && pnpm version ${VERSION} --no-git-tag-version
-
-          echo "✅ Updated all Node.js project versions to: ${VERSION}"
-
-      - name: Upload version changes as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: version-changes
-          path: |
-            packages/*/package.json
-            packages/sui-rust-indexer/Cargo.toml
-          retention-days: 1
+          echo "🏷️ Tag version: ${VERSION}"
+          echo "📦 Package version: ${VERSION_NO_V}"
 
   # Step 2: Build Rust binaries
   build-rust:
     name: Build Rust ${{ matrix.platform }}
-    needs: prepare-versions
+    needs: get-version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -124,7 +71,25 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: version-changes
-          path: .
+          path: ./version-updates
+
+      - name: Apply version changes
+        run: |
+          echo "Applying downloaded version changes..."
+          # Copy all package.json files
+          find ./version-updates -name "package.json" -type f | while read file; do
+            relative_path=${file#./version-updates/}
+            target_dir=$(dirname "$relative_path")
+            mkdir -p "$target_dir"
+            cp "$file" "$relative_path"
+            echo "✅ Updated: $relative_path"
+          done
+
+          # Copy Cargo.toml if exists
+          if [ -f "./version-updates/packages/sui-rust-indexer/Cargo.toml" ]; then
+            cp "./version-updates/packages/sui-rust-indexer/Cargo.toml" "packages/sui-rust-indexer/Cargo.toml"
+            echo "✅ Updated: packages/sui-rust-indexer/Cargo.toml"
+          fi
 
       - name: Verify Rust version update
         run: |
@@ -218,7 +183,7 @@ jobs:
   # Step 3: Build and publish Node.js packages
   build-and-publish-npm:
     name: Build and Publish NPM Packages
-    needs: prepare-versions
+    needs: get-version
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -231,7 +196,25 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: version-changes
-          path: .
+          path: ./version-updates
+
+      - name: Apply version changes
+        run: |
+          echo "Applying downloaded version changes..."
+          # Copy all package.json files
+          find ./version-updates -name "package.json" -type f | while read file; do
+            relative_path=${file#./version-updates/}
+            target_dir=$(dirname "$relative_path")
+            mkdir -p "$target_dir"
+            cp "$file" "$relative_path"
+            echo "✅ Updated: $relative_path"
+          done
+
+          # Copy Cargo.toml if exists
+          if [ -f "./version-updates/packages/sui-rust-indexer/Cargo.toml" ]; then
+            cp "./version-updates/packages/sui-rust-indexer/Cargo.toml" "packages/sui-rust-indexer/Cargo.toml"
+            echo "✅ Updated: packages/sui-rust-indexer/Cargo.toml"
+          fi
 
       - name: Verify version updates
         run: |
@@ -319,7 +302,7 @@ jobs:
   # Step 4: Test binary files
   test-binaries:
     name: Test Binary ${{ matrix.platform }}
-    needs: [prepare-versions, build-rust]
+    needs: [get-version, build-rust]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -383,7 +366,7 @@ jobs:
   # Step 5: Create GitHub Release
   create-github-release:
     name: Create GitHub Release
-    needs: [prepare-versions, build-rust, build-and-publish-npm, test-binaries]
+    needs: [get-version, build-rust, build-and-publish-npm, test-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -477,8 +460,7 @@ jobs:
   # Step 6: Commit version updates (ONLY after successful release)
   commit-version-updates:
     name: Commit Version Updates
-    needs:
-      [prepare-versions, build-rust, build-and-publish-npm, test-binaries, create-github-release]
+    needs: [get-version, build-rust, build-and-publish-npm, test-binaries, create-github-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
