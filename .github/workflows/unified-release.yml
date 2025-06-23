@@ -58,13 +58,13 @@ jobs:
 
           # macOS x64 (Intel) - 使用大型实例
           - platform: macos-x64
-            os: macos-13-large # 改用大型实例以提高性能
+            os: macos-15-large # 改用大型实例以提高性能
             target: x86_64-apple-darwin
             binary_ext: ''
             native_build: true
           # macOS ARM64 (Apple Silicon) - 使用超大型实例
           - platform: macos-arm64
-            os: macos-latest-xlarge # 如果可用，否则保持 macos-latest
+            os: macos-15-xlarge # 如果可用，否则保持 macos-latest
             target: aarch64-apple-darwin
             binary_ext: ''
             native_build: true
@@ -293,10 +293,10 @@ jobs:
           - os: ubuntu-24.04-arm
             platform: linux-arm64
             binary_ext: ''
-          - os: macos-13-large
+          - os: macos-15-large
             platform: macos-x64
             binary_ext: ''
-          - os: macos-latest
+          - os: macos-15-xlarge
             platform: macos-arm64
             binary_ext: ''
           # - os: windows-latest
