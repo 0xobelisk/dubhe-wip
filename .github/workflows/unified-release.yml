@@ -68,12 +68,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Update Rust version
+        shell: bash
         run: |
           VERSION_NO_V="${{ needs.get-version.outputs.version_no_v }}"
           echo "Updating Rust project version to: ${VERSION_NO_V}"
 
           # Update sui-rust-indexer Cargo.toml (cross-platform compatible)
-          if [[ "$OSTYPE" == "darwin"* ]]; then
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             # macOS requires backup extension parameter
             sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
           else
@@ -195,6 +196,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Update Node.js package versions
+        shell: bash
         run: |
           VERSION="${{ needs.get-version.outputs.version }}"
           echo "Updating Node.js packages to version: ${VERSION}"
@@ -211,6 +213,7 @@ jobs:
           echo "✅ All Node.js project versions updated to: ${VERSION}"
 
       - name: Check if NPM packages already exist
+        shell: bash
         run: |
           VERSION="${{ needs.get-version.outputs.version }}"
           echo "Checking if packages with version ${VERSION} already exist..."
@@ -237,6 +240,7 @@ jobs:
           cd ../create-dubhe && pnpm build
 
       - name: Verify build outputs
+        shell: bash
         run: |
           echo "Verifying all packages have dist directories..."
           packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
@@ -440,13 +444,14 @@ jobs:
           version: 9
 
       - name: Update versions for commit
+        shell: bash
         run: |
           VERSION="${{ needs.get-version.outputs.version }}"
           VERSION_NO_V="${{ needs.get-version.outputs.version_no_v }}"
           echo "Updating all project versions for commit..."
 
           # Update Rust project version (cross-platform compatible)
-          if [[ "$OSTYPE" == "darwin"* ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
             # macOS requires backup extension parameter  
             sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
           else
