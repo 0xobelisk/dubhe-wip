@@ -67,41 +67,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download version changes
-        uses: actions/download-artifact@v4
-        with:
-          name: version-changes
-          path: ./version-updates
-
-      - name: Apply version changes
+      - name: Update Rust version
         run: |
-          echo "Applying downloaded version changes..."
-          # Copy all package.json files
-          find ./version-updates -name "package.json" -type f | while read file; do
-            relative_path=${file#./version-updates/}
-            target_dir=$(dirname "$relative_path")
-            mkdir -p "$target_dir"
-            cp "$file" "$relative_path"
-            echo "✅ Updated: $relative_path"
-          done
+          VERSION_NO_V="${{ needs.get-version.outputs.version_no_v }}"
+          echo "Updating Rust project version to: ${VERSION_NO_V}"
 
-          # Copy Cargo.toml if exists
-          if [ -f "./version-updates/packages/sui-rust-indexer/Cargo.toml" ]; then
-            cp "./version-updates/packages/sui-rust-indexer/Cargo.toml" "packages/sui-rust-indexer/Cargo.toml"
-            echo "✅ Updated: packages/sui-rust-indexer/Cargo.toml"
-          fi
+          # Update sui-rust-indexer Cargo.toml
+          sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
 
-      - name: Verify Rust version update
-        run: |
-          VERSION="${{ needs.prepare-versions.outputs.version }}"
-          echo "Expected version: ${VERSION}"
+          # Verify update
           current_version=$(grep '^version = ' packages/sui-rust-indexer/Cargo.toml | cut -d'"' -f2)
-          echo "Cargo.toml version: $current_version"
-          if [ "$current_version" != "${VERSION#v}" ]; then
-            echo "❌ Version mismatch in Cargo.toml: expected ${VERSION#v}, got $current_version"
+          echo "Updated Cargo.toml version: $current_version"
+
+          if [ "$current_version" != "${VERSION_NO_V}" ]; then
+            echo "❌ Version update failed: expected ${VERSION_NO_V}, got $current_version"
             exit 1
           fi
-          echo "✅ Rust project version verified"
+          echo "✅ Rust project version updated successfully"
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -137,7 +119,7 @@ jobs:
         run: |
           mkdir -p dist
           binary_name="dubhe-indexer${{ matrix.binary_ext }}"
-          archive_name="dubhe-sui-indexer-${{ needs.prepare-versions.outputs.version }}-${{ matrix.platform }}"
+          archive_name="dubhe-sui-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}"
 
           # Copy binary file
           cp target/${{ matrix.target }}/release/${binary_name} dist/
@@ -166,7 +148,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dubhe-sui-indexer-${{ needs.prepare-versions.outputs.version }}-${{ matrix.platform }}
+          name: dubhe-sui-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}
           path: ${{ env.ARCHIVE_PATH }}
           retention-days: 30
 
@@ -192,47 +174,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download version changes
-        uses: actions/download-artifact@v4
-        with:
-          name: version-changes
-          path: ./version-updates
-
-      - name: Apply version changes
-        run: |
-          echo "Applying downloaded version changes..."
-          # Copy all package.json files
-          find ./version-updates -name "package.json" -type f | while read file; do
-            relative_path=${file#./version-updates/}
-            target_dir=$(dirname "$relative_path")
-            mkdir -p "$target_dir"
-            cp "$file" "$relative_path"
-            echo "✅ Updated: $relative_path"
-          done
-
-          # Copy Cargo.toml if exists
-          if [ -f "./version-updates/packages/sui-rust-indexer/Cargo.toml" ]; then
-            cp "./version-updates/packages/sui-rust-indexer/Cargo.toml" "packages/sui-rust-indexer/Cargo.toml"
-            echo "✅ Updated: packages/sui-rust-indexer/Cargo.toml"
-          fi
-
-      - name: Verify version updates
-        run: |
-          VERSION="${{ needs.prepare-versions.outputs.version }}"
-          echo "Expected version: ${VERSION}"
-          echo "Checking all package.json files..."
-
-          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
-          for package in "${packages[@]}"; do
-            current_version=$(grep '"version"' "packages/$package/package.json" | cut -d'"' -f4)
-            echo "Package $package: $current_version"
-            if [ "$current_version" != "${VERSION#v}" ]; then
-              echo "❌ Version mismatch for $package: expected ${VERSION#v}, got $current_version"
-              exit 1
-            fi
-          done
-          echo "✅ All package versions verified"
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -247,9 +188,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Update Node.js package versions
+        run: |
+          VERSION="${{ needs.get-version.outputs.version }}"
+          echo "Updating Node.js packages to version: ${VERSION}"
+
+          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          for package in "${packages[@]}"; do
+            echo "Updating packages/$package to ${VERSION}..."
+            cd "packages/$package" && pnpm version ${VERSION} --no-git-tag-version
+            updated_version=$(grep '"version"' package.json | cut -d'"' -f4)
+            echo "✅ Updated packages/$package: $updated_version"
+            cd - > /dev/null
+          done
+
+          echo "✅ All Node.js project versions updated to: ${VERSION}"
+
       - name: Check if NPM packages already exist
         run: |
-          VERSION="${{ needs.prepare-versions.outputs.version }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
           echo "Checking if packages with version ${VERSION} already exist..."
 
           packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
@@ -327,7 +284,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dubhe-sui-indexer-${{ needs.prepare-versions.outputs.version }}-${{ matrix.platform }}
+          name: dubhe-sui-indexer-${{ needs.get-version.outputs.version }}-${{ matrix.platform }}
           path: ./test-binary
 
       - name: Test binary file
@@ -415,9 +372,9 @@ jobs:
 
           #### NPM Package Installation
           ```bash
-          npm install @0xobelisk/create-dubhe@${{ needs.prepare-versions.outputs.version }}
+          npm install @0xobelisk/create-dubhe@${{ needs.get-version.outputs.version }}
           # or
-          pnpm add @0xobelisk/sui-client@${{ needs.prepare-versions.outputs.version }}
+          pnpm add @0xobelisk/sui-client@${{ needs.get-version.outputs.version }}
           ```
 
           #### Binary Usage
@@ -429,7 +386,7 @@ jobs:
 
           ```bash
           # Create new project
-          npx @0xobelisk/create-dubhe@${{ needs.prepare-versions.outputs.version }}
+          npx @0xobelisk/create-dubhe@${{ needs.get-version.outputs.version }}
 
           # Run indexer
           ./dubhe-indexer --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
@@ -452,8 +409,8 @@ jobs:
           files: ./release/*
           body_path: release_notes.md
           generate_release_notes: true
-          tag_name: ${{ needs.prepare-versions.outputs.version }}
-          name: 'Dubhe Unified Release ${{ needs.prepare-versions.outputs.version }}'
+          tag_name: ${{ needs.get-version.outputs.version }}
+          name: 'Dubhe Unified Release ${{ needs.get-version.outputs.version }}'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
@@ -471,11 +428,28 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
 
-      - name: Download version changes
-        uses: actions/download-artifact@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
         with:
-          name: version-changes
-          path: .
+          version: 9
+
+      - name: Update versions for commit
+        run: |
+          VERSION="${{ needs.get-version.outputs.version }}"
+          VERSION_NO_V="${{ needs.get-version.outputs.version_no_v }}"
+          echo "Updating all project versions for commit..."
+
+          # Update Rust project version
+          sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+
+          # Update Node.js package versions
+          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          for package in "${packages[@]}"; do
+            cd "packages/$package" && pnpm version ${VERSION} --no-git-tag-version
+            cd - > /dev/null
+          done
+
+          echo "✅ All versions updated for commit"
 
       - name: Configure Git
         run: |
@@ -485,7 +459,7 @@ jobs:
       - name: Commit all version updates
         run: |
           git add .
-          git commit -m "chore: bump all versions to ${{ needs.prepare-versions.outputs.version }}"
+          git commit -m "chore: bump all versions to ${{ needs.get-version.outputs.version }}"
           git push origin HEAD:main
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -496,32 +470,9 @@ jobs:
           echo "✅ All packages published"
           echo "✅ GitHub Release created"
           echo "✅ Version updates committed to main branch"
-          echo "📦 Released version: ${{ needs.prepare-versions.outputs.version }}"
+          echo "📦 Released version: ${{ needs.get-version.outputs.version }}"
           echo ""
           echo "📋 Release Summary:"
           echo "- NPM packages: https://www.npmjs.com/search?q=%40obelisk"
-          echo "- GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare-versions.outputs.version }}"
+          echo "- GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.get-version.outputs.version }}"
           echo "- Binary downloads available in the release page"
-
-      - name: Cleanup artifacts
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            // Clean up temporary artifacts to save storage
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.runId,
-            });
-
-            for (const artifact of artifacts.data.artifacts) {
-              if (artifact.name === 'version-changes') {
-                await github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: artifact.id,
-                });
-                console.log(`Deleted artifact: ${artifact.name}`);
-              }
-            }
