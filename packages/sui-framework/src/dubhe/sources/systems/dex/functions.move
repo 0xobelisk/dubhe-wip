@@ -141,7 +141,7 @@ module dubhe::dex_functions {
         let total_supply = assets_system::supply_of(dapp_hub, pool.lp_asset()); 
         let liquidity = if (total_supply == 0) {
             // permanently lock the first MINIMUM_LIQUIDITY tokens
-            assets_functions::do_mint(dapp_hub, pool.lp_asset(), @0x0, MINIMUM_LIQUIDITY); 
+            assets_functions::do_mint(dapp_hub, pool.lp_asset(), @0xdead, MINIMUM_LIQUIDITY); 
             dubhe_math::safe_mul_sqrt(amount0, amount1) - MINIMUM_LIQUIDITY
         } else {
             std::u256::min(

@@ -58,18 +58,18 @@ module dubhe::assets_functions {
     }
 
     public(package) fun do_mint(dapp_hub: &mut DappHub, asset_id: address, to: address, amount: u256) {
-        invalid_receiver_error(to != @0xdead);
-        update(dapp_hub, asset_id, @0xfeed, to, amount);
+        invalid_receiver_error(to != @0x0);
+        update(dapp_hub, asset_id, @0x0, to, amount);
     }
 
     public(package) fun do_burn(dapp_hub: &mut DappHub, asset_id: address, from: address, amount: u256) {
-        invalid_sender_error(from != @0xfeed);
-        update(dapp_hub, asset_id, from, @0xdead, amount);
+        invalid_sender_error(from != @0x0);
+        update(dapp_hub, asset_id, from, @0x0, amount);
     }
 
     public(package) fun do_transfer(dapp_hub: &mut DappHub, asset_id: address, from: address, to: address, amount: u256) {
-        invalid_sender_error(from != @0xfeed);
-        invalid_receiver_error(to != @0xdead);
+        invalid_sender_error(from != @0x0);
+        invalid_receiver_error(to != @0x0);
         update(dapp_hub, asset_id, from, to, amount);
     }
 
@@ -77,7 +77,7 @@ module dubhe::assets_functions {
     public(package) fun update(dapp_hub: &mut DappHub, asset_id: address, from: address, to: address, amount: u256) {        
         asset_not_found_error(asset_metadata::has(dapp_hub, asset_id));
         let asset_metadata = asset_metadata::get_struct(dapp_hub, asset_id);
-        if( from == @0xfeed ) {
+        if( from == @0x0 ) {
             // Overflow check required: The rest of the code assumes that totalSupply never overflows
             overflows_error(amount <= u256::max_value!() - asset_metadata.supply());
             // supply += amount;
@@ -101,7 +101,7 @@ module dubhe::assets_functions {
             }
         };
 
-        if(to == @0xdead) {
+        if(to == @0x0) {
             // Overflow not possible: value <= totalSupply or value <= fromBalance <= totalSupply.
             // supply -= amount;
             let supply = asset_metadata.supply();

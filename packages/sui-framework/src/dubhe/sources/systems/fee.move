@@ -1,5 +1,4 @@
 module dubhe::fee_system;
-use std::ascii::String;
 use dubhe::dapp_service::DappHub;
 use dubhe::assets_system;
 use dubhe::dubhe_asset_id;
