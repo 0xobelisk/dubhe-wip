@@ -72,8 +72,14 @@ jobs:
           VERSION_NO_V="${{ needs.get-version.outputs.version_no_v }}"
           echo "Updating Rust project version to: ${VERSION_NO_V}"
 
-          # Update sui-rust-indexer Cargo.toml
-          sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+          # Update sui-rust-indexer Cargo.toml (cross-platform compatible)
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS requires backup extension parameter
+            sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+          else
+            # Linux/Windows with Git Bash
+            sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+          fi
 
           # Verify update
           current_version=$(grep '^version = ' packages/sui-rust-indexer/Cargo.toml | cut -d'"' -f2)
@@ -439,8 +445,14 @@ jobs:
           VERSION_NO_V="${{ needs.get-version.outputs.version_no_v }}"
           echo "Updating all project versions for commit..."
 
-          # Update Rust project version
-          sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+          # Update Rust project version (cross-platform compatible)
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS requires backup extension parameter  
+            sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+          else
+            # Linux/Windows with Git Bash
+            sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+          fi
 
           # Update Node.js package versions
           packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
