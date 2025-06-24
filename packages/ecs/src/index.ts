@@ -10,6 +10,7 @@ export type {
   QueryChangeCallback,
   QueryWatcher,
   PagedResult,
+  PagedQueryResult,
   BatchQueryResult,
   ComponentChangeEvent,
   EntityChangeEvent,
@@ -36,6 +37,7 @@ export { createECSWorld } from './world';
 // Utility function exports
 export {
   extractEntityIds,
+  extractPagedQueryResult,
   calculateDelta,
   findEntityIntersection,
   findEntityUnion,

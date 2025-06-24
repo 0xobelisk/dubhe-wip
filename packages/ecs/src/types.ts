@@ -52,13 +52,30 @@ export interface QueryWatcher {
   getCurrentResults: () => EntityId[];
 }
 
-// Paginated query results
+// Paginated query results (legacy)
 export interface PagedResult<T = EntityId> {
   items: T[];
   totalCount: number;
   hasMore: boolean;
   page: number;
   pageSize: number;
+}
+
+// Complete paginated query results with GraphQL connection info
+export interface PagedQueryResult<T = any> {
+  // Entity IDs for ECS queries
+  entityIds: EntityId[];
+  // Actual data items (can be component data, resource data, etc.)
+  items: T[];
+  // GraphQL pagination info
+  pageInfo: {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor?: string;
+    endCursor?: string;
+  };
+  // Total count of items
+  totalCount: number;
 }
 
 // Batch query results
@@ -89,8 +106,19 @@ export interface QueryOptions {
   fields?: string[]; // Field names to query
   idFields?: string[]; // Field names to use as entity ID, defaults to ['nodeId', 'entityId']
   compositeId?: boolean; // Whether to compose multiple fields as ID, defaults to false
-  limit?: number;
-  offset?: number;
+
+  // GraphQL pagination parameters (aligned with GraphQL client)
+  first?: number; // Get first N records (replaces limit)
+  last?: number; // Get last N records
+  after?: string; // Cursor-based pagination start position
+  before?: string; // Cursor-based pagination end position
+
+  // Legacy pagination parameters (for backward compatibility, will be converted)
+  limit?: number; // Will be mapped to first
+  offset?: number; // Will be ignored with warning (use cursor-based pagination instead)
+
+  filters?: Record<string, any>;
+
   orderBy?: Array<{
     field: string;
     direction: 'ASC' | 'DESC';

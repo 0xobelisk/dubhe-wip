@@ -1,6 +1,11 @@
 // ECS utility functions
 
-import { EntityId, ComponentType, QueryChange } from './types';
+import {
+  EntityId,
+  ComponentType,
+  QueryChange,
+  PagedQueryResult,
+} from './types';
 import { Connection, StoreTableRow } from '@0xobelisk/graphql-client';
 
 /**
@@ -43,6 +48,36 @@ export function extractEntityIds<T extends StoreTableRow>(
       }
     })
     .filter(Boolean); // Filter out empty values
+}
+
+/**
+ * Extract complete paginated query result from GraphQL connection
+ * @param connection GraphQL query result
+ * @param options Extraction options
+ * @param options.idFields Field names to use as entity ID, defaults to ['nodeId', 'entityId']
+ * @param options.composite Whether to compose multiple fields as ID, defaults to false
+ */
+export function extractPagedQueryResult<T extends StoreTableRow>(
+  connection: Connection<T>,
+  options?: {
+    idFields?: string[];
+    composite?: boolean;
+  }
+): PagedQueryResult<T> {
+  const entityIds = extractEntityIds(connection, options);
+  const items = connection.edges.map((edge) => edge.node);
+
+  return {
+    entityIds,
+    items,
+    pageInfo: {
+      hasNextPage: connection.pageInfo.hasNextPage,
+      hasPreviousPage: connection.pageInfo.hasPreviousPage,
+      startCursor: connection.pageInfo.startCursor,
+      endCursor: connection.pageInfo.endCursor,
+    },
+    totalCount: connection.totalCount || 0,
+  };
 }
 
 /**
