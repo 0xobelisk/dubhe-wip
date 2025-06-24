@@ -1,42 +1,54 @@
-// #[test_only]
-// module dubhe::bridge_tests {
-//     use std::ascii::{string};
-//     use sui::transfer::public_share_object;
-//     use dubhe::dubhe_bridge_system;
-//     use dubhe::wrapper_system;
-//     use dubhe::dubhe::DUBHE;
-//     use dubhe::init_test::deploy_dapp_for_testing;
-//     use dubhe::assets_system;
-//     use dubhe::dubhe_schema::Schema;
-//     use sui::test_scenario;
-//     use sui::coin;
+#[test_only]
+module dubhe::bridge_tests {
+    use dubhe::bridge_system;
+    use dubhe::wrapper_system;
+    use dubhe::dubhe::DUBHE;
+    use dubhe::init_test::deploy_dapp_for_testing;
+    use dubhe::assets_system;
+    use sui::test_scenario;
+    use sui::coin;
+    use dubhe::dubhe_asset_id;
+    use dubhe::dapp_key;
+    use sui::coin::TreasuryCap;
 
-//     #[test]
-//     public fun bridge() {
-//         let sender = @0xA;
-//         let mut scenario = test_scenario::begin(sender);
-//         let mut schema = deploy_dapp_for_testing(&mut scenario);
-//         schema.fee_to().set(@0xB);
+    #[test]
+    public fun bridge() {
+        let sender = @0xA;
+        let mut scenario = test_scenario::begin(sender);
+        let mut dapp_hub = deploy_dapp_for_testing(&mut scenario);
 
-//         let ctx = test_scenario::ctx(&mut scenario);
-//         let amount = 100 * 10000000;
-//         let dubhe = coin::mint_for_testing<DUBHE>(amount, ctx);
+        let sender = @0xB;
+        scenario.next_tx(sender);
 
-//         wrapper_system::wrap(&mut schema, dubhe, ctx.sender());
-//         assert!(assets_system::balance_of(&mut schema, 1, ctx.sender()) as u64 == amount);
+        let ctx = test_scenario::ctx(&mut scenario);
+        let amount = 100 * 10000000;
+        let mut treasury_cap = coin::create_treasury_cap_for_testing<DUBHE>(ctx);
+        let dubhe = coin::mint(&mut treasury_cap, amount, ctx);
 
-//         let to = @0x1;
-//         let amount = 10 * 10000000;
-//         dubhe_bridge_system::withdraw(&mut schema, 1, to, string(b"Dubhe OS"), amount, ctx);
-//         assert!(assets_system::balance_of(&mut schema, 1, ctx.sender()) as u64 == 90 * 10000000);
+        wrapper_system::wrap(&mut dapp_hub, dubhe, ctx.sender());
+        assert!(assets_system::balance_of(&dapp_hub, dubhe_asset_id::get(&dapp_hub), ctx.sender()) as u64 == amount);
 
-//         let amount = 10 * 10000000;
-//         let mut treasury_cap = coin::create_treasury_cap_for_testing<DUBHE>(ctx);
-//         dubhe_bridge_system::deposit(&mut schema,  &mut treasury_cap, 1,@0x1, @0xA, string(b"Dubhe OS"), amount, ctx);
-//         assert!(assets_system::balance_of(&mut schema, 1, ctx.sender()) as u64 == 100 * 10000000);
+        // set treasury cap
+        let dapp_key = dapp_key::new();
+        let treasury_cap_key = bridge_system::get_treasury_cap_key();
+        dapp_hub.get_objects(dapp_key).add<address, TreasuryCap<DUBHE>>(treasury_cap_key, treasury_cap);
 
-//         public_share_object(treasury_cap);
-//         test_scenario::return_shared<Schema>(schema);
-//         scenario.end();
-//     }
-// }
+        let to = @0x1;
+        let amount = 10 * 10000000;
+        bridge_system::withdraw(&mut dapp_hub, amount, to, b"Dubhe OS", ctx);
+        std::debug::print(&assets_system::balance_of(&dapp_hub, dubhe_asset_id::get(&dapp_hub), ctx.sender()));
+        assert!(assets_system::balance_of(&dapp_hub, dubhe_asset_id::get(&dapp_hub), ctx.sender()) as u64 == 90 * 10000000);
+
+
+
+        let sender = @0xA;
+        scenario.next_tx(sender);
+        let ctx = test_scenario::ctx(&mut scenario);
+        let amount = 10 * 10000000;
+        bridge_system::deposit(&mut dapp_hub, ctx.sender(), @0xB, b"Dubhe OS", amount, ctx);
+        assert!(assets_system::balance_of(&dapp_hub, dubhe_asset_id::get(&dapp_hub), @0xB) as u64 == 100 * 10000000);
+
+        dapp_hub.destroy();
+        scenario.end();
+    }
+}

@@ -16,6 +16,7 @@ export const dubheConfig = {
                 swap_fee: 'u256',
                 fee_to: 'address',
                 max_swap_path_len: 'u64',
+                admin: 'address',
             }
         },
         asset_metadata: {
@@ -71,7 +72,7 @@ export const dubheConfig = {
             },
             keys: ['asset0', 'asset1']
         },
-        bridge: {
+        bridge_config: {
             fields: {
                 chain: 'vector<u8>',
                 min_amount: 'u256',
@@ -79,6 +80,25 @@ export const dubheConfig = {
                 opened: 'bool'
             },
             keys: ['chain']
+        },
+        bridge_withdraw: {
+            offchain: true,
+            fields: {
+                from: 'address',
+                to: 'address',
+                to_chain: 'vector<u8>',
+                amount: 'u256',
+                fee: 'u256'
+            }
+        },
+        bridge_deposit: { 
+            offchain: true,
+            fields: {
+                from: 'address',
+                to: 'address',
+                from_chain: 'vector<u8>',
+                amount: 'u256'
+            }
         },
         wrapper_assets: {
             fields: {

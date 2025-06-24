@@ -16,7 +16,11 @@
 
   use dubhe::asset_pools;
 
-  use dubhe::bridge;
+  use dubhe::bridge_config;
+
+  use dubhe::bridge_withdraw;
+
+  use dubhe::bridge_deposit;
 
   use dubhe::wrapper_assets;
 
@@ -30,7 +34,9 @@
     asset_metadata::register_table(dapp_hub, ctx);
     asset_account::register_table(dapp_hub, ctx);
     asset_pools::register_table(dapp_hub, ctx);
-    bridge::register_table(dapp_hub, ctx);
+    bridge_config::register_table(dapp_hub, ctx);
+    bridge_withdraw::register_table(dapp_hub, ctx);
+    bridge_deposit::register_table(dapp_hub, ctx);
     wrapper_assets::register_table(dapp_hub, ctx);
     // Logic that needs to be automated once the contract is deployed
     dubhe::deploy_hook::run(dapp_hub, ctx);

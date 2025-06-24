@@ -8,6 +8,7 @@
 
   use dubhe::dapp_service::DappHub;
   use dubhe::dubhe_config;
+  use dubhe::bridge_config;
   use dubhe::dubhe_asset_id;
   use dubhe::wrapper_system;
   use sui::sui::SUI;
@@ -24,8 +25,13 @@
       next_asset_id, 
       swap_fee, 
       fee_to, 
-      max_swap_path_len
+      max_swap_path_len,
+      ctx.sender()
     );
+
+    // set bridge config
+    bridge_config::set(dapp_hub, b"Dubhe OS", 10 * 10000000, 2 * 10000000, true);
+    bridge_config::set(dapp_hub, b"Aptos", 10 * 10000000, 2 * 10000000, true);
 
     let sui_asset_id = wrapper_system::do_register<SUI>(
       dapp_hub,
