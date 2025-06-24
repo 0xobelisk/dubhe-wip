@@ -13,6 +13,7 @@ import {
   QueryWatcher,
   Unsubscribe,
   PagedResult,
+  PagedQueryResult,
   ECSWorldConfig,
   ComponentMetadata,
   ComponentDiscoveryResult,
@@ -665,7 +666,7 @@ export class DubheECSWorld {
    */
   async getEntitiesByComponent(
     componentType: ComponentType
-  ): Promise<EntityId[]> {
+  ): Promise<PagedQueryResult<any>> {
     return this.queryWith(componentType);
   }
 
@@ -708,7 +709,7 @@ export class DubheECSWorld {
   async queryWith(
     componentType: ComponentType,
     options?: QueryOptions
-  ): Promise<EntityId[]> {
+  ): Promise<PagedQueryResult<any>> {
     return this.querySystem.queryWith(componentType, options);
   }
 
@@ -770,7 +771,7 @@ export class DubheECSWorld {
   }
 
   /**
-   * Paginated query
+   * Paginated query (legacy version using page/pageSize)
    */
   async queryPaged(
     componentTypes: ComponentType[],
@@ -778,6 +779,31 @@ export class DubheECSWorld {
     pageSize: number
   ): Promise<PagedResult<EntityId>> {
     return this.querySystem.queryPaged(componentTypes, page, pageSize);
+  }
+
+  /**
+   * Query with complete pagination info using GraphQL cursor-based pagination
+   */
+  async queryWithPagination<T = any>(
+    componentType: ComponentType,
+    options?: QueryOptions
+  ): Promise<PagedQueryResult<T>> {
+    return this.querySystem.queryWith<T>(componentType, options);
+  }
+
+  /**
+   * Query components with conditions and complete pagination info
+   */
+  async queryWherePagination<T = any>(
+    componentType: ComponentType,
+    predicate: Record<string, any>,
+    options?: QueryOptions
+  ): Promise<PagedQueryResult<T>> {
+    return this.querySystem.queryWhereFullPagination<T>(
+      componentType,
+      predicate,
+      options
+    );
   }
 
   // ============ Query Builder ============
@@ -872,10 +898,10 @@ export class DubheECSWorld {
     options?: QueryOptions
   ): Promise<Array<{ entityId: EntityId; data: T }>> {
     try {
-      const entityIds = await this.queryWith(componentType, options);
+      const data = await this.queryWith(componentType, options);
       const results: Array<{ entityId: EntityId; data: T }> = [];
 
-      for (const entityId of entityIds) {
+      for (const entityId of data.entityIds) {
         const componentData = await this.getComponent<T>(
           entityId,
           componentType
@@ -965,7 +991,7 @@ export class DubheECSWorld {
         componentTypes.map(async (componentType) => {
           try {
             const entities = await this.queryWith(componentType);
-            stats[componentType] = entities.length;
+            stats[componentType] = entities.totalCount;
           } catch (error) {
             stats[componentType] = 0;
           }
@@ -1085,11 +1111,19 @@ export class DubheECSWorld {
         whereConditions[key] = { equalTo: value };
       }
 
+      // Build pagination parameters, defaulting to first: 1 for single resource query
+      const paginationParams = {
+        first: options?.first ?? options?.limit ?? 1,
+        last: options?.last,
+        after: options?.after,
+        before: options?.before,
+      };
+
       const result = await this.graphqlClient.getAllTables(resourceType, {
-        first: 1,
+        ...paginationParams,
         filter: whereConditions,
         fields: options?.fields || resourceMetadata.fields.map((f) => f.name),
-        ...options,
+        orderBy: options?.orderBy,
       });
 
       const record = result.edges[0]?.node;
@@ -1100,25 +1134,32 @@ export class DubheECSWorld {
   }
 
   /**
-   * Query multiple resources
+   * Query multiple resources with complete pagination info
    */
   async getResources<T>(
     resourceType: string,
-    filters?: Record<string, any>,
     options?: QueryOptions
-  ): Promise<T[]> {
+  ): Promise<PagedQueryResult<T>> {
     try {
       // Verify if it's a known resource type
       const resourceMetadata =
         this.resourceDiscoverer.getResourceMetadata(resourceType);
       if (!resourceMetadata) {
-        return [];
+        return {
+          entityIds: [], // Resources don't have entityIds, but include for compatibility
+          items: [],
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+          totalCount: 0,
+        };
       }
 
       // Build where condition
       const whereConditions: Record<string, any> = {};
-      if (filters) {
-        for (const [key, value] of Object.entries(filters)) {
+      if (options?.filters) {
+        for (const [key, value] of Object.entries(options.filters)) {
           if (typeof value === 'object' && value !== null) {
             // If value is already a filter object, use it directly
             whereConditions[key] = value;
@@ -1129,28 +1170,46 @@ export class DubheECSWorld {
         }
       }
 
+      // Build pagination parameters
+      const paginationParams = {
+        first: options?.first ?? options?.limit,
+        last: options?.last,
+        after: options?.after,
+        before: options?.before,
+      };
+
       const result = await this.graphqlClient.getAllTables(resourceType, {
+        ...paginationParams,
         filter:
           Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
         fields: options?.fields || resourceMetadata.fields.map((f) => f.name),
-        ...options,
+        orderBy: options?.orderBy,
       });
 
-      const records = result.edges.map((edge) => edge.node as T);
-      return records;
-    } catch (error) {
-      return [];
-    }
-  }
+      const items = result.edges.map((edge) => edge.node as T);
 
-  /**
-   * Get all resources of a specific type
-   */
-  async getAllResources<T>(
-    resourceType: string,
-    options?: QueryOptions
-  ): Promise<T[]> {
-    return this.getResources<T>(resourceType, undefined, options);
+      return {
+        entityIds: [], // Resources don't have entityIds, but include for compatibility
+        items,
+        pageInfo: {
+          hasNextPage: result.pageInfo.hasNextPage,
+          hasPreviousPage: result.pageInfo.hasPreviousPage,
+          startCursor: result.pageInfo.startCursor,
+          endCursor: result.pageInfo.endCursor,
+        },
+        totalCount: result.totalCount || 0,
+      };
+    } catch (error) {
+      return {
+        entityIds: [], // Resources don't have entityIds, but include for compatibility
+        items: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+        totalCount: 0,
+      };
+    }
   }
 
   /**

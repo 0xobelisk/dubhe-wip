@@ -1,11 +1,18 @@
 // ECS query system implementation
 
 import { DubheGraphqlClient } from '@0xobelisk/graphql-client';
-import { EntityId, ComponentType, QueryOptions, PagedResult } from './types';
+import {
+  EntityId,
+  ComponentType,
+  QueryOptions,
+  PagedResult,
+  PagedQueryResult,
+} from './types';
 import {
   extractEntityIds,
   extractIntersectionFromBatchResult,
   extractUnionFromBatchResult,
+  extractPagedQueryResult,
   isValidEntityId,
   isValidComponentType,
   createCacheKey,
@@ -72,6 +79,47 @@ export class ECSQuery {
    */
   setComponentDiscoverer(discoverer: ComponentDiscoverer): void {
     this.componentDiscoverer = discoverer;
+  }
+
+  private buildPaginationParams(options?: QueryOptions): {
+    first?: number;
+    last?: number;
+    after?: string;
+    before?: string;
+  } {
+    const params: {
+      first?: number;
+      last?: number;
+      after?: string;
+      before?: string;
+    } = {};
+
+    // Priority: new pagination params > legacy params
+    if (options?.first !== undefined) {
+      params.first = options.first;
+    } else if (options?.limit !== undefined) {
+      // Backward compatibility: map limit to first
+      params.first = options.limit;
+      if (options?.offset !== undefined) {
+        console.warn(
+          'ECS Query: offset parameter is not supported with GraphQL cursor-based pagination. Use after/before instead.'
+        );
+      }
+    }
+
+    if (options?.last !== undefined) {
+      params.last = options.last;
+    }
+
+    if (options?.after !== undefined) {
+      params.after = options.after;
+    }
+
+    if (options?.before !== undefined) {
+      params.before = options.before;
+    }
+
+    return params;
   }
 
   /**
@@ -347,22 +395,28 @@ export class ECSQuery {
   }
 
   /**
-   * Query all entities that have a specific component
+   * Query all entities that have a specific component with full pagination info
    */
-  async queryWith(
+  async queryWithFullPagination<T = any>(
     componentType: ComponentType,
     options?: QueryOptions
-  ): Promise<EntityId[]> {
-    if (!isValidComponentType(componentType)) return [];
+  ): Promise<PagedQueryResult<T>> {
+    const emptyResult: PagedQueryResult<T> = {
+      entityIds: [],
+      items: [],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+      totalCount: 0,
+    };
+
+    if (!isValidComponentType(componentType)) return emptyResult;
 
     // Validate if it's an ECS-compliant component
     if (!this.isECSComponent(componentType)) {
-      return [];
+      return emptyResult;
     }
-
-    const cacheKey = createCacheKey('queryWith', [componentType], options);
-    const cached = this.getCachedResult(cacheKey);
-    if (cached && options?.cache !== false) return cached;
 
     try {
       // Intelligently get query fields and primary key information
@@ -372,21 +426,31 @@ export class ECSQuery {
       );
       const primaryKeys = await this.getComponentPrimaryKeys(componentType);
 
+      const paginationParams = this.buildPaginationParams(options);
       const connection = await this.graphqlClient.getAllTables(componentType, {
-        first: options?.limit,
+        ...paginationParams,
         fields: queryFields,
         orderBy: options?.orderBy,
       });
 
-      const result = extractEntityIds(connection, {
+      return extractPagedQueryResult(connection, {
         idFields: options?.idFields || primaryKeys,
         composite: options?.compositeId,
-      });
-      this.setCachedResult(cacheKey, result);
-      return result;
+      }) as PagedQueryResult<T>;
     } catch (error) {
-      return [];
+      return emptyResult;
     }
+  }
+
+  /**
+   * Query all entities that have a specific component
+   * Returns complete pagination information including entity IDs, actual data, and page info
+   */
+  async queryWith<T = any>(
+    componentType: ComponentType,
+    options?: QueryOptions
+  ): Promise<PagedQueryResult<T>> {
+    return this.queryWithFullPagination(componentType, options);
   }
 
   /**
@@ -397,8 +461,10 @@ export class ECSQuery {
     options?: QueryOptions
   ): Promise<EntityId[]> {
     if (componentTypes.length === 0) return [];
-    if (componentTypes.length === 1)
-      return this.queryWith(componentTypes[0], options);
+    if (componentTypes.length === 1) {
+      const result = await this.queryWith(componentTypes[0], options);
+      return result.entityIds;
+    }
 
     const validTypes = this.filterValidECSComponents(componentTypes);
     if (validTypes.length === 0) return [];
@@ -409,6 +475,7 @@ export class ECSQuery {
 
     try {
       // Batch query all component tables using intelligent field resolution
+      const paginationParams = this.buildPaginationParams(options);
       const queries = await Promise.all(
         validTypes.map(async (type) => {
           const queryFields = await this.getQueryFields(type, options?.fields);
@@ -417,7 +484,7 @@ export class ECSQuery {
             tableName: type,
             params: {
               fields: queryFields,
-              first: options?.limit,
+              ...paginationParams,
               orderBy: options?.orderBy,
             },
           };
@@ -460,8 +527,10 @@ export class ECSQuery {
     options?: QueryOptions
   ): Promise<EntityId[]> {
     if (componentTypes.length === 0) return [];
-    if (componentTypes.length === 1)
-      return this.queryWith(componentTypes[0], options);
+    if (componentTypes.length === 1) {
+      const result = await this.queryWith(componentTypes[0], options);
+      return result.entityIds;
+    }
 
     const validTypes = this.filterValidECSComponents(componentTypes);
     if (validTypes.length === 0) return [];
@@ -472,6 +541,7 @@ export class ECSQuery {
 
     try {
       // Batch query all component tables using intelligent field resolution
+      const paginationParams = this.buildPaginationParams(options);
       const queries = await Promise.all(
         validTypes.map(async (type) => {
           const queryFields = await this.getQueryFields(type, options?.fields);
@@ -480,7 +550,7 @@ export class ECSQuery {
             tableName: type,
             params: {
               fields: queryFields,
-              first: options?.limit,
+              ...paginationParams,
               orderBy: options?.orderBy,
             },
           };
@@ -549,18 +619,28 @@ export class ECSQuery {
   }
 
   /**
-   * Query components based on conditions
+   * Query components based on conditions with full pagination info
    */
-  async queryWhere<T>(
+  async queryWhereFullPagination<T = any>(
     componentType: ComponentType,
     predicate: Record<string, any>,
     options?: QueryOptions
-  ): Promise<EntityId[]> {
-    if (!isValidComponentType(componentType)) return [];
+  ): Promise<PagedQueryResult<T>> {
+    const emptyResult: PagedQueryResult<T> = {
+      entityIds: [],
+      items: [],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+      totalCount: 0,
+    };
+
+    if (!isValidComponentType(componentType)) return emptyResult;
 
     // Validate if it's an ECS-compliant component
     if (!this.isECSComponent(componentType)) {
-      return [];
+      return emptyResult;
     }
 
     try {
@@ -571,20 +651,37 @@ export class ECSQuery {
       );
       const primaryKeys = await this.getComponentPrimaryKeys(componentType);
 
+      const paginationParams = this.buildPaginationParams(options);
       const connection = await this.graphqlClient.getAllTables(componentType, {
         filter: predicate,
-        first: options?.limit,
+        ...paginationParams,
         fields: queryFields,
         orderBy: options?.orderBy,
       });
 
-      return extractEntityIds(connection, {
+      return extractPagedQueryResult(connection, {
         idFields: options?.idFields || primaryKeys,
         composite: options?.compositeId,
-      });
+      }) as PagedQueryResult<T>;
     } catch (error) {
-      return [];
+      return emptyResult;
     }
+  }
+
+  /**
+   * Query components based on conditions
+   */
+  async queryWhere<T>(
+    componentType: ComponentType,
+    predicate: Record<string, any>,
+    options?: QueryOptions
+  ): Promise<EntityId[]> {
+    const result = await this.queryWhereFullPagination(
+      componentType,
+      predicate,
+      options
+    );
+    return result.entityIds;
   }
 
   /**
@@ -625,7 +722,7 @@ export class ECSQuery {
     try {
       const allResults =
         componentTypes.length === 1
-          ? await this.queryWith(componentTypes[0])
+          ? (await this.queryWith(componentTypes[0])).entityIds
           : await this.queryWithAll(componentTypes);
 
       return paginateArray(allResults, page, pageSize);

@@ -1005,7 +1005,11 @@ export class DubheGraphqlClient {
     tableData: any,
     enums: any[]
   ): void {
-    const snakeTableName = this.toSnakeCase(tableName);
+    // Handle table name: convert to camelCase if it contains underscores, otherwise keep as is
+    const normalizedTableName = tableName.includes('_')
+      ? this.toCamelCase(tableName)
+      : tableName;
+
     const fields: string[] = [];
     const enumFields: Record<string, string[]> = {};
 
@@ -1036,14 +1040,42 @@ export class DubheGraphqlClient {
     );
 
     const tableInfo: ParsedTableInfo = {
-      tableName: snakeTableName,
+      tableName: normalizedTableName,
       fields: [...new Set(fields)], // Remove duplicates
       primaryKeys,
       enumFields,
     };
 
-    this.parsedTables.set(snakeTableName, tableInfo);
-    this.parsedTables.set(this.toCamelCase(snakeTableName), tableInfo);
+    // Store both original and normalized table names as keys for lookup
+    this.parsedTables.set(tableName, tableInfo);
+    this.parsedTables.set(normalizedTableName, tableInfo);
+
+    // If original and normalized table names are different, also store the snake_case version
+    if (tableName !== normalizedTableName) {
+      this.parsedTables.set(this.toSnakeCase(normalizedTableName), tableInfo);
+    }
+  }
+
+  /**
+   * Find table info with multiple lookup strategies
+   */
+  private findTableInfo(tableName: string): ParsedTableInfo | undefined {
+    // Try direct lookup first
+    let tableInfo = this.parsedTables.get(tableName);
+    if (tableInfo) return tableInfo;
+
+    // Try camelCase version
+    const camelCaseTableName = this.toCamelCase(tableName);
+    tableInfo = this.parsedTables.get(camelCaseTableName);
+    if (tableInfo) return tableInfo;
+
+    // Try snake_case version (only if it's different from original)
+    if (tableName.includes('_')) {
+      tableInfo = this.parsedTables.get(tableName.toLowerCase());
+      if (tableInfo) return tableInfo;
+    }
+
+    return undefined;
   }
 
   /**
@@ -1058,9 +1090,7 @@ export class DubheGraphqlClient {
    * Get table primary key information
    */
   getTablePrimaryKeys(tableName: string): string[] {
-    const tableInfo =
-      this.parsedTables.get(tableName) ||
-      this.parsedTables.get(this.toSnakeCase(tableName));
+    const tableInfo = this.findTableInfo(tableName);
     return tableInfo?.primaryKeys || [];
   }
 
@@ -1068,9 +1098,7 @@ export class DubheGraphqlClient {
    * Get table enum field information
    */
   getTableEnumFields(tableName: string): Record<string, string[]> {
-    const tableInfo =
-      this.parsedTables.get(tableName) ||
-      this.parsedTables.get(this.toSnakeCase(tableName));
+    const tableInfo = this.findTableInfo(tableName);
     return tableInfo?.enumFields || {};
   }
 
@@ -1086,9 +1114,7 @@ export class DubheGraphqlClient {
    */
   getMinimalFields(tableName: string): string[] {
     // If there's configuration, use fields from configuration
-    const tableInfo =
-      this.parsedTables.get(tableName) ||
-      this.parsedTables.get(this.toSnakeCase(tableName));
+    const tableInfo = this.findTableInfo(tableName);
 
     if (tableInfo) {
       return tableInfo.fields;
