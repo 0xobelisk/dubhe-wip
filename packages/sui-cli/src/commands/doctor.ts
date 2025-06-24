@@ -7,6 +7,8 @@ import * as cliProgress from 'cli-progress';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { HttpProxyAgent } from 'http-proxy-agent';
 
 // Check result type
 interface CheckResult {
@@ -130,7 +132,7 @@ async function execCommand(
 
 // Download file with progress bar
 async function downloadFileWithProgress(url: string, outputPath: string): Promise<void> {
-  const response = await fetch(url, {
+  const response = await fetchWithProxy(url, {
     headers: {
       'User-Agent': 'dubhe-cli'
     }
@@ -143,7 +145,7 @@ async function downloadFileWithProgress(url: string, outputPath: string): Promis
   const contentLength = response.headers.get('content-length');
   const totalSize = contentLength ? parseInt(contentLength) : 0;
 
-  // 创建进度条
+  // Create progress bar
   const progressBar = new cliProgress.SingleBar({
     format:
       chalk.cyan('Download Progress') +
@@ -181,7 +183,7 @@ async function downloadFileWithProgress(url: string, outputPath: string): Promis
       chunks.push(value);
       downloadedBytes += value.length;
 
-      // 更新进度条
+      // Update progress bar
       if (totalSize > 0) {
         const downloadedMB = Math.round((downloadedBytes / 1024 / 1024) * 100) / 100;
         const elapsedTime = (Date.now() - startTime) / 1000;
@@ -193,7 +195,7 @@ async function downloadFileWithProgress(url: string, outputPath: string): Promis
       }
     }
 
-    // 合并所有 chunks
+    // Merge all chunks
     const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
     const buffer = new Uint8Array(totalLength);
     let offset = 0;
@@ -203,7 +205,7 @@ async function downloadFileWithProgress(url: string, outputPath: string): Promis
       offset += chunk.length;
     }
 
-    // 写入文件
+    // Write file
     fs.writeFileSync(outputPath, buffer);
 
     if (totalSize > 0) {
@@ -225,6 +227,70 @@ async function downloadFileWithProgress(url: string, outputPath: string): Promis
   }
 }
 
+// Enhanced fetch function with proxy support
+async function fetchWithProxy(url: string, options: RequestInit = {}): Promise<Response> {
+  // Check for proxy environment variables
+  const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+  const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
+  const noProxy = process.env.NO_PROXY || process.env.no_proxy;
+
+  // Check if URL should be bypassed (NO_PROXY)
+  if (noProxy) {
+    const noProxyList = noProxy.split(',').map((item) => item.trim());
+    const hostname = new URL(url).hostname;
+
+    for (const noProxyItem of noProxyList) {
+      if (
+        noProxyItem === '*' ||
+        hostname === noProxyItem ||
+        hostname.endsWith('.' + noProxyItem) ||
+        (noProxyItem.startsWith('.') && hostname.endsWith(noProxyItem))
+      ) {
+        return fetch(url, options); // No proxy needed
+      }
+    }
+  }
+
+  const protocol = new URL(url).protocol;
+  let agent;
+
+  // Create appropriate proxy agent
+  if (protocol === 'https:' && httpsProxy) {
+    agent = new HttpsProxyAgent(httpsProxy);
+  } else if (protocol === 'http:' && httpProxy) {
+    agent = new HttpProxyAgent(httpProxy);
+  } else if (httpsProxy && protocol === 'https:') {
+    agent = new HttpsProxyAgent(httpsProxy);
+  }
+
+  if (agent) {
+    // Try to use the agent - this method works with undici (Node.js 18+)
+    try {
+      const fetchOptions: any = {
+        ...options,
+        dispatcher: agent
+      };
+      return await fetch(url, fetchOptions);
+    } catch (error) {
+      // If dispatcher doesn't work, try with agent property
+      try {
+        const fetchOptions: any = {
+          ...options,
+          agent
+        };
+        return await fetch(url, fetchOptions);
+      } catch (agentError) {
+        console.log(
+          chalk.yellow(`   ⚠️ Warning: Could not use proxy, falling back to direct connection`)
+        );
+        return fetch(url, options);
+      }
+    }
+  }
+
+  return fetch(url, options);
+}
+
 // Fetch GitHub releases with retry
 async function fetchGitHubReleases(
   repo: string,
@@ -239,7 +305,7 @@ async function fetchGitHubReleases(
         console.log(chalk.gray(`     Retry ${attempt}/${retries}...`));
       }
 
-      const response = await fetch(url, {
+      const response = await fetchWithProxy(url, {
         headers: {
           'User-Agent': 'dubhe-cli',
           Accept: 'application/vnd.github.v3+json'
@@ -505,7 +571,7 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
 
     // Verify download link
     try {
-      const headResponse = await fetch(asset.browser_download_url, {
+      const headResponse = await fetchWithProxy(asset.browser_download_url, {
         method: 'HEAD',
         headers: { 'User-Agent': 'dubhe-cli' }
       });
