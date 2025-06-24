@@ -10,6 +10,7 @@ module dubhe::bridge_tests {
     use dubhe::dubhe_asset_id;
     use dubhe::dapp_key;
     use sui::coin::TreasuryCap;
+    use dubhe::dubhe;
 
     #[test]
     public fun bridge() {
@@ -30,7 +31,7 @@ module dubhe::bridge_tests {
 
         // set treasury cap
         let dapp_key = dapp_key::new();
-        let treasury_cap_key = bridge_system::get_treasury_cap_key();
+        let treasury_cap_key = dubhe::get_treasury_cap_key();
         dapp_hub.get_objects(dapp_key).add<address, TreasuryCap<DUBHE>>(treasury_cap_key, treasury_cap);
 
         let to = @0x1;

@@ -15,9 +15,8 @@ use dubhe::bridge_deposit;
 use dubhe::dubhe_config;
 use dubhe::dubhe_asset_id;
 use dubhe::dapp_key;
-use sui::address;
-use sui::hash::keccak256;
 use dubhe::dapp_key::DappKey;
+use dubhe::dubhe::get_treasury_cap_key;
 
 public entry fun withdraw(
       dapp_hub: &mut DappHub, 
@@ -60,9 +59,4 @@ public entry fun deposit(dapp_hub: &mut DappHub, from: address, to: address, fro
 
       wrapper_system::wrap<DUBHE>(dapp_hub, coin, to);
       bridge_deposit::set(dapp_hub, from, to, from_chain, amount);
-}
-
-public fun get_treasury_cap_key(): address {
-      let key = keccak256(&b"treasury_cap");
-      address::from_bytes(key)
 }
