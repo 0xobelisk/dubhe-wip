@@ -1,6 +1,6 @@
 module counter::counter_system {
     use counter::errors::invalid_increment_error;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use counter::counter0;
     use counter::counter1;
     use counter::counter2;

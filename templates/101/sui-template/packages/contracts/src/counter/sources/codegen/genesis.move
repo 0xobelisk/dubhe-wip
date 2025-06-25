@@ -2,9 +2,7 @@
 
   use sui::clock::Clock;
 
-  use dubhe::dapp_system;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use counter::dapp_key;
 
@@ -17,7 +15,7 @@
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
-    dapp_system::create_dapp(dapp_hub, dapp_key, b"counter", b"counter contract", clock, ctx);
+    dapp_service::create_dapp(dapp_hub, dapp_key, b"counter", b"counter contract", clock, ctx);
     // Register tables
     counter0::register_table(dapp_hub, ctx);
     counter1::register_table(dapp_hub, ctx);
