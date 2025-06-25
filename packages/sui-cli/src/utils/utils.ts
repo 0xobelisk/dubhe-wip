@@ -19,6 +19,8 @@ export type DeploymentJsonType = {
   upgradeCap: string;
   version: number;
   components: Record<string, Component | MoveType | EmptyComponent>;
+  resources: Record<string, Component | MoveType>;
+  enums?: Record<string, string[]>;
 };
 
 export function validatePrivateKey(privateKey: string): false | string {
@@ -151,16 +153,20 @@ export async function saveContractData(
   dappHub: string,
   upgradeCap: string,
   version: number,
-  components: Record<string, Component | MoveType | EmptyComponent>
+  components: Record<string, Component | MoveType | EmptyComponent>,
+  resources: Record<string, Component | MoveType>,
+  enums?: Record<string, string[]>
 ) {
   const DeploymentData: DeploymentJsonType = {
     projectName,
     network,
     packageId,
     dappHub,
-    components,
     upgradeCap,
-    version
+    version,
+    components,
+    resources,
+    enums
   };
 
   const path = process.cwd();

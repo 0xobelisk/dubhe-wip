@@ -224,6 +224,8 @@ async function publishContract(
   let packageId = '';
   let dappHub = '';
   let components = dubheConfig.components;
+  let resources = dubheConfig.resources;
+  let enums = dubheConfig.enums;
   let upgradeCapId = '';
 
   let printObjects: any[] = [];
@@ -244,7 +246,7 @@ async function publishContract(
     if (
       object.type === 'created' &&
       object.objectType &&
-      object.objectType.includes('dapp_hub::DappHub')
+      object.objectType.includes('dapp_service::DappHub')
     ) {
       dappHub = object.objectId || '';
     }
@@ -285,8 +287,8 @@ async function publishContract(
 
     console.log('\n📋 Created Objects:');
     printObjects.map((object: ObjectChange) => {
-      console.log(`  ├─ Type: ${object.objectType}`);
-      console.log(`  └─ ID: ${object.objectId}`);
+      console.log(`  ├─ ID: ${object.objectId}`);
+      console.log(`  └─ Type: ${object.objectType}`);
     });
 
     await saveContractData(
@@ -296,7 +298,9 @@ async function publishContract(
       dappHub,
       upgradeCapId,
       version,
-      components
+      components,
+      resources,
+      enums
     );
 
     await saveMetadata(dubheConfig.name, network, packageId);
@@ -375,7 +379,6 @@ export async function publishDubheFramework(
   let version = 1;
   let packageId = '';
   let dappHub = '';
-  let components = {};
   let upgradeCapId = '';
 
   result.objectChanges!.map((object: ObjectChange) => {
@@ -392,7 +395,7 @@ export async function publishDubheFramework(
     if (
       object.type === 'created' &&
       object.objectType &&
-      object.objectType.includes('dapp_hub::DappHub')
+      object.objectType.includes('dapp_service::DappHub')
     ) {
       dappHub = object.objectId || '';
     }
@@ -419,7 +422,7 @@ export async function publishDubheFramework(
   }
 
   await updateMoveTomlAddress(projectPath, packageId);
-  await saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, components);
+  await saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, {}, {}, {});
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
 }
