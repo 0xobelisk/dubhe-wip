@@ -7,6 +7,7 @@ import * as cliProgress from 'cli-progress';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as net from 'net';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 
@@ -963,6 +964,114 @@ async function checkNpmConfig(): Promise<CheckResult> {
   }
 }
 
+// Check if port is available
+async function checkPortAvailable(port: number): Promise<boolean> {
+  // Check both localhost and all interfaces
+  const hosts = ['127.0.0.1', '0.0.0.0'];
+
+  for (const host of hosts) {
+    const available = await checkPortOnHost(port, host);
+    if (!available) {
+      return false; // Port is occupied on this host
+    }
+  }
+
+  return true; // Port is available on all checked hosts
+}
+
+// Check if port is available on specific host
+async function checkPortOnHost(port: number, host: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    // Set a timeout to avoid hanging
+    const timeout = setTimeout(() => {
+      server.close();
+      resolve(false); // Assume occupied if timeout
+    }, 2000);
+
+    // Try to bind to the port - if this fails, port is in use
+    server.listen(port, host, () => {
+      clearTimeout(timeout);
+      server.close(() => {
+        resolve(true); // Port is available on this host
+      });
+    });
+
+    server.on('error', (err: any) => {
+      clearTimeout(timeout);
+      server.close();
+      // If error code is EADDRINUSE, port is definitely in use
+      if (err.code === 'EADDRINUSE') {
+        resolve(false); // Port is in use
+      } else {
+        // For other errors, also assume port is not available
+        resolve(false);
+      }
+    });
+  });
+}
+
+// Check PostgreSQL port (5432)
+async function checkPostgreSQLPort(): Promise<CheckResult> {
+  try {
+    const isAvailable = await checkPortAvailable(5432);
+
+    if (isAvailable) {
+      return {
+        name: 'PostgreSQL Port (5432)',
+        status: 'success',
+        message: 'Available'
+      };
+    } else {
+      return {
+        name: 'PostgreSQL Port (5432)',
+        status: 'warning',
+        message: 'Port is occupied',
+        fixSuggestion:
+          'Port 5432 is in use. Check if PostgreSQL is already running or stop the service using this port. This may cause template startup failure.'
+      };
+    }
+  } catch (error) {
+    return {
+      name: 'PostgreSQL Port (5432)',
+      status: 'warning',
+      message: 'Check failed',
+      fixSuggestion: 'Unable to check port status'
+    };
+  }
+}
+
+// Check GraphQL Server port (4000)
+async function checkGraphQLPort(): Promise<CheckResult> {
+  try {
+    const isAvailable = await checkPortAvailable(4000);
+
+    if (isAvailable) {
+      return {
+        name: 'GraphQL Server Port (4000)',
+        status: 'success',
+        message: 'Available'
+      };
+    } else {
+      return {
+        name: 'GraphQL Server Port (4000)',
+        status: 'warning',
+        message: 'Port is occupied',
+        fixSuggestion:
+          'Port 4000 is in use. Check if GraphQL server is already running or stop the service using this port. This may cause template startup failure.'
+      };
+    }
+  } catch (error) {
+    return {
+      name: 'GraphQL Server Port (4000)',
+      status: 'warning',
+      message: 'Check failed',
+      fixSuggestion: 'Unable to check port status'
+    };
+  }
+}
+
 // Create table row data
 function formatTableRow(result: CheckResult): string[] {
   const statusIcon = {
@@ -1131,6 +1240,13 @@ async function runDoctorChecks(options: {
   // Dubhe indexer check
   const dubheIndexerCheck = await checkCommand('dubhe-indexer');
   results.push(dubheIndexerCheck);
+
+  // Port availability checks
+  const postgresPortCheck = await checkPostgreSQLPort();
+  results.push(postgresPortCheck);
+
+  const graphqlPortCheck = await checkGraphQLPort();
+  results.push(graphqlPortCheck);
 
   // Create and display table
   const table = new Table({
