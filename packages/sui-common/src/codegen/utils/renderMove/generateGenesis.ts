@@ -24,8 +24,7 @@ export async function generateGenesis(config: DubheConfig, path: string) {
 
   let genesis_code = `module ${config.name}::genesis {
       use sui::clock::Clock;
-      use dubhe::dapp_service;
-      use dubhe::dapp_hub::DappHub;
+      use dubhe::dapp_service::{Self, DappHub};
       use ${config.name}::dapp_key;
       ${Object.keys(config.components || {}).map(componentName => `use ${config.name}::${componentName};`).join('\n')}
       ${Object.keys(config.resources || {}).map(resourceName => `use ${config.name}::${resourceName};`).join('\n')}

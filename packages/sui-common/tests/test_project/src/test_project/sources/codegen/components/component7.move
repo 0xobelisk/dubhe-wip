@@ -10,13 +10,7 @@
 
   use dubhe::table_id;
 
-  use dubhe::dapp_state;
-
-  use dubhe::dapp_service;
-
-  use dubhe::dapp_hub;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use test_project::dapp_key;
 
@@ -72,7 +66,7 @@
     vector[b"attack", b"hp"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -141,7 +135,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, monster: address) {
+  public(package) fun delete(dapp_hub: &mut DappHub, monster: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&monster));
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
@@ -156,7 +150,7 @@
     attack
   }
 
-  public fun set_attack(dapp_hub: &mut DappHub, monster: address, attack: u32) {
+  public(package) fun set_attack(dapp_hub: &mut DappHub, monster: address, attack: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&monster));
     let value = to_bytes(&attack);
@@ -172,7 +166,7 @@
     hp
   }
 
-  public fun set_hp(dapp_hub: &mut DappHub, monster: address, hp: u32) {
+  public(package) fun set_hp(dapp_hub: &mut DappHub, monster: address, hp: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&monster));
     let value = to_bytes(&hp);
@@ -189,7 +183,7 @@
     (attack, hp)
   }
 
-  public fun set(dapp_hub: &mut DappHub, monster: address, attack: u32, hp: u32) {
+  public(package) fun set(dapp_hub: &mut DappHub, monster: address, attack: u32, hp: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&monster));
     let value_tuple = encode(attack, hp);
@@ -203,7 +197,7 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, monster: address, component7: Component7) {
+  public(package) fun set_struct(dapp_hub: &mut DappHub, monster: address, component7: Component7) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&monster));
     let value_tuple = encode_struct(component7);

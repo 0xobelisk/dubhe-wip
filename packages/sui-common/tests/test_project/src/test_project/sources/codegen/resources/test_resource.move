@@ -10,13 +10,7 @@
 
   use dubhe::table_id;
 
-  use dubhe::dapp_state;
-
-  use dubhe::dapp_service;
-
-  use dubhe::dapp_hub;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use test_project::dapp_key;
 
@@ -72,7 +66,7 @@
     vector[b"player", b"value"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -132,7 +126,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
   }
 
-  public fun delete(dapp_hub: &mut DappHub) {
+  public(package) fun delete(dapp_hub: &mut DappHub) {
     let key_tuple = vector::empty();
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
@@ -145,7 +139,7 @@
     player
   }
 
-  public fun set_player(dapp_hub: &mut DappHub, player: address) {
+  public(package) fun set_player(dapp_hub: &mut DappHub, player: address) {
     let key_tuple = vector::empty();
     let value = to_bytes(&player);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
@@ -159,7 +153,7 @@
     value
   }
 
-  public fun set_value(dapp_hub: &mut DappHub, value: u32) {
+  public(package) fun set_value(dapp_hub: &mut DappHub, value: u32) {
     let key_tuple = vector::empty();
     let value = to_bytes(&value);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
@@ -174,7 +168,7 @@
     (player, value)
   }
 
-  public fun set(dapp_hub: &mut DappHub, player: address, value: u32) {
+  public(package) fun set(dapp_hub: &mut DappHub, player: address, value: u32) {
     let key_tuple = vector::empty();
     let value_tuple = encode(player, value);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
@@ -186,7 +180,7 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, test_resource: TestResource) {
+  public(package) fun set_struct(dapp_hub: &mut DappHub, test_resource: TestResource) {
     let key_tuple = vector::empty();
     let value_tuple = encode_struct(test_resource);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
