@@ -404,7 +404,7 @@ export async function publishDubheFramework(
   await delay(3000);
   const deployHookTx = new Transaction();
   deployHookTx.moveCall({
-    target: `${packageId}::dubhe_genesis::run`,
+    target: `${packageId}::genesis::run`,
     arguments: [deployHookTx.object(dappHub), deployHookTx.object('0x6')]
   });
 
