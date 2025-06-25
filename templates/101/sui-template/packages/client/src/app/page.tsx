@@ -10,33 +10,186 @@ import { useContract } from './dubhe/useContract';
 
 export default function Home() {
   const [value, setValue] = useAtom(Value);
+  const [ecsValue, setEcsValue] = useState(0);
+  const [graphqlValue, setGraphqlValue] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [ecsLoading, setEcsLoading] = useState(false);
+  const [graphqlLoading, setGraphqlLoading] = useState(false);
   const [ecsInitialized, setEcsInitialized] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ecs' | 'graphql'>('ecs');
+
+  // General query state
+  const [availableComponents, setAvailableComponents] = useState<string[]>([]);
+  const [availableResources, setAvailableResources] = useState<string[]>([]);
+  const [availableGraphqlTables, setAvailableGraphqlTables] = useState<string[]>([]);
+  const [selectedComponent, setSelectedComponent] = useState<string>('');
+  const [selectedResource, setSelectedResource] = useState<string>('');
+  const [selectedTable, setSelectedTable] = useState<string>('');
+  const [componentData, setComponentData] = useState<any[]>([]);
+  const [resourceData, setResourceData] = useState<any[]>([]);
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [componentTotalCount, setComponentTotalCount] = useState<number>(0);
+  const [resourceTotalCount, setResourceTotalCount] = useState<number>(0);
+  const [tableTotalCount, setTableTotalCount] = useState<number>(0);
+  const [componentQueryLoading, setComponentQueryLoading] = useState(false);
+  const [resourceQueryLoading, setResourceQueryLoading] = useState(false);
+  const [tableQueryLoading, setTableQueryLoading] = useState(false);
 
   const { contract, graphqlClient, ecsWorld, network, packageId, address } = useContract();
 
   /**
-   * 初始化ECS World
+   * Discover available tables and components
    */
-  const initializeECS = async () => {
+  const discoverAvailableTables = async () => {
     try {
-      console.log('🎮 初始化 ECS World...');
-      // ECS World 在 useContract 中已经创建，这里可以做额外的初始化工作
-      setEcsInitialized(true);
-      console.log('✅ ECS World 初始化成功');
+      console.log('🔍 Discovering available tables and components...');
+
+      // Get ECS components and resources
+      const components = ecsWorld.getAvailableComponents();
+      const resources = ecsWorld.getAvailableResources();
+
+      console.log('📋 Available components:', components);
+      console.log('📦 Available resources:', resources);
+
+      setAvailableComponents(components);
+      setAvailableResources(resources);
+
+      // Set default selection
+      if (components.length > 0 && !selectedComponent) {
+        setSelectedComponent(components[0]);
+      }
+      if (resources.length > 0 && !selectedResource) {
+        setSelectedResource(resources[0]);
+      }
+
+      // Get GraphQL table information
+      const graphqlTables = Array.from(graphqlClient.getAllTableInfo().keys());
+      console.log('🗃️ Available GraphQL tables:', graphqlTables);
+      setAvailableGraphqlTables(graphqlTables);
+
+      if (graphqlTables.length > 0 && !selectedTable) {
+        setSelectedTable(graphqlTables[0]);
+      }
     } catch (error) {
-      console.error('❌ ECS World 初始化失败:', error);
+      console.error('❌ Failed to discover tables:', error);
     }
   };
 
   /**
-   * 使用GraphQL客户端查询counter值
+   * Initialize ECS World
+   */
+  const initializeECS = async () => {
+    try {
+      console.log('🎮 Initializing ECS World...');
+      setEcsInitialized(true);
+
+      // Discover available tables and components
+      await discoverAvailableTables();
+
+      console.log('✅ ECS World initialized successfully');
+    } catch (error) {
+      console.error('❌ ECS World initialization failed:', error);
+    }
+  };
+
+  /**
+   * General ECS component query
+   */
+  const queryComponentData = async (componentType: string) => {
+    setComponentQueryLoading(true);
+    try {
+      console.log(`🎮 Querying ${componentType} component data...`);
+
+      // Get all entities with this component
+      const result = await ecsWorld.queryWith(componentType, { limit: 10 });
+      console.log(`📋 Entities with ${componentType}:`, result);
+
+      const data = [];
+      for (const entityId of result.entityIds) {
+        const componentData = await ecsWorld.getComponent(entityId, componentType);
+        if (componentData) {
+          data.push({
+            entityId,
+            data: componentData
+          });
+        }
+      }
+
+      setComponentData(data);
+      setComponentTotalCount(result.totalCount || 0);
+      console.log(`📊 ${componentType} component data:`, data);
+      console.log(`📊 ${componentType} total count:`, result.totalCount);
+    } catch (error) {
+      console.error(`❌ Failed to query ${componentType}:`, error);
+      setComponentData([]);
+      setComponentTotalCount(0);
+    } finally {
+      setComponentQueryLoading(false);
+    }
+  };
+
+  /**
+   * General ECS resource query
+   */
+  const queryResourceData = async (resourceType: string) => {
+    setResourceQueryLoading(true);
+    try {
+      console.log(`📦 Querying ${resourceType} resource data...`);
+
+      const result = await ecsWorld.getResources(resourceType, {
+        limit: 10,
+        orderBy: [{ field: 'createdAt', direction: 'DESC' }]
+      });
+      setResourceData(result.items || []);
+      setResourceTotalCount(result.totalCount || 0);
+      console.log(`📊 ${resourceType} resource data:`, result);
+      console.log(`📊 ${resourceType} total count:`, result.totalCount);
+    } catch (error) {
+      console.error(`❌ Failed to query ${resourceType}:`, error);
+      setResourceData([]);
+      setResourceTotalCount(0);
+    } finally {
+      setResourceQueryLoading(false);
+    }
+  };
+
+  /**
+   * General GraphQL table query
+   */
+  const queryTableData = async (tableName: string) => {
+    setTableQueryLoading(true);
+    try {
+      console.log(`🗃️ Querying ${tableName} table data...`);
+
+      const result = await graphqlClient.getAllTables(tableName, {
+        first: 10,
+        orderBy: [{ field: 'createdAt', direction: 'DESC' }]
+      });
+      console.log('result', result);
+
+      const data = result.edges.map((edge) => edge.node);
+      setTableData(data);
+      setTableTotalCount(result.totalCount || 0);
+      console.log(`📊 ${tableName} table data:`, data);
+      console.log(`📊 ${tableName} total count:`, result.totalCount);
+    } catch (error) {
+      console.error(`❌ Failed to query ${tableName}:`, error);
+      setTableData([]);
+      setTableTotalCount(0);
+    } finally {
+      setTableQueryLoading(false);
+    }
+  };
+
+  /**
+   * Query counter value using GraphQL client
    */
   const queryCounterValueWithGraphQL = async () => {
+    setGraphqlLoading(true);
     try {
-      console.log('🔍 使用 GraphQL 查询 counter 值...');
+      console.log('🔍 Querying counter value with GraphQL...');
 
-      // 查询 counter1 组件（包含 value 字段）
+      // Query counter1 component (contains value field)
       const result = await graphqlClient.getAllTables('counter1', {
         first: 1,
         orderBy: [{ field: 'createdAt', direction: 'DESC' }]
@@ -44,41 +197,44 @@ export default function Home() {
 
       if (result.edges.length > 0) {
         const counterData = result.edges[0].node as any;
-        console.log('📊 Counter 数据:', counterData);
-        setValue(counterData.value || 0);
+        console.log('📊 Counter data:', counterData);
+        setGraphqlValue(counterData.value || 0);
       } else {
-        console.log('📊 未找到 counter 数据，设置默认值 0');
-        setValue(0);
+        console.log('📊 No counter data found, setting default value 0');
+        setGraphqlValue(0);
       }
     } catch (error) {
-      console.error('❌ GraphQL 查询失败:', error);
-      // 如果查询失败，设置默认值
-      setValue(0);
+      console.error('❌ GraphQL query failed:', error);
+      setGraphqlValue(0);
+    } finally {
+      setGraphqlLoading(false);
     }
   };
 
   /**
-   * 使用ECS World查询counter值
+   * Query counter value using ECS World
    */
   const queryCounterValueWithECS = async () => {
+    setEcsLoading(true);
     try {
-      console.log('🎮 使用 ECS World 查询 counter 值...');
+      console.log('🎮 Querying counter value with ECS World...');
 
-      // 获取拥有 counter1 组件的实体
+      // Get entities with counter1 component
       if (address) {
         console.log('address', address);
-        // 获取第一个实体的 counter1 组件数据
+        // Get counter1 component data from first entity
         const counterComponent = (await ecsWorld.getComponent(address, 'counter1')) as any;
-        console.log('📊 Counter 组件数据:', counterComponent);
-        setValue(counterComponent?.value || 0);
+        console.log('📊 Counter component data:', counterComponent);
+        setEcsValue(counterComponent?.value || 0);
       } else {
-        console.log('📊 未找到 counter1 组件，设置默认值 0');
-        setValue(0);
+        console.log('📊 No counter1 component found, setting default value 0');
+        setEcsValue(0);
       }
     } catch (error) {
-      console.error('❌ ECS 查询失败:', error);
-      // 如果查询失败，尝试GraphQL查询
-      await queryCounterValueWithGraphQL();
+      console.error('❌ ECS query failed:', error);
+      setEcsValue(0);
+    } finally {
+      setEcsLoading(false);
     }
   };
 
@@ -114,7 +270,7 @@ export default function Home() {
         }
       });
     } catch (error) {
-      console.error('❌ 合约调用失败:', error);
+      console.error('❌ Contract call failed:', error);
       toast.error('Transaction failed. Please try again.');
     } finally {
       setLoading(false);
@@ -122,125 +278,117 @@ export default function Home() {
   };
 
   /**
-   * 使用GraphQL订阅counter变化
+   * Subscribe to counter changes using GraphQL
    */
   const subscribeToCounterWithGraphQL = () => {
     try {
-      console.log('📡 开始 GraphQL 订阅 counter 变化...');
+      console.log('📡 Starting GraphQL subscription for counter changes...');
 
       const observable = graphqlClient.subscribeToTableChanges('counter1', {
-        // initialEvent: true, // 🔑 重要：设置 initialEvent 为 true
         onData: (data: any) => {
-          console.log('📢 GraphQL 收到 counter 更新:', data);
+          console.log('📢 GraphQL received counter update:', data);
 
-          // GraphQL 订阅数据结构：data.listen.query.counter1s.nodes
-          console.log('完整数据结构:', JSON.stringify(data, null, 2));
           const nodes = data?.listen?.query?.counter1s?.nodes;
           console.log('nodes:', nodes);
           if (nodes && Array.isArray(nodes) && nodes.length > 0) {
             const latestCounter = nodes[0];
             if (latestCounter?.value !== undefined) {
-              setValue(latestCounter.value);
-              toast('Counter GraphQL Updated', {
+              setGraphqlValue(latestCounter.value);
+              toast('GraphQL Real-time Update', {
                 description: `New value: ${latestCounter.value}`
               });
             }
           }
         },
         onError: (error: any) => {
-          console.error('❌ GraphQL 订阅错误:', error);
+          console.error('❌ GraphQL subscription error:', error);
         },
         onComplete: () => {
-          console.log('✅ GraphQL 订阅完成');
+          console.log('✅ GraphQL subscription completed');
         }
       });
 
-      // 启动订阅并返回 Subscription 对象
+      // Start subscription and return Subscription object
       const subscription = observable.subscribe({});
 
-      return subscription; // 返回 Subscription 对象，有 unsubscribe 方法
+      return subscription; // Return Subscription object with unsubscribe method
     } catch (error) {
-      console.error('❌ GraphQL 订阅设置失败:', error);
+      console.error('❌ GraphQL subscription setup failed:', error);
       return null;
     }
   };
 
   /**
-   * 使用ECS World订阅counter变化
+   * Subscribe to counter changes using ECS World
    */
   const subscribeToCounterWithECS = () => {
     try {
-      console.log('🎮 开始 ECS 订阅 counter1 组件变化...');
+      console.log('🎮 Starting ECS subscription for counter1 component changes...');
 
-      const subscription = ecsWorld
-        .onComponentChanged<any>('counter1', {
-          // initialEvent: true,
-          // debounceMs: 500 // 500ms 防抖
-        })
-        .subscribe({
-          next: (result: any) => {
-            if (result) {
-              console.log(
-                `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.entityId} 的 counter1 组件发生变化:`
-              );
-              console.log(`  - 变化类型: ${result.changeType}`);
-              console.log(`  - 组件数据:`, result.data);
-              console.log(`  - 时间戳: ${result.timestamp}`);
+      const subscription = ecsWorld.onComponentChanged<any>('counter1', {}).subscribe({
+        next: (result: any) => {
+          if (result) {
+            console.log(
+              `📢 [${new Date().toLocaleTimeString()}] counter1 component changed for entity ${result.entityId}:`
+            );
+            console.log(`  - Change type: ${result.changeType}`);
+            console.log(`  - Component data:`, result.data);
 
-              // ECS 组件数据在 result.data.data 中
-              const componentData = result.data as any;
-              if (componentData?.value !== undefined) {
-                setValue(componentData.value);
-                toast('Counter ECS Updated', {
-                  description: `New value: ${componentData.value}`
-                });
-              }
+            const componentData = result.data as any;
+            if (componentData?.value !== undefined) {
+              setEcsValue(componentData.value);
+              toast('ECS Real-time Update', {
+                description: `New value: ${componentData.value}`
+              });
             }
-
-            if (result.error) {
-              console.error('❌ 订阅错误:', result.error);
-            }
-
-            if (result.loading) {
-              console.log('⏳ 数据加载中...');
-            }
-          },
-          error: (error: any) => {
-            console.error('❌ ECS 订阅失败:', error);
-          },
-          complete: () => {
-            console.log('✅ ECS 订阅完成');
           }
-        });
+
+          if (result.error) {
+            console.error('❌ Subscription error:', result.error);
+          }
+
+          if (result.loading) {
+            console.log('⏳ Data loading...');
+          }
+        },
+        error: (error: any) => {
+          console.error('❌ ECS subscription failed:', error);
+        },
+        complete: () => {
+          console.log('✅ ECS subscription completed');
+        }
+      });
 
       return subscription;
     } catch (error) {
-      console.error('❌ ECS 订阅设置失败:', error);
+      console.error('❌ ECS subscription setup failed:', error);
       return null;
     }
   };
 
   useEffect(() => {
     const initializeAndSubscribe = async () => {
-      // 初始化ECS
       await initializeECS();
-
-      // 查询初始值（优先使用ECS，失败则回退到GraphQL）
       await queryCounterValueWithECS();
+      await queryCounterValueWithGraphQL();
 
-      // 设置订阅
+      // Preload some general data
+      if (selectedComponent) {
+        await queryComponentData(selectedComponent);
+      }
+      if (selectedTable) {
+        await queryTableData(selectedTable);
+      }
+
       let graphqlSubscription: any = null;
       let ecsSubscription: any = null;
 
       if (ecsInitialized) {
-        // 尝试ECS订阅
         ecsSubscription = subscribeToCounterWithECS();
       }
 
-      // 同时设置GraphQL订阅作为备选
       graphqlSubscription = subscribeToCounterWithGraphQL();
 
-      // 清理函数
       return () => {
         if (ecsSubscription) {
           ecsSubscription.unsubscribe();
@@ -261,50 +409,316 @@ export default function Home() {
   }, [ecsInitialized]);
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <div className="max-w-7xl mx-auto text-center py-12 px-4 sm:px-6 lg:py-16 lg:px-8 flex-6">
-          <div className="flex flex-col gap-6 mt-12">
-            <div className="flex flex-col gap-4">
-              <div className="text-sm text-gray-600">
-                ECS Status: {ecsInitialized ? '✅ 已初始化' : '⏳ 初始化中...'}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Dubhe Client Demo</h1>
+          <p className="text-lg text-gray-600">
+            Network: {network} | ECS Status:{' '}
+            {ecsInitialized ? '✅ Initialized' : '⏳ Initializing...'}
+          </p>
+          {ecsInitialized && (
+            <div className="mt-4 flex justify-center gap-4 text-sm text-gray-500">
+              <span>📋 Components: {availableComponents.length}</span>
+              <span>📦 Resources: {availableResources.length}</span>
+              <span>🗃️ Tables: {availableGraphqlTables.length}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-t-xl shadow-lg">
+          <div className="flex border-b border-gray-200">
+            <button
+              className={`flex-1 py-4 px-6 text-lg font-medium text-center transition-all duration-200 ${
+                activeTab === 'ecs'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveTab('ecs')}
+            >
+              <span className="flex items-center justify-center gap-2">
+                🎮 ECS Client
+                {activeTab === 'ecs' && (
+                  <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                    Recommended
+                  </span>
+                )}
+              </span>
+            </button>
+            <button
+              className={`flex-1 py-4 px-6 text-lg font-medium text-center transition-all duration-200 ${
+                activeTab === 'graphql'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveTab('graphql')}
+            >
+              📊 GraphQL Client
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-white rounded-b-xl shadow-lg p-8">
+          {activeTab === 'ecs' && (
+            <div className="space-y-8">
+              {/* ECS Header */}
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+                  <span className="text-2xl">🎮</span>
+                </div>
+                <h2 className="text-3xl font-bold text-indigo-600 mb-4">ECS Client</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Advanced client based on Entity Component System architecture, designed for game
+                  development with component-based data management and real-time subscription
+                  features
+                </p>
               </div>
-              You account already have some sui from {network}
-              <div className="flex flex-col gap-6 text-2xl text-green-600 mt-6 ">
-                Counter: {value}
-              </div>
-              <div className="flex flex-col gap-6">
-                <button
-                  type="button"
-                  className="mx-auto px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-                  onClick={() => incrementCounter()}
-                  disabled={loading}
-                >
-                  {loading ? 'Processing...' : 'Increment'}
-                </button>
-                <div className="flex gap-2 justify-center">
+
+              {/* ECS Counter Display */}
+              <div className="text-center bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-8">
+                <div className="text-6xl font-bold text-indigo-600 mb-4">{ecsValue}</div>
+                <p className="text-lg text-gray-600 mb-6">ECS Counter Current Value</p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button
                     type="button"
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                    onClick={() => queryCounterValueWithECS()}
+                    className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium text-lg"
+                    onClick={() => incrementCounter()}
                     disabled={loading}
                   >
-                    🎮 ECS 查询
+                    {loading ? 'Processing...' : '🚀 Increment Counter'}
                   </button>
                   <button
                     type="button"
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                    onClick={() => queryCounterValueWithGraphQL()}
-                    disabled={loading}
+                    className="px-6 py-3 border-2 border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-50 disabled:opacity-50 font-medium"
+                    onClick={() => queryCounterValueWithECS()}
+                    disabled={ecsLoading}
                   >
-                    📊 GraphQL 查询
+                    {ecsLoading ? 'Querying...' : '🔄 Refresh Data'}
                   </button>
                 </div>
               </div>
+
+              {/* Component Data Query */}
+              <div className="bg-white border border-indigo-200 rounded-xl p-6">
+                <h3 className="text-xl font-semibold text-indigo-700 mb-4">
+                  🎮 Component Data Query
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Component Type (Total: {availableComponents.length})
+                    </label>
+                    <select
+                      value={selectedComponent}
+                      onChange={(e) => setSelectedComponent(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                    >
+                      {availableComponents.map((comp) => (
+                        <option key={comp} value={comp}>
+                          {comp}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                      onClick={() => queryComponentData(selectedComponent)}
+                      disabled={componentQueryLoading}
+                    >
+                      {componentQueryLoading ? 'Querying...' : 'Query Component Data'}
+                    </button>
+                  </div>
+                </div>
+
+                {componentData.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                      {selectedComponent} Component Data ({componentTotalCount} total records,
+                      showing latest {componentData.length})
+                    </h4>
+                    <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
+                      <pre className="text-xs text-gray-600">
+                        {JSON.stringify(componentData, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Resource Data Query */}
+              {availableResources.length > 0 && (
+                <div className="bg-white border border-indigo-200 rounded-xl p-6">
+                  <h3 className="text-xl font-semibold text-indigo-700 mb-4">
+                    📦 Resource Data Query
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Resource Type (Total: {availableResources.length})
+                      </label>
+                      <select
+                        value={selectedResource}
+                        onChange={(e) => setSelectedResource(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                      >
+                        <option value="">Please select a resource</option>
+                        {availableResources.map((res) => (
+                          <option key={res} value={res}>
+                            {res}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                        onClick={() => queryResourceData(selectedResource)}
+                        disabled={resourceQueryLoading || !selectedResource}
+                      >
+                        {resourceQueryLoading ? 'Querying...' : 'Query Resource Data'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {resourceData.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                        {selectedResource} Resource Data ({resourceTotalCount} total records,
+                        showing latest {resourceData.length})
+                      </h4>
+                      <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
+                        <pre className="text-xs text-gray-600">
+                          {JSON.stringify(resourceData, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          {activeTab === 'graphql' && (
+            <div className="space-y-8">
+              {/* GraphQL Header */}
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <span className="text-2xl">📊</span>
+                </div>
+                <h2 className="text-3xl font-bold text-blue-600 mb-4">GraphQL Client</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Universal client based on standard GraphQL protocol, providing flexible query and
+                  subscription features for general data interaction needs
+                </p>
+              </div>
+
+              {/* GraphQL Counter Display */}
+              <div className="text-center bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-8">
+                <div className="text-6xl font-bold text-blue-600 mb-4">{graphqlValue}</div>
+                <p className="text-lg text-gray-600 mb-6">GraphQL Counter Current Value</p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    type="button"
+                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-lg"
+                    onClick={() => incrementCounter()}
+                    disabled={loading}
+                  >
+                    {loading ? 'Processing...' : '🚀 Increment Counter'}
+                  </button>
+                  <button
+                    type="button"
+                    className="px-6 py-3 border-2 border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 disabled:opacity-50 font-medium"
+                    onClick={() => queryCounterValueWithGraphQL()}
+                    disabled={graphqlLoading}
+                  >
+                    {graphqlLoading ? 'Querying...' : '🔄 Refresh Data'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Table Data Query */}
+              <div className="bg-white border border-blue-200 rounded-xl p-6">
+                <h3 className="text-xl font-semibold text-blue-700 mb-4">🗃️ Table Data Query</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Table (Total: {availableGraphqlTables.length})
+                    </label>
+                    <select
+                      value={selectedTable}
+                      onChange={(e) => setSelectedTable(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                    >
+                      {availableGraphqlTables.map((table) => (
+                        <option key={table} value={table}>
+                          {table}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      onClick={() => queryTableData(selectedTable)}
+                      disabled={tableQueryLoading}
+                    >
+                      {tableQueryLoading ? 'Querying...' : 'Query Table Data'}
+                    </button>
+                  </div>
+                </div>
+
+                {tableData.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                      {selectedTable} Table Data ({tableTotalCount} total records, showing latest{' '}
+                      {tableData.length})
+                    </h4>
+                    <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
+                      <pre className="text-xs text-gray-600">
+                        {JSON.stringify(tableData, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Table Field Information */}
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="text-sm font-semibold text-blue-700 mb-2">
+                    {selectedTable} Table Information
+                  </h4>
+                  <div className="text-xs text-blue-600">
+                    <p>
+                      <strong>Table Fields:</strong>{' '}
+                      {graphqlClient.getTableFields(selectedTable).join(', ')}
+                    </p>
+                    <p>
+                      <strong>Primary Key Fields:</strong>{' '}
+                      {graphqlClient.getTablePrimaryKeys(selectedTable).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
+
+        {/* Info Footer */}
+        <div className="mt-8 bg-white rounded-xl shadow-md p-6 text-center">
+          <p className="text-sm text-gray-600">
+            💡 After executing transactions, both clients' real-time subscriptions will
+            automatically update to display the latest data
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,97 @@
+{
+  "endpoint": "http://localhost:4000/graphql",
+  "subscriptionEndpoint": "ws://localhost:4000/graphql",
+  "dubheConfigPath": "../graphql-client/dubhe.config_1.json",
+  "headers": {
+    "Content-Type": "application/json",
+    "User-Agent": "dubhe-benchmark"
+  },
+  "scenarios": {
+    "quick": {
+      "name": "快速压测",
+      "duration": 10,
+      "connections": 5,
+      "description": "基础性能测试"
+    },
+    "standard": {
+      "name": "标准压测",
+      "duration": 30,
+      "connections": 10,
+      "description": "标准性能测试"
+    },
+    "stress": {
+      "name": "压力测试",
+      "duration": 60,
+      "connections": 20,
+      "description": "高负载压力测试"
+    }
+  },
+  "queryTypes": {
+    "basic": {
+      "name": "基础查询",
+      "tests": [
+        {
+          "type": "getAllTables",
+          "params": { "first": 10 }
+        },
+        {
+          "type": "getAllTables",
+          "params": { "first": 5 }
+        }
+      ]
+    },
+    "filtered": {
+      "name": "过滤查询",
+      "tests": [
+        {
+          "type": "getAllTables",
+          "params": {
+            "first": 20,
+            "filter": { "createdAt": { "greaterThan": "2023-01-01T00:00:00Z" } }
+          }
+        }
+      ]
+    },
+    "batch": {
+      "name": "批量查询",
+      "tests": [
+        {
+          "type": "batchQuery",
+          "params": {
+            "batchSize": 3,
+            "first": 10
+          }
+        }
+      ]
+    }
+  },
+  "subscriptionTypes": {
+    "basic": {
+      "name": "基础订阅",
+      "duration": 30,
+      "tests": [
+        {
+          "type": "subscribeToTableChanges",
+          "params": {
+            "initialEvent": true,
+            "first": 5
+          }
+        }
+      ]
+    },
+    "filtered": {
+      "name": "过滤订阅",
+      "duration": 30,
+      "tests": [
+        {
+          "type": "subscribeToFilteredTableChanges",
+          "params": {
+            "filter": { "createdAt": { "greaterThan": "2023-01-01T00:00:00Z" } },
+            "initialEvent": true,
+            "first": 10
+          }
+        }
+      ]
+    }
+  }
+}

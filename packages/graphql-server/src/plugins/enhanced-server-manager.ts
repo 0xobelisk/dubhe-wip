@@ -25,6 +25,7 @@ export class EnhancedServerManager {
   private config: SubscriptionConfig;
   private app: Express | null = null;
   private httpServer: HttpServer | null = null;
+  private pgPool: Pool | null = null;
 
   constructor() {
     this.config = subscriptionConfig.getConfig();
@@ -102,6 +103,34 @@ export class EnhancedServerManager {
       res.send(subscriptionConfig.generateDocumentation());
     });
 
+    // Add connection pool status endpoint
+    app.get('/pool-status', (req, res) => {
+      if (this.pgPool) {
+        const poolStatus = {
+          totalCount: this.pgPool.totalCount,
+          idleCount: this.pgPool.idleCount,
+          waitingCount: this.pgPool.waitingCount,
+          maxConnections: this.pgPool.options.max || 'Not set',
+          minConnections: this.pgPool.options.min || 'Not set'
+        };
+
+        res.json({
+          status: 'ok',
+          connectionPool: poolStatus,
+          strategy: 'single-pool-unified',
+          operations: ['query', 'mutation', 'subscription'],
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          memory: process.memoryUsage()
+        });
+      } else {
+        res.status(503).json({
+          status: 'error',
+          message: 'Connection pool not available'
+        });
+      }
+    });
+
     // PostGraphile middleware - mount at root path, let PostGraphile handle routing itself
     app.use((req: Request, res: Response, next) => {
       // Check if PostGraphile middleware exists
@@ -147,7 +176,10 @@ export class EnhancedServerManager {
 
   // Create and configure HTTP server
   async createEnhancedServer(serverConfig: EnhancedServerConfig): Promise<HttpServer> {
-    const { postgraphileMiddleware } = serverConfig;
+    const { postgraphileMiddleware, pgPool } = serverConfig;
+
+    // Store pool references for monitoring
+    this.pgPool = pgPool;
 
     // Create Express application
     this.app = this.createExpressApp(serverConfig);
