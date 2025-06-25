@@ -49,10 +49,7 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
   return `module ${projectName}::${componentName} { 
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
-    use dubhe::dapp_state;
-    use dubhe::dapp_service;
-    use dubhe::dapp_hub;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::{Self, DappHub};
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
 ${isEnum ? `    use ${projectName}::${enumModule};
@@ -167,10 +164,7 @@ function generateComponentCode(projectName: string, componentName: string, resou
     return `module ${projectName}::${componentName} { 
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
-    use dubhe::dapp_state;
-    use dubhe::dapp_service;
-    use dubhe::dapp_hub;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::{Self, DappHub};
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
 ${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module};
@@ -214,10 +208,7 @@ ${tableFunctions}
   return `module ${projectName}::${componentName} { 
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
-    use dubhe::dapp_state;
-    use dubhe::dapp_service;
-    use dubhe::dapp_hub;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::{Self, DappHub};
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
 ${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module};

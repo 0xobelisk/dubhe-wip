@@ -2,9 +2,7 @@
 
   use sui::clock::Clock;
 
-  use dubhe::dapp_system;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use test_project::dapp_key;
 
@@ -61,7 +59,7 @@
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
-    dapp_system::create_dapp(dapp_hub, dapp_key, b"test_project", b"Test project for schema generation", clock, ctx);
+    dapp_service::create_dapp(dapp_hub, dapp_key, b"test_project", b"Test project for schema generation", clock, ctx);
     // Register tables
     component0::register_table(dapp_hub, ctx);
     component1::register_table(dapp_hub, ctx);

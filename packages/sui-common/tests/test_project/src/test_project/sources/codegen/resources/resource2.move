@@ -10,13 +10,7 @@
 
   use dubhe::table_id;
 
-  use dubhe::dapp_state;
-
-  use dubhe::dapp_service;
-
-  use dubhe::dapp_hub;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use test_project::dapp_key;
 
@@ -86,7 +80,7 @@
     vector[b"player", b"value", b"direction"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -161,7 +155,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
   }
 
-  public fun delete(dapp_hub: &mut DappHub) {
+  public(package) fun delete(dapp_hub: &mut DappHub) {
     let key_tuple = vector::empty();
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
@@ -174,7 +168,7 @@
     player
   }
 
-  public fun set_player(dapp_hub: &mut DappHub, player: address) {
+  public(package) fun set_player(dapp_hub: &mut DappHub, player: address) {
     let key_tuple = vector::empty();
     let value = to_bytes(&player);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
@@ -188,7 +182,7 @@
     value
   }
 
-  public fun set_value(dapp_hub: &mut DappHub, value: u32) {
+  public(package) fun set_value(dapp_hub: &mut DappHub, value: u32) {
     let key_tuple = vector::empty();
     let value = to_bytes(&value);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
@@ -202,7 +196,7 @@
     direction
   }
 
-  public fun set_direction(dapp_hub: &mut DappHub, direction: Direction) {
+  public(package) fun set_direction(dapp_hub: &mut DappHub, direction: Direction) {
     let key_tuple = vector::empty();
     let value = test_project::direction::encode(direction);
     dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 2, value);
@@ -218,7 +212,7 @@
     (player, value, direction)
   }
 
-  public fun set(dapp_hub: &mut DappHub, player: address, value: u32, direction: Direction) {
+  public(package) fun set(dapp_hub: &mut DappHub, player: address, value: u32, direction: Direction) {
     let key_tuple = vector::empty();
     let value_tuple = encode(player, value, direction);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
@@ -230,7 +224,7 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, resource2: Resource2) {
+  public(package) fun set_struct(dapp_hub: &mut DappHub, resource2: Resource2) {
     let key_tuple = vector::empty();
     let value_tuple = encode_struct(resource2);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);

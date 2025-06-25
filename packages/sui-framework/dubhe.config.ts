@@ -9,26 +9,14 @@ export const dubheConfig = {
         AssetType: ['Lp', 'Wrapped', 'Private', 'Package'],
     },
     resources: {
-        dapp_metadata: {
-            fields: {
-                dapp_key: 'vector<u8>',
-                name: 'vector<u8>',
-                description: 'vector<u8>',
-                website_url: 'vector<u8>',
-                cover_urls: 'vector<vector<u8>>',
-                partners: 'vector<vector<u8>>',
-                package: 'address',
-                created_at: 'u64',
-                version: 'u32'
-            },
-            keys: ['dapp_key']
-        },
+        dubhe_asset_id: 'address',
         dubhe_config: {
             fields: {
                 next_asset_id: 'u256',
                 swap_fee: 'u256',
                 fee_to: 'address',
                 max_swap_path_len: 'u64',
+                admin: 'address',
             }
         },
         asset_metadata: {
@@ -84,7 +72,7 @@ export const dubheConfig = {
             },
             keys: ['asset0', 'asset1']
         },
-        bridge: {
+        bridge_config: {
             fields: {
                 chain: 'vector<u8>',
                 min_amount: 'u256',
@@ -92,6 +80,25 @@ export const dubheConfig = {
                 opened: 'bool'
             },
             keys: ['chain']
+        },
+        bridge_withdraw: {
+            offchain: true,
+            fields: {
+                from: 'address',
+                to: 'address',
+                to_chain: 'vector<u8>',
+                amount: 'u256',
+                fee: 'u256'
+            }
+        },
+        bridge_deposit: { 
+            offchain: true,
+            fields: {
+                from: 'address',
+                to: 'address',
+                from_chain: 'vector<u8>',
+                amount: 'u256'
+            }
         },
         wrapper_assets: {
             fields: {

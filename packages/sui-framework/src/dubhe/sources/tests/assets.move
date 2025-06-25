@@ -1,18 +1,12 @@
 #[test_only]
 module dubhe::assets_tests {
-    use std::ascii;
-    use std::ascii::String;
     use dubhe::assets_functions;
     use dubhe::init_test::deploy_dapp_for_testing;
     use dubhe::assets_system;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use sui::test_scenario;
     use sui::test_scenario::Scenario;
     use dubhe::asset_type;
-    use std::ascii::string;
-    use dubhe::dapp_hub;
-    use dubhe::asset_metadata;
-    use dubhe::asset_account;
 
     public fun create_assets(
         dapp_hub: &mut DappHub, 
@@ -69,18 +63,18 @@ module dubhe::assets_tests {
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::mint(&mut dapp_hub, asset1, ctx.sender(), 100, ctx);
         assets_system::mint(&mut dapp_hub, asset2, ctx.sender(), 100, ctx);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, ctx.sender()) == 100, 0);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, @0x10000) == 0, 0);
-        assert!(assets_system::supply_of(&mut dapp_hub, asset1) == 100, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, ctx.sender()) == 100, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, @0x10000) == 0, 0);
+        assert!(assets_system::supply_of(&dapp_hub, asset1) == 100, 0);
 
         assets_system::transfer(&mut dapp_hub, asset1, @0x0002, 50, ctx);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, ctx.sender()) == 50, 0);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, @0x0002) == 50, 0);
-        assert!(assets_system::supply_of(&mut dapp_hub, asset1) == 100, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, ctx.sender()) == 50, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, @0x0002) == 50, 0);
+        assert!(assets_system::supply_of(&dapp_hub, asset1) == 100, 0);
 
         assets_system::burn(&mut dapp_hub, asset1, ctx.sender(), 50, ctx);
-        assert!(assets_system::balance_of(&mut dapp_hub, asset1, ctx.sender()) == 0, 0);
-        assert!(assets_system::supply_of(&mut dapp_hub, asset1) == 50, 0);
+        assert!(assets_system::balance_of(&dapp_hub, asset1, ctx.sender()) == 0, 0);
+        assert!(assets_system::supply_of(&dapp_hub, asset1) == 50, 0);
 
         dapp_hub.destroy();
         scenario.end();
@@ -96,14 +90,14 @@ module dubhe::assets_tests {
         let asset_2 = create_test_asset(&mut dapp_hub, &mut scenario);
         let ctx = test_scenario::ctx(&mut scenario);
 
-        assets_system::mint(&mut dapp_hub, asset_1, @0x0, 100, ctx);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 100, 0);
+        assets_system::mint(&mut dapp_hub, asset_1, @0x1024, 100, ctx);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 100, 0);
 
         assets_system::mint(&mut dapp_hub, asset_1, @0x1, 100, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1) == 100, 0);
 
-        assets_system::mint(&mut dapp_hub, asset_2, @0x0, 100, ctx);
-        assert!(assets_system::balance_of(&dapp_hub, asset_2, @0x0) == 100, 0);
+        assets_system::mint(&mut dapp_hub, asset_2, @0x1024, 100, ctx);
+        assert!(assets_system::balance_of(&dapp_hub, asset_2, @0x1024) == 100, 0);
         
         dapp_hub.destroy();
         scenario.end();
@@ -121,15 +115,15 @@ module dubhe::assets_tests {
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 100);
 
-        assets_system::transfer(&mut dapp_hub, asset_1, @0x0, 50, ctx);
+        assets_system::transfer(&mut dapp_hub, asset_1, @0x1024, 50, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 50);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 50);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 50);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 31, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, @0xA) == 50);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 19);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 19);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1) == 31);
 
         test_scenario::next_tx(&mut scenario, @0xA);
@@ -155,9 +149,9 @@ module dubhe::assets_tests {
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 100);
 
-        assets_system::transfer(&mut dapp_hub, asset_1, @0x0, 50, ctx);
+        assets_system::transfer(&mut dapp_hub, asset_1, @0x1024, 50, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 50);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 50);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 50);
 
         dapp_hub.destroy();
         scenario.end();
@@ -173,23 +167,23 @@ module dubhe::assets_tests {
         let asset_1 = create_test_asset(&mut dapp_hub, &mut scenario);
         let ctx = test_scenario::ctx(&mut scenario);
 
-        assets_system::mint(&mut dapp_hub, asset_1, @0x0, 100, ctx);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 100);
+        assets_system::mint(&mut dapp_hub, asset_1, @0x1024, 100, ctx);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 100);
 
-        assets_system::freeze_address(&mut dapp_hub, asset_1, @0x0, ctx);
-        assets_system::thaw_address(&mut dapp_hub, asset_1, @0x0, ctx);
+        assets_system::freeze_address(&mut dapp_hub, asset_1, @0x1024, ctx);
+        assets_system::thaw_address(&mut dapp_hub, asset_1, @0x1024, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 50);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 50);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1) == 50);
 
         test_scenario::next_tx(&mut scenario, @0xA);
         let ctx = test_scenario::ctx(&mut scenario);
-        assets_system::freeze_address(&mut dapp_hub, asset_1, @0x0, ctx);
+        assets_system::freeze_address(&mut dapp_hub, asset_1, @0x1024, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
         
@@ -207,13 +201,13 @@ module dubhe::assets_tests {
         let asset_1 = create_test_asset(&mut dapp_hub, &mut scenario);
         let ctx = test_scenario::ctx(&mut scenario);
 
-        assets_system::mint(&mut dapp_hub, asset_1, @0x0, 100, ctx);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 100);
+        assets_system::mint(&mut dapp_hub, asset_1, @0x1024, 100, ctx);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 100);
 
         assets_system::freeze_asset(&mut dapp_hub, asset_1, ctx);
         assets_system::thaw_asset(&mut dapp_hub, asset_1, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
 
@@ -221,7 +215,7 @@ module dubhe::assets_tests {
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::freeze_asset(&mut dapp_hub, asset_1, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
 
@@ -239,21 +233,21 @@ module dubhe::assets_tests {
         let asset_1 = create_test_asset(&mut dapp_hub, &mut scenario);
         let ctx = test_scenario::ctx(&mut scenario);
 
-        assets_system::mint(&mut dapp_hub, asset_1, @0x0, 100, ctx);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 100);
+        assets_system::mint(&mut dapp_hub, asset_1, @0x1024, 100, ctx);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 100);
 
-        assets_system::block_address(&mut dapp_hub, asset_1, @0x0, ctx);
-        assets_system::thaw_address(&mut dapp_hub, asset_1, @0x0, ctx);
+        assets_system::block_address(&mut dapp_hub, asset_1, @0x1024, ctx);
+        assets_system::thaw_address(&mut dapp_hub, asset_1, @0x1024, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
 
         test_scenario::next_tx(&mut scenario, @0xA);
         let ctx = test_scenario::ctx(&mut scenario);
-        assets_system::block_address(&mut dapp_hub, asset_1, @0x0, ctx);
+        assets_system::block_address(&mut dapp_hub, asset_1, @0x1024, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
 
@@ -271,15 +265,15 @@ module dubhe::assets_tests {
         let asset_1 = create_test_asset(&mut dapp_hub, &mut scenario);
         let ctx = test_scenario::ctx(&mut scenario);
 
-        assets_system::mint(&mut dapp_hub, asset_1, @0x0, 100, ctx);
+        assets_system::mint(&mut dapp_hub, asset_1, @0x1024, 100, ctx);
         assets_system::mint(&mut dapp_hub, asset_1, @0x1, 100, ctx);    
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 100);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 100);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1) == 100);
 
         assets_system::block_address(&mut dapp_hub, asset_1, @0x1, ctx);
         assets_system::thaw_address(&mut dapp_hub, asset_1, @0x1, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
 
@@ -287,7 +281,7 @@ module dubhe::assets_tests {
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::block_address(&mut dapp_hub, asset_1, @0x1, ctx);
 
-        test_scenario::next_tx(&mut scenario, @0x0);
+        test_scenario::next_tx(&mut scenario, @0x1024);
         let ctx = test_scenario::ctx(&mut scenario);
         assets_system::transfer(&mut dapp_hub, asset_1, @0x1, 50, ctx);
 
@@ -307,9 +301,9 @@ module dubhe::assets_tests {
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 100);
 
-        assets_system::transfer_all(&mut dapp_hub, asset_1, @0x0, ctx);
+        assets_system::transfer_all(&mut dapp_hub, asset_1, @0x1024, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 0);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == 100);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == 100);
 
         dapp_hub.destroy();
         scenario.end();
@@ -326,8 +320,8 @@ module dubhe::assets_tests {
 
         assert!(assets_system::owner_of(&dapp_hub, asset_1) == sender);
 
-        assets_system::transfer_ownership(&mut dapp_hub, asset_1, @0x0, ctx);
-        assert!(assets_system::owner_of(&dapp_hub, asset_1) == @0x0);
+        assets_system::transfer_ownership(&mut dapp_hub, asset_1, @0x1024, ctx);
+        assert!(assets_system::owner_of(&dapp_hub, asset_1) == @0x1024);
 
         dapp_hub.destroy();
         scenario.end();
@@ -345,7 +339,7 @@ module dubhe::assets_tests {
 
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 0);
 
-        assets_system::transfer(&mut dapp_hub, asset_1, @0x0, 50, ctx);
+        assets_system::transfer(&mut dapp_hub, asset_1, @0x1024, 50, ctx);
 
         dapp_hub.destroy();
         scenario.end();
@@ -364,7 +358,7 @@ module dubhe::assets_tests {
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 100);
 
-        assets_system::transfer(&mut dapp_hub, asset_1, @0x0, 101, ctx);
+        assets_system::transfer(&mut dapp_hub, asset_1, @0x1024, 101, ctx);
 
         dapp_hub.destroy();
         scenario.end();
@@ -382,7 +376,7 @@ module dubhe::assets_tests {
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 100);
 
-        assets_system::transfer(&mut dapp_hub, asset_1, @0x0, 0, ctx);
+        assets_system::transfer(&mut dapp_hub, asset_1, @0x1024, 0, ctx);
 
         dapp_hub.destroy();
         scenario.end();
@@ -401,7 +395,7 @@ module dubhe::assets_tests {
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), 100, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 100);
 
-        assets_system::transfer(&mut dapp_hub, asset_1, @0x0, 101, ctx);
+        assets_system::transfer(&mut dapp_hub, asset_1, @0x1024, 101, ctx);
         
         dapp_hub.destroy();
         scenario.end();
@@ -435,9 +429,9 @@ module dubhe::assets_tests {
         assets_system::mint(&mut dapp_hub, asset_1, ctx.sender(), amount, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == amount);
 
-        assets_system::transfer(&mut dapp_hub, asset_1, @0x0, amount, ctx);
+        assets_system::transfer(&mut dapp_hub, asset_1, @0x1024, amount, ctx);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, ctx.sender()) == 0);
-        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x0) == amount);
+        assert!(assets_system::balance_of(&dapp_hub, asset_1, @0x1024) == amount);
 
         dapp_hub.destroy();
         scenario.end();

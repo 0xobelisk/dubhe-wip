@@ -1,6 +1,4 @@
 module dubhe::wrapper_system;
-use std::ascii::String;
-use std::ascii::string;
 use std::u64;
 use dubhe::assets_functions;
 use sui::balance;
@@ -10,7 +8,7 @@ use sui::coin::{Coin};
 use std::type_name;
 use dubhe::errors::{overflows_error};
 use dubhe::asset_type;
-use dubhe::dapp_hub::DappHub;
+use dubhe::dapp_service::DappHub;
 use dubhe::wrapper_assets;
 use dubhe::dapp_key;
 
@@ -21,7 +19,7 @@ public entry fun wrap<T>(dapp_hub: &mut DappHub, coin: Coin<T>, beneficiary: add
       wrapper_assets::ensure_has(dapp_hub, coin_type);
       let asset_id = wrapper_assets::get(dapp_hub, coin_type);
       let amount = coin.value();
-      let pool_balance = dapp_hub.mut_dapp_state_objects(dapp_key).borrow_mut<address, Balance<T>>(asset_id);
+      let pool_balance = dapp_hub.get_objects(dapp_key).borrow_mut<address, Balance<T>>(asset_id);
       pool_balance.join(coin.into_balance());
       assets_functions::do_mint(dapp_hub, asset_id, beneficiary, amount as u256);
       amount as u256
@@ -49,7 +47,7 @@ public(package) fun do_register<T>(dapp_hub: &mut DappHub, name: vector<u8>, sym
       let coin_type = get_coin_type<T>();
       wrapper_assets::set(dapp_hub, coin_type, asset_id);
       let dapp_key = dapp_key::new();
-      dapp_hub.mut_dapp_state_objects(dapp_key).add(asset_id, balance::zero<T>());
+      dapp_hub.get_objects(dapp_key).add(asset_id, balance::zero<T>());
       asset_id
 }
 
@@ -60,7 +58,7 @@ public(package) fun do_unwrap<T>(dapp_hub: &mut DappHub, amount: u256, ctx: &mut
       let asset_id = wrapper_assets::get(dapp_hub, coin_type);
       assets_functions::do_burn(dapp_hub, asset_id, ctx.sender(), amount);
       let dapp_key = dapp_key::new();
-      let pool_balance = dapp_hub.mut_dapp_state_objects(dapp_key).borrow_mut<address, Balance<T>>(asset_id);
+      let pool_balance = dapp_hub.get_objects(dapp_key).borrow_mut<address, Balance<T>>(asset_id);
       let balance = pool_balance.split(amount as u64);
       coin::from_balance<T>(balance, ctx)
 }

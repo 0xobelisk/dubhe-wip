@@ -10,13 +10,7 @@
 
   use dubhe::table_id;
 
-  use dubhe::dapp_state;
-
-  use dubhe::dapp_service;
-
-  use dubhe::dapp_hub;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use counter::dapp_key;
 
@@ -44,7 +38,7 @@
     vector[b"value"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -74,7 +68,7 @@
     dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
-  public fun delete(dapp_hub: &mut DappHub) {
+  public(package) fun delete(dapp_hub: &mut DappHub) {
     let key_tuple = vector::empty();
     dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
@@ -87,7 +81,7 @@
     value
   }
 
-  public fun set(dapp_hub: &mut DappHub, value: u32) {
+  public(package) fun set(dapp_hub: &mut DappHub, value: u32) {
     let key_tuple = vector::empty();
     let value_tuple = encode(value);
     dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);

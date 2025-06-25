@@ -1,8 +1,8 @@
 module dubhe::assets_system;
 use dubhe::errors::{
-    asset_not_found_error, no_permission_error, not_mintable_error, not_burnable_error, account_not_found_error, asset_not_liquid_error, asset_not_frozen_error
+    no_permission_error, not_mintable_error, not_burnable_error
 };
-use dubhe::dapp_hub::DappHub;
+use dubhe::dapp_service::DappHub;
 use dubhe::account_status;
 use dubhe::asset_status;
 use dubhe::assets_functions;
@@ -11,8 +11,6 @@ use dubhe::errors::not_freezable_error;
 use dubhe::errors::invalid_metadata_error;
 use dubhe::asset_metadata;
 use dubhe::asset_account;
-use std::type_name;
-use sui::address;
 use dubhe::entity_id::asset_to_entity_id;
 use dubhe::dubhe_config;
 use dubhe::dapp_key;

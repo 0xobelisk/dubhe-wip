@@ -1,15 +1,14 @@
 module dubhe::dex_system {
-    use std::ascii;
     use dubhe::asset_pools;
     use dubhe::dex_functions::{sort_assets};
     use dubhe::assets_functions;
     use dubhe::dex_functions;
     use dubhe::asset_metadata;
-    use dubhe::dapp_hub::DappHub;
+    use dubhe::dapp_service::DappHub;
     use dubhe::asset_type;
     use dubhe::dubhe_config;
     use dubhe::errors:: {
-        asset_not_found_error, more_than_max_swap_path_len_error, pool_already_exists_error,swap_path_too_small_error, below_min_amount_error, less_than_amount_out_min_error, more_than_amount_in_max_error
+        more_than_max_swap_path_len_error,swap_path_too_small_error, below_min_amount_error, less_than_amount_out_min_error, more_than_amount_in_max_error
     };
 
     const LP_ASSET_DESCRIPTION: vector<u8> = b"Merak LP Asset";
@@ -21,9 +20,7 @@ module dubhe::dex_system {
     /// * `dapp_hub`: The dapp_hub of the contract
     /// * `asset_a`: The first asset
     /// * `asset_b`: The second asset
-    public entry fun create_pool(dapp_hub: &mut DappHub, asset_a: address, asset_b: address, ctx: &mut TxContext) {
-        let sender = ctx.sender();
-
+    public entry fun create_pool(dapp_hub: &mut DappHub, asset_a: address, asset_b: address) {
         assert!(asset_a != asset_b, 0);
 
         let (asset_0, asset_1) = sort_assets(asset_a, asset_b);
@@ -93,7 +90,7 @@ module dubhe::dex_system {
 
         assets_functions::do_transfer(dapp_hub, asset_a, sender, pool.pool_address(), amount_a);
         assets_functions::do_transfer(dapp_hub, asset_b, sender, pool.pool_address(), amount_b);
-        let liquidity = dex_functions::mint(dapp_hub, asset_a, asset_b, to, ctx);
+        let liquidity = dex_functions::mint(dapp_hub, asset_a, asset_b, to);
         liquidity
     }
 
@@ -120,7 +117,7 @@ module dubhe::dex_system {
         let sender = ctx.sender();
         let pool = dex_functions::get_pool(dapp_hub, asset_a, asset_b);
         assets_functions::do_transfer(dapp_hub, pool.lp_asset(), sender, pool.pool_address(), liquidity);
-        let (amount_0, amount_1) = dex_functions::burn(dapp_hub, asset_a, asset_b, to, ctx);
+        let (amount_0, amount_1) = dex_functions::burn(dapp_hub, asset_a, asset_b, to);
         let (asset_0, _) = sort_assets(asset_a, asset_b);
         let (amount_a, amount_b) = if (asset_0 == asset_a) {
             (amount_0, amount_1)

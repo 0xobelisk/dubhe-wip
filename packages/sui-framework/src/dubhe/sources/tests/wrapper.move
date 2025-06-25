@@ -1,6 +1,5 @@
 #[test_only]
 module dubhe::wrapper_tests {
-    use dubhe::dapp_hub::DappHub;
     use dubhe::init_test::deploy_dapp_for_testing;
     use dubhe::assets_system;
     use dubhe::wrapper_system;

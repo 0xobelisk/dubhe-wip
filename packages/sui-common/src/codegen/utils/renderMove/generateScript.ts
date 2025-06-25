@@ -12,7 +12,7 @@ function capitalizeFirstLetter(str: string): string {
 export async function generateDeployHook(config: DubheConfig, path: string) {
   if (!existsSync(path)) {
     const code = `module ${config.name}::deploy_hook {
-			  use dubhe::dapp_hub::DappHub;
+			  use dubhe::dapp_service::DappHub;
 
   public(package) fun run(_dapp_hub: &mut DappHub, _ctx: &mut TxContext) {
 

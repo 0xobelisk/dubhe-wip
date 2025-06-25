@@ -10,13 +10,7 @@
 
   use dubhe::table_id;
 
-  use dubhe::dapp_state;
-
-  use dubhe::dapp_service;
-
-  use dubhe::dapp_hub;
-
-  use dubhe::dapp_hub::DappHub;
+  use dubhe::dapp_service::{Self, DappHub};
 
   use dubhe::dapp_key;
 
@@ -102,7 +96,7 @@
     vector[b"pool_address", b"lp_asset", b"reserve0", b"reserve1", b"k_last"]
   }
 
-  public fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
+  public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_service::register_table(
             dapp_hub, 
@@ -243,7 +237,7 @@
     dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 4)
   }
 
-  public fun delete(dapp_hub: &mut DappHub, asset0: address, asset1: address) {
+  public(package) fun delete(dapp_hub: &mut DappHub, asset0: address, asset1: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
@@ -260,7 +254,12 @@
     pool_address
   }
 
-  public fun set_pool_address(dapp_hub: &mut DappHub, asset0: address, asset1: address, pool_address: address) {
+  public(package) fun set_pool_address(
+    dapp_hub: &mut DappHub,
+    asset0: address,
+    asset1: address,
+    pool_address: address,
+  ) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
@@ -278,7 +277,7 @@
     lp_asset
   }
 
-  public fun set_lp_asset(dapp_hub: &mut DappHub, asset0: address, asset1: address, lp_asset: address) {
+  public(package) fun set_lp_asset(dapp_hub: &mut DappHub, asset0: address, asset1: address, lp_asset: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
@@ -296,7 +295,7 @@
     reserve0
   }
 
-  public fun set_reserve0(dapp_hub: &mut DappHub, asset0: address, asset1: address, reserve0: u128) {
+  public(package) fun set_reserve0(dapp_hub: &mut DappHub, asset0: address, asset1: address, reserve0: u128) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
@@ -314,7 +313,7 @@
     reserve1
   }
 
-  public fun set_reserve1(dapp_hub: &mut DappHub, asset0: address, asset1: address, reserve1: u128) {
+  public(package) fun set_reserve1(dapp_hub: &mut DappHub, asset0: address, asset1: address, reserve1: u128) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
@@ -332,7 +331,7 @@
     k_last
   }
 
-  public fun set_k_last(dapp_hub: &mut DappHub, asset0: address, asset1: address, k_last: u256) {
+  public(package) fun set_k_last(dapp_hub: &mut DappHub, asset0: address, asset1: address, k_last: u256) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
@@ -354,7 +353,7 @@
     (pool_address, lp_asset, reserve0, reserve1, k_last)
   }
 
-  public fun set(
+  public(package) fun set(
     dapp_hub: &mut DappHub,
     asset0: address,
     asset1: address,
@@ -379,7 +378,7 @@
     decode(value_tuple)
   }
 
-  public fun set_struct(dapp_hub: &mut DappHub, asset0: address, asset1: address, asset_pools: AssetPools) {
+  public(package) fun set_struct(dapp_hub: &mut DappHub, asset0: address, asset1: address, asset_pools: AssetPools) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
