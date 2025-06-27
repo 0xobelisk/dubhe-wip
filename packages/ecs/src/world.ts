@@ -856,14 +856,14 @@ export class DubheECSWorld {
   /**
    * Listen to component changes with specific conditions
    */
-  onComponentCondition<T>(
+  onEntityComponent<T>(
     componentType: ComponentType,
-    filter: Record<string, any>,
+    entityId: string,
     options?: SubscriptionOptions & { fields?: string[] }
   ) {
-    return this.subscriptionSystem.onComponentCondition<T>(
+    return this.subscriptionSystem.onEntityComponent<T>(
       componentType,
-      filter,
+      entityId,
       options
     );
   }
@@ -1260,14 +1260,10 @@ export class DubheECSWorld {
     const subscriptionFields =
       options?.fields || resourceMetadata.fields.map((f) => f.name);
 
-    return this.graphqlClient.subscribeToFilteredTableChanges(
-      resourceType,
-      options?.filter,
-      {
-        ...options,
-        fields: subscriptionFields,
-      }
-    );
+    return this.graphqlClient.subscribeToTableChanges(resourceType, {
+      ...options,
+      fields: subscriptionFields,
+    });
   }
 }
 

@@ -105,19 +105,16 @@ export function exampleSubscription() {
   });
 
   // 过滤订阅
-  const filteredSubscription = client.subscribeToFilteredTableChanges(
-    'accounts',
-    { balance: { greaterThan: '1000' } },
-    {
-      initialEvent: true,
-      fields: ['assetId', 'account', 'balance', 'updatedAt'],
-      orderBy: [{ field: 'balance', direction: 'DESC' }],
-      first: 5,
-      onData: (data) => {
-        console.log('高余额账户更新:', data.listen.query.accounts);
-      },
-    }
-  );
+  const filteredSubscription = client.subscribeToTableChanges('accounts', {
+    filter: { balance: { greaterThan: '1000' } },
+    initialEvent: true,
+    fields: ['assetId', 'account', 'balance', 'updatedAt'],
+    orderBy: [{ field: 'balance', direction: 'DESC' }],
+    first: 5,
+    onData: (data) => {
+      console.log('高余额账户更新:', data.listen.query.accounts);
+    },
+  });
 
   const subscriptions = [
     basicSubscription.subscribe({}),

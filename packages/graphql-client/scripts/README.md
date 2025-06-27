@@ -53,14 +53,12 @@ const subscription = client.subscribeToTableChanges('encounters', {
 });
 
 // 带过滤的高级订阅
-const filteredSub = client.subscribeToFilteredTableChanges('accounts', 
-  { balance: { greaterThan: '1000' } }, 
-  {
-    initialEvent: true,
-    orderBy: [{ field: 'balance', direction: 'DESC' }],
-    first: 5,
-  }
-);
+const filteredSub = client.subscribeToTableChanges('accounts', {
+  filter: { balance: { greaterThan: '1000' } },
+  initialEvent: true,
+  orderBy: [{ field: 'balance', direction: 'DESC' }],
+  first: 5,
+});
 ```
 
 ## 🔍 查询功能

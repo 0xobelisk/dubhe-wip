@@ -384,53 +384,47 @@ export default function Home() {
         return null;
       }
 
-      const subscription = ecsWorld
-        .onComponentChanged<any>('counter1', {
-          filter: {
-            entityId: currentAddress
-          }
-        })
-        .subscribe({
-          next: (result: any) => {
-            if (result) {
-              console.log(
-                `📢 [${new Date().toLocaleTimeString()}] counter1 component changed for entity ${result.entityId}:`
-              );
-              console.log(`  - Change type: ${result.changeType}`);
-              console.log(`  - Component data:`, result.data);
-              console.log(`  - Current address: ${currentAddress}`);
-              console.log(`  - Entity ID: ${result.entityId}`);
+      const subscription = ecsWorld.onEntityComponent<any>('counter1', currentAddress).subscribe({
+        next: (result: any) => {
+          if (result) {
+            console.log(
+              `📢 [${new Date().toLocaleTimeString()}] counter1 component changed for entity ${result.entityId}:`
+            );
+            console.log(`  - Change type: ${result.changeType}`);
+            console.log(`  - Component data:`, result.data);
+            console.log(`  - Current address: ${currentAddress}`);
+            console.log(`  - Entity ID: ${result.entityId}`);
 
-              // Only handle updates for current address
-              if (result.entityId === currentAddress) {
-                const componentData = result.data as any;
-                if (componentData?.value !== undefined) {
-                  setEcsValue(componentData.value);
-                  setValue(componentData.value);
-                  toast('ECS Real-time Update', {
-                    description: `New value: ${componentData.value} (Address: ${currentAddress.slice(0, 6)}...)`
-                  });
-                }
-              } else {
-                console.log(`📋 Ignoring update for different entity: ${result.entityId}`);
+            // Only handle updates for current address
+            if (result.entityId === currentAddress) {
+              const componentData = result.data as any;
+              if (componentData?.value !== undefined) {
+                setEcsValue(componentData.value);
+                setValue(componentData.value);
+                toast('ECS Real-time Update', {
+                  description: `New value: ${componentData.value} (Address: ${currentAddress.slice(0, 6)}...)`
+                });
               }
+            } else {
+              console.log(`📋 Ignoring update for different entity: ${result.entityId}`);
             }
-
-            if (result.error) {
-              console.error('❌ Subscription error:', result.error);
-            }
-
-            if (result.loading) {
-              console.log('⏳ Data loading...');
-            }
-          },
-          error: (error: any) => {
-            console.error('❌ ECS subscription failed:', error);
-          },
-          complete: () => {
-            console.log('✅ ECS subscription completed');
           }
-        });
+
+          if (result.error) {
+            console.error('❌ Subscription error:', result.error);
+          }
+
+          if (result.loading) {
+            console.log('⏳ Data loading...');
+          }
+        },
+        error: (error: any) => {
+          console.error('❌ ECS subscription failed:', error);
+        },
+        complete: () => {
+          console.log('✅ ECS subscription completed');
+        }
+      });
 
       return subscription;
     } catch (error) {

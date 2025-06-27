@@ -427,6 +427,8 @@ export class DubheGraphqlClient {
       initialEvent?: boolean; // Whether to trigger initial event immediately
       first?: number; // Limit the number of returned records
       topicPrefix?: string; // Custom topic prefix, defaults to table name
+      filter?: Record<string, any>; // Support filtering
+      orderBy?: OrderBy[]; // Support custom ordering
     }
   ): Observable<SubscriptionResult<{ listen: { query: any } }>> {
     // PostGraphile automatically adds 'postgraphile:' prefix to all topics
@@ -437,12 +439,24 @@ export class DubheGraphqlClient {
 
     const pluralTableName = this.getPluralTableName(tableName); // Ensure using plural form
     const fields = this.convertTableFields(tableName, options?.fields);
+    const orderByEnum = convertOrderByToEnum(options?.orderBy);
+    const first = options?.first || 10;
 
     const subscription = gql`
-      subscription ListenToTableChanges($topic: String!, $initialEvent: Boolean) {
+      subscription ListenToTableChanges(
+        $topic: String!, 
+        $initialEvent: Boolean,
+        $filter: ${this.getFilterTypeName(tableName)},
+        $orderBy: [${this.getOrderByTypeName(tableName)}!],
+        $first: Int
+      ) {
         listen(topic: $topic, initialEvent: $initialEvent) {
           query {
-            ${pluralTableName}(first: ${options?.first || 10}, orderBy: UPDATED_AT_DESC) {
+            ${pluralTableName}(
+              first: $first, 
+              filter: $filter, 
+              orderBy: $orderBy
+            ) {
               totalCount
               nodes {
                 ${fields}
@@ -462,6 +476,9 @@ export class DubheGraphqlClient {
       {
         topic,
         initialEvent: options?.initialEvent || false,
+        filter: options?.filter,
+        orderBy: orderByEnum,
+        first,
       },
       options
     );
@@ -500,72 +517,6 @@ export class DubheGraphqlClient {
   }
 
   /**
-   * Subscribe to data changes with specific conditions
-   */
-  subscribeToFilteredTableChanges<T extends StoreTableRow>(
-    tableName: string,
-    filter?: Record<string, any>,
-    options?: SubscriptionOptions & {
-      fields?: string[];
-      initialEvent?: boolean;
-      orderBy?: OrderBy[];
-      first?: number;
-      topicPrefix?: string; // Custom topic prefix
-    }
-  ): Observable<SubscriptionResult<{ listen: { query: any } }>> {
-    // Improved topic naming, support custom prefix
-    const topic = options?.topicPrefix
-      ? `${options.topicPrefix}${tableName}`
-      : `store_${this.getSingularTableName(tableName)}`;
-
-    const pluralTableName = this.getPluralTableName(tableName); // Ensure using plural form
-    const fields = this.convertTableFields(tableName, options?.fields);
-    const orderByEnum = convertOrderByToEnum(options?.orderBy);
-    const first = options?.first || 10;
-
-    const subscription = gql`
-      subscription FilteredListenSubscription(
-        $topic: String!, 
-        $initialEvent: Boolean,
-        $filter: ${this.getFilterTypeName(tableName)},
-        $orderBy: [${this.getOrderByTypeName(tableName)}!],
-        $first: Int
-      ) {
-        listen(topic: $topic, initialEvent: $initialEvent) {
-          query {
-            ${pluralTableName}(
-              first: $first, 
-              filter: $filter, 
-              orderBy: $orderBy
-            ) {
-              totalCount
-              nodes {
-                ${fields}
-              }
-              pageInfo {
-                hasNextPage
-                endCursor
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    return this.subscribe(
-      subscription,
-      {
-        topic,
-        initialEvent: options?.initialEvent || false,
-        filter,
-        orderBy: orderByEnum,
-        first,
-      },
-      options
-    );
-  }
-
-  /**
    * Subscribe to multiple table data changes - Support batch subscription of table name list
    */
   subscribeToMultipleTables<T extends StoreTableRow>(
@@ -578,44 +529,40 @@ export class DubheGraphqlClient {
 
       // Create independent subscription for each table
       tableConfigs.forEach(({ tableName, options }) => {
-        const subscription = this.subscribeToFilteredTableChanges<T>(
-          tableName,
-          options?.filter,
-          {
-            ...options,
-            onData: (data) => {
-              // Update latest data for this table
-              latestData[tableName] = data;
+        const subscription = this.subscribeToTableChanges<T>(tableName, {
+          ...options,
+          onData: (data: any) => {
+            // Update latest data for this table
+            latestData[tableName] = data;
 
-              // Call table-level callback
-              if (options?.onData) {
-                options.onData(data);
-              }
+            // Call table-level callback
+            if (options?.onData) {
+              options.onData(data);
+            }
 
-              // Call global callback
-              if (globalOptions?.onData) {
-                globalOptions.onData(latestData);
-              }
+            // Call global callback
+            if (globalOptions?.onData) {
+              globalOptions.onData(latestData);
+            }
 
-              // Send complete multi-table data
-              observer.next({ ...latestData });
-            },
-            onError: (error) => {
-              // Call table-level error callback
-              if (options?.onError) {
-                options.onError(error);
-              }
+            // Send complete multi-table data
+            observer.next({ ...latestData });
+          },
+          onError: (error: any) => {
+            // Call table-level error callback
+            if (options?.onError) {
+              options.onError(error);
+            }
 
-              // Call global error callback
-              if (globalOptions?.onError) {
-                globalOptions.onError(error);
-              }
+            // Call global error callback
+            if (globalOptions?.onError) {
+              globalOptions.onError(error);
+            }
 
-              // Send error
-              observer.error(error);
-            },
-          }
-        );
+            // Send error
+            observer.error(error);
+          },
+        });
 
         subscriptions.push({ tableName, subscription });
       });
@@ -1203,7 +1150,8 @@ export const QueryBuilders = {
  */
 function convertOrderByToEnum(orderBy?: OrderBy[]): string[] {
   if (!orderBy || orderBy.length === 0) {
-    return ['NATURAL'];
+    // return ['NATURAL'];
+    return ['UPDATED_AT_DESC'];
   }
 
   return orderBy.map((order) => {
