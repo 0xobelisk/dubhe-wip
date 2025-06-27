@@ -294,6 +294,7 @@ async function publishContract(
     await saveContractData(
       dubheConfig.name,
       network,
+      deployHookResult.checkpoint?.toString() || '0',
       packageId,
       dappHub,
       upgradeCapId,
@@ -422,7 +423,7 @@ export async function publishDubheFramework(
   }
 
   await updateMoveTomlAddress(projectPath, packageId);
-  await saveContractData('dubhe', network, packageId, dappHub, upgradeCapId, version, {}, {}, {});
+  await saveContractData('dubhe', network, packageId, "0", dappHub, upgradeCapId, version, {}, {}, {});
 
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
 }

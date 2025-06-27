@@ -14,6 +14,7 @@ import { Component, MoveType, EmptyComponent, DubheConfig } from '@0xobelisk/sui
 export type DeploymentJsonType = {
   projectName: string;
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet';
+  startCheckpoint: string;
   packageId: string;
   dappHub: string;
   upgradeCap: string;
@@ -146,9 +147,15 @@ export async function getUpgradeCap(projectPath: string, network: string): Promi
   return deployment.upgradeCap;
 }
 
+export async function getStartCheckpoint(projectPath: string, network: string): Promise<string> {
+  const deployment = await getDeploymentJson(projectPath, network);
+  return deployment.startCheckpoint;
+}
+
 export async function saveContractData(
   projectName: string,
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet',
+  startCheckpoint: string,
   packageId: string,
   dappHub: string,
   upgradeCap: string,
@@ -160,6 +167,7 @@ export async function saveContractData(
   const DeploymentData: DeploymentJsonType = {
     projectName,
     network,
+    startCheckpoint,
     packageId,
     dappHub,
     upgradeCap,
