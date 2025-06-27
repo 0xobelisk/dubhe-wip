@@ -12,14 +12,12 @@ use diesel::prelude::*;
 use diesel::sql_types::{Text, Integer, Bool, Nullable};
 
 use crate::{
-    config::TableSchema,
+    table::TableMetadata,
     events::{StorageSetRecord, StoreSetField},
     sql::{generate_update_sql, generate_insert_sql},
     db::PgConnectionPool,
     simple_notify::{log_data_change, setup_simple_logging, create_realtime_trigger},
 };
-use crate::table::parse_table_tuple;
-use crate::table::parse_table_field;
 
 #[derive(QueryableByName)]
 pub struct TableField {
@@ -36,6 +34,7 @@ pub struct TableField {
 pub struct DubheIndexerWorker {
     pub pg_pool: PgConnectionPool,
     pub package_id: Option<String>,
+    pub tables: Vec<TableMetadata>,
 }
 
 impl DubheIndexerWorker {
@@ -117,20 +116,21 @@ impl DubheIndexerWorker {
         let content = fs::read_to_string(config_path)?;
         let json: Value = serde_json::from_str(&content)?;
         
-        let (package_id, tables) = TableSchema::from_json(&json)?;
+        let (package_id, tables) = TableMetadata::from_json(json)?;
 
         if self.package_id.is_none() {
-            self.package_id = Some(package_id);
+            self.package_id = package_id;
         }
         
         println!("Tables: {:?}", tables);
         let mut conn = self.pg_pool.get().await?;
 
-        // Create table_fields table first
+        // Create table_metadata table first
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS table_metadata (
                 table_name VARCHAR(255),
                 table_type VARCHAR(255),
+                offchain BOOLEAN,
                 PRIMARY KEY (table_name)
             )"
         )
@@ -151,42 +151,25 @@ impl DubheIndexerWorker {
         )
         .execute(&mut conn)
         .await?;
-
-        // Clear existing table_fields data
-        diesel::sql_query("TRUNCATE TABLE table_fields")
-            .execute(&mut conn)
-            .await?;
-
-        diesel::sql_query("TRUNCATE TABLE table_metadata")
-            .execute(&mut conn)
-            .await?;
         
         // 设置简化的日志系统（可选）
         setup_simple_logging(&mut conn).await?;
         
-        for table in tables {
-            println!("Creating table: {}", table.name);
-            println!("Key fields: {:?}", table.key_fields);
-            println!("Value fields: {:?}", table.value_fields);
+        for table in &tables {
+            println!("Creating table: {:?}", table);
             
             // Create store table
-            let sql = table.generate_create_table_sql();
-            println!("SQL: {}", sql);
-            diesel::sql_query(&sql)
+            diesel::sql_query(&table.generate_create_table_sql())
                 .execute(&mut conn)
                 .await?;
 
             // Insert table metadata
-            diesel::sql_query(
-                "INSERT INTO table_metadata (table_name, table_type) VALUES ($1, $2)"
-            )
-            .bind::<diesel::sql_types::Text, _>(table.name.clone())
-            .bind::<diesel::sql_types::Text, _>(table.table_type.clone())
-            .execute(&mut conn)
-            .await?;
+            diesel::sql_query(&table.generate_insert_table_metadata_sql())
+                .execute(&mut conn)
+                .await?;
 
             // Insert table fields metadata
-            for field_sql in table.generate_table_fields_sql() {
+            for field_sql in table.generate_insert_table_fields_sql() {
                 diesel::sql_query(&field_sql)
                     .execute(&mut conn)
                     .await?;
@@ -197,6 +180,8 @@ impl DubheIndexerWorker {
             create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
             println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table_name_with_prefix);
         }
+
+        self.tables = tables;
         
         Ok(())
     }
@@ -282,29 +267,22 @@ impl DubheIndexerWorker {
         println!("Table name: {}", table_name);
         
         // Get table field information from database
-        let fields = self.get_table_field_info(&table_name).await?;
+        let table_metadata = self.tables.iter().find(|t| t.name == table_name).expect("Table not found");
         
         // Separate key and value fields
         let mut key_fields = Vec::new();
         let mut value_fields = Vec::new();
         
-        for (field_name, field_type, _field_index, is_key) in fields {
-            if is_key {
-                key_fields.push((field_name, field_type));
+        for field in &table_metadata.fields {
+            if field.is_key {
+                key_fields.push((field.field_name.clone(), field.field_type.clone()));
             } else {
-                value_fields.push((field_name, field_type));
+                value_fields.push((field.field_name.clone(), field.field_type.clone()));
             }
         }
-
-        // Convert fields to Vec<Vec<u8>> for parse_table_tuple
-        let key_names: Vec<Vec<u8>> = key_fields.iter().map(|(name, _)| name.as_bytes().to_vec()).collect();
-        let key_types: Vec<Vec<u8>> = key_fields.iter().map(|(_, type_)| type_.as_bytes().to_vec()).collect();
-        let value_names: Vec<Vec<u8>> = value_fields.iter().map(|(name, _)| name.as_bytes().to_vec()).collect();
-        let value_types: Vec<Vec<u8>> = value_fields.iter().map(|(_, type_)| type_.as_bytes().to_vec()).collect();
-
         // Parse key and value
-        let key_values = parse_table_tuple(key_names, key_types, set_record.key_tuple.clone());
-        let value_values = parse_table_tuple(value_names, value_types, set_record.value_tuple.clone());
+        let key_values = table_metadata.parse_table_keys(set_record.key_tuple.clone());
+        let value_values = table_metadata.parse_table_values(set_record.value_tuple.clone());
 
         println!("Key values: {:?}", key_values);
         println!("Value values: {:?}", value_values);
@@ -347,43 +325,36 @@ impl DubheIndexerWorker {
         println!("Table name: {}", table_name);
         
         // Get table field information from database
-        let fields = self.get_table_field_info(&table_name).await?;
+        let table_metadata = self.tables.iter().find(|t| t.name == table_name).expect("Table not found");
         
         // Separate key and value fields
         let mut key_fields = Vec::new();
-        let mut value_fields = Vec::new();
+        let mut field_name = String::new();
+        let mut field_type = String::new();
         
-        for (field_name, field_type, _field_index, is_key) in fields {
-            if is_key {
-                key_fields.push((field_name, field_type));
-            } else {
-                value_fields.push((field_name, field_type));
+        for field in &table_metadata.fields {
+            if field.is_key {
+                key_fields.push((field.field_name.clone(), field.field_type.clone()));
+            }
+            if field.field_index == set_field.field_index {
+                field_name = field.field_name.clone();
+                field_type = field.field_type.clone();
             }
         }
-        
-        // Get field information to be updated
-        let (field_name, field_type) = value_fields.get(set_field.field_index as usize)
-            .ok_or_else(|| anyhow::anyhow!("Field index out of range"))?;
-        
-        println!("Updating field: {} with type: {}", field_name, field_type);
-        
-        // Convert key fields to Vec<Vec<u8>> for parse_table_tuple
-        let key_names: Vec<Vec<u8>> = key_fields.iter().map(|(name, _)| name.as_bytes().to_vec()).collect();
-        let key_types: Vec<Vec<u8>> = key_fields.iter().map(|(_, type_)| type_.as_bytes().to_vec()).collect();
-        
+
         // Parse key
-        let key_values = parse_table_tuple(key_names, key_types, set_field.key_tuple.clone());
+        let key_values = table_metadata.parse_table_keys(set_field.key_tuple.clone());
         
         // Parse value to be updated
-        let value_json = parse_table_field(&field_name.as_bytes().to_vec(), &field_type.as_bytes().to_vec(), &set_field.value);
-        let value = value_json.get(field_name).unwrap();
+        let value_json = table_metadata.parse_table_field(&field_name.as_bytes().to_vec(), &field_type.as_bytes().to_vec(), &set_field.value);
+        let value = value_json.get(&field_name).unwrap();
         
         // Generate and execute SQL
         let sql = generate_update_sql(
             &table_name,
-            field_name,
-            field_type,
-            value,
+            &field_name,
+            &field_type,
+            &value,
             &key_fields,
             &key_values,
         );

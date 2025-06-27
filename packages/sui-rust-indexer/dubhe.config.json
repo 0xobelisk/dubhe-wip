@@ -9,34 +9,50 @@
         ],
         "keys": [
           "entity_id"
-        ]
+        ],
+        "offchain": false
       }
     },
     {
       "counter1": {
         "fields": [
           {
-            "value": "u32"
-          }
-        ],
-        "keys": []
-      }
-    },
-    {
-      "counter2": {
-        "fields": [
+            "entity_id": "address"
+          },
           {
-            "entity_id": "address",
             "value": "u32"
           }
         ],
         "keys": [
           "entity_id"
-        ]
+        ],
+        "offchain": false
       }
     }
   ],
-  "resources": [],
-  "enums": [],
-  "package_id": "0x69a432c56a639ce91b2ebc8f38ae88e8c13c6c2c06fc74fcd6f8653aadab63bf"
+  "resources": [
+    {
+      "counter2": {
+        "fields": [
+          {
+            "value": "u32"
+          }
+        ],
+        "keys": [],
+        "offchain": false
+      }
+    }
+  ],
+  "enums": [
+    {
+      "direction": [
+        {
+          "0": "left"
+        },
+        {
+          "1": "right"
+        }
+      ]
+    }
+  ]
 }

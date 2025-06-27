@@ -19,7 +19,6 @@ use sdic::{DataIngestionMetrics, FileProgressStore, IndexerExecutor};
 use prometheus::Registry;
 use std::path::PathBuf;
 
-mod config;
 mod events;
 mod sql;
 mod table;
@@ -94,6 +93,7 @@ async fn main() -> Result<()> {
     let mut dubhe_indexer_worker = DubheIndexerWorker {
         pg_pool: get_connection_pool(args.db_url.clone()).await,
         package_id: args.package_id,
+        tables: Vec::new(),
     };
 
     // Handle force restart for local nodes only
