@@ -41,7 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # dubhe 
-src/dubhe/.history
+.history
 src/dubhe/Move.lock
 **/build/
 src/chain/key.ts

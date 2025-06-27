@@ -1,11 +1,19 @@
 {
   "projectName": "counter",
   "network": "localnet",
-  "packageId": "0xeac4f117221c77cc6c8302457600b4d07e837e99418d0912179d528307425bd0",
-  "schemaId": "0x959538cfc1e2e08f5a11f67cf22e4d95698724163e388732c4bc04a25cde5d83",
-  "schemas": {
-    "value": "StorageValue<u32>"
+  "packageId": "0x02a530d486eddbe0484e21149fcd6906fe24fc888041b0bda3557c5d43724b41",
+  "dappHub": "",
+  "upgradeCap": "0x5dfefb824b17b027446bfb6b5b2b1a38a80e5230ab3849663eebcb3359535f1e",
+  "version": 1,
+  "components": {
+    "counter0": {},
+    "counter1": "u32"
   },
-  "upgradeCap": "0xe716d5fe096b2a8bbcee2b25b725fcd9d1512bfbfcc40df81103e94a9e890f69",
-  "version": 1
+  "resources": {
+    "counter2": {
+      "fields": {
+        "value": "u32"
+      }
+    }
+  }
 }

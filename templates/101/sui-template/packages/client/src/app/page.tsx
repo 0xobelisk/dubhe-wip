@@ -187,25 +187,38 @@ export default function Home() {
   const queryCounterValueWithGraphQL = async () => {
     setGraphqlLoading(true);
     try {
-      console.log('🔍 Querying counter value with GraphQL...');
+      const currentAddress = address;
+      console.log(`🔍 Querying counter value with GraphQL for address: ${currentAddress}`);
 
-      // Query counter1 component (contains value field)
-      const result = await graphqlClient.getAllTables('counter1', {
-        first: 1,
-        orderBy: [{ field: 'createdAt', direction: 'DESC' }]
+      if (!currentAddress) {
+        console.log('⚠️ No address available, setting default value 0');
+        setGraphqlValue(0);
+        return;
+      }
+
+      // Query counter1 component by specific address
+      const result = await graphqlClient.getTableByCondition('counter1', {
+        entityId: currentAddress
       });
 
-      if (result.edges.length > 0) {
-        const counterData = result.edges[0].node as any;
-        console.log('📊 Counter data:', counterData);
-        setGraphqlValue(counterData.value || 0);
+      if (result) {
+        console.log('📊 Counter data:', result);
+
+        const counterValue = result.value || 0;
+        setGraphqlValue(counterValue);
+        setValue(counterValue);
+        console.log(
+          `✅ GraphQL counter value set to: ${counterValue} for address: ${currentAddress}`
+        );
       } else {
         console.log('📊 No counter data found, setting default value 0');
         setGraphqlValue(0);
+        setValue(0);
       }
     } catch (error) {
       console.error('❌ GraphQL query failed:', error);
       setGraphqlValue(0);
+      setValue(0);
     } finally {
       setGraphqlLoading(false);
     }
@@ -217,22 +230,30 @@ export default function Home() {
   const queryCounterValueWithECS = async () => {
     setEcsLoading(true);
     try {
-      console.log('🎮 Querying counter value with ECS World...');
+      const currentAddress = address;
+      console.log(`🎮 Querying counter value with ECS World for address: ${currentAddress}`);
 
       // Get entities with counter1 component
-      if (address) {
-        console.log('address', address);
-        // Get counter1 component data from first entity
-        const counterComponent = (await ecsWorld.getComponent(address, 'counter1')) as any;
+      if (currentAddress) {
+        console.log('🔍 Querying address:', currentAddress);
+        // Get counter1 component data from current address
+        const counterComponent = (await ecsWorld.getComponent(currentAddress, 'counter1')) as any;
         console.log('📊 Counter component data:', counterComponent);
-        setEcsValue(counterComponent?.value || 0);
+
+        const counterValue = counterComponent?.value || 0;
+        setEcsValue(counterValue);
+        setValue(counterValue);
+
+        console.log(`✅ ECS counter value set to: ${counterValue} for address: ${currentAddress}`);
       } else {
-        console.log('📊 No counter1 component found, setting default value 0');
+        console.log('⚠️ No address available, setting default value 0');
         setEcsValue(0);
+        setValue(0);
       }
     } catch (error) {
       console.error('❌ ECS query failed:', error);
       setEcsValue(0);
+      setValue(0);
     } finally {
       setEcsLoading(false);
     }
@@ -282,21 +303,51 @@ export default function Home() {
    */
   const subscribeToCounterWithGraphQL = () => {
     try {
-      console.log('📡 Starting GraphQL subscription for counter changes...');
+      const currentAddress = address;
+      console.log(
+        `📡 Starting GraphQL subscription for counter changes for address: ${currentAddress}`
+      );
+
+      if (!currentAddress) {
+        console.warn('⚠️ No address available, skipping GraphQL subscription');
+        return null;
+      }
 
       const observable = graphqlClient.subscribeToTableChanges('counter1', {
         onData: (data: any) => {
           console.log('📢 GraphQL received counter update:', data);
+          console.log(`📢 Current address: ${currentAddress}`);
 
           const nodes = data?.listen?.query?.counter1s?.nodes;
           console.log('nodes:', nodes);
           if (nodes && Array.isArray(nodes) && nodes.length > 0) {
-            const latestCounter = nodes[0];
-            if (latestCounter?.value !== undefined) {
-              setGraphqlValue(latestCounter.value);
-              toast('GraphQL Real-time Update', {
-                description: `New value: ${latestCounter.value}`
-              });
+            // Find data matching the current address
+            const currentAddressCounter = nodes.find(
+              (node: any) => node.id === currentAddress || node.entity_id === currentAddress
+            );
+
+            if (currentAddressCounter) {
+              console.log(`📢 Found counter data for current address:`, currentAddressCounter);
+              if (currentAddressCounter?.value !== undefined) {
+                setGraphqlValue(currentAddressCounter.value);
+                setValue(currentAddressCounter.value);
+                toast('GraphQL Real-time Update', {
+                  description: `New value: ${currentAddressCounter.value} (Address: ${currentAddress.slice(0, 6)}...)`
+                });
+              }
+            } else {
+              console.log(`📋 No counter data found for current address: ${currentAddress}`);
+              // If no data found for current address, might be first time or data not synced yet
+              // Can choose to use latest data as fallback
+              const latestCounter = nodes[0];
+              if (latestCounter?.value !== undefined) {
+                console.log(`📢 Using latest counter data as fallback:`, latestCounter);
+                setGraphqlValue(latestCounter.value);
+                setValue(latestCounter.value);
+                toast('GraphQL Real-time Update', {
+                  description: `New value: ${latestCounter.value}`
+                });
+              }
             }
           }
         },
@@ -323,41 +374,63 @@ export default function Home() {
    */
   const subscribeToCounterWithECS = () => {
     try {
-      console.log('🎮 Starting ECS subscription for counter1 component changes...');
+      const currentAddress = address;
+      console.log(
+        `🎮 Starting ECS subscription for counter1 component changes for address: ${currentAddress}`
+      );
 
-      const subscription = ecsWorld.onComponentChanged<any>('counter1', {}).subscribe({
-        next: (result: any) => {
-          if (result) {
-            console.log(
-              `📢 [${new Date().toLocaleTimeString()}] counter1 component changed for entity ${result.entityId}:`
-            );
-            console.log(`  - Change type: ${result.changeType}`);
-            console.log(`  - Component data:`, result.data);
+      if (!currentAddress) {
+        console.warn('⚠️ No address available, skipping ECS subscription');
+        return null;
+      }
 
-            const componentData = result.data as any;
-            if (componentData?.value !== undefined) {
-              setEcsValue(componentData.value);
-              toast('ECS Real-time Update', {
-                description: `New value: ${componentData.value}`
-              });
+      const subscription = ecsWorld
+        .onComponentChanged<any>('counter1', {
+          filter: {
+            entityId: currentAddress
+          }
+        })
+        .subscribe({
+          next: (result: any) => {
+            if (result) {
+              console.log(
+                `📢 [${new Date().toLocaleTimeString()}] counter1 component changed for entity ${result.entityId}:`
+              );
+              console.log(`  - Change type: ${result.changeType}`);
+              console.log(`  - Component data:`, result.data);
+              console.log(`  - Current address: ${currentAddress}`);
+              console.log(`  - Entity ID: ${result.entityId}`);
+
+              // Only handle updates for current address
+              if (result.entityId === currentAddress) {
+                const componentData = result.data as any;
+                if (componentData?.value !== undefined) {
+                  setEcsValue(componentData.value);
+                  setValue(componentData.value);
+                  toast('ECS Real-time Update', {
+                    description: `New value: ${componentData.value} (Address: ${currentAddress.slice(0, 6)}...)`
+                  });
+                }
+              } else {
+                console.log(`📋 Ignoring update for different entity: ${result.entityId}`);
+              }
             }
-          }
 
-          if (result.error) {
-            console.error('❌ Subscription error:', result.error);
-          }
+            if (result.error) {
+              console.error('❌ Subscription error:', result.error);
+            }
 
-          if (result.loading) {
-            console.log('⏳ Data loading...');
+            if (result.loading) {
+              console.log('⏳ Data loading...');
+            }
+          },
+          error: (error: any) => {
+            console.error('❌ ECS subscription failed:', error);
+          },
+          complete: () => {
+            console.log('✅ ECS subscription completed');
           }
-        },
-        error: (error: any) => {
-          console.error('❌ ECS subscription failed:', error);
-        },
-        complete: () => {
-          console.log('✅ ECS subscription completed');
-        }
-      });
+        });
 
       return subscription;
     } catch (error) {
@@ -366,9 +439,35 @@ export default function Home() {
     }
   };
 
+  // Handle state reset when address changes
   useEffect(() => {
-    const initializeAndSubscribe = async () => {
-      await initializeECS();
+    if (address) {
+      console.log(`🏠 Address initialized/changed: ${address}`);
+
+      // Reset all state values
+      console.log('🔄 Resetting states for address...');
+      setValue(0);
+      setEcsValue(0);
+      setGraphqlValue(0);
+    } else {
+      console.log('🏠 No address available');
+
+      // Clear all states
+      console.log('🧹 Clearing states for no address...');
+      setValue(0);
+      setEcsValue(0);
+      setGraphqlValue(0);
+    }
+  }, [address]);
+
+  // Initialize ECS useEffect
+  useEffect(() => {
+    const initializeAndLoadData = async () => {
+      if (!ecsInitialized) {
+        await initializeECS();
+      }
+
+      // Load data
       await queryCounterValueWithECS();
       await queryCounterValueWithGraphQL();
 
@@ -379,34 +478,52 @@ export default function Home() {
       if (selectedTable) {
         await queryTableData(selectedTable);
       }
+    };
 
-      let graphqlSubscription: any = null;
-      let ecsSubscription: any = null;
+    initializeAndLoadData();
+  }, [ecsInitialized, address, selectedComponent, selectedTable]);
 
-      if (ecsInitialized) {
-        ecsSubscription = subscribeToCounterWithECS();
-      }
+  // Manage subscriptions useEffect, separated for better control
+  useEffect(() => {
+    if (!ecsInitialized) return;
 
+    console.log(`🔄 Setting up subscriptions for address: ${address}`);
+
+    let graphqlSubscription: any = null;
+    let ecsSubscription: any = null;
+
+    // Create subscriptions
+    const setupSubscriptions = () => {
+      // Create ECS subscription
+      ecsSubscription = subscribeToCounterWithECS();
+
+      // Create GraphQL subscription
       graphqlSubscription = subscribeToCounterWithGraphQL();
 
-      return () => {
-        if (ecsSubscription) {
-          ecsSubscription.unsubscribe();
-        }
-        if (graphqlSubscription) {
-          graphqlSubscription.unsubscribe();
-        }
-      };
+      console.log('✅ Subscriptions created successfully');
     };
 
-    const cleanup = initializeAndSubscribe();
+    setupSubscriptions();
 
+    // Cleanup function
     return () => {
-      cleanup.then((cleanupFn) => {
-        if (cleanupFn) cleanupFn();
-      });
+      console.log(`🧹 Cleaning up subscriptions for address: ${address}`);
+
+      if (ecsSubscription) {
+        console.log('🧹 Unsubscribing ECS subscription');
+        ecsSubscription.unsubscribe();
+        ecsSubscription = null;
+      }
+
+      if (graphqlSubscription) {
+        console.log('🧹 Unsubscribing GraphQL subscription');
+        graphqlSubscription.unsubscribe();
+        graphqlSubscription = null;
+      }
+
+      console.log('✅ Subscriptions cleaned up');
     };
-  }, [ecsInitialized]);
+  }, [ecsInitialized, address]); // Important: add address as dependency
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-8">
@@ -418,6 +535,13 @@ export default function Home() {
             Network: {network} | ECS Status:{' '}
             {ecsInitialized ? '✅ Initialized' : '⏳ Initializing...'}
           </p>
+          {address && (
+            <div className="mt-2 inline-block px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+              <span className="text-sm font-medium text-gray-700">
+                🏠 Address: {address.slice(0, 6)}...{address.slice(-4)}
+              </span>
+            </div>
+          )}
           {ecsInitialized && (
             <div className="mt-4 flex justify-center gap-4 text-sm text-gray-500">
               <span>📋 Components: {availableComponents.length}</span>
@@ -713,9 +837,13 @@ export default function Home() {
 
         {/* Info Footer */}
         <div className="mt-8 bg-white rounded-xl shadow-md p-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 mb-2">
             💡 After executing transactions, both clients' real-time subscriptions will
             automatically update to display the latest data
+          </p>
+          <p className="text-xs text-gray-500">
+            🔄 Subscriptions are automatically managed - they will be recreated when the page
+            refreshes or address changes, ensuring clean state management
           </p>
         </div>
       </div>
