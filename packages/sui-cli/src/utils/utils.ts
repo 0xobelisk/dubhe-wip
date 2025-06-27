@@ -440,7 +440,8 @@ export function generateConfigJson(config: DubheConfig): string {
             { entity_id: 'address' },
             { value: component }
           ],
-          keys: ['entity_id']
+          keys: ['entity_id'],
+          offchain: false
         }
       };
     }
@@ -451,13 +452,15 @@ export function generateConfigJson(config: DubheConfig): string {
           fields: [
             { entity_id: 'address' }
           ],
-          keys: ['entity_id']
+          keys: ['entity_id'],
+          offchain: false
         }
       };
     }
 
     const fields = (component as any).fields || {};
     const keys = (component as any).keys || ['entity_id'];
+    const offchain = (component as any).offchain ?? false;
 
     // ensure entity_id field exists
     if (!fields.entity_id && keys.includes('entity_id')) {
@@ -469,7 +472,8 @@ export function generateConfigJson(config: DubheConfig): string {
         fields: Object.entries(fields).map(([fieldName, fieldType]) => ({
           [fieldName]: fieldType
         })),
-        keys: keys
+        keys: keys,
+        offchain: offchain
       }
     };
   });
@@ -481,7 +485,8 @@ export function generateConfigJson(config: DubheConfig): string {
           fields: [
             { value: resource }
           ],
-          keys: []
+          keys: [],
+          offchain: false
         }
       };
     }
@@ -490,20 +495,23 @@ export function generateConfigJson(config: DubheConfig): string {
       return {
         [name]: {
           fields: [],
-          keys: []
+          keys: [],
+          offchain: false
         }
       };
     }
 
     const fields = (resource as any).fields || {};
     const keys = (resource as any).keys || [];
+    const offchain = (resource as any).offchain ?? false;
 
     return {
       [name]: {
         fields: Object.entries(fields).map(([fieldName, fieldType]) => ({
           [fieldName]: fieldType
         })),
-        keys: keys
+        keys: keys,
+        offchain: offchain
       }
     };
   });
