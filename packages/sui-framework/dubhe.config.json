@@ -1,0 +1,266 @@
+{
+  "components": [],
+  "resources": [
+    {
+      "dubhe_asset_id": {
+        "fields": [
+          {
+            "value": "address"
+          }
+        ],
+        "keys": []
+      }
+    },
+    {
+      "dubhe_config": {
+        "fields": [
+          {
+            "next_asset_id": "u256"
+          },
+          {
+            "swap_fee": "u256"
+          },
+          {
+            "fee_to": "address"
+          },
+          {
+            "max_swap_path_len": "u64"
+          },
+          {
+            "admin": "address"
+          }
+        ],
+        "keys": []
+      }
+    },
+    {
+      "asset_metadata": {
+        "fields": [
+          {
+            "asset_id": "address"
+          },
+          {
+            "name": "vector<u8>"
+          },
+          {
+            "symbol": "vector<u8>"
+          },
+          {
+            "description": "vector<u8>"
+          },
+          {
+            "decimals": "u8"
+          },
+          {
+            "icon_url": "vector<u8>"
+          },
+          {
+            "owner": "address"
+          },
+          {
+            "supply": "u256"
+          },
+          {
+            "accounts": "u256"
+          },
+          {
+            "status": "AssetStatus"
+          },
+          {
+            "is_mintable": "bool"
+          },
+          {
+            "is_burnable": "bool"
+          },
+          {
+            "is_freezable": "bool"
+          },
+          {
+            "asset_type": "AssetType"
+          }
+        ],
+        "keys": [
+          "asset_id"
+        ]
+      }
+    },
+    {
+      "asset_account": {
+        "fields": [
+          {
+            "asset_id": "address"
+          },
+          {
+            "account": "address"
+          },
+          {
+            "balance": "u256"
+          },
+          {
+            "status": "AccountStatus"
+          }
+        ],
+        "keys": [
+          "asset_id",
+          "account"
+        ]
+      }
+    },
+    {
+      "asset_pools": {
+        "fields": [
+          {
+            "asset0": "address"
+          },
+          {
+            "asset1": "address"
+          },
+          {
+            "pool_address": "address"
+          },
+          {
+            "lp_asset": "address"
+          },
+          {
+            "reserve0": "u128"
+          },
+          {
+            "reserve1": "u128"
+          },
+          {
+            "k_last": "u256"
+          }
+        ],
+        "keys": [
+          "asset0",
+          "asset1"
+        ]
+      }
+    },
+    {
+      "bridge_config": {
+        "fields": [
+          {
+            "chain": "vector<u8>"
+          },
+          {
+            "min_amount": "u256"
+          },
+          {
+            "fee": "u256"
+          },
+          {
+            "opened": "bool"
+          }
+        ],
+        "keys": [
+          "chain"
+        ]
+      }
+    },
+    {
+      "bridge_withdraw": {
+        "fields": [
+          {
+            "from": "address"
+          },
+          {
+            "to": "address"
+          },
+          {
+            "to_chain": "vector<u8>"
+          },
+          {
+            "amount": "u256"
+          },
+          {
+            "fee": "u256"
+          }
+        ],
+        "keys": []
+      }
+    },
+    {
+      "bridge_deposit": {
+        "fields": [
+          {
+            "from": "address"
+          },
+          {
+            "to": "address"
+          },
+          {
+            "from_chain": "vector<u8>"
+          },
+          {
+            "amount": "u256"
+          }
+        ],
+        "keys": []
+      }
+    },
+    {
+      "wrapper_assets": {
+        "fields": [
+          {
+            "coin_type": "vector<u8>"
+          },
+          {
+            "asset_id": "address"
+          }
+        ],
+        "keys": [
+          "coin_type"
+        ]
+      }
+    }
+  ],
+  "enums": [
+    {
+      "AccountStatus": {
+        "fields": [
+          {
+            "0": "Blocked"
+          },
+          {
+            "1": "Frozen"
+          },
+          {
+            "2": "Liquid"
+          }
+        ]
+      }
+    },
+    {
+      "AssetStatus": {
+        "fields": [
+          {
+            "0": "Frozen"
+          },
+          {
+            "1": "Liquid"
+          }
+        ]
+      }
+    },
+    {
+      "AssetType": {
+        "fields": [
+          {
+            "0": "Lp"
+          },
+          {
+            "1": "Package"
+          },
+          {
+            "2": "Private"
+          },
+          {
+            "3": "Wrapped"
+          }
+        ]
+      }
+    }
+  ],
+  "package_id": "0x4edf6a78f101645ad7bd4c713a29ddbe6c651673fde083fc2d45cd58e6e05b2b"
+}

@@ -1,20 +1,26 @@
 {
   "projectName": "dubhe",
   "network": "localnet",
-  "packageId": "0x2a031f7a4a34b6c8a9c627d999ef69d0692b029ce75587efbe6dd88d0a2a1a1a",
-  "dappHub": "0xe61c9a07c60b8827c99d203008f8570965d3b49b8756feaac4bb7e55e7e1f0cb",
-  "components": {
-    "config": {
+  "startCheckpoint": "0",
+  "packageId": "0x4edf6a78f101645ad7bd4c713a29ddbe6c651673fde083fc2d45cd58e6e05b2b",
+  "dappHub": "0x3d151e3dba8dc071ca9e583df62123ddfad8d8ba433da2bf8172b7c7ec8366b5",
+  "upgradeCap": "0xc240d893bab18e2858880425198962984275b4df8eb5b2b26c5cd214e8ff6fb7",
+  "version": 1,
+  "components": {},
+  "resources": {
+    "dubhe_asset_id": "address",
+    "dubhe_config": {
       "fields": {
         "next_asset_id": "u256",
         "swap_fee": "u256",
         "fee_to": "address",
-        "max_swap_path_len": "u64"
-      },
-      "keys": []
+        "max_swap_path_len": "u64",
+        "admin": "address"
+      }
     },
     "asset_metadata": {
       "fields": {
+        "asset_id": "address",
         "name": "vector<u8>",
         "symbol": "vector<u8>",
         "description": "vector<u8>",
@@ -28,7 +34,10 @@
         "is_burnable": "bool",
         "is_freezable": "bool",
         "asset_type": "AssetType"
-      }
+      },
+      "keys": [
+        "asset_id"
+      ]
     },
     "asset_account": {
       "fields": {
@@ -42,7 +51,7 @@
         "account"
       ]
     },
-    "pools": {
+    "asset_pools": {
       "fields": {
         "asset0": "address",
         "asset1": "address",
@@ -57,7 +66,7 @@
         "asset1"
       ]
     },
-    "bridge": {
+    "bridge_config": {
       "fields": {
         "chain": "vector<u8>",
         "min_amount": "u256",
@@ -67,6 +76,25 @@
       "keys": [
         "chain"
       ]
+    },
+    "bridge_withdraw": {
+      "offchain": true,
+      "fields": {
+        "from": "address",
+        "to": "address",
+        "to_chain": "vector<u8>",
+        "amount": "u256",
+        "fee": "u256"
+      }
+    },
+    "bridge_deposit": {
+      "offchain": true,
+      "fields": {
+        "from": "address",
+        "to": "address",
+        "from_chain": "vector<u8>",
+        "amount": "u256"
+      }
     },
     "wrapper_assets": {
       "fields": {
@@ -78,6 +106,21 @@
       ]
     }
   },
-  "upgradeCap": "0x44e68b20baa93a318c5eac6b2fc2e8bddd43d97942b547b42fbcc26a1928c422",
-  "version": 1
+  "enums": {
+    "AccountStatus": [
+      "Liquid",
+      "Frozen",
+      "Blocked"
+    ],
+    "AssetStatus": [
+      "Liquid",
+      "Frozen"
+    ],
+    "AssetType": [
+      "Lp",
+      "Wrapped",
+      "Private",
+      "Package"
+    ]
+  }
 }
