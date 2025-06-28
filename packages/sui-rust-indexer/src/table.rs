@@ -146,6 +146,8 @@ impl TableMetadata {
         // Always add created_at and updated_at fields
         fields.push("created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
         fields.push("updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
+        fields.push("last_updated_checkpoint BIGINT DEFAULT 0".to_string());
+        fields.push("is_deleted BOOLEAN DEFAULT FALSE".to_string());
 
         // Add primary key constraint only if there are key fields
         if self.fields.iter().any(|field| field.is_key) {
@@ -186,19 +188,6 @@ impl TableMetadata {
                 self.name, field.field_name, field.field_type, field.field_index, field.is_key
             ));
         }
-
-        // Add timestamp fields to metadata
-        sql_statements.push(format!(
-            "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) \
-            VALUES ('{}', 'created_at', 'timestamptz', NULL, false)",
-            self.name
-        ));
-
-        sql_statements.push(format!(
-            "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) \
-            VALUES ('{}', 'updated_at', 'timestamptz', NULL, false)",
-            self.name
-        ));
 
         sql_statements
     }
