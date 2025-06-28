@@ -12,12 +12,8 @@ use dotenvy::dotenv;
 pub type PgConnectionPool = diesel_async::pooled_connection::bb8::Pool<diesel_async::AsyncPgConnection>;
 pub type PgPoolConnection<'a> = diesel_async::pooled_connection::bb8::PooledConnection<'a, AsyncPgConnection>;
 
-pub async fn get_connection_pool(db_url: Option<String>) -> PgConnectionPool {
-    dotenv().ok();
-
+pub async fn get_connection_pool() -> PgConnectionPool {
     let database_url = if let Ok(url) = env::var("DATABASE_URL") {
-        url
-    } else if let Some(url) = db_url {
         url
     } else {
         "postgres://postgres:postgres@localhost:5432/postgres".to_string()

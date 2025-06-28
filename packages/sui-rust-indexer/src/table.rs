@@ -42,7 +42,7 @@ pub struct TableMetadata {
 }
 
 impl TableMetadata {
-    pub fn from_json(json: Value) -> Result<(Option<String>, Vec<TableMetadata>)> {
+    pub fn from_json(json: Value) -> Result<(String, Vec<TableMetadata>)> {
         let dubhe_config_json: DubheConfigJson = serde_json::from_value(json)?;
         let mut final_tables = Vec::new();
         
@@ -122,7 +122,13 @@ impl TableMetadata {
             }
         }
 
-        Ok((dubhe_config_json.package_id, final_tables))
+        if dubhe_config_json.package_id.is_none() {
+            return Err(anyhow::anyhow!("No package id found in config file"));
+        }
+
+        let package_id = dubhe_config_json.package_id.unwrap();
+
+        Ok((package_id, final_tables))
     }
 
     pub fn generate_create_table_sql(&self) -> String {

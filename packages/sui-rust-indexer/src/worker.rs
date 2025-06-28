@@ -33,8 +33,9 @@ pub struct TableField {
 
 pub struct DubheIndexerWorker {
     pub pg_pool: PgConnectionPool,
-    pub package_id: Option<String>,
+    pub package_id: String,
     pub tables: Vec<TableMetadata>,
+    pub with_graphql: bool,
 }
 
 impl DubheIndexerWorker {
@@ -112,17 +113,8 @@ impl DubheIndexerWorker {
         Ok(())
     }
 
-    pub async fn create_tables_from_config(&mut self, config_path: &str) -> Result<()> {
-        let content = fs::read_to_string(config_path)?;
-        let json: Value = serde_json::from_str(&content)?;
-        
-        let (package_id, tables) = TableMetadata::from_json(json)?;
-
-        if self.package_id.is_none() {
-            self.package_id = package_id;
-        }
-        
-        println!("Tables: {:?}", tables);
+    pub async fn create_db_tables_from_config(&mut self) -> Result<()> {
+        println!("Tables: {:?}", self.tables);
         let mut conn = self.pg_pool.get().await?;
 
         // Create table_metadata table first
@@ -155,7 +147,7 @@ impl DubheIndexerWorker {
         // 设置简化的日志系统（可选）
         setup_simple_logging(&mut conn).await?;
         
-        for table in &tables {
+        for table in &self.tables {
             println!("Creating table: {:?}", table);
             
             // Create store table
@@ -180,13 +172,11 @@ impl DubheIndexerWorker {
             create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
             println!("✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)", table_name_with_prefix);
         }
-
-        self.tables = tables;
         
         Ok(())
     }
 
-    pub async fn create_reader_progress_table(&self, start_checkpoint: u64, end_checkpoint: u64, worker_pool_number: u32) -> Result<()> {
+    pub async fn create_reader_progress_db_table(&self, start_checkpoint: u64, latest_checkpoint: u64, worker_pool_number: u32) -> Result<()> {
         let mut conn = self.pg_pool.get().await?;
         // Create reader_progress table first
         diesel::sql_query(
@@ -210,38 +200,38 @@ impl DubheIndexerWorker {
         .bind::<diesel::sql_types::Text, _>("latest_reader_progress")
         .bind::<diesel::sql_types::Bigint, _>(0 as i64)
         .bind::<diesel::sql_types::Bigint, _>(0 as i64)
-        .bind::<diesel::sql_types::Bigint, _>(end_checkpoint as i64)
+        .bind::<diesel::sql_types::Bigint, _>(latest_checkpoint as i64)
         .execute(&mut conn)
         .await?;
 
-        // 计算每个 worker 的检查点范围
-        let total_checkpoints = end_checkpoint - start_checkpoint + 1;
-        let checkpoints_per_worker = total_checkpoints / worker_pool_number as u64;
-        let remainder = total_checkpoints % worker_pool_number as u64;
+        // TODO: Split checkpoints into worker_pool_number parts
+        // let total_checkpoints = latest_checkpoint - start_checkpoint + 1;
+        // let checkpoints_per_worker = total_checkpoints / worker_pool_number as u64;
+        // let remainder = total_checkpoints % worker_pool_number as u64;
 
-        for i in 0..worker_pool_number {
-            let worker_start = start_checkpoint + (i as u64 * checkpoints_per_worker);
-            let worker_end = if i == worker_pool_number - 1 {
-                // 最后一个 worker 处理剩余的检查点
-                end_checkpoint
-            } else {
-                worker_start + checkpoints_per_worker - 1
-            };
+        // for i in 0..worker_pool_number {
+        //     let worker_start = start_checkpoint + (i as u64 * checkpoints_per_worker);
+        //     let worker_end = if i == worker_pool_number - 1 {
+        //         // 最后一个 worker 处理剩余的检查点
+        //         end_checkpoint
+        //     } else {
+        //         worker_start + checkpoints_per_worker - 1
+        //     };
 
-            let progress_name = format!("task_{}", i);
-            diesel::sql_query(
-                "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
-                 VALUES ($1, $2, $3, $4)
-                 ON CONFLICT (progress_name) 
-                 DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
-            )
-            .bind::<diesel::sql_types::Text, _>(progress_name)
-            .bind::<diesel::sql_types::Bigint, _>(worker_start as i64)
-            .bind::<diesel::sql_types::Bigint, _>(worker_end as i64)
-            .bind::<diesel::sql_types::Bigint, _>(worker_start as i64)
-            .execute(&mut conn)
-            .await?;
-        }
+        //     let progress_name = format!("task_{}", i);
+        //     diesel::sql_query(
+        //         "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
+        //          VALUES ($1, $2, $3, $4)
+        //          ON CONFLICT (progress_name) 
+        //          DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
+        //     )
+        //     .bind::<diesel::sql_types::Text, _>(progress_name)
+        //     .bind::<diesel::sql_types::Bigint, _>(worker_start as i64)
+        //     .bind::<diesel::sql_types::Bigint, _>(worker_end as i64)
+        //     .bind::<diesel::sql_types::Bigint, _>(worker_start as i64)
+        //     .execute(&mut conn)
+        //     .await?;
+        // }
         
         Ok(())
     }
@@ -395,9 +385,7 @@ impl Worker for DubheIndexerWorker {
             let maybe_events = &transaction.events;
             if let Some(events) = maybe_events {
                 for event in &events.data {
-                    match &self.package_id { 
-                        Some(package_id) => { 
-                            if event.package_id == ObjectID::from_str(package_id).unwrap() {
+                    if event.package_id == ObjectID::from_str(&self.package_id).unwrap() {
                                 println!("Event: {:?}", event);
                                 println!("================================================");
                                 
@@ -422,15 +410,8 @@ impl Worker for DubheIndexerWorker {
                                 }
                             }
                         }
-                        None => {
-                           return Err(anyhow::anyhow!("Package ID is not set"));
-                        }
                     }
-                    
                 }
-            }
-        }
-
         println!("Set record count: {:?}", set_record_count);
         println!("Set field count: {:?}", set_field_count);
 
