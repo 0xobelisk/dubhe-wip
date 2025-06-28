@@ -15,7 +15,7 @@ use crate::{
     db::PgConnectionPool,
     events::{StorageSetRecord, StoreSetField},
     simple_notify::{create_realtime_trigger, log_data_change, setup_simple_logging},
-    sql::{generate_insert_sql, generate_update_sql},
+    sql::{generate_set_record_sql, generate_set_field_sql},
     table::TableMetadata,
 };
 
@@ -229,28 +229,7 @@ impl DubheIndexerWorker {
         Ok(())
     }
 
-    pub async fn get_table_field_info(
-        &self,
-        table_name: &str,
-    ) -> Result<Vec<(String, String, Option<i32>, bool)>> {
-        let mut conn = self.pg_pool.get().await?;
-        let fields = diesel::sql_query(
-            "SELECT field_name, field_type, field_index, is_key 
-             FROM table_fields 
-             WHERE table_name = $1 
-             ORDER BY is_key DESC, field_index ASC",
-        )
-        .bind::<diesel::sql_types::Text, _>(table_name)
-        .load::<TableField>(&mut conn)
-        .await?;
-
-        Ok(fields
-            .into_iter()
-            .map(|f| (f.field_name, f.field_type, f.field_index, f.is_key))
-            .collect())
-    }
-
-    pub async fn handle_store_set_record(&self, set_record: &StorageSetRecord) -> Result<()> {
+    pub async fn handle_store_set_record(&self, current_checkpoint: u64, set_record: &StorageSetRecord) -> Result<()> {
         let mut conn = self.pg_pool.get().await?;
         let table_name = String::from_utf8_lossy(&set_record.table_id[3..]).to_string();
         println!("Table name: {}", table_name);
@@ -281,7 +260,8 @@ impl DubheIndexerWorker {
         println!("Value values: {:?}", value_values);
 
         // Generate and execute SQL
-        let sql = generate_insert_sql(
+        let sql = generate_set_record_sql(
+            current_checkpoint,
             &table_name,
             &key_fields,
             &value_fields,
@@ -315,7 +295,7 @@ impl DubheIndexerWorker {
         Ok(())
     }
 
-    pub async fn handle_store_set_field(&self, set_field: &StoreSetField) -> Result<()> {
+    pub async fn handle_store_set_field(&self, current_checkpoint: u64, set_field: &StoreSetField) -> Result<()> {
         let mut conn = self.pg_pool.get().await?;
         let table_name = String::from_utf8_lossy(&set_field.table_id[3..]).to_string();
         println!("Table name: {}", table_name);
@@ -354,7 +334,8 @@ impl DubheIndexerWorker {
         let value = value_json.get(&field_name).unwrap();
 
         // Generate and execute SQL
-        let sql = generate_update_sql(
+        let sql = generate_set_field_sql(
+            current_checkpoint,
             &table_name,
             &field_name,
             &field_type,
@@ -394,9 +375,10 @@ impl DubheIndexerWorker {
 impl Worker for DubheIndexerWorker {
     type Result = ();
     async fn process_checkpoint(&self, checkpoint: &CheckpointData) -> Result<()> {
+        let current_checkpoint = checkpoint.checkpoint_summary.sequence_number;
         println!(
-            "Processing checkpoint: {:?}",
-            checkpoint.checkpoint_summary.sequence_number
+            "Processing current_checkpoint: {:?}",
+            current_checkpoint
         );
         let mut set_record_count = 0;
         let mut set_field_count = 0;
@@ -416,7 +398,7 @@ impl Worker for DubheIndexerWorker {
                             println!("Set record: {:?}", set_record);
 
                             // Process StoreSetRecord event
-                            self.handle_store_set_record(&set_record).await?;
+                            self.handle_store_set_record(current_checkpoint, &set_record).await?;
                             set_record_count += 1;
                         }
 
@@ -427,7 +409,7 @@ impl Worker for DubheIndexerWorker {
 
                             println!("Set field: {:?}", set_field);
                             // Process StoreSetField event
-                            self.handle_store_set_field(&set_field).await?;
+                            self.handle_store_set_field(current_checkpoint, &set_field).await?;
                             set_field_count += 1;
                         }
                     }

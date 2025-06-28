@@ -429,7 +429,8 @@ mod tests {
                 { "1": "right"}
               ]
             }
-          ]
+          ],
+          "package_id": "0x1234567890123456789012345678901234567890"
         })
     }
 
@@ -441,7 +442,7 @@ mod tests {
         assert!(result.is_ok());
 
         let (package_id, tables) = result.unwrap();
-        assert_eq!(package_id, None);
+
         assert_eq!(tables.len(), 3);
 
         let table = &tables[0];
@@ -472,40 +473,33 @@ mod tests {
     fn test_generate_create_table_sql() {
         let test_json = get_test_json();
         let (package_id, tables) = TableMetadata::from_json(test_json).unwrap();
-        assert_eq!(package_id, None);
         assert_eq!(tables.len(), 3);
         let table = &tables[0];
         assert_eq!(
-                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter0 (entity_id TEXT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (entity_id))"
+                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter0 (entity_id TEXT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
             );
         assert_eq!(
                 table.generate_insert_table_fields_sql(), vec![
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter0', 'entity_id', 'address', '0', true)",
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter0', 'created_at', 'timestamptz', NULL, false)",
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter0', 'updated_at', 'timestamptz', NULL, false)"
+                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter0', 'entity_id', 'address', '0', true)"
                 ]
             );
         let table = &tables[1];
         assert_eq!(
-                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter1 (entity_id TEXT, value BIGINT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (entity_id))"
+                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter1 (entity_id TEXT, value BIGINT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
             );
         assert_eq!(
                 table.generate_insert_table_fields_sql(), vec![
                     "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter1', 'entity_id', 'address', '0', true)",
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter1', 'value', 'u32', '0', false)",
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter1', 'created_at', 'timestamptz', NULL, false)",
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter1', 'updated_at', 'timestamptz', NULL, false)"
+                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter1', 'value', 'u32', '0', false)"
                 ]
             );
         let table = &tables[2];
         assert_eq!(
-                table.generate_create_table_sql(),  "CREATE TABLE IF NOT EXISTS store_counter2 (value BIGINT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (value))"
+                table.generate_create_table_sql(),  "CREATE TABLE IF NOT EXISTS store_counter2 (value BIGINT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (value))"
             );
         assert_eq!(
                 table.generate_insert_table_fields_sql(), vec![
                     "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter2', 'value', 'u32', '0', false)",
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter2', 'created_at', 'timestamptz', NULL, false)",
-                    "INSERT INTO table_fields (table_name, field_name, field_type, field_index, is_key) VALUES ('counter2', 'updated_at', 'timestamptz', NULL, false)"
                 ]
             );
     }
