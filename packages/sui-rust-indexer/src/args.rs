@@ -1,14 +1,14 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use clap::Parser;
-use sui_sdk::SuiClientBuilder;
 use anyhow::Result;
-use sui_sdk::SuiClient;
 use clap::Args;
+use clap::Parser;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
+use sui_sdk::SuiClient;
+use sui_sdk::SuiClientBuilder;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -46,8 +46,14 @@ impl DubheIndexerArgs {
     pub fn get_local_path_and_store_url(&self) -> Result<(PathBuf, Option<String>)> {
         match self.network.as_str() {
             "localnet" => Ok((PathBuf::from("./chk"), None)),
-            "testnet" => Ok((tempfile::tempdir()?.into_path(), Some("https://checkpoints.testnet.sui.io".to_string()))),
-            "mainnet" => Ok((tempfile::tempdir()?.into_path(), Some("https://checkpoints.mainnet.sui.io".to_string()))),
+            "testnet" => Ok((
+                tempfile::tempdir()?.into_path(),
+                Some("https://checkpoints.testnet.sui.io".to_string()),
+            )),
+            "mainnet" => Ok((
+                tempfile::tempdir()?.into_path(),
+                Some("https://checkpoints.mainnet.sui.io".to_string()),
+            )),
             _ => Err(anyhow::anyhow!("Invalid network: {}", self.network)),
         }
     }

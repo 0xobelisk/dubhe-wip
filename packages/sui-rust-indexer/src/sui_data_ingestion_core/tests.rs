@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::sui_data_ingestion_core::progress_store::ExecutorProgress;
-use crate::sui_data_ingestion_core::{DataIngestionMetrics, FileProgressStore, IndexerExecutor, WorkerPool};
+use crate::sui_data_ingestion_core::{
+    DataIngestionMetrics, FileProgressStore, IndexerExecutor, WorkerPool,
+};
 use crate::sui_data_ingestion_core::{ReaderOptions, Worker};
 use anyhow::Result;
 use async_trait::async_trait;
