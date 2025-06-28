@@ -45,7 +45,7 @@ impl DubheIndexerArgs {
 
     pub fn get_local_path_and_store_url(&self) -> Result<(PathBuf, Option<String>)> {
         match self.network.as_str() {
-            "localnet" => Ok((PathBuf::from("./chk"), None)),
+            "localnet" => Ok((PathBuf::from("./.chk"), None)),
             "testnet" => Ok((
                 tempfile::tempdir()?.into_path(),
                 Some("https://checkpoints.testnet.sui.io".to_string()),

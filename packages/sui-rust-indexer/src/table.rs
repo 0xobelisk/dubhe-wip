@@ -333,7 +333,9 @@ impl TableMetadata {
                     &field.field_type.as_bytes().to_vec(),
                     &keys[key_index],
                 );
-                result[field.field_name.clone()] = field_json;
+                if let Some((key, value)) = field_json.as_object().unwrap().into_iter().next() {
+                    result[key] = value.clone();
+                }
                 key_index += 1;
             }
         });
@@ -350,7 +352,9 @@ impl TableMetadata {
                     &field.field_type.as_bytes().to_vec(),
                     &values[value_index],
                 );
-                result[field.field_name.clone()] = field_json;
+                if let Some((key, value)) = field_json.as_object().unwrap().into_iter().next() {
+                    result[key] = value.clone();
+                }
                 value_index += 1;
             }
         });

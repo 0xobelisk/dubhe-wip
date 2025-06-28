@@ -59,13 +59,13 @@ pub fn generate_set_record_sql(
     let mut fields = Vec::new();
     let mut values = Vec::new();
 
-    // Add key fields
+    // Add key fields if present
     for (field_name, field_type) in key_fields {
         fields.push(field_name.clone());
         values.push(format_sql_value(&key_values[field_name], field_type));
     }
 
-    // Add value fields (including timestamp fields from config.rs)
+    // Add value fields
     for (field_name, field_type) in value_fields {
         fields.push(field_name.clone());
         values.push(format_sql_value(&value_values[field_name], field_type));
@@ -73,21 +73,6 @@ pub fn generate_set_record_sql(
 
     fields.push("last_updated_checkpoint".to_string());
     values.push(current_checkpoint.to_string());
-
-    // Generate conflict columns (primary key columns)
-    let conflict_columns = if !key_fields.is_empty() {
-        // Use key_fields as primary key if present
-        key_fields
-            .iter()
-            .map(|(field_name, _)| field_name.clone())
-            .collect::<Vec<String>>()
-    } else {
-        // Use all value_fields as primary key if key_fields is empty
-        value_fields
-            .iter()
-            .map(|(field_name, _)| field_name.clone())
-            .collect::<Vec<String>>()
-    };
 
     // Generate update clauses for value fields
     let mut update_clauses = Vec::new();
@@ -108,13 +93,38 @@ pub fn generate_set_record_sql(
         values.join(", ")
     );
 
-    // Add ON CONFLICT clause
-    format!(
-        "{} ON CONFLICT ({}) DO UPDATE SET {}",
-        base_sql,
-        conflict_columns.join(", "),
-        update_clauses.join(", ")
-    )
+    if !key_fields.is_empty() {
+        // If key_fields exist, use them for conflict resolution
+        let conflict_columns: Vec<String> = key_fields
+            .iter()
+            .map(|(field_name, _)| field_name.clone())
+            .collect();
+
+        format!(
+            "{} ON CONFLICT ({}) DO UPDATE SET {}",
+            base_sql,
+            conflict_columns.join(", "),
+            update_clauses.join(", ")
+        )
+    } else {
+        // If no key_fields, use a simple WHERE EXISTS condition for update
+        format!(
+            "WITH upsert AS (
+                UPDATE store_{} SET {} 
+                WHERE EXISTS (SELECT 1 FROM store_{})
+                RETURNING *
+            )
+            INSERT INTO store_{} ({})
+            SELECT {}
+            WHERE NOT EXISTS (SELECT 1 FROM upsert)",
+            table_name,
+            update_clauses.join(", "),
+            table_name,
+            table_name,
+            fields.join(", "),
+            values.join(", ")
+        )
+    }
 }
 
 pub fn generate_set_field_sql(
@@ -163,7 +173,7 @@ mod tests {
         let sql = generate_set_record_sql(1024, table_name, &key_fields, &value_fields, &key_values, &value_values);
         assert_eq!(sql, "INSERT INTO store_test_table (id, name, value, last_updated_checkpoint) VALUES (1, '0x1234567890123456789012345678901234567890', 100, 1024) ON CONFLICT (id, name) DO UPDATE SET value = 100, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 1024");
 
-        // Test case 2: empty key_fields (using value_fields as primary key)
+        // Test case 2: empty key_fields (single row table)
         let empty_key_fields: Vec<(String, String)> = vec![];
         let value_fields = vec![
             ("field1".to_string(), "u64".to_string()),
@@ -178,7 +188,7 @@ mod tests {
         });
 
         let sql = generate_set_record_sql(2048, table_name, &empty_key_fields, &value_fields, &key_values, &value_values);
-        assert_eq!(sql, "INSERT INTO store_test_table (field1, field2, field3, last_updated_checkpoint) VALUES (100, '0x1234567890123456789012345678901234567890', true, 2048) ON CONFLICT (field1, field2, field3) DO UPDATE SET field1 = 100, field2 = '0x1234567890123456789012345678901234567890', field3 = true, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 2048");
+        assert_eq!(sql, "WITH upsert AS (\n                UPDATE store_test_table SET field1 = 100, field2 = '0x1234567890123456789012345678901234567890', field3 = true, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 2048 \n                WHERE EXISTS (SELECT 1 FROM store_test_table)\n                RETURNING *\n            )\n            INSERT INTO store_test_table (field1, field2, field3, last_updated_checkpoint)\n            SELECT 100, '0x1234567890123456789012345678901234567890', true, 2048\n            WHERE NOT EXISTS (SELECT 1 FROM upsert)");
     }
 
     #[test]
