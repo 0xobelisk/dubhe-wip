@@ -24,14 +24,14 @@ pub struct TableField {
     pub field_name: String,
     pub field_type: String,
     pub field_index: u8,
-    pub is_key: bool,
 }
 
 #[derive(Debug)]
 pub struct TableMetadata {
     pub name: String,
     pub table_type: String,
-    pub fields: Vec<TableField>,
+    pub key_fields: Vec<TableField>,
+    pub value_fields: Vec<TableField>,
     pub offchain: bool,
 }
 
@@ -45,7 +45,8 @@ impl TableMetadata {
         // handle components
         for tables in dubhe_config_json.components {
             for (table_name, table_info) in tables {
-                let mut fields = Vec::new();
+                let mut key_fields = Vec::new();
+                let mut value_fields = Vec::new();
                 let offchain = table_info.offchain;
 
                 for field in table_info.fields {
@@ -53,19 +54,17 @@ impl TableMetadata {
                     let mut value_field_index = 0;
                     field.into_iter().for_each(|(field_name, field_type)| {
                         if table_info.keys.contains(&field_name) {
-                            fields.push(TableField {
+                            key_fields.push(TableField {
                                 field_name,
                                 field_type,
                                 field_index: key_field_index,
-                                is_key: true,
                             });
                             key_field_index += 1;
                         } else {
-                            fields.push(TableField {
+                            value_fields.push(TableField {
                                 field_name,
                                 field_type,
                                 field_index: value_field_index,
-                                is_key: false,
                             });
                             value_field_index += 1;
                         }
@@ -75,7 +74,8 @@ impl TableMetadata {
                 final_tables.push(TableMetadata {
                     name: table_name,
                     table_type: "component".to_string(),
-                    fields,
+                    key_fields,
+                    value_fields,
                     offchain,
                 });
             }
@@ -84,26 +84,25 @@ impl TableMetadata {
         // handle resources
         for tables in dubhe_config_json.resources {
             for (table_name, table_info) in tables {
-                let mut fields = Vec::new();
+                let mut key_fields = Vec::new();
+                let mut value_fields = Vec::new();
                 let offchain = table_info.offchain;
                 for (field) in table_info.fields {
                     let mut key_field_index = 0;
                     let mut value_field_index = 0;
                     field.into_iter().for_each(|(field_name, field_type)| {
                         if table_info.keys.contains(&field_name) {
-                            fields.push(TableField {
+                            key_fields.push(TableField {
                                 field_name,
                                 field_type,
                                 field_index: key_field_index,
-                                is_key: true,
                             });
                             key_field_index += 1;
                         } else {
-                            fields.push(TableField {
+                            value_fields.push(TableField {
                                 field_name,
                                 field_type,
                                 field_index: value_field_index,
-                                is_key: false,
                             });
                             value_field_index += 1;
                         }
@@ -112,7 +111,8 @@ impl TableMetadata {
                 final_tables.push(TableMetadata {
                     name: table_name,
                     table_type: "resource".to_string(),
-                    fields,
+                    key_fields,
+                    value_fields,
                     offchain,
                 });
             }

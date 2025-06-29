@@ -26,6 +26,8 @@ async fn main() -> Result<()> {
     // Initialize storage
     let storage = storage::new(&settings).await?;
 
+    storage.create_tables(&tables).await?;
+
     let concurrency = 5;
     let (exit_sender, exit_receiver) = oneshot::channel();
     let metrics = DataIngestionMetrics::new(&Registry::new());

@@ -5,6 +5,7 @@ use crate::error::{Error, Result};
 use tokio::sync::Mutex;
 use std::sync::Arc;
 use serde_json::Value;
+use crate::config::TableMetadata;
 
 pub struct SqliteStorage {
     conn: Arc<Mutex<Connection>>,
@@ -18,47 +19,44 @@ impl SqliteStorage {
         })
     }
 
-    async fn rows_to_json(&self, sql: &str) -> Result<Vec<Value>> {
-        let conn = self.conn.lock().await;
-        let mut stmt = conn.prepare(sql)
-            .map_err(|e| Error::database(e.to_string()))?;
+    pub fn generate_create_table_sql(&self, table: &TableMetadata) -> String {
+        let mut sql = String::new();
+        sql.push_str(&format!("CREATE TABLE IF NOT EXISTS {} (\n", table.name));
         
-        let column_names: Vec<String> = stmt.column_names()
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect();
-            
-        let rows = stmt.query_map([], |row| {
-            let mut map = serde_json::Map::new();
-            for (i, column_name) in column_names.iter().enumerate() {
-                let value: rusqlite::types::Value = row.get(i)
-                    .unwrap_or(rusqlite::types::Value::Null);
-                map.insert(
-                    column_name.clone(),
-                    match value {
-                        rusqlite::types::Value::Null => Value::Null,
-                        rusqlite::types::Value::Integer(i) => Value::Number(i.into()),
-                        rusqlite::types::Value::Real(f) => {
-                            if let Some(num) = serde_json::Number::from_f64(f) {
-                                Value::Number(num)
-                            } else {
-                                Value::Null
-                            }
-                        },
-                        rusqlite::types::Value::Text(s) => Value::String(s),
-                        rusqlite::types::Value::Blob(b) => Value::String(hex::encode(b)),
-                    },
-                );
-            }
-            Ok(Value::Object(map))
-        })
-        .map_err(|e| Error::database(e.to_string()))?;
-
-        let mut result = Vec::new();
-        for row in rows {
-            result.push(row.map_err(|e| Error::database(e.to_string()))?);
+        let mut field_definitions = Vec::new();
+        
+        // Add key fields
+        for field in &table.key_fields {
+            field_definitions.push(format!("    {} {}", field.field_name, field.field_type));
         }
-        Ok(result)
+        
+        // Add value fields
+        for field in &table.value_fields {
+            field_definitions.push(format!("    {} {}", field.field_name, field.field_type));
+        }
+        
+        // Add system fields for tracking
+        field_definitions.push("    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP".to_string());
+        field_definitions.push("    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP".to_string());
+        field_definitions.push("    last_updated_checkpoint BIGINT".to_string());
+        field_definitions.push("    is_deleted BOOLEAN DEFAULT FALSE".to_string());
+        
+        // Join all field definitions
+        sql.push_str(&field_definitions.join(",\n"));
+        
+        // Add primary key if we have key fields
+        if !table.key_fields.is_empty() {
+            sql.push_str(",\n    PRIMARY KEY (");
+            sql.push_str(&table.key_fields
+                .iter()
+                .map(|f| f.field_name.clone())
+                .collect::<Vec<String>>()
+                .join(", "));
+            sql.push(')');
+        }
+        
+        sql.push_str("\n)");
+        sql
     }
 }
 
@@ -71,19 +69,15 @@ impl Storage for SqliteStorage {
         Ok(())
     }
 
-    async fn query(&self, sql: &str) -> Result<Vec<Value>> {
-        self.rows_to_json(sql).await
+    async fn create_tables(&self, tables: &[TableMetadata]) -> Result<()> {
+        for table in tables {
+            println!("{}", self.generate_create_table_sql(table));
+            self.execute(&self.generate_create_table_sql(table)).await?;
+        }
+        Ok(())
     }
 
-    async fn begin_transaction(&self) -> Result<()> {
-        self.execute("BEGIN TRANSACTION").await
-    }
-
-    async fn commit_transaction(&self) -> Result<()> {
-        self.execute("COMMIT TRANSACTION").await
-    }
-
-    async fn rollback_transaction(&self) -> Result<()> {
-        self.execute("ROLLBACK TRANSACTION").await
+    async fn insert(&self, table_name: &str, data: &Value) -> Result<()> {
+        Ok(())
     }
 }
