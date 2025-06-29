@@ -3,6 +3,9 @@ import { DubheConfig } from '@0xobelisk/sui-common';
 export const dubheConfig = {
   name: 'counter',
   description: 'counter contract',
+  enums: {
+      direction: ["left", "right"]
+  },
   components: {
     counter0: {},
     counter1: "u32",

@@ -524,9 +524,7 @@ export function generateConfigJson(config: DubheConfig): string {
     }));
 
     return {
-      [name]: {
-        fields: sortedFields
-      }
+      [name]: sortedFields
     };
   });
 
