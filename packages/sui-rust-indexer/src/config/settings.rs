@@ -40,19 +40,19 @@ pub struct SubscriptionSettings {
 impl Settings {
     pub fn new(args: &Args) -> Result<Self, Error> {
         let config_content = fs::read_to_string(&args.config)
-            .map_err(|e| Error::Config(format!("无法读取配置文件: {}", e)))?;
+            .map_err(|e| Error::Config(format!("Failed to read config file: {}", e)))?;
             
         let mut settings: Settings = if args.config.ends_with(".yaml") || args.config.ends_with(".yml") {
             serde_yaml::from_str(&config_content)
-                .map_err(|e| Error::Config(format!("YAML解析错误: {}", e)))?
+                .map_err(|e| Error::Config(format!("YAML parsing error: {}", e)))?
         } else if args.config.ends_with(".toml") {
             toml::from_str(&config_content)
-                .map_err(|e| Error::Config(format!("TOML解析错误: {}", e)))?
+                .map_err(|e| Error::Config(format!("TOML parsing error: {}", e)))?
         } else {
-            return Err(Error::Config("不支持的配置文件格式".to_string()));
+            return Err(Error::Config("Unsupported config file format".to_string()));
         };
         
-        // 命令行参数覆盖配置文件
+        // Override config file with command line arguments
         if let Some(db_url) = &args.db_url {
             settings.database.url = db_url.clone();
         }

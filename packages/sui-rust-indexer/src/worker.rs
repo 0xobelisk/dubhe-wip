@@ -121,7 +121,7 @@ impl DubheIndexerWorker {
         // for i in 0..worker_pool_number {
         //     let worker_start = start_checkpoint + (i as u64 * checkpoints_per_worker);
         //     let worker_end = if i == worker_pool_number - 1 {
-        //         // 最后一个 worker 处理剩余的检查点
+        //         // Last worker processes remaining checkpoints
         //         end_checkpoint
         //     } else {
         //         worker_start + checkpoints_per_worker - 1

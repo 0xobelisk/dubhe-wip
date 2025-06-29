@@ -19,12 +19,12 @@ impl Server {
     
     pub async fn serve(&self) -> Result<(), Error> {
         let addr = self.settings.grpc.addr.parse()
-            .map_err(|e| Error::Grpc(format!("无效的地址: {}", e)))?;
+            .map_err(|e| Error::Grpc(format!("Invalid address: {}", e)))?;
             
         let listener = TcpListener::bind(&addr).await
-            .map_err(|e| Error::Grpc(format!("绑定地址失败: {}", e)))?;
+            .map_err(|e| Error::Grpc(format!("Failed to bind address: {}", e)))?;
             
-        // TODO: 实现具体的GRPC服务
+        // TODO: Implement GRPC service
         
         Ok(())
     }
