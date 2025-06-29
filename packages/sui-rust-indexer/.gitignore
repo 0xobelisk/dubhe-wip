@@ -17,3 +17,4 @@ Cargo.lock
 .data
 .idea
 chk
+*.db

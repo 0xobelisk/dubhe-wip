@@ -8,7 +8,7 @@ async-trait = "0.1.83"
 tokio = { version = "1.38.0", features = ["full"]}
 sui_types = { git = "https://github.com/mystenlabs/sui", package = "sui-types", tag = "mainnet-v1.48.2"}
 # sui_data_ingestion_core = { git = "https://github.com/mystenlabs/sui", package = "sui-data-ingestion-core", tag = "mainnet-v1.48.2"}
-prometheus = "0.13.3"
+prometheus = { version = "0.13.3", features = ["process"] }
 anyhow = "1.0.86"
 move-core-types = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
 mysten-service = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
@@ -22,11 +22,7 @@ futures-util = "0.3.30"
 dotenvy = "0.15"
 tokio-postgres-rustls = "0.12.0"
 tokio-postgres = "0.7.12"
-rustls = { version = "0.23", default-features = false, features = [
-  "std",
-  "tls12",
-  "ring",
-] }
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
 webpki-roots = "0.26.3"
 serde_json = { version = "1.0.95", features = ["preserve_order"] }
 log = "0.4"
@@ -35,6 +31,7 @@ bcs = "0.1.4"
 hex = "0.4.3"
 clap = { version = "4.4", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
+rusqlite = "0.30.0"
 
 backoff = { version = "0.4.0", features = [
   "futures",
@@ -54,7 +51,7 @@ object_store = { version = "0.11.2", features = [
   "http",
 ] }
 
-tokio-stream = { version = "0.1.14", features = ["sync", "net"] }
+tokio-stream = { version = "0.1", features = ["net"] }
 tracing = "0.1.37"
 sui-storage = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
 sui-sdk = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
@@ -64,6 +61,21 @@ tap = "1.0.1"
 sui-protocol-config ={ git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
 sui-rpc-api = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
 
+thiserror = "1.0"
+tonic = "0.11"
+prost = "0.12"
+serde_yaml = "0.9"
+toml = "0.8"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "sqlite", "json", "chrono"] }
+
+# New dependencies for utils
+sha2 = "0.10"
+regex = "1.10"
+lazy_static = "1.4"
+rand = "0.8"
 
 [dev-dependencies]
 rand = "0.8.5"
+
+[build-dependencies]
+tonic-build = "0.11"

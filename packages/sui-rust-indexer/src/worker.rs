@@ -12,27 +12,11 @@ use sui_types::base_types::ObjectID;
 use sui_types::full_checkpoint_content::CheckpointData;
 
 use crate::{
-    db::PgConnectionPool,
-    events::{StorageSetRecord, StoreSetField},
-    simple_notify::{create_realtime_trigger, log_data_change, setup_simple_logging},
-    sql::{generate_set_record_sql, generate_set_field_sql},
-    table::TableMetadata,
+    store::{StorageSetRecord, StoreSetField},
+    config::TableMetadata,
 };
 
-#[derive(QueryableByName)]
-pub struct TableField {
-    #[diesel(sql_type = Text)]
-    pub field_name: String,
-    #[diesel(sql_type = Text)]
-    pub field_type: String,
-    #[diesel(sql_type = Nullable<Integer>)]
-    pub field_index: Option<i32>,
-    #[diesel(sql_type = Bool)]
-    pub is_key: bool,
-}
-
 pub struct DubheIndexerWorker {
-    pub pg_pool: PgConnectionPool,
     pub package_id: String,
     pub tables: Vec<TableMetadata>,
     pub with_graphql: bool,
@@ -40,126 +24,58 @@ pub struct DubheIndexerWorker {
 
 impl DubheIndexerWorker {
     pub async fn clear_all_data(&self) -> Result<()> {
-        let mut conn = self.pg_pool.get().await?;
-
-        println!("🔄 Clearing all indexer data...");
-
-        // Get all store tables
-        #[derive(QueryableByName)]
-        struct TableName {
-            #[diesel(sql_type = Text)]
-            table_name: String,
-        }
-
-        let tables: Vec<String> = diesel::sql_query(
-            "SELECT table_name FROM information_schema.tables 
-             WHERE table_schema = 'public' AND table_name LIKE 'store_%'",
-        )
-        .load::<TableName>(&mut conn)
-        .await?
-        .into_iter()
-        .map(|t| t.table_name)
-        .collect();
-
-        // Drop triggers for all store tables first
-        for table_name in &tables {
-            let trigger_name = format!("_unified_realtime_{}", table_name);
-            let sql = format!(
-                "DROP TRIGGER IF EXISTS {} ON {} CASCADE",
-                trigger_name, table_name
-            );
-            println!("  ├─ Dropping trigger: {}", trigger_name);
-            diesel::sql_query(&sql).execute(&mut conn).await?;
-        }
-
-        // Drop all store tables
-        for table_name in tables {
-            let sql = format!("DROP TABLE IF EXISTS {} CASCADE", table_name);
-            println!("  ├─ Dropping table: {}", table_name);
-            diesel::sql_query(&sql).execute(&mut conn).await?;
-        }
-
-        // Drop functions
-        let functions = vec!["simple_change_log", "unified_realtime_notify"];
-
-        for function_name in functions {
-            let sql = format!("DROP FUNCTION IF EXISTS {}() CASCADE", function_name);
-            println!("  ├─ Dropping function: {}", function_name);
-            diesel::sql_query(&sql).execute(&mut conn).await?;
-        }
-
-        // Clear metadata tables (excluding simple_logs as it doesn't exist)
-        let metadata_tables = vec!["table_metadata", "table_fields", "reader_progress"];
-
-        for table_name in metadata_tables {
-            let sql = format!("DROP TABLE IF EXISTS {} CASCADE", table_name);
-            println!("  ├─ Dropping table: {}", table_name);
-            diesel::sql_query(&sql).execute(&mut conn).await?;
-        }
-
-        println!("  └─ All indexer data cleared successfully");
+        
         Ok(())
     }
 
     pub async fn create_db_tables_from_config(&mut self) -> Result<()> {
-        println!("Tables: {:?}", self.tables);
-        let mut conn = self.pg_pool.get().await?;
+        // println!("Tables: {:?}", self.tables);
+        // let mut conn = self.pg_pool.get().await?;
 
-        // Create table_metadata table first
-        diesel::sql_query(
-            "CREATE TABLE IF NOT EXISTS table_metadata (
-                table_name VARCHAR(255),
-                table_type VARCHAR(255),
-                offchain BOOLEAN,
-                PRIMARY KEY (table_name)
-            )",
-        )
-        .execute(&mut conn)
-        .await?;
+        // // Create table_metadata table first
+        // diesel::sql_query(
+        //     "CREATE TABLE IF NOT EXISTS table_metadata (
+        //         table_name VARCHAR(255),
+        //         table_type VARCHAR(255),
+        //         offchain BOOLEAN,
+        //         PRIMARY KEY (table_name)
+        //     )",
+        // )
+        // .execute(&mut conn)
+        // .await?;
 
-        // Create table_fields table first
-        diesel::sql_query(
-            "CREATE TABLE IF NOT EXISTS table_fields (
-                table_name VARCHAR(255),
-                field_name VARCHAR(255),
-                field_type VARCHAR(50),
-                field_index INTEGER,
-                is_key BOOLEAN,
-                PRIMARY KEY (table_name, field_name)
-            )",
-        )
-        .execute(&mut conn)
-        .await?;
+        // // Create table_fields table first
+        // diesel::sql_query(
+        //     "CREATE TABLE IF NOT EXISTS table_fields (
+        //         table_name VARCHAR(255),
+        //         field_name VARCHAR(255),
+        //         field_type VARCHAR(50),
+        //         field_index INTEGER,
+        //         is_key BOOLEAN,
+        //         PRIMARY KEY (table_name, field_name)
+        //     )",
+        // )
+        // .execute(&mut conn)
+        // .await?;
 
-        // 设置简化的日志系统（可选）
-        setup_simple_logging(&mut conn).await?;
+        // for table in &self.tables {
+        //     println!("Creating table: {:?}", table);
 
-        for table in &self.tables {
-            println!("Creating table: {:?}", table);
+        //     // Create store table
+        //     diesel::sql_query(&table.generate_create_table_sql())
+        //         .execute(&mut conn)
+        //         .await?;
 
-            // Create store table
-            diesel::sql_query(&table.generate_create_table_sql())
-                .execute(&mut conn)
-                .await?;
+        //     // Insert table metadata
+        //     diesel::sql_query(&table.generate_insert_table_metadata_sql())
+        //         .execute(&mut conn)
+        //         .await?;
 
-            // Insert table metadata
-            diesel::sql_query(&table.generate_insert_table_metadata_sql())
-                .execute(&mut conn)
-                .await?;
-
-            // Insert table fields metadata
-            for field_sql in table.generate_insert_table_fields_sql() {
-                diesel::sql_query(&field_sql).execute(&mut conn).await?;
-            }
-
-            // 为每个表创建统一实时引擎触发器
-            let table_name_with_prefix = format!("store_{}", table.name);
-            create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
-            println!(
-                "✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)",
-                table_name_with_prefix
-            );
-        }
+        //     // Insert table fields metadata
+        //     for field_sql in table.generate_insert_table_fields_sql() {
+        //         diesel::sql_query(&field_sql).execute(&mut conn).await?;
+        //     }
+        // }
 
         Ok(())
     }
@@ -170,32 +86,32 @@ impl DubheIndexerWorker {
         latest_checkpoint: u64,
         worker_pool_number: u32,
     ) -> Result<()> {
-        let mut conn = self.pg_pool.get().await?;
-        // Create reader_progress table first
-        diesel::sql_query(
-            "CREATE TABLE IF NOT EXISTS reader_progress (
-                progress_name VARCHAR(255),
-                start_checkpoint BIGINT,
-                end_checkpoint BIGINT,
-                last_indexed_checkpoint BIGINT,
-                PRIMARY KEY (progress_name)
-            )",
-        )
-        .execute(&mut conn)
-        .await?;
+        // let mut conn = self.pg_pool.get().await?;
+        // // Create reader_progress table first
+        // diesel::sql_query(
+        //     "CREATE TABLE IF NOT EXISTS reader_progress (
+        //         progress_name VARCHAR(255),
+        //         start_checkpoint BIGINT,
+        //         end_checkpoint BIGINT,
+        //         last_indexed_checkpoint BIGINT,
+        //         PRIMARY KEY (progress_name)
+        //     )",
+        // )
+        // .execute(&mut conn)
+        // .await?;
 
-        diesel::sql_query(
-            "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (progress_name) 
-             DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
-        )
-        .bind::<diesel::sql_types::Text, _>("latest_reader_progress")
-        .bind::<diesel::sql_types::Bigint, _>(0 as i64)
-        .bind::<diesel::sql_types::Bigint, _>(0 as i64)
-        .bind::<diesel::sql_types::Bigint, _>(latest_checkpoint as i64)
-        .execute(&mut conn)
-        .await?;
+        // diesel::sql_query(
+        //     "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
+        //      VALUES ($1, $2, $3, $4)
+        //      ON CONFLICT (progress_name) 
+        //      DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
+        // )
+        // .bind::<diesel::sql_types::Text, _>("latest_reader_progress")
+        // .bind::<diesel::sql_types::Bigint, _>(0 as i64)
+        // .bind::<diesel::sql_types::Bigint, _>(0 as i64)
+        // .bind::<diesel::sql_types::Bigint, _>(latest_checkpoint as i64)
+        // .execute(&mut conn)
+        // .await?;
 
         // TODO: Split checkpoints into worker_pool_number parts
         // let total_checkpoints = latest_checkpoint - start_checkpoint + 1;
@@ -205,7 +121,7 @@ impl DubheIndexerWorker {
         // for i in 0..worker_pool_number {
         //     let worker_start = start_checkpoint + (i as u64 * checkpoints_per_worker);
         //     let worker_end = if i == worker_pool_number - 1 {
-        //         // 最后一个 worker 处理剩余的检查点
+        //         // Last worker processes remaining checkpoints
         //         end_checkpoint
         //     } else {
         //         worker_start + checkpoints_per_worker - 1
@@ -230,142 +146,132 @@ impl DubheIndexerWorker {
     }
 
     pub async fn handle_store_set_record(&self, current_checkpoint: u64, set_record: &StorageSetRecord) -> Result<()> {
-        let mut conn = self.pg_pool.get().await?;
-        let table_name = String::from_utf8_lossy(&set_record.table_id[3..]).to_string();
-        println!("Table name: {}", table_name);
+        // let mut conn = self.pg_pool.get().await?;
+        // let table_name = String::from_utf8_lossy(&set_record.table_id[3..]).to_string();
+        // println!("Table name: {}", table_name);
 
-        // Get table field information from database
-        let table_metadata = self
-            .tables
-            .iter()
-            .find(|t| t.name == table_name)
-            .expect("Table not found");
+        // // Get table field information from database
+        // let table_metadata = self
+        //     .tables
+        //     .iter()
+        //     .find(|t| t.name == table_name)
+        //     .expect("Table not found");
 
-        // Separate key and value fields
-        let mut key_fields = Vec::new();
-        let mut value_fields = Vec::new();
+        // // Separate key and value fields
+        // let mut key_fields = Vec::new();
+        // let mut value_fields = Vec::new();
 
-        for field in &table_metadata.fields {
-            if field.is_key {
-                key_fields.push((field.field_name.clone(), field.field_type.clone()));
-            } else {
-                value_fields.push((field.field_name.clone(), field.field_type.clone()));
-            }
-        }
-        // Parse key and value
-        let key_values = table_metadata.parse_table_keys(set_record.key_tuple.clone());
-        let value_values = table_metadata.parse_table_values(set_record.value_tuple.clone());
+        // for field in &table_metadata.fields {
+        //     if field.is_key {
+        //         key_fields.push((field.field_name.clone(), field.field_type.clone()));
+        //     } else {
+        //         value_fields.push((field.field_name.clone(), field.field_type.clone()));
+        //     }
+        // }
+        // // Parse key and value
+        // let key_values = table_metadata.parse_table_keys(set_record.key_tuple.clone());
+        // let value_values = table_metadata.parse_table_values(set_record.value_tuple.clone());
 
-        println!("Key values: {:?}", key_values);
-        println!("Value values: {:?}", value_values);
+        // println!("Key values: {:?}", key_values);
+        // println!("Value values: {:?}", value_values);
 
         // Generate and execute SQL
-        let sql = generate_set_record_sql(
-            current_checkpoint,
-            &table_name,
-            &key_fields,
-            &value_fields,
-            &key_values,
-            &value_values,
-        );
+        // let sql = generate_set_record_sql(
+        //     current_checkpoint,
+        //     &table_name,
+        //     &key_fields,
+        //     &value_fields,
+        //     &key_values,
+        //     &value_values,
+        // );
 
-        println!("Final SQL: {}", sql);
+        // println!("Final SQL: {}", sql);
 
-        // Execute SQL with proper error handling
-        match diesel::sql_query(&sql).execute(&mut conn).await {
-            Ok(rows_affected) => {
-                println!(
-                    "Successfully executed SQL, rows affected: {}",
-                    rows_affected
-                );
-            }
-            Err(e) => {
-                eprintln!("Error executing SQL: {:?}", e);
-                eprintln!("Failed SQL: {}", sql);
-                // Return the error instead of continuing
-                return Err(e.into());
-            }
-        }
-
-        // 记录数据变更（PostGraphile会自动检测）
-        if let Err(e) = log_data_change(&mut conn, &table_name, "INSERT", 1).await {
-            eprintln!("记录日志失败: {:?}", e);
-        }
+        // // Execute SQL with proper error handling
+        // match diesel::sql_query(&sql).execute(&mut conn).await {
+        //     Ok(rows_affected) => {
+        //         println!(
+        //             "Successfully executed SQL, rows affected: {}",
+        //             rows_affected
+        //         );
+        //     }
+        //     Err(e) => {
+        //         eprintln!("Error executing SQL: {:?}", e);
+        //         eprintln!("Failed SQL: {}", sql);
+        //         // Return the error instead of continuing
+        //         return Err(e.into());
+        //     }
+        // }
 
         Ok(())
     }
 
     pub async fn handle_store_set_field(&self, current_checkpoint: u64, set_field: &StoreSetField) -> Result<()> {
-        let mut conn = self.pg_pool.get().await?;
-        let table_name = String::from_utf8_lossy(&set_field.table_id[3..]).to_string();
-        println!("Table name: {}", table_name);
+        // let mut conn = self.pg_pool.get().await?;
+        // let table_name = String::from_utf8_lossy(&set_field.table_id[3..]).to_string();
+        // println!("Table name: {}", table_name);
 
-        // Get table field information from database
-        let table_metadata = self
-            .tables
-            .iter()
-            .find(|t| t.name == table_name)
-            .expect("Table not found");
+        // // Get table field information from database
+        // let table_metadata = self
+        //     .tables
+        //     .iter()
+        //     .find(|t| t.name == table_name)
+        //     .expect("Table not found");
 
-        // Separate key and value fields
-        let mut key_fields = Vec::new();
-        let mut field_name = String::new();
-        let mut field_type = String::new();
+        // // Separate key and value fields
+        // let mut key_fields = Vec::new();
+        // let mut field_name = String::new();
+        // let mut field_type = String::new();
 
-        for field in &table_metadata.fields {
-            if field.is_key {
-                key_fields.push((field.field_name.clone(), field.field_type.clone()));
-            }
-            if field.field_index == set_field.field_index {
-                field_name = field.field_name.clone();
-                field_type = field.field_type.clone();
-            }
-        }
+        // for field in &table_metadata.fields {
+        //     if field.is_key {
+        //         key_fields.push((field.field_name.clone(), field.field_type.clone()));
+        //     }
+        //     if field.field_index == set_field.field_index {
+        //         field_name = field.field_name.clone();
+        //         field_type = field.field_type.clone();
+        //     }
+        // }
 
-        // Parse key
-        let key_values = table_metadata.parse_table_keys(set_field.key_tuple.clone());
+        // // Parse key
+        // let key_values = table_metadata.parse_table_keys(set_field.key_tuple.clone());
 
-        // Parse value to be updated
-        let value_json = table_metadata.parse_table_field(
-            &field_name.as_bytes().to_vec(),
-            &field_type.as_bytes().to_vec(),
-            &set_field.value,
-        );
-        let value = value_json.get(&field_name).unwrap();
+        // // Parse value to be updated
+        // let value_json = table_metadata.parse_table_field(
+        //     &field_name.as_bytes().to_vec(),
+        //     &field_type.as_bytes().to_vec(),
+        //     &set_field.value,
+        // );
+        // let value = value_json.get(&field_name).unwrap();
 
         // Generate and execute SQL
-        let sql = generate_set_field_sql(
-            current_checkpoint,
-            &table_name,
-            &field_name,
-            &field_type,
-            &value,
-            &key_fields,
-            &key_values,
-        );
+        // let sql = generate_set_field_sql(
+        //     current_checkpoint,
+        //     &table_name,
+        //     &field_name,
+        //     &field_type,
+        //     &value,
+        //     &key_fields,
+        //     &key_values,
+        // );
 
-        println!("Update SQL: {}", sql);
+        // println!("Update SQL: {}", sql);
 
-        // Execute SQL with proper error handling
-        match diesel::sql_query(&sql).execute(&mut conn).await {
-            Ok(rows_affected) => {
-                println!(
-                    "Successfully executed update SQL, rows affected: {}",
-                    rows_affected
-                );
-            }
-            Err(e) => {
-                eprintln!("Error executing update SQL: {:?}", e);
-                eprintln!("Failed SQL: {}", sql);
-                // Return the error instead of continuing
-                return Err(e.into());
-            }
-        }
-
-        // 记录数据变更（PostGraphile会自动检测）
-        if let Err(e) = log_data_change(&mut conn, &table_name, "UPDATE", 1).await {
-            eprintln!("记录日志失败: {:?}", e);
-        }
+        // // Execute SQL with proper error handling
+        // match diesel::sql_query(&sql).execute(&mut conn).await {
+        //     Ok(rows_affected) => {
+        //         println!(
+        //             "Successfully executed update SQL, rows affected: {}",
+        //             rows_affected
+        //         );
+        //     }
+        //     Err(e) => {
+        //         eprintln!("Error executing update SQL: {:?}", e);
+        //         eprintln!("Failed SQL: {}", sql);
+        //         // Return the error instead of continuing
+        //         return Err(e.into());
+        //     }
+        // }
 
         Ok(())
     }

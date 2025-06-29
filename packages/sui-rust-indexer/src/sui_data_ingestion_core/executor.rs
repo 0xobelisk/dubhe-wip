@@ -7,7 +7,8 @@ use crate::sui_data_ingestion_core::progress_store::{
 use crate::sui_data_ingestion_core::reader::CheckpointReader;
 use crate::sui_data_ingestion_core::worker_pool::WorkerPool;
 use crate::sui_data_ingestion_core::Worker;
-use crate::{DataIngestionMetrics, ReaderOptions};
+use crate::sui_data_ingestion_core::metrics::DataIngestionMetrics;
+use crate::sui_data_ingestion_core::ReaderOptions;
 use anyhow::Result;
 use futures::Future;
 use mysten_metrics::spawn_monitored_task;
