@@ -1,7 +1,6 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::db::PgConnectionPool;
 use crate::sui_data_ingestion_core::progress_store::ProgressStore;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -10,6 +9,8 @@ use diesel_async::RunQueryDsl;
 use serde_json::{Number, Value};
 use std::path::PathBuf;
 use sui_types::messages_checkpoint::CheckpointSequenceNumber;
+
+type PgConnectionPool = diesel_async::pooled_connection::bb8::Pool<diesel_async::AsyncPgConnection>;
 
 #[derive(QueryableByName)]
 struct CheckpointResult {
