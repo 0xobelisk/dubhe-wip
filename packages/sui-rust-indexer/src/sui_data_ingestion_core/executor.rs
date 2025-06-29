@@ -48,8 +48,14 @@ impl<P: ProgressStore> IndexerExecutor<P> {
     /// Registers new worker pool in executor
     pub async fn register<W: Worker + 'static>(&mut self, pool: WorkerPool<W>) -> Result<()> {
         let checkpoint_number = self.progress_store.load(pool.task_name.clone()).await?;
-        println!("register=======================checkpoint_number: {}", checkpoint_number);
-        println!("register=======================pool.task_name: {}", pool.task_name);
+        println!(
+            "register=======================checkpoint_number: {}",
+            checkpoint_number
+        );
+        println!(
+            "register=======================pool.task_name: {}",
+            pool.task_name
+        );
         let (sender, receiver) = mpsc::channel(MAX_CHECKPOINTS_IN_PROGRESS);
         self.pools.push(Box::pin(pool.run(
             checkpoint_number,
@@ -70,7 +76,10 @@ impl<P: ProgressStore> IndexerExecutor<P> {
         mut exit_receiver: oneshot::Receiver<()>,
     ) -> Result<ExecutorProgress> {
         let mut reader_checkpoint_number = self.progress_store.min_watermark()?;
-        println!("run=======================reader_checkpoint_number: {}", reader_checkpoint_number);
+        println!(
+            "run=======================reader_checkpoint_number: {}",
+            reader_checkpoint_number
+        );
         let upper_limit = reader_options.upper_limit;
         let (checkpoint_reader, mut checkpoint_recv, gc_sender, _exit_sender) =
             CheckpointReader::initialize(

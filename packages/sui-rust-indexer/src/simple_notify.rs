@@ -1,5 +1,5 @@
-use anyhow::Result;
 use crate::db::PgPoolConnection;
+use anyhow::Result;
 
 // 简化的数据变更日志记录
 pub async fn log_data_change(
@@ -12,10 +12,10 @@ pub async fn log_data_change(
         "📊 数据变更: 表={}, 操作={}, 记录数={}",
         table_name, operation, record_count
     );
-    
+
     // PostGraphile的Live Queries会自动检测数据库变更
     // 不需要手动发送通知
-    
+
     Ok(())
 }
 
@@ -36,14 +36,12 @@ pub async fn setup_simple_logging(conn: &mut PgPoolConnection<'_>) -> Result<()>
     END;
     $$ LANGUAGE plpgsql;
     "#;
-    
+
     use diesel_async::RunQueryDsl;
-    diesel::sql_query(create_log_function)
-        .execute(conn)
-        .await?;
-    
+    diesel::sql_query(create_log_function).execute(conn).await?;
+
     println!("✅ 简化日志函数已创建");
-    
+
     Ok(())
 }
 
@@ -136,24 +134,19 @@ pub async fn create_realtime_trigger(
     END;
     $$ LANGUAGE plpgsql VOLATILE;
     "#;
-    
+
     use diesel_async::RunQueryDsl;
     diesel::sql_query(create_notify_function)
         .execute(conn)
         .await?;
 
     let trigger_name = format!("_unified_realtime_{}", table_name);
-    
+
     // 删除旧触发器
-    let drop_trigger = format!(
-        "DROP TRIGGER IF EXISTS {} ON {}",
-        trigger_name, table_name
-    );
-    
-    diesel::sql_query(&drop_trigger)
-        .execute(conn)
-        .await?;
-    
+    let drop_trigger = format!("DROP TRIGGER IF EXISTS {} ON {}", trigger_name, table_name);
+
+    diesel::sql_query(&drop_trigger).execute(conn).await?;
+
     // 创建统一实时引擎触发器
     let create_trigger = format!(
         r#"CREATE TRIGGER {}
@@ -163,12 +156,10 @@ pub async fn create_realtime_trigger(
         EXECUTE FUNCTION unified_realtime_notify()"#,
         trigger_name, table_name
     );
-    
-    diesel::sql_query(&create_trigger)
-        .execute(conn)
-        .await?;
-    
+
+    diesel::sql_query(&create_trigger).execute(conn).await?;
+
     println!("✅ 统一实时引擎触发器已创建: {}", table_name);
-    
+
     Ok(())
-} 
+}

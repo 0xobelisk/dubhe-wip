@@ -16,7 +16,8 @@ use async_trait::async_trait;
 pub use executor::{setup_single_workflow, IndexerExecutor, MAX_CHECKPOINTS_IN_PROGRESS};
 pub use metrics::DataIngestionMetrics;
 pub use progress_store::{
-    ExecutorProgress, FileProgressStore, ProgressStore, PostgressProgressStore, ShimIndexerProgressStore, ShimProgressStore,
+    ExecutorProgress, FileProgressStore, PostgressProgressStore, ProgressStore,
+    ShimIndexerProgressStore, ShimProgressStore,
 };
 pub use reader::ReaderOptions;
 use sui_types::full_checkpoint_content::CheckpointData;

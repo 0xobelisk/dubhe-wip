@@ -34,7 +34,6 @@ env_logger = "0.10"
 bcs = "0.1.4"
 hex = "0.4.3"
 clap = { version = "4.4", features = ["derive"] }
-sui-graphql-client = { version = "0.0.4" }
 chrono = { version = "0.4", features = ["serde"] }
 
 backoff = { version = "0.4.0", features = [
@@ -58,6 +57,7 @@ object_store = { version = "0.11.2", features = [
 tokio-stream = { version = "0.1.14", features = ["sync", "net"] }
 tracing = "0.1.37"
 sui-storage = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
+sui-sdk = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
 url = "2.3.1"
 tempfile = "3.3.0"
 tap = "1.0.1"

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// A single record in the registry.
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
@@ -25,4 +25,4 @@ pub struct StoreSetField {
     pub key_tuple: Vec<Vec<u8>>,
     pub field_index: u8,
     pub value: Vec<u8>,
-} 
+}

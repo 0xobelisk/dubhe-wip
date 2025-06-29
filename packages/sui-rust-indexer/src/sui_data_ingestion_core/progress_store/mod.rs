@@ -65,10 +65,7 @@ impl<P: ProgressStore> ProgressStoreWrapper<P> {
     }
 
     pub fn all_watermarks(&self) -> Vec<CheckpointSequenceNumber> {
-        self.pending_state
-            .values()
-            .cloned()
-            .collect()
+        self.pending_state.values().cloned().collect()
     }
 
     pub fn stats(&self) -> ExecutorProgress {

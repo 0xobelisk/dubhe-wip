@@ -27,7 +27,8 @@ describe('generateConfigJson', () => {
         { entity_id: 'address' },
         { value: 'address' }
       ],
-      keys: ['entity_id']
+      keys: ['entity_id'],
+      offchain: false
     });
   });
 
@@ -51,7 +52,8 @@ describe('generateConfigJson', () => {
       fields: [
         { entity_id: 'address' }
       ],
-      keys: ['entity_id']
+      keys: ['entity_id'],
+      offchain: false
     });
   });
 
@@ -61,6 +63,7 @@ describe('generateConfigJson', () => {
       description: 'Test project',
       components: {
         position: {
+          offchain: true,
           fields: {
             id: 'address',
             x: 'u64',
@@ -84,7 +87,8 @@ describe('generateConfigJson', () => {
         { x: 'u64' },
         { y: 'u64' }
       ],
-      keys: ['id']
+      keys: ['id'],
+      offchain: true
     });
   });
 
@@ -108,7 +112,8 @@ describe('generateConfigJson', () => {
       fields: [
         { value: 'u32' }
       ],
-      keys: []
+      keys: [],
+      offchain: false
     });
   });
 
@@ -132,7 +137,8 @@ describe('generateConfigJson', () => {
       fields: [
         { value: 'u32' }
       ],
-      keys: []
+      keys: [],
+      offchain: false
     });
   });
 
@@ -157,7 +163,8 @@ describe('generateConfigJson', () => {
     expect(parsed.resources).toHaveLength(1);
     expect(parsed.resources[0].counter).toEqual({
       fields: [],
-      keys: []
+      keys: [],
+      offchain: false
     });
   });
 
@@ -188,7 +195,8 @@ describe('generateConfigJson', () => {
         { id: 'address' },
         { value: 'u32' }
       ],
-      keys: ['id']
+      keys: ['id'],
+      offchain: false
     });
   });
 
@@ -219,7 +227,8 @@ describe('generateConfigJson', () => {
         { value: 'u32' },
         { owner: 'address' }
       ],
-      keys: ['owner']
+      keys: ['owner'],
+      offchain: false
     });
   });
 
@@ -268,7 +277,8 @@ describe('generateConfigJson', () => {
     // validate components
     expect(parsed.components[0].player).toEqual({
       fields: [{ entity_id: 'address' }],
-      keys: ['entity_id']
+      keys: ['entity_id'],
+      offchain: false
     });
 
     expect(parsed.components[1].position).toEqual({
@@ -277,7 +287,8 @@ describe('generateConfigJson', () => {
         { x: 'u64' },
         { y: 'u64' }
       ],
-      keys: ['player']
+      keys: ['player'],
+      offchain: false
     });
 
     expect(parsed.components[2].owned_by).toEqual({
@@ -285,7 +296,8 @@ describe('generateConfigJson', () => {
         { entity_id: 'address' },
         { value: 'address' }
       ],
-      keys: ['entity_id']
+      keys: ['entity_id'],
+      offchain: false
     });
 
     // validate resources
@@ -295,15 +307,68 @@ describe('generateConfigJson', () => {
         { player: 'address' },
         { value: 'u32' }
       ],
-      keys: ['id', 'player']
+      keys: ['id', 'player'],
+      offchain: false
     });
 
     expect(parsed.resources[1].balance).toEqual({
       fields: [
         { value: 'u256' }
       ],
-      keys: []
+      keys: [],
+      offchain: false
     });
+  });
+
+  it('should handle offchain field correctly when explicitly set to true', () => {
+    const config: DubheConfig = {
+      name: 'test_project',
+      description: 'Test project',
+      components: {
+        position: {
+          offchain: true,
+          fields: {
+            x: 'u64',
+            y: 'u64'
+          },
+          keys: []
+        }
+      },
+      resources: {},
+      enums: {},
+      errors: {}
+    };
+
+    const result = generateConfigJson(config);
+    const parsed = JSON.parse(result);
+
+    expect(parsed.components).toHaveLength(1);
+    expect(parsed.components[0].position.offchain).toBe(true);
+  });
+
+  it('should set offchain to false by default when not specified', () => {
+    const config: DubheConfig = {
+      name: 'test_project',
+      description: 'Test project',
+      components: {
+        position: {
+          fields: {
+            x: 'u64',
+            y: 'u64'
+          },
+          keys: []
+        }
+      },
+      resources: {},
+      enums: {},
+      errors: {}
+    };
+
+    const result = generateConfigJson(config);
+    const parsed = JSON.parse(result);
+
+    expect(parsed.components).toHaveLength(1);
+    expect(parsed.components[0].position.offchain).toBe(false);
   });
 });
 

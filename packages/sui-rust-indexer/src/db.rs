@@ -3,21 +3,19 @@ use diesel_async::pooled_connection::bb8::Pool;
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
 use diesel_async::pooled_connection::ManagerConfig;
 use diesel_async::AsyncPgConnection;
+use dotenvy::dotenv;
 use futures_util::future::BoxFuture;
 use futures_util::FutureExt;
-use std::time::Duration;
 use std::env;
-use dotenvy::dotenv;
+use std::time::Duration;
 
-pub type PgConnectionPool = diesel_async::pooled_connection::bb8::Pool<diesel_async::AsyncPgConnection>;
-pub type PgPoolConnection<'a> = diesel_async::pooled_connection::bb8::PooledConnection<'a, AsyncPgConnection>;
+pub type PgConnectionPool =
+    diesel_async::pooled_connection::bb8::Pool<diesel_async::AsyncPgConnection>;
+pub type PgPoolConnection<'a> =
+    diesel_async::pooled_connection::bb8::PooledConnection<'a, AsyncPgConnection>;
 
-pub async fn get_connection_pool(db_url: Option<String>) -> PgConnectionPool {
-    dotenv().ok();
-
+pub async fn get_connection_pool() -> PgConnectionPool {
     let database_url = if let Ok(url) = env::var("DATABASE_URL") {
-        url
-    } else if let Some(url) = db_url {
         url
     } else {
         "postgres://postgres:postgres@localhost:5432/postgres".to_string()
@@ -57,4 +55,4 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
         AsyncPgConnection::try_from(client).await
     };
     fut.boxed()
-} 
+}

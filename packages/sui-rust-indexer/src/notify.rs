@@ -1,8 +1,8 @@
-use diesel_async::RunQueryDsl;
-use serde_json::json;
+use crate::db::PgPoolConnection;
 use anyhow::Result;
 use chrono;
-use crate::db::PgPoolConnection;
+use diesel_async::RunQueryDsl;
+use serde_json::json;
 
 #[derive(Clone)]
 pub struct NotificationPayload {
@@ -41,7 +41,8 @@ impl NotificationPayload {
             "id": self.id,
             "data": self.data,
             "timestamp": self.timestamp,
-        }).to_string()
+        })
+        .to_string()
     }
 }
 
@@ -50,16 +51,14 @@ pub async fn send_notification(
     channel: &str,
     payload: NotificationPayload,
 ) -> Result<()> {
-    let sql = format!(
-        "SELECT pg_notify($1, $2)"
-    );
-    
+    let sql = format!("SELECT pg_notify($1, $2)");
+
     diesel::sql_query(sql)
         .bind::<diesel::sql_types::Text, _>(channel)
         .bind::<diesel::sql_types::Text, _>(payload.to_json())
         .execute(conn)
         .await?;
-    
+
     Ok(())
 }
 
@@ -74,27 +73,26 @@ pub async fn notify_store_change(
     // 修复通道名称格式，使其与GraphQL服务器监听的格式匹配
     let table_name_with_prefix = format!("store_{}", table_name);
     let channel = format!("table:{}:change", table_name_with_prefix);
-    
+
     let mut data = json!({});
-    
+
     // 添加键值
     for (key, value) in key_values {
         data[key] = value.clone();
     }
-    
+
     // 添加普通值
     for (key, value) in value_values {
         data[key] = value.clone();
     }
-    
-    let payload = NotificationPayload::new(event, &table_name_with_prefix)
-        .with_data(data);
-    
+
+    let payload = NotificationPayload::new(event, &table_name_with_prefix).with_data(data);
+
     send_notification(conn, &channel, payload.clone()).await?;
-    
+
     // 也发送到通用频道
     send_notification(conn, "store:all", payload).await?;
-    
+
     Ok(())
 }
 
@@ -150,13 +148,11 @@ pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Res
     END;
     $$ LANGUAGE plpgsql VOLATILE;
     "#;
-    
-    diesel::sql_query(create_function)
-        .execute(conn)
-        .await?;
-    
+
+    diesel::sql_query(create_function).execute(conn).await?;
+
     println!("Notification trigger function created successfully");
-    
+
     Ok(())
 }
 
@@ -168,16 +164,11 @@ pub async fn create_table_trigger(
 ) -> Result<()> {
     let trigger_name = format!("_notify_{}", table_name);
     let ops = operations.join(" OR ");
-    
+
     // 先删除旧触发器（如果存在）
-    let drop_trigger = format!(
-        "DROP TRIGGER IF EXISTS {} ON {}",
-        trigger_name, table_name
-    );
-    diesel::sql_query(&drop_trigger)
-        .execute(conn)
-        .await?;
-    
+    let drop_trigger = format!("DROP TRIGGER IF EXISTS {} ON {}", trigger_name, table_name);
+    diesel::sql_query(&drop_trigger).execute(conn).await?;
+
     // 创建新触发器 - 修复触发器函数调用，不传递额外参数
     let create_trigger = format!(
         r#"CREATE TRIGGER {}
@@ -185,16 +176,12 @@ pub async fn create_table_trigger(
         ON {}
         FOR EACH ROW
         EXECUTE FUNCTION tg__graphql_subscription()"#,
-        trigger_name,
-        ops,
-        table_name
+        trigger_name, ops, table_name
     );
-    
-    diesel::sql_query(&create_trigger)
-        .execute(conn)
-        .await?;
-    
+
+    diesel::sql_query(&create_trigger).execute(conn).await?;
+
     println!("Trigger created for table: {}", table_name);
-    
+
     Ok(())
-} 
+}
