@@ -15,7 +15,7 @@ use crate::{
     db::PgConnectionPool,
     events::{StorageSetRecord, StoreSetField},
     simple_notify::{create_realtime_trigger, log_data_change, setup_simple_logging},
-    sql::{generate_set_record_sql, generate_set_field_sql},
+    sql::{generate_set_field_sql, generate_set_record_sql},
     table::TableMetadata,
 };
 
@@ -131,6 +131,14 @@ impl DubheIndexerWorker {
         .execute(&mut conn)
         .await?;
 
+        // Delete all data from all tables
+        diesel::sql_query("DELETE FROM table_metadata")
+            .execute(&mut conn)
+            .await?;
+        diesel::sql_query("DELETE FROM table_fields")
+            .execute(&mut conn)
+            .await?;
+
         // 设置简化的日志系统（可选）
         setup_simple_logging(&mut conn).await?;
 
@@ -171,7 +179,7 @@ impl DubheIndexerWorker {
         worker_pool_number: u32,
     ) -> Result<()> {
         let mut conn = self.pg_pool.get().await?;
-        // Create reader_progress table first
+
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS reader_progress (
                 progress_name VARCHAR(255),
@@ -184,18 +192,34 @@ impl DubheIndexerWorker {
         .execute(&mut conn)
         .await?;
 
-        diesel::sql_query(
-            "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (progress_name) 
-             DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
-        )
-        .bind::<diesel::sql_types::Text, _>("latest_reader_progress")
-        .bind::<diesel::sql_types::Bigint, _>(0 as i64)
-        .bind::<diesel::sql_types::Bigint, _>(0 as i64)
-        .bind::<diesel::sql_types::Bigint, _>(latest_checkpoint as i64)
-        .execute(&mut conn)
-        .await?;
+        // Check if reader_progress table has data
+        #[derive(QueryableByName)]
+        struct DataExists {
+            #[diesel(sql_type = Bool)]
+            exists: bool,
+        }
+
+        let data_exists: DataExists =
+            diesel::sql_query("SELECT EXISTS (SELECT 1 FROM reader_progress) as exists")
+                .get_result(&mut conn)
+                .await?;
+
+        println!("data_exists: {:?}", data_exists.exists);
+        if !data_exists.exists {
+            println!("reader_progress table has no data, insert it");
+            diesel::sql_query(
+                "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (progress_name) 
+                 DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
+            )
+            .bind::<diesel::sql_types::Text, _>("latest_reader_progress")
+            .bind::<diesel::sql_types::Bigint, _>(0 as i64)
+            .bind::<diesel::sql_types::Bigint, _>(0 as i64)
+            .bind::<diesel::sql_types::Bigint, _>(start_checkpoint as i64)
+            .execute(&mut conn)
+            .await?;
+        }
 
         // TODO: Split checkpoints into worker_pool_number parts
         // let total_checkpoints = latest_checkpoint - start_checkpoint + 1;
@@ -229,7 +253,11 @@ impl DubheIndexerWorker {
         Ok(())
     }
 
-    pub async fn handle_store_set_record(&self, current_checkpoint: u64, set_record: &StorageSetRecord) -> Result<()> {
+    pub async fn handle_store_set_record(
+        &self,
+        current_checkpoint: u64,
+        set_record: &StorageSetRecord,
+    ) -> Result<()> {
         let mut conn = self.pg_pool.get().await?;
         let table_name = String::from_utf8_lossy(&set_record.table_id[3..]).to_string();
         println!("Table name: {}", table_name);
@@ -295,7 +323,11 @@ impl DubheIndexerWorker {
         Ok(())
     }
 
-    pub async fn handle_store_set_field(&self, current_checkpoint: u64, set_field: &StoreSetField) -> Result<()> {
+    pub async fn handle_store_set_field(
+        &self,
+        current_checkpoint: u64,
+        set_field: &StoreSetField,
+    ) -> Result<()> {
         let mut conn = self.pg_pool.get().await?;
         let table_name = String::from_utf8_lossy(&set_field.table_id[3..]).to_string();
         println!("Table name: {}", table_name);
@@ -376,10 +408,7 @@ impl Worker for DubheIndexerWorker {
     type Result = ();
     async fn process_checkpoint(&self, checkpoint: &CheckpointData) -> Result<()> {
         let current_checkpoint = checkpoint.checkpoint_summary.sequence_number;
-        println!(
-            "Processing current_checkpoint: {:?}",
-            current_checkpoint
-        );
+        println!("Processing current_checkpoint: {:?}", current_checkpoint);
         let mut set_record_count = 0;
         let mut set_field_count = 0;
 
@@ -398,7 +427,8 @@ impl Worker for DubheIndexerWorker {
                             println!("Set record: {:?}", set_record);
 
                             // Process StoreSetRecord event
-                            self.handle_store_set_record(current_checkpoint, &set_record).await?;
+                            self.handle_store_set_record(current_checkpoint, &set_record)
+                                .await?;
                             set_record_count += 1;
                         }
 
@@ -409,7 +439,8 @@ impl Worker for DubheIndexerWorker {
 
                             println!("Set field: {:?}", set_field);
                             // Process StoreSetField event
-                            self.handle_store_set_field(current_checkpoint, &set_field).await?;
+                            self.handle_store_set_field(current_checkpoint, &set_field)
+                                .await?;
                             set_field_count += 1;
                         }
                     }

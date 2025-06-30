@@ -58,11 +58,11 @@ async fn main() -> Result<()> {
         .get_latest_checkpoint_sequence_number()
         .await?;
     println!("Latest checkpoint: {:?}", latest_checkpoint);
-    let start_checkpoint = args.get_start_checkpoint(latest_checkpoint);
+    // let start_checkpoint = args.get_start_checkpoint(latest_checkpoint);
     let pg_pool = get_connection_pool().await;
 
     let config_json = args.get_config_json()?;
-    let (package_id, tables) = TableMetadata::from_json(config_json)?;
+    let (package_id, start_checkpoint, tables) = TableMetadata::from_json(config_json)?;
 
     let mut dubhe_indexer_worker = DubheIndexerWorker {
         pg_pool,

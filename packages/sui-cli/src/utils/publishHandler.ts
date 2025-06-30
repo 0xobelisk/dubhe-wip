@@ -227,6 +227,7 @@ async function publishContract(
   let resources = dubheConfig.resources;
   let enums = dubheConfig.enums;
   let upgradeCapId = '';
+  let startCheckpoint = '';
 
   let printObjects: any[] = [];
 
@@ -262,6 +263,8 @@ async function publishContract(
   console.log('\n⚡ Executing Deploy Hook...');
   await delay(5000);
 
+  startCheckpoint = await dubhe.suiInteractor.currentClient.getLatestCheckpointSequenceNumber();
+
   const deployHookTx = new Transaction();
   let args = [];
   let dubheDappHub = dubheConfig.name === 'dubhe' ? dappHub : await getDubheDappHub(network);
@@ -294,7 +297,7 @@ async function publishContract(
     await saveContractData(
       dubheConfig.name,
       network,
-      deployHookResult.checkpoint?.toString() || '0',
+      startCheckpoint,
       packageId,
       dappHub,
       upgradeCapId,
@@ -309,6 +312,7 @@ async function publishContract(
     // Insert package id to dubhe config
     let config = JSON.parse(fs.readFileSync(`${process.cwd()}/dubhe.config.json`, 'utf-8'));
     config.package_id = packageId;
+    config.start_checkpoint = startCheckpoint;
     fs.writeFileSync(`${process.cwd()}/dubhe.config.json`, JSON.stringify(config, null, 2));
 
     console.log('\n✅ Contract Publication Complete\n');

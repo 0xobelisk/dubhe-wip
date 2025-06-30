@@ -23,6 +23,7 @@ pub struct DubheConfigJson {
     pub resources: Vec<HashMap<String, TableJsonInfo>>,
     pub enums: Vec<HashMap<String, Vec<HashMap<String, String>>>>,
     pub package_id: Option<String>,
+    pub start_checkpoint: Option<String>,
 }
 
 #[derive(Debug)]
@@ -42,7 +43,7 @@ pub struct TableMetadata {
 }
 
 impl TableMetadata {
-    pub fn from_json(json: Value) -> Result<(String, Vec<TableMetadata>)> {
+    pub fn from_json(json: Value) -> Result<(String, u64, Vec<TableMetadata>)> {
         let dubhe_config_json: DubheConfigJson = serde_json::from_value(json)?;
         let mut final_tables = Vec::new();
 
@@ -126,9 +127,18 @@ impl TableMetadata {
             return Err(anyhow::anyhow!("No package id found in config file"));
         }
 
-        let package_id = dubhe_config_json.package_id.unwrap();
+        if dubhe_config_json.start_checkpoint.is_none() {
+            return Err(anyhow::anyhow!("No start checkpoint found in config file"));
+        }
 
-        Ok((package_id, final_tables))
+        let package_id = dubhe_config_json.package_id.unwrap();
+        let start_checkpoint = dubhe_config_json
+            .start_checkpoint
+            .unwrap()
+            .parse::<u64>()
+            .unwrap_or(0);
+
+        Ok((package_id, start_checkpoint, final_tables))
     }
 
     pub fn generate_create_table_sql(&self) -> String {

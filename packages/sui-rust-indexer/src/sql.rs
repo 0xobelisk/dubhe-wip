@@ -165,12 +165,23 @@ mod tests {
     fn test_generate_set_record_sql() {
         // Test case 1: with key_fields
         let table_name = "test_table";
-        let key_fields = vec![("id".to_string(), "u64".to_string()), ("name".to_string(), "address".to_string())];
+        let key_fields = vec![
+            ("id".to_string(), "u64".to_string()),
+            ("name".to_string(), "address".to_string()),
+        ];
         let value_fields = vec![("value".to_string(), "u64".to_string())];
-        let key_values = serde_json::json!({ "id": 1, "name": "0x1234567890123456789012345678901234567890" });
+        let key_values =
+            serde_json::json!({ "id": 1, "name": "0x1234567890123456789012345678901234567890" });
         let value_values = serde_json::json!({ "value": 100 });
 
-        let sql = generate_set_record_sql(1024, table_name, &key_fields, &value_fields, &key_values, &value_values);
+        let sql = generate_set_record_sql(
+            1024,
+            table_name,
+            &key_fields,
+            &value_fields,
+            &key_values,
+            &value_values,
+        );
         assert_eq!(sql, "INSERT INTO store_test_table (id, name, value, last_updated_checkpoint) VALUES (1, '0x1234567890123456789012345678901234567890', 100, 1024) ON CONFLICT (id, name) DO UPDATE SET value = 100, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 1024");
 
         // Test case 2: empty key_fields (single row table)
@@ -178,7 +189,7 @@ mod tests {
         let value_fields = vec![
             ("field1".to_string(), "u64".to_string()),
             ("field2".to_string(), "address".to_string()),
-            ("field3".to_string(), "bool".to_string())
+            ("field3".to_string(), "bool".to_string()),
         ];
         let key_values = serde_json::json!({});
         let value_values = serde_json::json!({
@@ -187,7 +198,14 @@ mod tests {
             "field3": true
         });
 
-        let sql = generate_set_record_sql(2048, table_name, &empty_key_fields, &value_fields, &key_values, &value_values);
+        let sql = generate_set_record_sql(
+            2048,
+            table_name,
+            &empty_key_fields,
+            &value_fields,
+            &key_values,
+            &value_values,
+        );
         assert_eq!(sql, "WITH upsert AS (\n                UPDATE store_test_table SET field1 = 100, field2 = '0x1234567890123456789012345678901234567890', field3 = true, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 2048 \n                WHERE EXISTS (SELECT 1 FROM store_test_table)\n                RETURNING *\n            )\n            INSERT INTO store_test_table (field1, field2, field3, last_updated_checkpoint)\n            SELECT 100, '0x1234567890123456789012345678901234567890', true, 2048\n            WHERE NOT EXISTS (SELECT 1 FROM upsert)");
     }
 
@@ -197,9 +215,21 @@ mod tests {
         let field_name = "value";
         let field_type = "u64";
         let value = serde_json::json!({ "value": 100u64 });
-        let key_fields = vec![("id".to_string(), "u64".to_string()), ("name".to_string(), "address".to_string())];
-        let key_values = serde_json::json!({ "id": 1, "name": "0x1234567890123456789012345678901234567890" });
-        let sql = generate_set_field_sql(1024, table_name, field_name, field_type, &value, &key_fields, &key_values);
+        let key_fields = vec![
+            ("id".to_string(), "u64".to_string()),
+            ("name".to_string(), "address".to_string()),
+        ];
+        let key_values =
+            serde_json::json!({ "id": 1, "name": "0x1234567890123456789012345678901234567890" });
+        let sql = generate_set_field_sql(
+            1024,
+            table_name,
+            field_name,
+            field_type,
+            &value,
+            &key_fields,
+            &key_values,
+        );
         assert_eq!(sql, "UPDATE store_test_table SET value = 100, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 1024 WHERE id = 1 AND name = '0x1234567890123456789012345678901234567890'");
     }
 }
