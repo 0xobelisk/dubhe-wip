@@ -17,7 +17,7 @@
     "account:gen": "pnpm dubhe generate-key",
     "check-balance": "pnpm dubhe check-balance --network",
     "config:store": "pnpm dubhe config-store --output-ts-path ./deployment.ts --network",
-    "indexer": "dubhe-indexer --config dubhe.config.json --worker-pool-number 3 --store-url ./.chk --start-checkpoint 1 --force",
+    "indexer": "dubhe-indexer --force",
     "// Development Environment": "----------------",
     "setup:localnet": "pnpm account:gen && pnpm faucet localnet && pnpm run deploy localnet && pnpm run config:store localnet && pnpm run indexer",
     "setup:testnet": "pnpm account:gen && pnpm check-balance testnet && pnpm run deploy testnet && pnpm run config:store testnet && pnpm run indexer:sqlite testnet",
