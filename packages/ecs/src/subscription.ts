@@ -445,9 +445,9 @@ export class ECSSubscription {
   /**
    * Listen to component changes with specific conditions
    */
-  onComponentCondition<T>(
+  onEntityComponent<T>(
     componentType: ComponentType,
-    filter: Record<string, any>,
+    entityId: string,
     options?: SubscriptionOptions & { fields?: string[] }
   ): Observable<ECSSubscriptionResult<T>> {
     if (!isValidComponentType(componentType)) {
@@ -480,13 +480,22 @@ export class ECSSubscription {
               )
             : (result: ECSSubscriptionResult<T>) => observer.next(result);
 
-          const observable = this.graphqlClient.subscribeToFilteredTableChanges(
+          // Get component's primary key field name
+          const primaryKeyField =
+            this.getComponentPrimaryKeyField(componentType);
+
+          // Construct filter based on entityId and primary key
+          const entityFilter = {
+            [primaryKeyField]: { equalTo: entityId },
+          };
+
+          const observable = this.graphqlClient.subscribeToTableChanges(
             componentType,
-            filter,
             {
               initialEvent: options?.initialEvent ?? false,
               fields: subscriptionFields,
-              onData: (data) => {
+              filter: entityFilter,
+              onData: (data: any) => {
                 try {
                   const pluralTableName =
                     this.getPluralTableName(componentType);
@@ -513,13 +522,13 @@ export class ECSSubscription {
                   observer.error(error);
                 }
               },
-              onError: (error) => {
+              onError: (error: any) => {
                 observer.error(error);
               },
               onComplete: () => {
                 observer.complete();
               },
-            }
+            } as any
           );
 
           // Start subscription

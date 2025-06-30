@@ -185,8 +185,7 @@ pnpm tsx src/index.ts quick my-config.json
 
 ### 订阅测试
 
-1. **subscribeToTableChanges**: 监听表变化
-2. **subscribeToFilteredTableChanges**: 监听过滤后的表变化
+1. **subscribeToTableChanges**: 监听表变化（支持过滤）
 
 ## 📈 报告输出
 

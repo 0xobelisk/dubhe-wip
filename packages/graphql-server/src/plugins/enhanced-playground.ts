@@ -65,21 +65,21 @@ export function createEnhancedPlayground(
       favored resource bundler.
      -->
     <script
-      src="https://unpkg.com/graphiql/graphiql.min.js"
+      src="https://unpkg.com/graphiql@3.7.1/graphiql.min.js"
       type="application/javascript"
     ></script>
-    <link rel="stylesheet" href="https://unpkg.com/graphiql/graphiql.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/graphiql@3.7.1/graphiql.min.css" />
     <!--
       These are imports for the GraphIQL Explorer plugin.
      -->
     <script
-      src="https://unpkg.com/@graphiql/plugin-explorer/dist/index.umd.js"
+      src="https://unpkg.com/@graphiql/plugin-explorer@1.0.3/dist/index.umd.js"
       crossorigin
     ></script>
 
     <link
       rel="stylesheet"
-      href="https://unpkg.com/@graphiql/plugin-explorer/dist/style.css"
+      href="https://unpkg.com/@graphiql/plugin-explorer@1.0.3/dist/style.css"
     />
   </head>
 

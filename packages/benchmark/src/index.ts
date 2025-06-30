@@ -247,8 +247,9 @@ async function runSubscriptionBenchmark(
             }
           });
         case 'subscribeToFilteredTableChanges':
-          return client.subscribeToFilteredTableChanges(tableName, testConfig.params.filter, {
+          return client.subscribeToTableChanges(tableName, {
             ...testConfig.params,
+            filter: testConfig.params.filter,
             onData: (data) => {
               eventsReceived++;
               totalEventLatency += 10;
@@ -257,7 +258,7 @@ async function runSubscriptionBenchmark(
               errors++;
               log(`❌ 订阅错误: ${error instanceof Error ? error.message : String(error)}`, 'red');
             }
-          });
+          } as any);
         default:
           return client.subscribeToTableChanges(tableName, {
             ...testConfig.params,

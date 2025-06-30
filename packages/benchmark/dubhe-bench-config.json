@@ -84,7 +84,7 @@
       "duration": 30,
       "tests": [
         {
-          "type": "subscribeToFilteredTableChanges",
+          "type": "subscribeToTableChanges",
           "params": {
             "filter": { "createdAt": { "greaterThan": "2023-01-01T00:00:00Z" } },
             "initialEvent": true,
