@@ -119,6 +119,14 @@ export async function getOnchainComponents(
   return deployment.components;
 }
 
+export async function getOnchainResources(
+  projectPath: string,
+  network: string
+): Promise<Record<string, Component | MoveType>> {
+  const deployment = await getDeploymentJson(projectPath, network);
+  return deployment.resources;
+}
+
 export async function getVersion(projectPath: string, network: string): Promise<number> {
   const deployment = await getDeploymentJson(projectPath, network);
   return deployment.version;
@@ -546,4 +554,28 @@ export function updateMoveTomlAddress(path: string, packageAddress: string) {
   // Use regex to match any dubhe address, not just "0x0"
   const updatedContent = moveTomlContent.replace(/dubhe\s*=\s*"[^"]*"/, `dubhe = "${packageAddress}"`);
   fs.writeFileSync(moveTomlPath, updatedContent, 'utf-8');
+}
+
+export function updateGenesisUpgradeFunction(path: string, tables: string[]) {
+  const genesisPath = `${path}/sources/codegen/genesis.move`;
+  const genesisContent = fs.readFileSync(genesisPath, 'utf-8');
+
+  // Match the first pair of // ========================================== lines (with any content, including empty, between them)
+  const separatorRegex = /(\/\/ ==========================================)[\s\S]*?(\/\/ ==========================================)/;
+  const match = genesisContent.match(separatorRegex);
+
+  if (!match) {
+    throw new Error('Could not find separator comments in genesis.move');
+  }
+
+  // Generate new table registration code
+  const registerTablesCode = tables.map((table) => `    ${table}::register_table(dapp_hub, _ctx);`).join('\n');
+
+  // Build new content, preserve separators, replace middle content
+  const newContent = `${match[1]}\n${registerTablesCode}\n${match[2]}`;
+
+  // Replace matched content
+  const updatedContent = genesisContent.replace(separatorRegex, newContent);
+
+  fs.writeFileSync(genesisPath, updatedContent, 'utf-8');
 }

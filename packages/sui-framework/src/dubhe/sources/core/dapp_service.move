@@ -280,6 +280,7 @@ module dubhe::dapp_service {
         let mut dapp_metadata = dapp_store.get_dapp_metadata();
         let mut package_ids = dapp_metadata.get_package_ids();
         assert!(!package_ids.contains(&new_package_id), EInvalidPackageId);
+        assert!(new_version > dapp_metadata.get_version(), EInvalidVersion);
         package_ids.push_back(new_package_id);
         dapp_metadata.set_package_ids(package_ids);
         dapp_metadata.set_version(new_version);
