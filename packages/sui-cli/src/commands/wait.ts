@@ -2,12 +2,86 @@ import type { CommandModule } from 'yargs';
 import waitOn from 'wait-on';
 import ora from 'ora';
 import chalk from 'chalk';
+import net from 'net';
 
 interface WaitOptions {
   url?: string;
   localnet?: boolean;
   timeout: number;
   interval: number;
+}
+
+// Check if PostgreSQL port is occupied (service is running)
+async function checkPostgreSQLRunning(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    let isConnected = false;
+
+    // Set timeout for connection attempt
+    const timeout = setTimeout(() => {
+      socket.destroy();
+      if (!isConnected) {
+        resolve(false);
+      }
+    }, 2000);
+
+    socket.connect(5432, '127.0.0.1', () => {
+      isConnected = true;
+      clearTimeout(timeout);
+      socket.destroy();
+      resolve(true); // Port is occupied, PostgreSQL is running
+    });
+
+    socket.on('error', () => {
+      clearTimeout(timeout);
+      if (!isConnected) {
+        resolve(false); // Connection failed, PostgreSQL not running
+      }
+    });
+  });
+}
+
+// Wait for all localnet services with custom checks
+async function waitForLocalnetServices(options: WaitOptions): Promise<void> {
+  const spinner = ora({
+    text: 'Waiting for dubhe localnet services...',
+    color: 'cyan'
+  });
+
+  spinner.start();
+
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < options.timeout) {
+    try {
+      // Check HTTP services using wait-on (excluding 9000 port)
+      await waitOn({
+        resources: [
+          'http://127.0.0.1:9123', // Sui faucet
+          'http://127.0.0.1:4000' // GraphQL server
+        ],
+        timeout: options.interval,
+        interval: 500,
+        validateStatus: (status: number) => status === 200
+      });
+
+      // Check PostgreSQL separately
+      const postgresRunning = await checkPostgreSQLRunning();
+
+      if (postgresRunning) {
+        spinner.succeed(chalk.green('All dubhe localnet services are ready!'));
+        return;
+      }
+    } catch (error) {
+      // Continue waiting...
+    }
+
+    // Wait before next check
+    await new Promise((resolve) => setTimeout(resolve, options.interval));
+  }
+
+  // Timeout reached
+  throw new Error('Timeout waiting for services');
 }
 
 const commandModule: CommandModule = {
@@ -48,54 +122,31 @@ const commandModule: CommandModule = {
   async handler(argv) {
     const options = argv as unknown as WaitOptions;
 
-    let resources: string[];
-    let description: string;
-
-    if (options.localnet) {
-      // Dubhe localnet services
-      resources = [
-        'http://localhost:9000', // Sui localnode
-        'http://localhost:9123', // Sui faucet
-        'tcp:localhost:5432', // PostgreSQL database
-        'http://localhost:4000' // Dubhe GraphQL server
-      ];
-      description = 'dubhe localnet services';
-    } else {
-      // Single URL mode
-      resources = [options.url!];
-      description = options.url!;
-    }
-
-    const spinner = ora({
-      text: `Waiting for ${description}...`,
-      color: 'cyan'
-    });
-
-    spinner.start();
-
     try {
-      await waitOn({
-        resources,
-        timeout: options.timeout,
-        interval: options.interval,
-        validateStatus: (status: number) => status === 200
-      });
-
-      spinner.succeed(
-        chalk.green(
-          options.localnet ? 'All dubhe localnet services are ready!' : 'Service is ready!'
-        )
-      );
-
       if (options.localnet) {
-        console.log(chalk.gray('✓ Sui localnode (9000)'));
-        console.log(chalk.gray('✓ Sui faucet (9123)'));
-        console.log(chalk.gray('✓ PostgreSQL database (5432)'));
-        console.log(chalk.gray('✓ Dubhe GraphQL server (4000)'));
+        await waitForLocalnetServices(options);
+      } else {
+        // Single URL mode - use original wait-on logic
+        const spinner = ora({
+          text: `Waiting for ${options.url}...`,
+          color: 'cyan'
+        });
+
+        spinner.start();
+
+        await waitOn({
+          resources: [options.url!],
+          timeout: options.timeout,
+          interval: options.interval,
+          validateStatus: (status: number) => status === 200
+        });
+
+        spinner.succeed(chalk.green('Service is ready!'));
       }
 
       process.exit(0);
     } catch (error) {
+      const spinner = ora();
       spinner.fail(
         chalk.red(
           options.localnet

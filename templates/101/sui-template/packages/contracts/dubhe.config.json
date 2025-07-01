@@ -9,7 +9,8 @@
         ],
         "keys": [
           "entity_id"
-        ]
+        ],
+        "offchain": false
       }
     },
     {
@@ -24,7 +25,8 @@
         ],
         "keys": [
           "entity_id"
-        ]
+        ],
+        "offchain": false
       }
     }
   ],
@@ -36,10 +38,12 @@
             "value": "u32"
           }
         ],
-        "keys": []
+        "keys": [],
+        "offchain": false
       }
     }
   ],
   "enums": [],
-  "package_id": "0x5a54059488e0cf5e3af32afc377845653991ffbfaaef00402adb6dc25b97ff4b"
+  "package_id": "0xad3da7b0681b16830878dd908fb30418da7d86871c445866174aee28e45850d6",
+  "start_checkpoint": "95"
 }

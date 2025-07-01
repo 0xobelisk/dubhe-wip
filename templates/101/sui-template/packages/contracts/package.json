@@ -17,7 +17,7 @@
     "account:gen": "pnpm dubhe generate-key",
     "check-balance": "pnpm dubhe check-balance --network",
     "config:store": "pnpm dubhe config-store --output-ts-path ./deployment.ts --network",
-    "graphql": "docker-compose up",
+    "graphql": "docker-compose up --remove-orphans",
     "indexer": "dubhe-indexer",
     "// Development Environment": "----------------",
     "setup:localnet": "pnpm account:gen && pnpm faucet localnet && pnpm run deploy localnet && pnpm run config:store localnet && pnpm run indexer --force",
