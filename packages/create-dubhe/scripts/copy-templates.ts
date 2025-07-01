@@ -69,29 +69,35 @@ const __dirname = path.dirname(__filename);
 
   // Copy dubhe folder to templates
   const dubheSourcePath = path.join(rootDir, 'packages/sui-framework/src/dubhe');
-  
-  if (!await exists(dubheSourcePath)) {
+
+  if (!(await exists(dubheSourcePath))) {
     console.error(`Source dubhe folder not found at: ${dubheSourcePath}`);
     return;
   }
 
   const templates = await fs.readdir(destDir);
-  
+
   for (const template of templates) {
     const templatePath = path.join(destDir, template);
     const isContractTemplate = template.includes('contract');
-    const targetPath = isContractTemplate 
+    const targetPath = isContractTemplate
       ? path.join(templatePath, 'sui-template/src')
       : path.join(templatePath, 'sui-template/packages/contracts/src');
     const dubheDestPath = path.join(targetPath, 'dubhe');
-    
+
     try {
       await fs.mkdir(targetPath, { recursive: true });
-      await fs.cp(dubheSourcePath, dubheDestPath, { 
-        recursive: true, 
+      await fs.cp(dubheSourcePath, dubheDestPath, {
+        recursive: true,
         force: true,
         errorOnExist: false
       });
+
+      // Remove .history directory to avoid uploading test data
+      const historyPath = path.join(dubheDestPath, '.history');
+      if (await exists(historyPath)) {
+        await fs.rm(historyPath, { recursive: true });
+      }
     } catch (error) {
       console.error(`Error copying dubhe to ${template}: ${error}`);
     }

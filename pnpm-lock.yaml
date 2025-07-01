@@ -1419,16 +1419,16 @@ importers:
   packages/sui-framework:
     dependencies:
       '@0xobelisk/sui-cli':
-        specifier: workspace:*
+        specifier: link:../sui-cli
         version: link:../sui-cli
       '@0xobelisk/sui-client':
-        specifier: workspace:*
+        specifier: link:../sui-client
         version: link:../sui-client
       '@0xobelisk/sui-common':
-        specifier: workspace:*
+        specifier: link:../sui-common
         version: link:../sui-common
       '@0xobelisk/sui-indexer':
-        specifier: workspace:*
+        specifier: link:../sui-indexer
         version: link:../sui-indexer
       chalk:
         specifier: ^4.1.2
