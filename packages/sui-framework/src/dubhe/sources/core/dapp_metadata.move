@@ -11,7 +11,8 @@ public struct DappMetadata has copy, drop, store {
     package_ids: vector<address>,
     created_at: u64,
     admin: address,
-    version: u32
+    version: u32,
+    pausable: bool
 }
 
 public fun new(
@@ -23,7 +24,8 @@ public fun new(
     package_ids: vector<address>,
     created_at: u64,
     admin: address,
-    version: u32
+    version: u32,
+    pausable: bool
 ): DappMetadata {
     DappMetadata {
         name,
@@ -34,7 +36,8 @@ public fun new(
         package_ids,
         created_at,
         admin,
-        version
+        version,
+        pausable
     }
 }
 
@@ -75,6 +78,10 @@ public fun get_version(self: &DappMetadata): u32 {
     self.version
 }
 
+public fun get_pausable(self: &DappMetadata): bool {
+    self.pausable
+}
+
 public(package) fun set_name(self: &mut DappMetadata, name: String) {
     self.name = name;
 }
@@ -111,3 +118,6 @@ public(package) fun set_version(self: &mut DappMetadata, version: u32) {
     self.version = version;
 }
 
+public(package) fun set_pausable(self: &mut DappMetadata, pausable: bool) {
+    self.pausable = pausable;
+}

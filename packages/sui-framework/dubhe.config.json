@@ -8,7 +8,8 @@
             "value": "address"
           }
         ],
-        "keys": []
+        "keys": [],
+        "offchain": false
       }
     },
     {
@@ -30,7 +31,8 @@
             "admin": "address"
           }
         ],
-        "keys": []
+        "keys": [],
+        "offchain": false
       }
     },
     {
@@ -81,7 +83,8 @@
         ],
         "keys": [
           "asset_id"
-        ]
+        ],
+        "offchain": false
       }
     },
     {
@@ -103,7 +106,8 @@
         "keys": [
           "asset_id",
           "account"
-        ]
+        ],
+        "offchain": false
       }
     },
     {
@@ -134,7 +138,8 @@
         "keys": [
           "asset0",
           "asset1"
-        ]
+        ],
+        "offchain": false
       }
     },
     {
@@ -155,7 +160,8 @@
         ],
         "keys": [
           "chain"
-        ]
+        ],
+        "offchain": false
       }
     },
     {
@@ -177,7 +183,8 @@
             "fee": "u256"
           }
         ],
-        "keys": []
+        "keys": [],
+        "offchain": true
       }
     },
     {
@@ -196,7 +203,8 @@
             "amount": "u256"
           }
         ],
-        "keys": []
+        "keys": [],
+        "offchain": true
       }
     },
     {
@@ -211,56 +219,52 @@
         ],
         "keys": [
           "coin_type"
-        ]
+        ],
+        "offchain": false
       }
     }
   ],
   "enums": [
     {
-      "AccountStatus": {
-        "fields": [
-          {
-            "0": "Blocked"
-          },
-          {
-            "1": "Frozen"
-          },
-          {
-            "2": "Liquid"
-          }
-        ]
-      }
+      "AccountStatus": [
+        {
+          "0": "Blocked"
+        },
+        {
+          "1": "Frozen"
+        },
+        {
+          "2": "Liquid"
+        }
+      ]
     },
     {
-      "AssetStatus": {
-        "fields": [
-          {
-            "0": "Frozen"
-          },
-          {
-            "1": "Liquid"
-          }
-        ]
-      }
+      "AssetStatus": [
+        {
+          "0": "Frozen"
+        },
+        {
+          "1": "Liquid"
+        }
+      ]
     },
     {
-      "AssetType": {
-        "fields": [
-          {
-            "0": "Lp"
-          },
-          {
-            "1": "Package"
-          },
-          {
-            "2": "Private"
-          },
-          {
-            "3": "Wrapped"
-          }
-        ]
-      }
+      "AssetType": [
+        {
+          "0": "Lp"
+        },
+        {
+          "1": "Package"
+        },
+        {
+          "2": "Private"
+        },
+        {
+          "3": "Wrapped"
+        }
+      ]
     }
   ],
-  "package_id": "0x4edf6a78f101645ad7bd4c713a29ddbe6c651673fde083fc2d45cd58e6e05b2b"
+  "package_id": "0x4727fa99ca6aa1f426572107ba49a39ee266a6e60d4891d1c8039fb76bfa423b",
+  "start_checkpoint": "436"
 }

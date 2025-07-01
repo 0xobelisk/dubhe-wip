@@ -17,6 +17,7 @@ module dubhe::dapp_service {
     const EInvalidPackageId: u64 = 7;
     const ENoPermissionAdmin: u64 = 8;
     const EInvalidVersion: u64 = 9;
+    const EDappAlreadyPaused: u64 = 10;
 
 
     /// Storage structure
@@ -287,6 +288,19 @@ module dubhe::dapp_service {
         dapp_store.set_dapp_metadata(dapp_metadata);
     } 
 
+    public fun set_pausable<DappKey: copy + drop>(
+        self: &mut DappHub,
+        _: DappKey,
+        pausable: bool
+    ) {
+        let dapp_key = type_name::get<DappKey>().into_string();
+        let dapp_store = self.dapp_stores.borrow_mut(dapp_key);
+        assert!(dapp_store.get_dapp_key() == dapp_key, ENoPermissionPackageId);
+        let mut dapp_metadata = dapp_store.get_dapp_metadata();
+        dapp_metadata.set_pausable(pausable);
+        dapp_store.set_dapp_metadata(dapp_metadata);
+    }
+
     public fun ensure_dapp_admin<DappKey: copy + drop>(
         self: &DappHub,
         admin: address
@@ -305,6 +319,15 @@ module dubhe::dapp_service {
         let dapp_store = self.dapp_stores.borrow(dapp_key);
         let dapp_metadata = dapp_store.get_dapp_metadata();
         assert!(dapp_metadata.get_version() == version, EInvalidVersion);
+    }
+
+    public fun ensure_not_pausable<DappKey: copy + drop>(
+        self: &DappHub
+    ) {
+        let dapp_key = type_name::get<DappKey>().into_string();
+        let dapp_store = self.dapp_stores.borrow(dapp_key);
+        let dapp_metadata = dapp_store.get_dapp_metadata();
+        assert!(!dapp_metadata.get_pausable(), EDappAlreadyPaused);
     }
 
     #[test_only]

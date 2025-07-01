@@ -58,7 +58,8 @@ module dubhe::dapp_store {
                 vector::empty(), 
                 clock::timestamp_ms(clock),
                 ctx.sender(),
-                1
+                1,
+                false
             ),
             dapp_fee_state: dapp_fee_state::default(),
             tables: table::new(ctx),

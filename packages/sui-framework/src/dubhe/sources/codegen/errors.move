@@ -24,22 +24,6 @@
 
   #[error]
 
-  const ASSET_NOT_LIQUID: vector<u8> = b"Asset not liquid";
-
-  public fun asset_not_liquid_error(condition: bool) {
-    assert!(condition, ASSET_NOT_LIQUID)
-  }
-
-  #[error]
-
-  const ASSET_NOT_FROZEN: vector<u8> = b"Asset not frozen";
-
-  public fun asset_not_frozen_error(condition: bool) {
-    assert!(condition, ASSET_NOT_FROZEN)
-  }
-
-  #[error]
-
   const INVALID_SENDER: vector<u8> = b"Invalid sender";
 
   public fun invalid_sender_error(condition: bool) {
@@ -136,14 +120,6 @@
 
   #[error]
 
-  const POOL_ALREADY_EXISTS: vector<u8> = b"Pool already exists";
-
-  public fun pool_already_exists_error(condition: bool) {
-    assert!(condition, POOL_ALREADY_EXISTS)
-  }
-
-  #[error]
-
   const BELOW_MIN_AMOUNT: vector<u8> = b"Amount is below minimum";
 
   public fun below_min_amount_error(condition: bool) {
@@ -152,26 +128,10 @@
 
   #[error]
 
-  const BELOW_MIN_LIQUIDITY: vector<u8> = b"Amount is below liquidity";
-
-  public fun below_min_liquidity_error(condition: bool) {
-    assert!(condition, BELOW_MIN_LIQUIDITY)
-  }
-
-  #[error]
-
   const LIQUIDITY_CANNOT_BE_ZERO: vector<u8> = b"Liquidity cannot be 0";
 
   public fun liquidity_cannot_be_zero_error(condition: bool) {
     assert!(condition, LIQUIDITY_CANNOT_BE_ZERO)
-  }
-
-  #[error]
-
-  const POOL_NOT_FOUND: vector<u8> = b"Pool not found";
-
-  public fun pool_not_found_error(condition: bool) {
-    assert!(condition, POOL_NOT_FOUND)
   }
 
   #[error]
@@ -232,57 +192,9 @@
 
   #[error]
 
-  const CHAIN_NOT_SUPPORTED: vector<u8> = b"Chain not supported";
-
-  public fun chain_not_supported_error(condition: bool) {
-    assert!(condition, CHAIN_NOT_SUPPORTED)
-  }
-
-  #[error]
-
   const BRIDGE_NOT_OPENED: vector<u8> = b"Bridge is not opened";
 
   public fun bridge_not_opened_error(condition: bool) {
     assert!(condition, BRIDGE_NOT_OPENED)
-  }
-
-  #[error]
-
-  const BELOW_MIN_BRIDGE_AMOUNT: vector<u8> = b"Amount is below minimum";
-
-  public fun below_min_bridge_amount_error(condition: bool) {
-    assert!(condition, BELOW_MIN_BRIDGE_AMOUNT)
-  }
-
-  #[error]
-
-  const NOT_DAPP_ADMIN: vector<u8> = b"Not dapp admin";
-
-  public fun not_dapp_admin_error(condition: bool) {
-    assert!(condition, NOT_DAPP_ADMIN)
-  }
-
-  #[error]
-
-  const NOT_DAPP_LATEST_VERSION: vector<u8> = b"Not dapp latest version";
-
-  public fun not_dapp_latest_version_error(condition: bool) {
-    assert!(condition, NOT_DAPP_LATEST_VERSION)
-  }
-
-  #[error]
-
-  const NOT_DAPP_PAUSABLE: vector<u8> = b"Dapp is not pausable";
-
-  public fun not_dapp_pausable_error(condition: bool) {
-    assert!(condition, NOT_DAPP_PAUSABLE)
-  }
-
-  #[error]
-
-  const DAPP_ALREADY_EXISTS: vector<u8> = b"Dapp already exists";
-
-  public fun dapp_already_exists_error(condition: bool) {
-    assert!(condition, DAPP_ALREADY_EXISTS)
   }
 }
