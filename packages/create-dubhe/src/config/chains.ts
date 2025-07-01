@@ -30,12 +30,6 @@ const TEMPLATES = {
     description: 'Contract template',
     value: 'contract',
     path: 'contract/{chain}-template'
-  },
-  COCOS: {
-    title: 'Cocos',
-    description: 'Cocos Creator',
-    value: 'cocos',
-    path: 'cocos/{chain}-template'
   }
 } as const;
 
@@ -44,13 +38,13 @@ export const CHAINS: Chain[] = [
     title: 'sui',
     description: 'Sui',
     value: 'sui',
-    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT, TEMPLATES.COCOS]
+    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT]
   },
   {
     title: 'aptos',
     description: 'Aptos',
     value: 'aptos',
-    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT, TEMPLATES.COCOS]
+    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT]
   },
   {
     title: 'rooch',
