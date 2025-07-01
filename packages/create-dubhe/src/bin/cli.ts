@@ -148,13 +148,6 @@ const init = async () => {
       console.log(styles.command, `  ${pkgManager} install`);
       console.log(styles.command, `  ${pkgManager} dubhe doctor`);
       break;
-    case 'cocos':
-      console.log(styles.command, `  import project by cocos create ide`);
-      console.log(styles.command, `  ${pkgManager} install`);
-      console.log(styles.command, `  ${pkgManager} dubhe doctor`);
-      console.log(styles.command, `  ${pkgManager} run dev`);
-      console.log(styles.command, `  start your cocos project`);
-      break;
   }
 
   console.log(styles.separator, '\n' + '='.repeat(60) + '\n');
