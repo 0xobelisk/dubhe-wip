@@ -41,13 +41,11 @@ yarn-error.log*
 next-env.d.ts
 
 # dubhe 
-.history
+src/dubhe/.history
 src/dubhe/Move.lock
 **/build/
 indexer.db
 node_logs
 mprocs.log
 .data/
-
-src/dubhe/
 .chk
