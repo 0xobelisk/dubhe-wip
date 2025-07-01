@@ -1,107 +1,107 @@
 /**
- * ECS Monster Hunter 测试脚本
+ * ECS Monster Hunter Test Script
  *
- * 使用最新的 Dubhe ECS 系统测试 monster_hunter 游戏的组件查询
- * 主要测试 position 和 player 组件的查询功能
+ * Test the monster_hunter game component queries using the latest Dubhe ECS system
+ * Mainly test position and player component query functionality
  */
 
 import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
 import { createECSWorld, DubheECSWorld } from '../src';
 import dubheMetadata from '../dubhe.config_1.json';
 
-// GraphQL 端点配置
+// GraphQL endpoint configuration
 const GRAPHQL_ENDPOINT =
   process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
 
 /**
- * 主测试函数
+ * Main test function
  */
 async function testMonsterHunterECS() {
-  console.log('🎮 === Monster Hunter ECS 测试 ===\n');
+  console.log('🎮 === Monster Hunter ECS Test ===\n');
 
   let world: DubheECSWorld | null = null;
 
   try {
-    // 1. 创建 GraphQL client（使用 dubhe 配置）
-    console.log('🔌 创建 GraphQL client...');
+    // 1. Create GraphQL client (using dubhe configuration)
+    console.log('🔌 Creating GraphQL client...');
     const client = createDubheGraphqlClient({
       endpoint: GRAPHQL_ENDPOINT,
       dubheMetadata,
     });
 
-    // 2. 创建 ECS world（自动使用 dubhe-config 模式）
-    console.log('🌍 创建 ECS world...');
+    // 2. Create ECS world (automatically uses dubhe-config mode)
+    console.log('🌍 Creating ECS world...');
     world = createECSWorld(client);
 
-    // 3. 使用新的Observable订阅模式
-    console.log('📡 开始订阅组件变化...');
+    // 3. Use new Observable subscription mode
+    console.log('📡 Starting component change subscription...');
 
     const subscription = world
       .onComponentChanged<any>('counter1', {
         initialEvent: true,
-        // debounceMs: 500, // 500ms 防抖
+        // debounceMs: 500, // 500ms debounce
       })
       .subscribe({
         next: (result: any) => {
-          // 更严格地检查result对象的结构
+          // More strictly check the structure of result object
           console.log(
-            `📢 [${new Date().toLocaleTimeString()}] 实体 ${result.entityId} 的 counter1 组件发生变化:`
+            `📢 [${new Date().toLocaleTimeString()}] Entity ${result.entityId} counter1 component changed:`
           );
-          console.log(`  - 变化类型: ${result.changeType}`);
-          console.log(`  - 组件数据:`, result.data);
-          console.log(`  - 时间戳: ${result.timestamp}`);
+          console.log(`  - Change type: ${result.changeType}`);
+          console.log(`  - Component data:`, result.data);
+          console.log(`  - Timestamp: ${result.timestamp}`);
           console.log('---');
         },
         error: (error: any) => {
-          console.error('❌ 订阅失败:', error);
+          console.error('❌ Subscription failed:', error);
         },
         complete: () => {
-          console.log('✅ 订阅完成');
+          console.log('✅ Subscription completed');
         },
       });
 
-    // // 4. 查询一个实体作为测试
-    // console.log('🔍 查询实体数据...');
+    // // 4. Query an entity as test
+    // console.log('🔍 Querying entity data...');
     // try {
     //   const entity = await world.getEntity(
     //     '0xd7b69493da10a0e733b13d3213b20beb1630a50b949876b352b002f4818a9388'
     //   );
-    //   console.log('📊 实体数据:', entity);
+    //   console.log('📊 Entity data:', entity);
     // } catch (error) {
-    //   console.log('⚠️ 实体查询失败，可能实体不存在');
+    //   console.log('⚠️ Entity query failed, entity may not exist');
     // }
 
-    // 5. 查询所有实体
-    console.log('🔍 查询所有实体...');
+    // 5. Query all entities
+    console.log('🔍 Querying all entities...');
     try {
       const entities = await world.getAllEntities();
-      console.log(`📊 找到 ${entities.length} 个实体`);
+      console.log(`📊 Found ${entities.length} entities`);
       if (entities.length > 0) {
-        console.log('前几个实体ID:', entities.slice(0, 3));
+        console.log('First few entity IDs:', entities.slice(0, 3));
       }
     } catch (error) {
-      console.log('⚠️ 实体列表查询失败');
+      console.log('⚠️ Entity list query failed');
     }
 
-    // 6. 运行一段时间后清理
-    console.log('⏰ 订阅将在30秒后自动停止...');
+    // 6. Clean up after running for a while
+    console.log('⏰ Subscription will automatically stop after 30 seconds...');
     setTimeout(() => {
-      console.log('🛑 停止订阅...');
+      console.log('🛑 Stopping subscription...');
       subscription.unsubscribe();
-      console.log('✅ 测试完成');
+      console.log('✅ Test completed');
       process.exit(0);
     }, 3000000);
   } catch (error) {
-    console.error('❌ 测试失败:', error);
+    console.error('❌ Test failed:', error);
     process.exit(1);
   }
 }
 
-// 处理程序退出
+// Handle program exit
 process.on('SIGINT', () => {
-  console.log('\n🛑 收到退出信号，清理资源...');
+  console.log('\n🛑 Received exit signal, cleaning up resources...');
   process.exit(0);
 });
 
-console.log('🚀 启动 ECS 订阅测试...');
+console.log('🚀 Starting ECS subscription test...');
 testMonsterHunterECS();

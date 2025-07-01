@@ -1,50 +1,50 @@
-# ECS 包更新文档
+# ECS Package Update Documentation
 
-## 概述
+## Overview
 
-本次更新为 ECS 包添加了基于 **DubheMetadata JSON 格式**的自动配置解析功能，实现了 Components 和 Resources 的正确分离，并为每种类型提供了专门的查询方法。
+This update adds automatic configuration parsing functionality based on **DubheMetadata JSON format** to the ECS package, achieving proper separation of Components and Resources, and providing dedicated query methods for each type.
 
-## 主要变化
+## Main Changes
 
-### 1. 灵活的配置方式
+### 1. Flexible Configuration Options
 
-**DubheMetadata 现在是可选项**，系统支持多种配置方式：
+**DubheMetadata is now optional**, the system supports multiple configuration approaches:
 
 ```typescript
-// 方式1: 从 GraphQL client 获取 dubheMetadata（推荐）
+// Method 1: Get dubheMetadata from GraphQL client (recommended)
 const graphqlClient = createDubheGraphqlClient({
   endpoint: 'http://localhost:3001/graphql',
-  dubheMetadata: jsonMetadata, // 在 GraphQL client 中提供
+  dubheMetadata: jsonMetadata, // Provide in GraphQL client
 });
-const world = createECSWorld(graphqlClient); // 自动获取
+const world = createECSWorld(graphqlClient); // Auto retrieve
 
-// 方式2: 在 ECS config 中显式提供
+// Method 2: Explicitly provide in ECS config
 const world = createECSWorld(graphqlClient, {
-  dubheMetadata: jsonMetadata, // 显式提供
+  dubheMetadata: jsonMetadata, // Explicitly provide
 });
 
-// 方式3: 最简配置（仅需要 GraphQL client）
-const world = createECSWorld(graphqlClient); // 使用所有默认值
+// Method 3: Minimal configuration (only requires GraphQL client)
+const world = createECSWorld(graphqlClient); // Use all defaults
 ```
 
-### 2. 智能元数据获取
+### 2. Smart Metadata Retrieval
 
-系统按以下优先级获取 DubheMetadata：
-1. **ECS Config** 中显式提供的 `dubheMetadata`
-2. **GraphQL Client** 中的 `dubheMetadata`
-3. 如果都没有，抛出清晰的错误信息
+The system retrieves DubheMetadata in the following priority order:
+1. **ECS Config** - explicitly provided `dubheMetadata`
+2. **GraphQL Client** - `dubheMetadata` in client
+3. If neither exists, throws a clear error message
 
-### 3. 自动类型分离
+### 3. Automatic Type Separation
 
-系统会自动根据主键配置将表分为两类：
+The system automatically categorizes tables into two types based on primary key configuration:
 
-- **ECS Components** - 单主键表，用于传统ECS操作
-- **Resources** - 复合主键或无主键表，用于资源管理
+- **ECS Components** - Single primary key tables, used for traditional ECS operations
+- **Resources** - Composite primary key or no primary key tables, used for resource management
 
-### 4. 新增类型定义
+### 4. New Type Definitions
 
 ```typescript
-// DubheMetadata JSON 格式
+// DubheMetadata JSON format
 export type DubheMetadata = {
   components: Array<
     Record<
@@ -67,9 +67,9 @@ export type DubheMetadata = {
   enums: any[];
 };
 
-// ECS世界配置（所有字段都是可选的）
+// ECS World configuration (all fields are optional)
 export interface ECSWorldConfig {
-  dubheMetadata?: DubheMetadata; // 可选，从 GraphQL client 获取
+  dubheMetadata?: DubheMetadata; // Optional, retrieved from GraphQL client
   queryConfig?: {
     defaultCacheTimeout?: number;
     maxConcurrentQueries?: number;
@@ -83,54 +83,54 @@ export interface ECSWorldConfig {
 }
 ```
 
-### 5. 分离规则
+### 5. Separation Rules
 
-#### ECS Components（单主键表）
-- **条件**：`primaryKeys.length === 1`
-- **用途**：传统ECS实体-组件操作
-- **方法**：`queryWith()`, `onComponentChanged()`, `getComponent()` 等
+#### ECS Components (Single primary key tables)
+- **Condition**: `primaryKeys.length === 1`
+- **Purpose**: Traditional ECS entity-component operations
+- **Methods**: `queryWith()`, `onComponentChanged()`, `getComponent()`, etc.
 
-#### Resources（复合主键或无主键表）
-- **条件**：`primaryKeys.length !== 1`
-- **用途**：资源管理和全局状态
-- **方法**：`getResource()`, `getResources()`, `subscribeToResourceChanges()` 等
+#### Resources (Composite primary key or no primary key tables)
+- **Condition**: `primaryKeys.length !== 1`
+- **Purpose**: Resource management and global state
+- **Methods**: `getResource()`, `getResources()`, `subscribeToResourceChanges()`, etc.
 
-## 使用示例
+## Usage Examples
 
-### 配置 DubheMetadata
+### Configure DubheMetadata
 
 ```typescript
 const dubheMetadata: DubheMetadata = {
   components: [
     {
-      // ECS组件：单主键
+      // ECS component: single primary key
       Player: {
         fields: [{ name: 'string' }, { level: 'u32' }],
-        keys: [], // 空数组 = 使用默认 entityId
+        keys: [], // Empty array = use default entityId
       },
     },
     {
-      // ECS组件：自定义单主键
+      // ECS component: custom single primary key
       UserProfile: {
         fields: [{ userId: 'string' }, { email: 'string' }],
-        keys: ['userId'], // 单主键
+        keys: ['userId'], // Single primary key
       },
     },
   ],
   
   resources: [
     {
-      // 资源：复合主键
+      // Resource: composite primary key
       Position: {
         fields: [{ x: 'u32' }, { y: 'u32' }],
-        keys: ['x', 'y'], // 复合主键
+        keys: ['x', 'y'], // Composite primary key
       },
     },
     {
-      // 资源：无主键
+      // Resource: no primary key
       GameLog: {
         fields: [{ action: 'string' }, { data: 'string' }],
-        keys: [], // 无主键
+        keys: [], // No primary key
       },
     },
   ],
@@ -139,21 +139,21 @@ const dubheMetadata: DubheMetadata = {
 };
 ```
 
-### 创建 ECS World
+### Create ECS World
 
-#### 方式1：从 GraphQL Client 获取（推荐）
+#### Method 1: Retrieve from GraphQL Client (Recommended)
 
 ```typescript
 import { createDubheGraphqlClient, createECSWorld } from '@0xobelisk/ecs';
 
-// 创建GraphQL客户端，包含dubheMetadata
+// Create GraphQL client with dubheMetadata
 const graphqlClient = createDubheGraphqlClient({
   endpoint: 'http://localhost:3001/graphql',
   subscriptionEndpoint: 'ws://localhost:3001/graphql',
-  dubheMetadata, // 在 GraphQL client 中提供
+  dubheMetadata, // Provide in GraphQL client
 });
 
-// 创建ECS世界 - 自动从 GraphQL client 获取 dubheMetadata
+// Create ECS world - automatically retrieve dubheMetadata from GraphQL client
 const world = createECSWorld(graphqlClient, {
   queryConfig: {
     defaultCacheTimeout: 5 * 60 * 1000,
@@ -163,18 +163,18 @@ const world = createECSWorld(graphqlClient, {
 });
 ```
 
-#### 方式2：显式提供 DubheMetadata
+#### Method 2: Explicitly Provide DubheMetadata
 
 ```typescript
-// 创建GraphQL客户端（不包含dubheMetadata）
+// Create GraphQL client (without dubheMetadata)
 const graphqlClient = createDubheGraphqlClient({
   endpoint: 'http://localhost:3001/graphql',
   subscriptionEndpoint: 'ws://localhost:3001/graphql',
 });
 
-// 创建ECS世界 - 显式提供 dubheMetadata
+// Create ECS world - explicitly provide dubheMetadata
 const world = createECSWorld(graphqlClient, {
-  dubheMetadata, // 在 ECS config 中显式提供
+  dubheMetadata, // Explicitly provide in ECS config
   subscriptionConfig: {
     defaultDebounceMs: 100,
     maxSubscriptions: 50,
@@ -183,117 +183,117 @@ const world = createECSWorld(graphqlClient, {
 });
 ```
 
-#### 方式3：最简配置
+#### Method 3: Minimal Configuration
 
 ```typescript
-// 创建GraphQL客户端，包含dubheMetadata
+// Create GraphQL client with dubheMetadata
 const graphqlClient = createDubheGraphqlClient({
   endpoint: 'http://localhost:3001/graphql',
   dubheMetadata,
 });
 
-// 最简配置 - 使用所有默认值
+// Minimal configuration - use all defaults
 const world = createECSWorld(graphqlClient);
 ```
 
-### 查询示例
+### Query Examples
 
-#### ECS Components 查询
+#### ECS Components Query
 
 ```typescript
-// 查询拥有特定组件的所有实体
+// Query all entities with specific component
 const playerEntities = await world.queryWith('Player');
 
-// 获取特定实体的组件数据
+// Get component data for specific entity
 const playerData = await world.getComponent<PlayerComponent>('entity123', 'Player');
 
-// 订阅组件变化
+// Subscribe to component changes
 const subscription = world.onComponentChanged<PlayerComponent>('Player', {
   onData: (data) => console.log('Player changed:', data),
 });
 ```
 
-#### Resources 查询
+#### Resources Query
 
 ```typescript
-// 查询单个资源（根据主键）
+// Query single resource (by primary key)
 const position = await world.getResource<PositionResource>('Position', {
   x: 10,
   y: 20,
 });
 
-// 查询多个资源
+// Query multiple resources
 const gameLogs = await world.getResources<GameLogResource>('GameLog', {
   action: 'player_move',
 });
 
-// 订阅资源变化
+// Subscribe to resource changes
 const resourceSub = world.subscribeToResourceChanges<PositionResource>('Position', {
   filter: { x: { greaterThan: 0 } },
   onData: (data) => console.log('Position changed:', data),
 });
 ```
 
-## API 参考
+## API Reference
 
-### 工厂函数
+### Factory Function
 
 ```typescript
 createECSWorld(
   graphqlClient: DubheGraphqlClient,
-  config?: Partial<ECSWorldConfig> // 现在是可选的
+  config?: Partial<ECSWorldConfig> // Now optional
 ): DubheECSWorld
 ```
 
-### World 方法
+### World Methods
 
 #### ECS Components
-- `getAvailableComponents()` - 获取所有ECS组件类型
-- `getComponentMetadata(type)` - 获取组件元数据
-- `queryWith(component, options?)` - 查询拥有组件的实体
-- `getComponent<T>(entityId, component)` - 获取实体组件数据
-- `onComponentChanged<T>(component, options?)` - 订阅组件变化
+- `getAvailableComponents()` - Get all ECS component types
+- `getComponentMetadata(type)` - Get component metadata
+- `queryWith(component, options?)` - Query entities with component
+- `getComponent<T>(entityId, component)` - Get entity component data
+- `onComponentChanged<T>(component, options?)` - Subscribe to component changes
 
 #### Resources
-- `getAvailableResources()` - 获取所有资源类型
-- `getResourceMetadata(type)` - 获取资源元数据
-- `getResource<T>(type, keyValues, options?)` - 查询单个资源
-- `getResources<T>(type, filters?, options?)` - 查询多个资源
-- `subscribeToResourceChanges<T>(type, options?)` - 订阅资源变化
+- `getAvailableResources()` - Get all resource types
+- `getResourceMetadata(type)` - Get resource metadata
+- `getResource<T>(type, keyValues, options?)` - Query single resource
+- `getResources<T>(type, filters?, options?)` - Query multiple resources
+- `subscribeToResourceChanges<T>(type, options?)` - Subscribe to resource changes
 
-#### 配置
-- `getDubheMetadata()` - 获取JSON格式元数据
-- `configure(config)` - 动态更新配置
+#### Configuration
+- `getDubheMetadata()` - Get JSON format metadata
+- `configure(config)` - Dynamically update configuration
 
-## 升级指南
+## Upgrade Guide
 
-### 从旧版本升级
+### Upgrading from Previous Version
 
-1. **现在 config 参数是可选的**：
+1. **The config parameter is now optional**:
    ```typescript
-   // ✅ 新版本 - 更简洁
-   const world = createECSWorld(graphqlClient); // config 可选
+   // ✅ New version - more concise
+   const world = createECSWorld(graphqlClient); // config optional
    
-   // ✅ 也支持完整配置
+   // ✅ Also supports full configuration
    const world = createECSWorld(graphqlClient, {
-     dubheMetadata, // 可选
+     dubheMetadata, // Optional
      queryConfig: { /* ... */ },
    });
    ```
 
-2. **推荐使用 GraphQL client 提供 dubheMetadata**：
+2. **Recommended to provide dubheMetadata via GraphQL client**:
    ```typescript
-   // ✅ 推荐方式
+   // ✅ Recommended approach
    const graphqlClient = createDubheGraphqlClient({
      endpoint: 'http://localhost:3001/graphql',
-     dubheMetadata, // 在这里提供
+     dubheMetadata, // Provide here
    });
    const world = createECSWorld(graphqlClient);
    ```
 
-3. **错误处理更清晰**：
+3. **Clearer error handling**:
    ```typescript
-   // 如果没有提供 dubheMetadata，会得到清晰的错误信息
+   // If dubheMetadata is not provided, you'll get a clear error message
    try {
      const world = createECSWorld(graphqlClientWithoutMetadata);
    } catch (error) {
@@ -303,46 +303,46 @@ createECSWorld(
    }
    ```
 
-## 优势
+## Benefits
 
-1. **灵活性**：支持多种配置方式，适应不同使用场景
-2. **简化**：最简情况下只需要 GraphQL client
-3. **一致性**：与 GraphQL client 共享 dubheMetadata，避免重复配置
-4. **智能获取**：自动选择最佳的 metadata 来源
-5. **向后兼容**：现有代码无需修改即可工作
-6. **类型安全**：提供完整的TypeScript类型支持
+1. **Flexibility**: Supports multiple configuration approaches, adapting to different use cases
+2. **Simplification**: Minimal case requires only GraphQL client
+3. **Consistency**: Shares dubheMetadata with GraphQL client, avoiding duplicate configuration
+4. **Smart Retrieval**: Automatically selects the best metadata source
+5. **Backward Compatibility**: Existing code works without modification
+6. **Type Safety**: Provides complete TypeScript type support
 
-## 故障排除
+## Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **元数据未找到错误**：
+1. **Metadata not found error**:
    ```
    DubheMetadata is required for ECS World initialization.
    ```
-   **解决**：确保在 GraphQL client 或 ECS config 中提供了 dubheMetadata
+   **Solution**: Ensure dubheMetadata is provided in either GraphQL client or ECS config
 
-2. **组件未发现**：
-   检查组件是否为单主键表，复合主键表会被分类为资源
+2. **Component not found**:
+   Check if component is a single primary key table, composite primary key tables are classified as resources
 
-3. **优先级问题**：
-   ECS config 中的 dubheMetadata 优先级高于 GraphQL client 中的
+3. **Priority issues**:
+   dubheMetadata in ECS config has higher priority than in GraphQL client
 
-### 调试信息
+### Debug Information
 
-系统会自动显示 metadata 来源：
+The system automatically displays metadata source:
 ```typescript
-// 控制台输出示例：
+// Console output example:
 // 📥 Using DubheMetadata from GraphQL client
 // 📥 Using DubheMetadata from ECS config
 ```
 
-查看发现结果：
+View discovery results:
 ```typescript
 console.log('ECS Components:', world.getAvailableComponents());
 console.log('Resources:', world.getAvailableResources());
 ```
 
-## 示例项目
+## Example Project
 
-参考 `packages/ecs/scripts/examples-dubhe-config.ts` 获取完整示例，包含所有三种配置方式的演示。 
+Refer to `packages/ecs/scripts/examples-dubhe-config.ts` for complete examples, including demonstrations of all three configuration approaches. 

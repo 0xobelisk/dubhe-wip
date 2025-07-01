@@ -62,7 +62,7 @@ pub async fn send_notification(
     Ok(())
 }
 
-// 为 store 表创建通知
+// Create notifications for store tables
 pub async fn notify_store_change(
     conn: &mut PgPoolConnection<'_>,
     table_name: &str,
@@ -70,18 +70,18 @@ pub async fn notify_store_change(
     key_values: &[(String, serde_json::Value)],
     value_values: &[(String, serde_json::Value)],
 ) -> Result<()> {
-    // 修复通道名称格式，使其与GraphQL服务器监听的格式匹配
+    // Fix channel name format to match the format listened by GraphQL server
     let table_name_with_prefix = format!("store_{}", table_name);
     let channel = format!("table:{}:change", table_name_with_prefix);
 
     let mut data = json!({});
 
-    // 添加键值
+    // Add key values
     for (key, value) in key_values {
         data[key] = value.clone();
     }
 
-    // 添加普通值
+    // Add regular values
     for (key, value) in value_values {
         data[key] = value.clone();
     }
@@ -90,15 +90,15 @@ pub async fn notify_store_change(
 
     send_notification(conn, &channel, payload.clone()).await?;
 
-    // 也发送到通用频道
+    // Also send to general channel
     send_notification(conn, "store:all", payload).await?;
 
     Ok(())
 }
 
-// 创建触发器函数和触发器
+// Create trigger functions and triggers
 pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Result<()> {
-    // 创建更简单的触发器函数，修复时间戳格式
+    // Create a simpler trigger function with fixed timestamp format
     let create_function = r#"
     CREATE OR REPLACE FUNCTION tg__graphql_subscription() RETURNS trigger AS $$
     DECLARE
@@ -107,7 +107,7 @@ pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Res
         v_payload jsonb;
         v_record jsonb;
     BEGIN
-        -- 确定事件类型
+        -- Determine event type
         IF TG_OP = 'INSERT' THEN
             v_event = 'create';
             v_record = to_jsonb(NEW);
@@ -121,10 +121,10 @@ pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Res
             RETURN NULL;
         END IF;
         
-        -- 构建主题
+        -- Build topic
         v_topic = format('table:%s:change', TG_TABLE_NAME);
         
-        -- 构建简化的 payload，使用ISO格式的时间戳
+        -- Build simplified payload with ISO format timestamp
         v_payload = jsonb_build_object(
             'event', v_event,
             'table', TG_TABLE_NAME,
@@ -133,13 +133,13 @@ pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Res
             'timestamp', current_timestamp::text
         );
         
-        -- 发送通知
+        -- Send notification
         PERFORM pg_notify(v_topic, v_payload::text);
         
-        -- 也发送到通用频道
+        -- Also send to general channel
         PERFORM pg_notify('store:all', v_payload::text);
         
-        -- 返回适当的记录
+        -- Return appropriate record
         IF TG_OP = 'DELETE' THEN
             RETURN OLD;
         ELSE
@@ -156,7 +156,7 @@ pub async fn setup_notification_triggers(conn: &mut PgPoolConnection<'_>) -> Res
     Ok(())
 }
 
-// 为特定表创建触发器
+// Create trigger for specific table
 pub async fn create_table_trigger(
     conn: &mut PgPoolConnection<'_>,
     table_name: &str,
@@ -165,11 +165,11 @@ pub async fn create_table_trigger(
     let trigger_name = format!("_notify_{}", table_name);
     let ops = operations.join(" OR ");
 
-    // 先删除旧触发器（如果存在）
+    // Delete old trigger first (if exists)
     let drop_trigger = format!("DROP TRIGGER IF EXISTS {} ON {}", trigger_name, table_name);
     diesel::sql_query(&drop_trigger).execute(conn).await?;
 
-    // 创建新触发器 - 修复触发器函数调用，不传递额外参数
+    // Create new trigger - fix trigger function call, don't pass extra parameters
     let create_trigger = format!(
         r#"CREATE TRIGGER {}
         AFTER {}

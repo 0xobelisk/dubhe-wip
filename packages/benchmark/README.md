@@ -1,22 +1,22 @@
-# Dubhe GraphQL 智能压测工具
+# Dubhe GraphQL Intelligent Load Testing Tool
 
-这是一个智能化的 GraphQL 性能压测工具，能够自动解析 Dubhe config 文件，基于表结构生成针对性的压测用例。
+This is an intelligent GraphQL performance testing tool that can automatically parse Dubhe config files and generate targeted test cases based on table structure.
 
-## ✨ 特性
+## ✨ Features
 
-- 🧠 **智能解析**: 自动解析 Dubhe config JSON，识别表结构和字段信息
-- 🎯 **自动生成**: 根据表结构自动生成针对性的查询和订阅压测用例
-- 🔄 **DubheGraphqlClient**: 使用标准的 DubheGraphqlClient 进行测试，确保与实际使用一致
-- 📊 **全面覆盖**: 支持基础查询、过滤查询、批量查询和订阅压测
-- 📈 **详细报告**: 自动生成 Markdown 和 JSON 格式的性能报告
-- 🚀 **高性能**: 支持并发测试，可配置连接数和持续时间
-- 🔧 **灵活配置**: 分离的配置文件，可复用现有的 Dubhe config
+- 🧠 **Intelligent Parsing**: Automatically parse Dubhe config JSON, identify table structure and field information
+- 🎯 **Auto Generation**: Automatically generate targeted query and subscription test cases based on table structure
+- 🔄 **DubheGraphqlClient**: Uses standard DubheGraphqlClient for testing, ensuring consistency with actual usage
+- 📊 **Comprehensive Coverage**: Supports basic queries, filter queries, batch queries and subscription testing
+- 📈 **Detailed Reports**: Automatically generate performance reports in Markdown and JSON formats
+- 🚀 **High Performance**: Supports concurrent testing with configurable connection count and duration
+- 🔧 **Flexible Configuration**: Separate configuration files, can reuse existing Dubhe config
 
-## 📁 配置文件
+## 📁 Configuration Files
 
 ### 1. Dubhe Config (`dubhe.config_1.json`)
 
-这是标准的 Dubhe 配置文件，包含组件、资源和枚举定义：
+This is the standard Dubhe configuration file containing component, resource and enum definitions:
 
 ```json
 {
@@ -55,7 +55,7 @@
 
 ### 2. Benchmark Config (`dubhe-bench-config.json`)
 
-压测工具的配置文件：
+Configuration file for the load testing tool:
 
 ```json
 {
@@ -68,15 +68,15 @@
   },
   "scenarios": {
     "quick": {
-      "name": "快速压测",
+      "name": "Quick Load Test",
       "duration": 10,
       "connections": 5,
-      "description": "基础性能测试"
+      "description": "Basic performance test"
     }
   },
   "queryTypes": {
     "basic": {
-      "name": "基础查询",
+      "name": "Basic Query",
       "tests": [
         {
           "type": "getAllTables",
@@ -87,7 +87,7 @@
   },
   "subscriptionTypes": {
     "basic": {
-      "name": "基础订阅",
+      "name": "Basic Subscription",
       "duration": 30,
       "tests": [
         {
@@ -103,113 +103,113 @@
 }
 ```
 
-## 🚀 使用方法
+## 🚀 Usage
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 pnpm install
 ```
 
-### 启动 GraphQL 服务
+### Start GraphQL Service
 
 ```bash
-# 在另一个终端窗口中
+# In another terminal window
 cd packages/graphql-server
 pnpm dev
 ```
 
-### 运行压测
+### Run Load Tests
 
 ```bash
-# 快速压测 (10秒, 5连接)
+# Quick load test (10s, 5 connections)
 pnpm start:quick
 
-# 标准压测 (30秒, 10连接)
+# Standard load test (30s, 10 connections)
 pnpm start:standard
 
-# 压力测试 (60秒, 20连接)
+# Stress test (60s, 20 connections)
 pnpm start:stress
 
-# 订阅压测 (30秒)
+# Subscription test (30s)
 pnpm start:subscription
 
-# 运行所有压测
+# Run all tests
 pnpm start:all
 
-# 使用自定义配置文件
+# Use custom config file
 pnpm tsx src/index.ts quick my-config.json
 ```
 
-### 命令选项
+### Command Options
 
-- `quick` - 快速压测，适合开发时的基础性能验证
-- `standard` - 标准压测，包含基础查询和过滤查询
-- `stress` - 压力测试，包含批量查询和高并发场景
-- `subscription` - 订阅压测，测试实时数据推送性能
-- `all` - 运行所有压测配置
-- `help` - 显示帮助信息
+- `quick` - Quick load test, suitable for basic performance verification during development
+- `standard` - Standard load test, includes basic queries and filter queries
+- `stress` - Stress test, includes batch queries and high concurrency scenarios
+- `subscription` - Subscription test, tests real-time data push performance
+- `all` - Run all test configurations
+- `help` - Display help information
 
-## 🧠 智能化特性
+## 🧠 Intelligent Features
 
-### 自动表解析
+### Automatic Table Parsing
 
-工具会自动解析 Dubhe config 中的：
-- **Components**: 组件表及其字段
-- **Resources**: 资源表及其字段  
-- **Keys**: 主键信息
-- **Enums**: 枚举类型（未来支持）
+The tool automatically parses from Dubhe config:
+- **Components**: Component tables and their fields
+- **Resources**: Resource tables and their fields  
+- **Keys**: Primary key information
+- **Enums**: Enum types (future support)
 
-### 智能测试生成
+### Intelligent Test Generation
 
-基于解析的表结构，自动生成：
-- 针对每个表的基础查询测试
-- 使用主键的条件查询测试
-- 批量查询测试
-- 表订阅测试
-- 过滤订阅测试
+Based on parsed table structure, automatically generates:
+- Basic query tests for each table
+- Conditional query tests using primary keys
+- Batch query tests
+- Table subscription tests
+- Filter subscription tests
 
-### DubheGraphqlClient 集成
+### DubheGraphqlClient Integration
 
-- 使用实际的 `DubheGraphqlClient` 进行测试
-- 支持所有客户端方法：`getAllTables`, `getTableByCondition`, `batchQuery`, `subscribeToTableChanges` 等
-- 确保压测结果与实际应用性能一致
+- Uses actual `DubheGraphqlClient` for testing
+- Supports all client methods: `getAllTables`, `getTableByCondition`, `batchQuery`, `subscribeToTableChanges`, etc.
+- Ensures load test results are consistent with actual application performance
 
-## 📊 测试类型
+## 📊 Test Types
 
-### 查询测试
+### Query Tests
 
-1. **getAllTables**: 获取表的所有记录
-2. **getTableByCondition**: 根据条件查询记录
-3. **batchQuery**: 批量查询多个表
+1. **getAllTables**: Get all records from a table
+2. **getTableByCondition**: Query records by condition
+3. **batchQuery**: Batch query multiple tables
 
-### 订阅测试
+### Subscription Tests
 
-1. **subscribeToTableChanges**: 监听表变化（支持过滤）
+1. **subscribeToTableChanges**: Listen to table changes (supports filtering)
 
-## 📈 报告输出
+## 📈 Report Output
 
-运行完成后会生成两种格式的报告：
+After completion, two types of reports are generated:
 
-### Markdown 报告 (`dubhe-benchmark-report-{timestamp}.md`)
+### Markdown Report (`dubhe-benchmark-report-{timestamp}.md`)
 
-包含：
-- 查询压测结果表格
-- 订阅压测结果表格
-- 性能汇总统计
+Contains:
+- Query load test result tables
+- Subscription load test result tables
+- Performance summary statistics
 
-### JSON 报告 (`dubhe-benchmark-results-{timestamp}.json`)
+### JSON Report (`dubhe-benchmark-results-{timestamp}.json`)
 
-包含：
-- 详细的原始测试数据
-- 所有错误信息
-- 可用于进一步分析的结构化数据
+Contains:
+- Detailed raw test data
+- All error information
+- Structured data for further analysis
 
-## 🔧 高级配置
+## 🔧 Advanced Configuration
 
-### 自定义 Dubhe Config 路径
+### Custom Dubhe Config Path
 
-在 benchmark 配置文件中修改 `dubheConfigPath`：
+Modify `dubheConfigPath` in the benchmark configuration file:
 
 ```json
 {
@@ -217,15 +217,15 @@ pnpm tsx src/index.ts quick my-config.json
 }
 ```
 
-### 自定义测试参数
+### Custom Test Parameters
 
-可以为每种测试类型配置不同的参数：
+Different parameters can be configured for each test type:
 
 ```json
 {
   "queryTypes": {
     "custom": {
-      "name": "自定义查询",
+      "name": "Custom Query",
       "tests": [
         {
           "type": "getAllTables",
@@ -244,90 +244,90 @@ pnpm tsx src/index.ts quick my-config.json
 }
 ```
 
-### 自定义压测场景
+### Custom Load Test Scenarios
 
 ```json
 {
   "scenarios": {
     "custom": {
-      "name": "自定义场景",
+      "name": "Custom Scenario",
       "duration": 120,
       "connections": 50,
-      "description": "高负载长时间测试"
+      "description": "High load long duration test"
     }
   }
 }
 ```
 
-## 🤔 故障排除
+## 🤔 Troubleshooting
 
-### GraphQL 服务未运行
+### GraphQL Service Not Running
 
 ```
-❌ GraphQL 服务未运行!
-请先启动 GraphQL 服务:
+❌ GraphQL service is not running!
+Please start GraphQL service first:
   cd packages/graphql-server
   pnpm dev
 ```
 
-### Dubhe Config 加载失败
+### Dubhe Config Loading Failed
 
 ```
-❌ Dubhe 配置文件加载失败
-请检查配置文件路径: ../graphql-client/dubhe.config_1.json
+❌ Dubhe configuration file loading failed
+Please check configuration file path: ../graphql-client/dubhe.config_1.json
 ```
 
-确保：
-1. 文件路径正确
-2. JSON 格式有效
-3. 文件权限正确
+Ensure:
+1. File path is correct
+2. JSON format is valid
+3. File permissions are correct
 
-### 未解析到表信息
+### No Table Information Parsed
 
 ```
-⚠️  未解析到表信息，请检查 dubhe config
+⚠️  No table information parsed, please check dubhe config
 ```
 
-检查 Dubhe config 文件中是否包含有效的 `components` 或 `resources` 定义。
+Check if the Dubhe config file contains valid `components` or `resources` definitions.
 
-## 📝 示例输出
+## 📝 Example Output
 
 ```
 ============================================================
-Dubhe GraphQL 智能压测工具
+Dubhe GraphQL Intelligent Load Testing Tool
 ============================================================
-✅ 配置文件加载成功: /path/to/dubhe-bench-config.json
-✅ Dubhe 配置文件加载成功: /path/to/dubhe.config_1.json
-🔍 检查 GraphQL 服务状态...
-✅ GraphQL 服务运行正常
-✅ DubheGraphqlClient 创建成功
-📋 自动解析到 3 个表:
-   - counter0: 3 个字段
-   - counter1: 4 个字段
-   - counter2: 3 个字段
+✅ Configuration file loaded successfully: /path/to/dubhe-bench-config.json
+✅ Dubhe configuration file loaded successfully: /path/to/dubhe.config_1.json
+🔍 Checking GraphQL service status...
+✅ GraphQL service running normally
+✅ DubheGraphqlClient created successfully
+📋 Automatically parsed 3 tables:
+   - counter0: 3 fields
+   - counter1: 4 fields
+   - counter2: 3 fields
 
 ============================================================
-快速压测 - 基础查询
+Quick Load Test - Basic Query
 ============================================================
-📋 基础性能测试
-📊 发现 3 个表: counter0, counter1, counter2
-🚀 运行查询压测: getAllTables on counter0
-   持续时间: 10s
-   并发连接: 5
-✅ getAllTables (counter0): 150.25 RPS, 45.67ms 平均延迟
+📋 Basic performance test
+📊 Found 3 tables: counter0, counter1, counter2
+🚀 Running query load test: getAllTables on counter0
+   Duration: 10s
+   Concurrent connections: 5
+✅ getAllTables (counter0): 150.25 RPS, 45.67ms average latency
 
-📋 压测报告已保存到: dubhe-benchmark-report-1234567890.md
-📋 详细结果已保存到: dubhe-benchmark-results-1234567890.json
-🔒 客户端连接已关闭
+📋 Load test report saved to: dubhe-benchmark-report-1234567890.md
+📋 Detailed results saved to: dubhe-benchmark-results-1234567890.json
+🔒 Client connections closed
 ```
 
-## 🔄 与现有工具集成
+## 🔄 Integration with Existing Tools
 
-这个工具与 Dubhe 生态系统完全集成：
+This tool is fully integrated with the Dubhe ecosystem:
 
-- **DubheGraphqlClient**: 使用相同的客户端库
-- **GraphQL Server**: 测试实际的 PostGraphile 服务
-- **Dubhe Config**: 复用现有的配置文件
-- **索引器**: 可以测试索引器生成的 GraphQL API
+- **DubheGraphqlClient**: Uses the same client library
+- **GraphQL Server**: Tests actual PostGraphile service
+- **Dubhe Config**: Reuses existing configuration files
+- **Indexer**: Can test GraphQL API generated by indexer
 
-通过这种方式，压测结果能够准确反映实际应用的性能表现。 
+Through this approach, load test results can accurately reflect actual application performance. 

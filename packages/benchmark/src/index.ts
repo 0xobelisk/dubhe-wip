@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Dubhe GraphQL 智能压测工具
+ * Dubhe GraphQL Smart Load Testing Tool
  *
- * 基于 dubhe config 自动解析表结构，使用 DubheGraphqlClient 进行智能压测
- * 支持查询和订阅的自动化性能测试
+ * Automatically parse table structure based on dubhe config, use DubheGraphqlClient for smart load testing
+ * Support automated performance testing for queries and subscriptions
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -18,7 +18,7 @@ import {
   ParsedTableInfo
 } from '@0xobelisk/graphql-client';
 
-// 颜色输出辅助函数
+// Color output helper functions
 const colors = {
   green: (text: string) => `\x1b[32m${text}\x1b[0m`,
   blue: (text: string) => `\x1b[34m${text}\x1b[0m`,
@@ -42,7 +42,7 @@ function section(title: string) {
   log(`${'='.repeat(60)}`, 'cyan');
 }
 
-// 接口定义
+// Interface definitions
 interface BenchmarkScenario {
   name: string;
   duration: number;
@@ -98,7 +98,7 @@ interface SubscriptionResult {
   success: boolean;
 }
 
-// 检查 GraphQL 服务是否运行
+// Check if GraphQL service is running
 async function checkGraphQLService(url: string): Promise<boolean> {
   try {
     const response = await fetch(url, {
@@ -114,7 +114,7 @@ async function checkGraphQLService(url: string): Promise<boolean> {
   }
 }
 
-// 创建 DubheGraphqlClient 实例
+// Create DubheGraphqlClient instance
 function createClient(config: Config, dubheMetadata: DubheMetadata): DubheGraphqlClient {
   const clientConfig: DubheClientConfig = {
     endpoint: config.endpoint,
@@ -126,7 +126,7 @@ function createClient(config: Config, dubheMetadata: DubheMetadata): DubheGraphq
   return createDubheGraphqlClient(clientConfig);
 }
 
-// 执行单个查询压测
+// Execute single query load test
 async function runQueryBenchmark(
   client: DubheGraphqlClient,
   tableName: string,
@@ -138,14 +138,14 @@ async function runQueryBenchmark(
   let totalLatency = 0;
   let errors = 0;
 
-  log(`🚀 运行查询压测: ${testConfig.type} on ${tableName}`, 'yellow');
-  log(`   持续时间: ${scenario.duration}s`, 'cyan');
-  log(`   并发连接: ${scenario.connections}`, 'cyan');
+  log(`🚀 Running query load test: ${testConfig.type} on ${tableName}`, 'yellow');
+  log(`   Duration: ${scenario.duration}s`, 'cyan');
+  log(`   Connections: ${scenario.connections}`, 'cyan');
 
   const endTime = startTime + scenario.duration * 1000;
   const promises: Promise<void>[] = [];
 
-  // 创建并发请求
+  // Create concurrent requests
   for (let i = 0; i < scenario.connections; i++) {
     const promise = (async () => {
       while (Date.now() < endTime) {
@@ -156,7 +156,7 @@ async function runQueryBenchmark(
               await client.getAllTables(tableName, testConfig.params);
               break;
             case 'getTableByCondition':
-              // 使用表的主键作为条件
+              // Use table's primary keys as condition
               const primaryKeys = client.getTablePrimaryKeys(tableName);
               if (primaryKeys.length > 0) {
                 const condition = { [primaryKeys[0]]: 'test_value' };
@@ -184,10 +184,10 @@ async function runQueryBenchmark(
           totalLatency += Date.now() - queryStart;
         } catch (error) {
           errors++;
-          log(`❌ 查询错误: ${error instanceof Error ? error.message : String(error)}`, 'red');
+          log(`❌ Query error: ${error instanceof Error ? error.message : String(error)}`, 'red');
         }
 
-        // 避免过度频繁的请求
+        // Avoid overly frequent requests
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
     })();
@@ -213,15 +213,15 @@ async function runQueryBenchmark(
   };
 }
 
-// 执行订阅压测
+// Execute subscription load test
 async function runSubscriptionBenchmark(
   client: DubheGraphqlClient,
   tableName: string,
   testConfig: TestConfig,
   subscriptionConfig: SubscriptionTypeConfig
 ): Promise<SubscriptionResult> {
-  log(`🔔 运行订阅压测: ${testConfig.type} on ${tableName}`, 'yellow');
-  log(`   持续时间: ${subscriptionConfig.duration}s`, 'cyan');
+  log(`🔔 Running subscription load test: ${testConfig.type} on ${tableName}`, 'yellow');
+  log(`   Duration: ${subscriptionConfig.duration}s`, 'cyan');
 
   const startTime = Date.now();
   let eventsReceived = 0;
@@ -230,7 +230,7 @@ async function runSubscriptionBenchmark(
   const connections: any[] = [];
 
   try {
-    // 创建订阅
+    // Create subscription
     const subscription = (() => {
       switch (testConfig.type) {
         case 'subscribeToTableChanges':
@@ -238,12 +238,15 @@ async function runSubscriptionBenchmark(
             ...testConfig.params,
             onData: (data) => {
               eventsReceived++;
-              // 模拟事件延迟计算
-              totalEventLatency += 10; // 简化处理
+              // Simulate event latency calculation
+              totalEventLatency += 10; // Simplified handling
             },
             onError: (error) => {
               errors++;
-              log(`❌ 订阅错误: ${error instanceof Error ? error.message : String(error)}`, 'red');
+              log(
+                `❌ Subscription error: ${error instanceof Error ? error.message : String(error)}`,
+                'red'
+              );
             }
           });
         case 'subscribeToFilteredTableChanges':
@@ -256,7 +259,10 @@ async function runSubscriptionBenchmark(
             },
             onError: (error) => {
               errors++;
-              log(`❌ 订阅错误: ${error instanceof Error ? error.message : String(error)}`, 'red');
+              log(
+                `❌ Subscription error: ${error instanceof Error ? error.message : String(error)}`,
+                'red'
+              );
             }
           } as any);
         default:
@@ -268,7 +274,10 @@ async function runSubscriptionBenchmark(
             },
             onError: (error) => {
               errors++;
-              log(`❌ 订阅错误: ${error instanceof Error ? error.message : String(error)}`, 'red');
+              log(
+                `❌ Subscription error: ${error instanceof Error ? error.message : String(error)}`,
+                'red'
+              );
             }
           });
       }
@@ -277,23 +286,28 @@ async function runSubscriptionBenchmark(
     const sub = subscription.subscribe({});
     connections.push(sub);
 
-    // 等待指定时间
+    // Wait for specified time
     await new Promise((resolve) => setTimeout(resolve, subscriptionConfig.duration * 1000));
 
-    // 清理订阅
+    // Clean up subscriptions
     connections.forEach((conn) => {
       try {
         conn.unsubscribe();
       } catch (error) {
         log(
-          `⚠️  订阅清理警告: ${error instanceof Error ? error.message : String(error)}`,
+          `⚠️  Subscription cleanup warning: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
           'yellow'
         );
       }
     });
   } catch (error) {
     errors++;
-    log(`❌ 订阅设置失败: ${error instanceof Error ? error.message : String(error)}`, 'red');
+    log(
+      `❌ Subscription setup failed: ${error instanceof Error ? error.message : String(error)}`,
+      'red'
+    );
   }
 
   const actualDuration = (Date.now() - startTime) / 1000;
@@ -311,7 +325,7 @@ async function runSubscriptionBenchmark(
   };
 }
 
-// 运行查询压测套件
+// Run query benchmark suite
 async function runQueryBenchmarkSuite(
   client: DubheGraphqlClient,
   config: Config,
@@ -322,7 +336,9 @@ async function runQueryBenchmarkSuite(
   const queryType = config.queryTypes[queryTypeName];
 
   if (!scenario || !queryType) {
-    throw new Error(`未找到配置: scenario=${scenarioName}, queryType=${queryTypeName}`);
+    throw new Error(
+      `Configuration not found: scenario=${scenarioName}, queryType=${queryTypeName}`
+    );
   }
 
   section(`${scenario.name} - ${queryType.name}`);
@@ -333,40 +349,40 @@ async function runQueryBenchmarkSuite(
   const tableNames = Array.from(tableInfo.keys());
 
   if (tableNames.length === 0) {
-    log('⚠️  未找到表信息，请检查 dubhe config', 'yellow');
+    log('⚠️  No table information found, please check dubhe config', 'yellow');
     return results;
   }
 
-  log(`📊 发现 ${tableNames.length} 个表: ${tableNames.join(', ')}`, 'green');
+  log(`📊 Found ${tableNames.length} tables: ${tableNames.join(', ')}`, 'green');
 
-  // 对每个表执行所有测试
+  // Execute all tests for each table
   for (const tableName of tableNames) {
-    // 将表名转换为小写形式，因为 GraphQL schema 期望小写的表名
-    // DubheGraphqlClient 的 toSnakeCase 方法会将表名转换为大写（如 COUNTER0）
-    // 但实际的 GraphQL schema 字段是小写的（如 counter0s）
+    // Convert table name to lowercase because GraphQL schema expects lowercase table names
+    // DubheGraphqlClient's toSnakeCase method converts table names to uppercase (like COUNTER0)
+    // But actual GraphQL schema fields are lowercase (like counter0s)
     const normalizedTableName = tableName.toLowerCase();
 
     for (const testConfig of queryType.tests) {
       try {
         const result = await runQueryBenchmark(client, normalizedTableName, testConfig, scenario);
-        // 在结果中保留原始表名以便显示
+        // Keep original table name in results for display
         result.tableName = tableName;
         results.push(result);
 
-        // 显示结果摘要
+        // Show result summary
         if (result.success) {
           log(
             `✅ ${result.testName} (${tableName}): ${result.rps.toFixed(
               2
-            )} RPS, ${result.averageLatency.toFixed(2)}ms 平均延迟`,
+            )} RPS, ${result.averageLatency.toFixed(2)}ms average latency`,
             'green'
           );
         } else {
-          log(`❌ ${result.testName} (${tableName}): ${result.errors} 错误`, 'red');
+          log(`❌ ${result.testName} (${tableName}): ${result.errors} errors`, 'red');
         }
       } catch (error) {
         log(
-          `❌ 压测失败 ${testConfig.type} on ${tableName}: ${
+          `❌ Load test failed ${testConfig.type} on ${tableName}: ${
             error instanceof Error ? error.message : String(error)
           }`,
           'red'
@@ -378,7 +394,7 @@ async function runQueryBenchmarkSuite(
   return results;
 }
 
-// 运行订阅压测套件
+// Run subscription benchmark suite
 async function runSubscriptionBenchmarkSuite(
   client: DubheGraphqlClient,
   config: Config,
@@ -387,25 +403,25 @@ async function runSubscriptionBenchmarkSuite(
   const subscriptionType = config.subscriptionTypes[subscriptionTypeName];
 
   if (!subscriptionType) {
-    throw new Error(`未找到订阅配置: ${subscriptionTypeName}`);
+    throw new Error(`Subscription configuration not found: ${subscriptionTypeName}`);
   }
 
-  section(`订阅压测 - ${subscriptionType.name}`);
+  section(`Subscription Load Test - ${subscriptionType.name}`);
 
   const results: SubscriptionResult[] = [];
   const tableInfo = client.getAllTableInfo();
   const tableNames = Array.from(tableInfo.keys());
 
   if (tableNames.length === 0) {
-    log('⚠️  未找到表信息，请检查 dubhe config', 'yellow');
+    log('⚠️  No table information found, please check dubhe config', 'yellow');
     return results;
   }
 
-  log(`📊 发现 ${tableNames.length} 个表: ${tableNames.join(', ')}`, 'green');
+  log(`📊 Found ${tableNames.length} tables: ${tableNames.join(', ')}`, 'green');
 
-  // 对每个表执行所有订阅测试
+  // Execute all subscription tests for each table
   for (const tableName of tableNames) {
-    // 将表名转换为小写形式，因为 GraphQL schema 期望小写的表名
+    // Convert table name to lowercase because GraphQL schema expects lowercase table names
     const normalizedTableName = tableName.toLowerCase();
 
     for (const testConfig of subscriptionType.tests) {
@@ -416,24 +432,24 @@ async function runSubscriptionBenchmarkSuite(
           testConfig,
           subscriptionType
         );
-        // 在结果中保留原始表名以便显示
+        // Keep original table name in results for display
         result.tableName = tableName;
         results.push(result);
 
-        // 显示结果摘要
+        // Show result summary
         if (result.success) {
           log(
             `✅ ${result.testName} (${tableName}): ${
               result.eventsReceived
-            } 事件接收, ${result.averageEventLatency.toFixed(2)}ms 平均延迟`,
+            } events received, ${result.averageEventLatency.toFixed(2)}ms average latency`,
             'green'
           );
         } else {
-          log(`❌ ${result.testName} (${tableName}): ${result.errors} 错误`, 'red');
+          log(`❌ ${result.testName} (${tableName}): ${result.errors} errors`, 'red');
         }
       } catch (error) {
         log(
-          `❌ 订阅压测失败 ${testConfig.type} on ${tableName}: ${
+          `❌ Subscription load test failed ${testConfig.type} on ${tableName}: ${
             error instanceof Error ? error.message : String(error)
           }`,
           'red'
@@ -445,19 +461,21 @@ async function runSubscriptionBenchmarkSuite(
   return results;
 }
 
-// 生成报告
+// Generate report
 function generateReport(
   queryResults: BenchmarkResult[],
   subscriptionResults: SubscriptionResult[]
 ): string {
   let report = '\n';
-  report += '# Dubhe GraphQL 智能压测报告\n\n';
-  report += `生成时间: ${new Date().toLocaleString()}\n\n`;
+  report += '# Dubhe GraphQL Smart Load Test Report\n\n';
+  report += `Generated at: ${new Date().toLocaleString()}\n\n`;
 
   if (queryResults.length > 0) {
-    report += '## 查询压测结果\n\n';
-    report += '| 表名 | 测试类型 | RPS | 平均延迟(ms) | 总请求数 | 错误数 | 状态 |\n';
-    report += '|------|----------|-----|-------------|----------|-------|------|\n';
+    report += '## Query Load Test Results\n\n';
+    report +=
+      '| Table Name | Test Type | RPS | Average Latency (ms) | Total Requests | Errors | Status |\n';
+    report +=
+      '|-----------|-----------|-----|-------------------|---------------|-------|--------|\n';
 
     for (const result of queryResults) {
       const status = result.success ? '✅' : '❌';
@@ -471,9 +489,11 @@ function generateReport(
   }
 
   if (subscriptionResults.length > 0) {
-    report += '## 订阅压测结果\n\n';
-    report += '| 表名 | 测试类型 | 连接数 | 接收事件数 | 平均事件延迟(ms) | 错误数 | 状态 |\n';
-    report += '|------|----------|--------|------------|-----------------|-------|------|\n';
+    report += '## Subscription Load Test Results\n\n';
+    report +=
+      '| Table Name | Test Type | Connections | Events Received | Average Event Latency (ms) | Errors | Status |\n';
+    report +=
+      '|-----------|-----------|-------------|-----------------|---------------------------|-------|--------|\n';
 
     for (const result of subscriptionResults) {
       const status = result.success ? '✅' : '❌';
@@ -484,7 +504,7 @@ function generateReport(
     report += '\n';
   }
 
-  // 添加汇总统计
+  // Add summary statistics
   if (queryResults.length > 0) {
     const totalRequests = queryResults.reduce((sum, r) => sum + r.requestCount, 0);
     const avgRps = queryResults.reduce((sum, r) => sum + r.rps, 0) / queryResults.length;
@@ -492,88 +512,99 @@ function generateReport(
       queryResults.reduce((sum, r) => sum + r.averageLatency, 0) / queryResults.length;
     const totalErrors = queryResults.reduce((sum, r) => sum + r.errors, 0);
 
-    report += '## 查询性能汇总\n\n';
-    report += `- **总请求数**: ${totalRequests}\n`;
-    report += `- **平均 RPS**: ${avgRps.toFixed(2)}\n`;
-    report += `- **平均延迟**: ${avgLatency.toFixed(2)}ms\n`;
-    report += `- **总错误数**: ${totalErrors}\n`;
-    report += `- **成功率**: ${(((totalRequests - totalErrors) / totalRequests) * 100).toFixed(
-      2
-    )}%\n\n`;
+    report += '## Query Performance Summary\n\n';
+    report += `- **Total Requests**: ${totalRequests}\n`;
+    report += `- **Average RPS**: ${avgRps.toFixed(2)}\n`;
+    report += `- **Average Latency**: ${avgLatency.toFixed(2)}ms\n`;
+    report += `- **Total Errors**: ${totalErrors}\n`;
+    report += `- **Success Rate**: ${(
+      ((totalRequests - totalErrors) / totalRequests) *
+      100
+    ).toFixed(2)}%\n\n`;
   }
 
   return report;
 }
 
-// 主函数
+// Main function
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
   const configPath = args[1] || 'dubhe-bench-config.json';
 
-  section('Dubhe GraphQL 智能压测工具');
+  section('Dubhe GraphQL Smart Load Testing Tool');
 
-  // 读取配置文件
+  // Read configuration file
   let config: Config;
   try {
     const configFile = path.resolve(configPath);
     const configData = readFileSync(configFile, 'utf-8');
     config = JSON.parse(configData);
-    log(`✅ 配置文件加载成功: ${configFile}`, 'green');
+    log(`✅ Configuration file loaded successfully: ${configFile}`, 'green');
   } catch (error) {
-    log(`❌ 配置文件加载失败: ${error instanceof Error ? error.message : String(error)}`, 'red');
-    log('请确保配置文件存在并且格式正确', 'yellow');
+    log(
+      `❌ Configuration file loading failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'red'
+    );
+    log('Please ensure configuration file exists and is properly formatted', 'yellow');
     process.exit(1);
   }
 
-  // 检查 GraphQL 服务状态
-  log('🔍 检查 GraphQL 服务状态...', 'yellow');
+  // Check GraphQL service status
+  log('🔍 Checking GraphQL service status...', 'yellow');
   const isServiceRunning = await checkGraphQLService(config.endpoint);
 
   if (!isServiceRunning) {
-    log('❌ GraphQL 服务未运行!', 'red');
-    log('请先启动 GraphQL 服务:', 'yellow');
+    log('❌ GraphQL service is not running!', 'red');
+    log('Please start GraphQL service first:', 'yellow');
     log('  cd packages/graphql-server', 'cyan');
     log('  pnpm dev', 'cyan');
     process.exit(1);
   }
 
-  log('✅ GraphQL 服务运行正常', 'green');
+  log('✅ GraphQL service is running normally', 'green');
 
-  // 读取 dubhe config 文件
+  // Read dubhe config file
   let dubheMetadata: DubheMetadata;
   try {
     const dubheConfigPath = path.resolve(config.dubheConfigPath);
     const dubheConfigData = readFileSync(dubheConfigPath, 'utf-8');
     dubheMetadata = JSON.parse(dubheConfigData);
-    log(`✅ Dubhe 配置文件加载成功: ${dubheConfigPath}`, 'green');
+    log(`✅ Dubhe configuration file loaded successfully: ${dubheConfigPath}`, 'green');
   } catch (error) {
     log(
-      `❌ Dubhe 配置文件加载失败: ${error instanceof Error ? error.message : String(error)}`,
+      `❌ Dubhe configuration file loading failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       'red'
     );
-    log(`请检查配置文件路径: ${config.dubheConfigPath}`, 'yellow');
+    log(`Please check configuration file path: ${config.dubheConfigPath}`, 'yellow');
     process.exit(1);
   }
 
-  // 创建客户端实例
+  // Create client instance
   let client: DubheGraphqlClient;
   try {
     client = createClient(config, dubheMetadata);
-    log('✅ DubheGraphqlClient 创建成功', 'green');
+    log('✅ DubheGraphqlClient created successfully', 'green');
 
-    // 显示解析的表信息
+    // Show parsed table information
     const tableInfo = client.getAllTableInfo();
     if (tableInfo.size > 0) {
-      log(`📋 自动解析到 ${tableInfo.size} 个表:`, 'green');
+      log(`📋 Automatically parsed ${tableInfo.size} tables:`, 'green');
       for (const [tableName, info] of tableInfo) {
-        log(`   - ${tableName}: ${info.fields.length} 个字段`, 'cyan');
+        log(`   - ${tableName}: ${info.fields.length} fields`, 'cyan');
       }
     } else {
-      log('⚠️  未解析到表信息，请检查 dubhe config', 'yellow');
+      log('⚠️  No table information parsed, please check dubhe config', 'yellow');
     }
   } catch (error) {
-    log(`❌ 客户端创建失败: ${error instanceof Error ? error.message : String(error)}`, 'red');
+    log(
+      `❌ Client creation failed: ${error instanceof Error ? error.message : String(error)}`,
+      'red'
+    );
     process.exit(1);
   }
 
@@ -583,17 +614,17 @@ async function main() {
   try {
     switch (command) {
       case 'quick':
-        log('\n📊 运行快速压测...', 'blue');
+        log('\n📊 Running quick load test...', 'blue');
         const quickResults = await runQueryBenchmarkSuite(client, config, 'quick', 'basic');
         queryResults.push(...quickResults);
         break;
 
       case 'standard':
-        log('\n📊 运行标准压测...', 'blue');
+        log('\n📊 Running standard load test...', 'blue');
         const standardResults = await runQueryBenchmarkSuite(client, config, 'standard', 'basic');
         queryResults.push(...standardResults);
 
-        // 同时运行过滤查询
+        // Also run filtered queries
         const filteredResults = await runQueryBenchmarkSuite(
           client,
           config,
@@ -604,7 +635,7 @@ async function main() {
         break;
 
       case 'stress':
-        log('\n📊 运行压力测试...', 'blue');
+        log('\n📊 Running stress test...', 'blue');
         const stressResults = await runQueryBenchmarkSuite(client, config, 'stress', 'basic');
         queryResults.push(...stressResults);
 
@@ -621,7 +652,7 @@ async function main() {
         break;
 
       case 'subscription':
-        log('\n📊 运行订阅压测...', 'blue');
+        log('\n📊 Running subscription load test...', 'blue');
         const basicSubResults = await runSubscriptionBenchmarkSuite(client, config, 'basic');
         subscriptionResults.push(...basicSubResults);
 
@@ -630,9 +661,9 @@ async function main() {
         break;
 
       case 'all':
-        log('\n📊 运行全套压测...', 'blue');
+        log('\n📊 Running full load test suite...', 'blue');
 
-        // 查询压测
+        // Query load tests
         const allQueryResults = await Promise.all([
           runQueryBenchmarkSuite(client, config, 'quick', 'basic'),
           runQueryBenchmarkSuite(client, config, 'standard', 'filtered'),
@@ -640,14 +671,14 @@ async function main() {
         ]);
         queryResults.push(...allQueryResults.flat());
 
-        // 订阅压测
+        // Subscription load tests
         const allSubResults = await Promise.all([
           runSubscriptionBenchmarkSuite(client, config, 'basic'),
           runSubscriptionBenchmarkSuite(client, config, 'filtered')
         ]);
         subscriptionResults.push(...allSubResults.flat());
 
-        log('\n🎉 全套压测完成!', 'green');
+        log('\n🎉 Full load test suite completed!', 'green');
         break;
 
       case 'help':
@@ -657,34 +688,37 @@ async function main() {
         break;
 
       default:
-        log('❌ 未知命令，显示帮助信息:', 'red');
+        log('❌ Unknown command, showing help information:', 'red');
         showHelp();
         process.exit(1);
     }
 
-    // 生成报告
+    // Generate report
     if (queryResults.length > 0 || subscriptionResults.length > 0) {
       const report = generateReport(queryResults, subscriptionResults);
       const reportFile = `dubhe-benchmark-report-${Date.now()}.md`;
       writeFileSync(reportFile, report);
-      log(`\n📋 压测报告已保存到: ${reportFile}`, 'green');
+      log(`\n📋 Load test report saved to: ${reportFile}`, 'green');
 
-      // 同时保存 JSON 格式的详细结果
+      // Also save detailed results in JSON format
       const jsonReportFile = `dubhe-benchmark-results-${Date.now()}.json`;
       writeFileSync(jsonReportFile, JSON.stringify({ queryResults, subscriptionResults }, null, 2));
-      log(`📋 详细结果已保存到: ${jsonReportFile}`, 'green');
+      log(`📋 Detailed results saved to: ${jsonReportFile}`, 'green');
     }
   } catch (error) {
-    log(`❌ 压测执行失败: ${error instanceof Error ? error.message : String(error)}`, 'red');
+    log(
+      `❌ Load test execution failed: ${error instanceof Error ? error.message : String(error)}`,
+      'red'
+    );
     process.exit(1);
   } finally {
-    // 清理客户端连接
+    // Clean up client connections
     try {
       client.close();
-      log('🔒 客户端连接已关闭', 'cyan');
+      log('🔒 Client connection closed', 'cyan');
     } catch (error) {
       log(
-        `⚠️  客户端关闭警告: ${error instanceof Error ? error.message : String(error)}`,
+        `⚠️  Client close warning: ${error instanceof Error ? error.message : String(error)}`,
         'yellow'
       );
     }
@@ -692,48 +726,51 @@ async function main() {
 }
 
 function showHelp() {
-  log('\n使用方法:', 'green');
+  log('\nUsage:', 'green');
   log('  pnpm tsx src/index.ts <command> [config-file]', 'cyan');
-  log('  或者使用 npm scripts:', 'cyan');
-  log('  pnpm start:quick     # 运行快速压测', 'yellow');
-  log('  pnpm start:standard  # 运行标准压测', 'yellow');
-  log('  pnpm start:stress    # 运行压力测试', 'yellow');
-  log('  pnpm start:subscription # 运行订阅压测', 'yellow');
+  log('  Or use npm scripts:', 'cyan');
+  log('  pnpm start:quick     # Run quick load test', 'yellow');
+  log('  pnpm start:standard  # Run standard load test', 'yellow');
+  log('  pnpm start:stress    # Run stress test', 'yellow');
+  log('  pnpm start:subscription # Run subscription load test', 'yellow');
 
-  log('\n可用命令:', 'green');
-  log('  quick        快速压测 (10s, 5连接)', 'yellow');
-  log('  standard     标准压测 (30s, 10连接)', 'yellow');
-  log('  stress       压力测试 (60s, 20连接)', 'yellow');
-  log('  subscription 订阅压测 (30s)', 'yellow');
-  log('  all          运行所有压测配置', 'yellow');
-  log('  help         显示帮助信息', 'yellow');
+  log('\nAvailable commands:', 'green');
+  log('  quick        Quick load test (10s, 5 connections)', 'yellow');
+  log('  standard     Standard load test (30s, 10 connections)', 'yellow');
+  log('  stress       Stress test (60s, 20 connections)', 'yellow');
+  log('  subscription Subscription load test (30s)', 'yellow');
+  log('  all          Run all load test configurations', 'yellow');
+  log('  help         Show help information', 'yellow');
 
-  log('\n配置文件:', 'green');
-  log('  dubhe-bench-config.json  智能压测配置文件', 'yellow');
-  log('  包含 dubhe config 和 benchmark 设置', 'yellow');
+  log('\nConfiguration file:', 'green');
+  log('  dubhe-bench-config.json  Smart load test configuration file', 'yellow');
+  log('  Contains dubhe config and benchmark settings', 'yellow');
 
-  log('\n特性:', 'green');
-  log('  ✅ 自动解析 dubhe config 中的表结构', 'yellow');
-  log('  ✅ 智能生成针对每个表的压测用例', 'yellow');
-  log('  ✅ 支持查询和订阅的性能测试', 'yellow');
-  log('  ✅ 使用 DubheGraphqlClient 进行测试', 'yellow');
-  log('  ✅ 自动生成详细的性能报告', 'yellow');
+  log('\nFeatures:', 'green');
+  log('  ✅ Automatically parse table structure from dubhe config', 'yellow');
+  log('  ✅ Intelligently generate load test cases for each table', 'yellow');
+  log('  ✅ Support performance testing for queries and subscriptions', 'yellow');
+  log('  ✅ Use DubheGraphqlClient for testing', 'yellow');
+  log('  ✅ Automatically generate detailed performance reports', 'yellow');
 
-  log('\n示例:', 'green');
-  log('  # 启动 GraphQL 服务', 'cyan');
+  log('\nExamples:', 'green');
+  log('  # Start GraphQL service', 'cyan');
   log('  cd packages/graphql-server && pnpm dev', 'cyan');
   log('  ', 'cyan');
-  log('  # 运行快速压测', 'cyan');
+  log('  # Run quick load test', 'cyan');
   log('  cd packages/benchmark && pnpm start:quick', 'cyan');
   log('  ', 'cyan');
-  log('  # 使用自定义配置', 'cyan');
+  log('  # Use custom configuration', 'cyan');
   log('  pnpm tsx src/index.ts standard my-config.json', 'cyan');
 }
 
-// 如果直接运行这个文件
+// If running this file directly
 if (require.main === module) {
   main().catch((error) => {
-    log(`❌ 程序执行失败: ${error instanceof Error ? error.message : String(error)}`, 'red');
+    log(
+      `❌ Program execution failed: ${error instanceof Error ? error.message : String(error)}`,
+      'red'
+    );
     process.exit(1);
   });
 }

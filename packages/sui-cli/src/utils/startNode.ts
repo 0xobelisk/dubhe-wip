@@ -201,7 +201,7 @@ export async function startLocalNode(data_dir: string, force?: boolean) {
     await delay(5000);
     console.log('  ├─ Faucet: Enabled');
     console.log(`  ├─ Force Regenesis: ${force ? 'Yes' : 'No'}`);
-    console.log('  ├─ HTTP server: http://127.0.0.1:9000/');
+    console.log('  ├─ RPC server: http://127.0.0.1:9000/');
     console.log('  └─ Faucet server: http://127.0.0.1:9123/');
 
     await printAccounts();

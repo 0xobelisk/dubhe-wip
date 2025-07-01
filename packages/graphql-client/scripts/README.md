@@ -1,24 +1,24 @@
 # DubheGraphqlClient
 
-强大的GraphQL客户端，专为Dubhe索引器设计，支持完整的CRUD操作和实时订阅功能。
+Powerful GraphQL client designed specifically for Dubhe indexer, supporting complete CRUD operations and real-time subscription functionality.
 
-## ✨ 主要特性
+## ✨ Key Features
 
-- 🔄 **实时订阅**: 支持PostGraphile的`listen`订阅功能
-- 📊 **高级过滤**: 强大的过滤和排序功能
-- 🚀 **性能优化**: 内置重试机制和缓存策略
-- 📱 **跨平台**: 支持浏览器和Node.js环境
-- 🛡️ **类型安全**: 完整的TypeScript支持
+- 🔄 **Real-time Subscriptions**: Supports PostGraphile's `listen` subscription functionality
+- 📊 **Advanced Filtering**: Powerful filtering and sorting capabilities
+- 🚀 **Performance Optimization**: Built-in retry mechanisms and caching strategies
+- 📱 **Cross-platform**: Supports both browser and Node.js environments
+- 🛡️ **Type Safety**: Complete TypeScript support
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 安装
+### Installation
 
 ```bash
 npm install @0xobelisk/graphql-client
 ```
 
-### 基础使用
+### Basic Usage
 
 ```typescript
 import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
@@ -28,7 +28,7 @@ const client = createDubheGraphqlClient({
   subscriptionEndpoint: 'ws://localhost:4000/graphql',
 });
 
-// 查询数据
+// Query data
 const accounts = await client.getAllTables('accounts', {
   first: 10,
   filter: { balance: { greaterThan: '1000' } },
@@ -38,21 +38,21 @@ const accounts = await client.getAllTables('accounts', {
 console.log(accounts);
 ```
 
-## 📡 实时订阅功能
+## 📡 Real-time Subscription Features
 
-### PostGraphile Listen订阅
+### PostGraphile Listen Subscriptions
 
 ```typescript
-// 基础listen订阅
+// Basic listen subscription
 const subscription = client.subscribeToTableChanges('encounters', {
-  initialEvent: true, // 立即获取初始数据
+  initialEvent: true, // Get initial data immediately
   fields: ['player', 'monster', 'catchAttempts'],
   onData: (data) => {
-    console.log('实时数据:', data.listen.query.encounters);
+    console.log('Real-time data:', data.listen.query.encounters);
   },
 });
 
-// 带过滤的高级订阅
+// Advanced subscription with filtering
 const filteredSub = client.subscribeToTableChanges('accounts', {
   filter: { balance: { greaterThan: '1000' } },
   initialEvent: true,
@@ -61,15 +61,15 @@ const filteredSub = client.subscribeToTableChanges('accounts', {
 });
 ```
 
-## 🔍 查询功能
+## 🔍 Query Features
 
-### 基础查询
+### Basic Queries
 
 ```typescript
-// 查询所有账户
+// Query all accounts
 const accounts = await client.getAllTables('accounts');
 
-// 带分页和过滤的查询
+// Query with pagination and filtering
 const filteredAccounts = await client.getAllTables('accounts', {
   first: 20,
   after: 'cursor_string',
@@ -80,14 +80,14 @@ const filteredAccounts = await client.getAllTables('accounts', {
   orderBy: [{ field: 'createdAt', direction: 'DESC' }]
 });
 
-// 条件查询单个记录
+// Conditional query for single record
 const account = await client.getTableByCondition('accounts', {
   assetId: '0x123...',
   account: '0xabc...'
 });
 ```
 
-### 批量查询
+### Batch Queries
 
 ```typescript
 const results = await client.batchQuery([
@@ -96,9 +96,9 @@ const results = await client.batchQuery([
 ]);
 ```
 
-## ⚙️ 配置选项
+## ⚙️ Configuration Options
 
-### 客户端配置
+### Client Configuration
 
 ```typescript
 const client = createDubheGraphqlClient({
@@ -114,7 +114,7 @@ const client = createDubheGraphqlClient({
 });
 ```
 
-### 缓存配置
+### Cache Configuration
 
 ```typescript
 const client = createDubheGraphqlClient({
@@ -136,7 +136,7 @@ const client = createDubheGraphqlClient({
 });
 ```
 
-## 📚 多表订阅
+## 📚 Multi-table Subscriptions
 
 ```typescript
 const multiTableSub = client.subscribeToMultipleTables([
@@ -158,29 +158,29 @@ const multiTableSub = client.subscribeToMultipleTables([
   }
 ], {
   onData: (allData) => {
-    console.log('多表数据:', allData);
+    console.log('Multi-table data:', allData);
   }
 });
 ```
 
-## 🛠️ 开发指南
+## 🛠️ Development Guide
 
 ```bash
-# 开发
+# Development
 npm run dev
 
-# 构建
+# Build
 npm run build
 
-# 测试
+# Test
 npm run test
 ```
 
-## 🔧 最佳实践
+## 🔧 Best Practices
 
-1. **使用listen订阅进行实时更新**
-2. **合理使用过滤和分页**
-3. **错误处理和重连**
-4. **只订阅需要的字段**
+1. **Use listen subscriptions for real-time updates**
+2. **Properly use filtering and pagination**
+3. **Error handling and reconnection**
+4. **Subscribe only to needed fields**
 
-查看 `examples.ts` 文件获取更多完整的使用示例。
+See the `examples.ts` file for more complete usage examples.

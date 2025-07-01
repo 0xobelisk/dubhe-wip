@@ -868,7 +868,7 @@ export class ECSQueryBuilder {
         })),
       };
 
-      // 如果有where条件，先处理过滤
+      // If there are where conditions, handle filtering first
       if (this.whereConditions.length > 0) {
         const filteredResults: EntityId[][] = [];
 
@@ -881,7 +881,7 @@ export class ECSQueryBuilder {
           filteredResults.push(result);
         }
 
-        // 找到交集
+        // Find intersection
         const intersection = filteredResults.reduce((acc, current) => {
           const currentSet = new Set(current);
           return acc.filter((id) => currentSet.has(id));
@@ -890,7 +890,7 @@ export class ECSQueryBuilder {
         return intersection;
       }
 
-      // 处理基本的包含/排除查询
+      // Handle basic include/exclude queries
       if (this.excludeTypes.length > 0) {
         return this.ecsQuery.queryWithout(
           this.includeTypes,

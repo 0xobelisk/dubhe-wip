@@ -10,9 +10,9 @@ describe('schemaGen', () => {
     name: 'test_project',
     description: 'Test project for schema generation',
     enums: {
-      Status: ["Missed", "Caught", "Fled"],
-      Direction: ["North", "East", "South", "West"],
-      AssetType: ['Lp', 'Wrapped', 'Private', 'Package'],
+      Status: ['Missed', 'Caught', 'Fled'],
+      Direction: ['North', 'East', 'South', 'West'],
+      AssetType: ['Lp', 'Wrapped', 'Private', 'Package']
     },
     components: {
       // Only has a key
@@ -31,7 +31,7 @@ describe('schemaGen', () => {
       },
 
       // Only has a key and a value
-      component3: "u32",
+      component3: 'u32',
       component4: {
         fields: {
           player: 'address',
@@ -103,7 +103,7 @@ describe('schemaGen', () => {
       component14: {
         offchain: true,
         fields: {
-          result: 'Status',
+          result: 'Status'
         }
       },
 
@@ -117,7 +117,7 @@ describe('schemaGen', () => {
     },
     resources: {
       // Only has a value
-      resource0: "u32",
+      resource0: 'u32',
       resource1: {
         fields: {
           player: 'address',
@@ -180,14 +180,14 @@ describe('schemaGen', () => {
   const testDir = path.join(__dirname, 'test_project');
 
   beforeAll(() => {
-    // 创建测试目录
+    // Create test directory
     if (!fs.existsSync(testDir)) {
       fs.mkdirSync(testDir, { recursive: true });
     }
   });
 
   afterAll(() => {
-    // 清理测试目录
+    // Clean up test directory
     if (fs.existsSync(testDir)) {
       // fs.rmSync(testDir, { recursive: true, force: true });
     }
@@ -196,4 +196,4 @@ describe('schemaGen', () => {
   it('should generate schema files', async () => {
     await schemaGen(testDir, testConfig, 'testnet');
   });
-}); 
+});

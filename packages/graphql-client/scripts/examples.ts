@@ -3,7 +3,7 @@ import { createDubheGraphqlClient, DubheGraphqlClient } from '../src/client';
 import { Connection, StoreTableRow, DubheClientConfig } from '../src/types';
 
 /**
- * 创建基础客户端
+ * Create basic client
  */
 export function createExampleClient(): DubheGraphqlClient {
   const config: DubheClientConfig = {
@@ -18,7 +18,7 @@ export function createExampleClient(): DubheGraphqlClient {
 }
 
 /**
- * 创建带重试功能的客户端
+ * Create client with retry functionality
  */
 export function createClientWithRetry(): DubheGraphqlClient {
   const config: DubheClientConfig = {
@@ -48,13 +48,13 @@ export function createClientWithRetry(): DubheGraphqlClient {
 }
 
 /**
- * 基础查询示例
+ * Basic query examples
  */
 export async function exampleBasicQuery() {
   const client = createExampleClient();
 
   try {
-    // 查询encounters表
+    // Query encounters table
     const encounters = await client.getAllTables('encounters', {
       first: 5,
       filter: {
@@ -62,49 +62,52 @@ export async function exampleBasicQuery() {
       },
       orderBy: [{ field: 'createdAt', direction: 'DESC' }],
     });
-    console.log('Encounters:', encounters.edges.length, '条记录');
+    console.log('Encounters:', encounters.edges.length, 'records');
 
-    // 查询accounts表
+    // Query accounts table
     const accounts = await client.getAllTables('accounts', {
       first: 5,
       filter: {
         balance: { greaterThan: '0' },
       },
     });
-    console.log('Accounts:', accounts.edges.length, '条记录');
+    console.log('Accounts:', accounts.edges.length, 'records');
 
-    // 条件查询单个记录
+    // Conditional query for single record
     const specificAccount = await client.getTableByCondition('account', {
       assetId: '0x123...',
       account: '0xabc...',
     });
-    console.log('条件查询:', specificAccount ? '找到记录' : '未找到记录');
+    console.log(
+      'Conditional query:',
+      specificAccount ? 'Record found' : 'Record not found'
+    );
   } catch (error) {
-    console.error('查询失败:', error);
+    console.error('Query failed:', error);
   } finally {
     client.close();
   }
 }
 
 /**
- * 实时订阅示例
+ * Real-time subscription examples
  */
 export function exampleSubscription() {
   const client = createExampleClient();
 
-  // 基础订阅
+  // Basic subscription
   const basicSubscription = client.subscribeToTableChanges('encounters', {
     initialEvent: true,
     fields: ['player', 'monster', 'catchAttempts', 'createdAt'],
     onData: (data) => {
-      console.log('实时数据:', data.listen.query.encounters);
+      console.log('Real-time data:', data.listen.query.encounters);
     },
     onError: (error) => {
-      console.error('订阅错误:', error);
+      console.error('Subscription error:', error);
     },
   });
 
-  // 过滤订阅
+  // Filtered subscription
   const filteredSubscription = client.subscribeToTableChanges('accounts', {
     filter: { balance: { greaterThan: '1000' } },
     initialEvent: true,
@@ -112,7 +115,7 @@ export function exampleSubscription() {
     orderBy: [{ field: 'balance', direction: 'DESC' }],
     first: 5,
     onData: (data) => {
-      console.log('高余额账户更新:', data.listen.query.accounts);
+      console.log('High balance account updates:', data.listen.query.accounts);
     },
   });
 
@@ -121,7 +124,7 @@ export function exampleSubscription() {
     filteredSubscription.subscribe({}),
   ];
 
-  // 10秒后取消订阅
+  // Cancel subscriptions after 10 seconds
   setTimeout(() => {
     subscriptions.forEach((sub) => sub.unsubscribe());
     client.close();
@@ -129,7 +132,7 @@ export function exampleSubscription() {
 }
 
 /**
- * 批量查询示例
+ * Batch query examples
  */
 export async function exampleBatchQuery() {
   const client = createExampleClient();
@@ -155,18 +158,18 @@ export async function exampleBatchQuery() {
       },
     ]);
 
-    console.log('批量查询结果:');
-    console.log(`Encounters: ${results.encounters.edges.length} 条记录`);
-    console.log(`Accounts: ${results.accounts.edges.length} 条记录`);
+    console.log('Batch query results:');
+    console.log(`Encounters: ${results.encounters.edges.length} records`);
+    console.log(`Accounts: ${results.accounts.edges.length} records`);
   } catch (error) {
-    console.error('批量查询失败:', error);
+    console.error('Batch query failed:', error);
   } finally {
     client.close();
   }
 }
 
 /**
- * 多表订阅示例
+ * Multi-table subscription examples
  */
 export function exampleMultiTableSubscription() {
   const client = createExampleClient();
@@ -193,20 +196,20 @@ export function exampleMultiTableSubscription() {
     ],
     {
       onData: (allData) => {
-        console.log('多表订阅数据:', {
+        console.log('Multi-table subscription data:', {
           encounters: allData.encounters?.listen.query.encounters,
           accounts: allData.accounts?.listen.query.accounts,
         });
       },
       onError: (error) => {
-        console.error('多表订阅错误:', error);
+        console.error('Multi-table subscription error:', error);
       },
     }
   );
 
   const subscription = multiTableSub.subscribe({});
 
-  // 30秒后取消订阅
+  // Cancel subscription after 30 seconds
   setTimeout(() => {
     subscription.unsubscribe();
     client.close();
@@ -214,7 +217,7 @@ export function exampleMultiTableSubscription() {
 }
 
 /**
- * 自定义GraphQL查询示例
+ * Custom GraphQL query examples
  */
 export async function exampleCustomQuery() {
   const client = createExampleClient();
@@ -241,16 +244,16 @@ export async function exampleCustomQuery() {
       player: '0x123...',
     });
 
-    console.log('自定义查询结果:', result.data);
+    console.log('Custom query result:', result.data);
   } catch (error) {
-    console.error('自定义查询失败:', error);
+    console.error('Custom query failed:', error);
   } finally {
     client.close();
   }
 }
 
 /**
- * 缓存配置示例
+ * Cache configuration examples
  */
 export function createClientWithCache(): DubheGraphqlClient {
   return createDubheGraphqlClient({

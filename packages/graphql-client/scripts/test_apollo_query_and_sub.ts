@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client';
 import { createDubheGraphqlClient, DubheGraphqlClient } from '../src';
 
-// 类型定义
+// Type definitions
 interface EncounterNode {
   catchAttempts?: number;
   exists?: boolean;
@@ -31,14 +31,14 @@ interface SubscriptionResult {
   encountersChanged: EncounterNode;
 }
 
-// 检查ws模块是否可用
+// Check if ws module is available
 function checkWebSocketSupport(): boolean {
   try {
     if (typeof window !== 'undefined') {
-      // 浏览器环境，有原生WebSocket
+      // Browser environment, has native WebSocket
       return true;
     } else {
-      // Node.js环境，需要检查ws模块
+      // Node.js environment, need to check ws module
       require('ws');
       return true;
     }
@@ -47,12 +47,12 @@ function checkWebSocketSupport(): boolean {
   }
 }
 
-// 配置
+// Configuration
 const hasWebSocketSupport = checkWebSocketSupport();
 
 const CONFIG = {
   endpoint: 'http://localhost:4000/graphql',
-  // 只有在支持WebSocket时才设置订阅端点
+  // Only set subscription endpoint when WebSocket is supported
   ...(hasWebSocketSupport && {
     subscriptionEndpoint: 'ws://localhost:4000/graphql',
   }),
@@ -61,7 +61,7 @@ const CONFIG = {
   },
 };
 
-// 测试查询
+// Test query
 const TEST_QUERY = gql`
   query MyQuery {
     encounters {
@@ -83,7 +83,7 @@ const TEST_QUERY = gql`
   }
 `;
 
-// 测试订阅（仅在支持WebSocket时使用）
+// Test subscription (only used when WebSocket is supported)
 const TEST_SUBSCRIPTION = gql`
   subscription MySubscription {
     encounters {
@@ -97,7 +97,7 @@ const TEST_SUBSCRIPTION = gql`
   }
 `;
 
-// 简单查询测试
+// Simple query
 const SIMPLE_QUERY = gql`
   query SimpleQuery($first: Int) {
     encounters(first: $first) {
@@ -114,45 +114,51 @@ class GraphQLTester {
   private supportsSubscriptions: boolean;
 
   constructor() {
-    console.log('🚀 初始化 GraphQL 客户端...');
+    console.log('🚀 Initializing GraphQL client...');
 
     this.supportsSubscriptions = hasWebSocketSupport;
 
     if (!this.supportsSubscriptions) {
-      console.log('⚠️  警告：WebSocket支持不可用，将跳过订阅功能测试');
-      console.log('💡 要启用订阅功能，请安装ws模块：npm install ws');
+      console.log(
+        '⚠️  Warning: WebSocket support not available, subscription functionality tests will be skipped'
+      );
+      console.log(
+        '💡 To enable subscription functionality, please install ws module: npm install ws'
+      );
     }
 
     this.client = createDubheGraphqlClient(CONFIG);
   }
 
-  // 测试基础查询
+  // Test basic query
   async testBasicQuery() {
-    console.log('\n📊 === 测试基础查询 ===');
+    console.log('\n📊 === Testing Basic Query ===');
 
     try {
-      console.log('发送查询请求...');
+      console.log('Sending query request...');
       const result = await this.client.query(TEST_QUERY);
 
       if (result.error) {
-        console.error('❌ 查询错误:', result.error.message);
+        console.error('❌ Query error:', result.error.message);
         return;
       }
 
-      console.log('✅ 查询成功!');
+      console.log('✅ Query successful!');
 
-      // 类型断言
+      // Type assertion
       const data = result.data as QueryResult;
 
-      console.log('📈 数据统计:');
-      console.log(`  - 总数: ${data?.encounters?.totalCount || 0}`);
-      console.log(`  - 当前页数量: ${data?.encounters?.nodes?.length || 0}`);
+      console.log('📈 Data statistics:');
+      console.log(`  - Total count: ${data?.encounters?.totalCount || 0}`);
       console.log(
-        `  - 是否有下一页: ${data?.encounters?.pageInfo?.hasNextPage || false}`
+        `  - Current page count: ${data?.encounters?.nodes?.length || 0}`
+      );
+      console.log(
+        `  - Has next page: ${data?.encounters?.pageInfo?.hasNextPage || false}`
       );
 
       if (data?.encounters?.nodes?.length > 0) {
-        console.log('\n📋 前几条数据:');
+        console.log('\n📋 First few records:');
         data.encounters.nodes
           .slice(0, 3)
           .forEach((node: EncounterNode, index: number) => {
@@ -163,55 +169,59 @@ class GraphQLTester {
             console.log('     ---');
           });
       } else {
-        console.log('📝 数据为空，可能需要先运行 indexer 来同步数据');
+        console.log(
+          '📝 Data is empty, you may need to run indexer first to sync data'
+        );
       }
     } catch (error) {
-      console.error('❌ 查询异常:', error);
+      console.error('❌ Query exception:', error);
     }
   }
 
-  // 测试带参数的查询
+  // Test parameterized query
   async testParameterizedQuery() {
-    console.log('\n🔍 === 测试带参数查询 ===');
+    console.log('\n🔍 === Testing Parameterized Query ===');
 
     try {
-      console.log('发送带参数的查询请求 (first: 5)...');
+      console.log('Sending parameterized query request (first: 5)...');
       const result = await this.client.query(SIMPLE_QUERY, { first: 5 });
 
       if (result.error) {
-        console.error('❌ 查询错误:', result.error.message);
+        console.error('❌ Query error:', result.error.message);
         return;
       }
 
-      console.log('✅ 带参数查询成功!');
+      console.log('✅ Parameterized query successful!');
 
-      // 类型断言
+      // Type assertion
       const data = result.data as QueryResult;
 
-      console.log(`📊 返回数据数量: ${data?.encounters?.nodes?.length || 0}`);
-      console.log(`📈 总数: ${data?.encounters?.totalCount || 0}`);
+      console.log(
+        `📊 Returned data count: ${data?.encounters?.nodes?.length || 0}`
+      );
+      console.log(`📈 Total count: ${data?.encounters?.totalCount || 0}`);
     } catch (error) {
-      console.error('❌ 带参数查询异常:', error);
+      console.error('❌ Parameterized query exception:', error);
     }
   }
 
-  // 测试使用客户端封装的方法
+  // Test using client wrapped methods
   async testClientMethods() {
-    console.log('\n⚡ === 测试客户端封装方法 ===');
+    console.log('\n⚡ === Testing Client Wrapped Methods ===');
 
     try {
-      console.log('使用 getAllTables 方法查询 encounters...');
+      console.log('Using getAllTables method to query encounters...');
       const result = await this.client.getAllTables('encounters', {
         first: 3,
         orderBy: [{ field: 'player', direction: 'ASC' }],
-        fields: ['nodeId', 'player', 'monster', 'catchAttempts', 'exists'], // 指定需要的字段
+        fields: ['nodeId', 'player', 'monster', 'catchAttempts', 'exists'], // Specify needed fields
       });
 
-      console.log('✅ getAllTables 查询成功!');
-      console.log(`📊 返回数据数量: ${result.edges?.length || 0}`);
+      console.log('✅ getAllTables query successful!');
+      console.log(`📊 Returned data count: ${result.edges?.length || 0}`);
 
       if (result.edges?.length > 0) {
-        console.log('\n📋 数据详情:');
+        console.log('\n📋 Data details:');
         result.edges.forEach((edge: any, index: number) => {
           console.log(`  ${index + 1}. Player: ${edge.node.player || 'N/A'}`);
           console.log(`     Monster: ${edge.node.monster || 'N/A'}`);
@@ -219,84 +229,92 @@ class GraphQLTester {
         });
       }
 
-      // 测试其他表
-      console.log('\n尝试查询其他表...');
+      // Test other tables
+      console.log('\nTrying to query other tables...');
 
-      // 测试 accounts 表
+      // Test accounts table
       try {
         const accounts = await this.client.getAllTables('accounts', {
           first: 2,
-          fields: ['nodeId', 'assetId', 'account', 'balance'], // 指定accounts表的字段
+          fields: ['nodeId', 'assetId', 'account', 'balance'], // Specify accounts table fields
         });
         console.log(
-          `✅ accounts 表查询成功，数据量: ${accounts.edges?.length || 0}`
+          `✅ accounts table query successful, data count: ${accounts.edges?.length || 0}`
         );
       } catch (error) {
         console.log(
-          `ℹ️ accounts 表可能为空或不存在:`,
+          `ℹ️ accounts table may be empty or not exist:`,
           (error as Error).message
         );
       }
 
-      // 测试 positions 表
+      // Test positions table
       try {
         const positions = await this.client.getAllTables('positions', {
           first: 2,
-          fields: ['nodeId', 'account', 'x', 'y'], // 指定positions表的字段
+          fields: ['nodeId', 'account', 'x', 'y'], // Specify positions table fields
         });
         console.log(
-          `✅ positions 表查询成功，数据量: ${positions.edges?.length || 0}`
+          `✅ positions table query successful, data count: ${positions.edges?.length || 0}`
         );
       } catch (error) {
         console.log(
-          `ℹ️ positions 表可能为空或不存在:`,
+          `ℹ️ positions table may be empty or not exist:`,
           (error as Error).message
         );
       }
 
-      // 测试 mapConfigs 表
+      // Test mapConfigs table
       try {
         const mapConfigs = await this.client.getAllTables('mapConfigs', {
           first: 2,
-          fields: ['nodeId', 'key', 'value'], // 指定mapConfigs表的字段
+          fields: ['nodeId', 'key', 'value'], // Specify mapConfigs table fields
         });
         console.log(
-          `✅ mapConfigs 表查询成功，数据量: ${mapConfigs.edges?.length || 0}`
+          `✅ mapConfigs table query successful, data count: ${mapConfigs.edges?.length || 0}`
         );
       } catch (error) {
         console.log(
-          `ℹ️ mapConfigs 表可能为空或不存在:`,
+          `ℹ️ mapConfigs table may be empty or not exist:`,
           (error as Error).message
         );
       }
     } catch (error) {
-      console.error('❌ 客户端方法测试异常:', error);
+      console.error('❌ Client method test exception:', error);
     }
   }
 
-  // 测试订阅功能（仅在支持WebSocket时运行）
+  // Test subscription functionality (only runs when WebSocket is supported)
   async testSubscription() {
-    console.log('\n🔔 === 测试订阅功能 ===');
+    console.log('\n🔔 === Testing Subscription Functionality ===');
 
     if (!this.supportsSubscriptions) {
-      console.log('⚠️  跳过订阅测试：WebSocket支持不可用');
-      console.log('💡 要启用订阅功能，请运行：npm install ws');
+      console.log(
+        '⚠️  Skipping subscription test: WebSocket support not available'
+      );
+      console.log(
+        '💡 To enable subscription functionality, please run: npm install ws'
+      );
       return;
     }
 
     return new Promise<void>((resolve) => {
       let messageCount = 0;
-      const maxMessages = 3; // 最多等待3条消息
-      const timeout = 15000; // 15秒超时
+      const maxMessages = 3; // Wait for maximum 3 messages
+      const timeout = 15000; // 15 second timeout
 
-      console.log('开始订阅 encounters 数据变更...');
-      console.log(`⏱️ 将等待 ${timeout / 1000} 秒或 ${maxMessages} 条消息`);
+      console.log('Starting subscription to encounters data changes...');
+      console.log(
+        `⏱️ Will wait for ${timeout / 1000} seconds or ${maxMessages} messages`
+      );
 
       try {
         const subscription = this.client.subscribe(TEST_SUBSCRIPTION);
 
         const timer = setTimeout(() => {
-          console.log(`⏰ ${timeout / 1000} 秒超时，结束订阅测试`);
+          console.log(
+            `⏰ ${timeout / 1000} second timeout, ending subscription test`
+          );
           sub.unsubscribe();
           resolve();
         }, timeout);
@@ -304,78 +322,84 @@ class GraphQLTester {
         const sub = subscription.subscribe({
           next: (result: any) => {
             messageCount++;
-            console.log(`\n📨 收到订阅消息 #${messageCount}:`);
+            console.log(`\n📨 Received subscription message #${messageCount}:`);
 
             if (result.error) {
-              console.error('❌ 订阅错误:', result.error.message);
+              console.error('❌ Subscription error:', result.error.message);
             } else if (result.data) {
               const subscriptionData = result.data as SubscriptionResult;
               console.log(
-                '✅ 订阅数据:',
+                '✅ Subscription data:',
                 JSON.stringify(subscriptionData, null, 2)
               );
             } else {
-              console.log('📭 收到空数据包');
+              console.log('📭 Received empty data packet');
             }
 
             if (messageCount >= maxMessages) {
-              console.log(`✅ 已收到 ${maxMessages} 条消息，结束订阅测试`);
+              console.log(
+                `✅ Received ${maxMessages} messages, ending subscription test`
+              );
               clearTimeout(timer);
               sub.unsubscribe();
               resolve();
             }
           },
           error: (error: any) => {
-            console.error('❌ 订阅连接错误:', error);
+            console.error('❌ Subscription connection error:', error);
             clearTimeout(timer);
             resolve();
           },
           complete: () => {
-            console.log('✅ 订阅连接已完成');
+            console.log('✅ Subscription connection completed');
             clearTimeout(timer);
             resolve();
           },
         });
 
-        console.log('🟢 订阅已启动，等待数据变更...');
-        console.log('💡 提示：您可以通过 indexer 触发数据变更来测试订阅功能');
+        console.log('🟢 Subscription started, waiting for data changes...');
+        console.log(
+          '💡 Tip: You can trigger data changes through indexer to test subscription functionality'
+        );
       } catch (error) {
-        console.error('❌ 订阅启动失败:', error);
+        console.error('❌ Subscription startup failed:', error);
         resolve();
       }
     });
   }
 
-  // 测试使用客户端订阅方法（仅在支持WebSocket时运行）
+  // Test using client subscription methods (only runs when WebSocket is supported)
   async testClientSubscription() {
-    console.log('\n🔔 === 测试客户端订阅方法 ===');
+    console.log('\n🔔 === Testing Client Subscription Methods ===');
 
     if (!this.supportsSubscriptions) {
-      console.log('⚠️  跳过客户端订阅测试：WebSocket支持不可用');
+      console.log(
+        '⚠️  Skipping client subscription test: WebSocket support not available'
+      );
       return;
     }
 
     return new Promise<void>((resolve) => {
-      const timeout = 10000; // 10秒超时
+      const timeout = 10000; // 10 second timeout
 
-      console.log('使用 subscribeToTableChanges 方法订阅...');
+      console.log('Using subscribeToTableChanges method to subscribe...');
 
       try {
         const subscription = this.client.subscribeToTableChanges('encounters', {
           onData: (data: any) => {
-            console.log('✅ 收到订阅数据:', data);
+            console.log('✅ Received subscription data:', data);
           },
           onError: (error: any) => {
-            console.error('❌ 订阅错误:', error);
+            console.error('❌ Subscription error:', error);
           },
           onComplete: () => {
-            console.log('✅ 订阅完成');
+            console.log('✅ Subscription completed');
           },
-          fields: ['nodeId', 'player', 'monster', 'catchAttempts', 'exists'], // 指定需要订阅的字段
+          fields: ['nodeId', 'player', 'monster', 'catchAttempts', 'exists'], // Specify fields to subscribe to
         });
 
         const timer = setTimeout(() => {
-          console.log('⏰ 10秒超时，结束客户端订阅测试');
+          console.log('⏰ 10 second timeout, ending client subscription test');
           sub.unsubscribe();
           resolve();
         }, timeout);
@@ -383,32 +407,32 @@ class GraphQLTester {
         const sub = subscription.subscribe({
           next: (result: any) => {
             if (result.data) {
-              console.log('📨 客户端订阅收到数据:', result.data);
+              console.log('📨 Client subscription received data:', result.data);
             }
           },
           error: (error: any) => {
-            console.error('❌ 客户端订阅错误:', error);
+            console.error('❌ Client subscription error:', error);
             clearTimeout(timer);
             resolve();
           },
         });
 
-        console.log('🟢 客户端订阅已启动');
+        console.log('🟢 Client subscription started');
       } catch (error) {
-        console.error('❌ 客户端订阅启动失败:', error);
+        console.error('❌ Client subscription startup failed:', error);
         resolve();
       }
     });
   }
 
-  // 测试查询单个数据
+  // Test single data query
   async testSingleDataQuery() {
-    console.log('\n🔍 === 测试单个数据查询 ===');
+    console.log('\n🔍 === Testing Single Data Query ===');
 
     try {
-      // 方法1: 使用 getTableByCondition（推荐）
+      // Method 1: Use getTableByCondition (recommended)
       console.log(
-        '方法1: 使用 getTableByCondition 根据 player 查询单个 encounter...'
+        'Method 1: Using getTableByCondition to query single encounter by player...'
       );
 
       try {
@@ -422,23 +446,25 @@ class GraphQLTester {
         );
 
         if (singleEncounter) {
-          console.log('✅ 找到单个记录:');
+          console.log('✅ Found single record:');
           console.log(`  Player: ${singleEncounter.player}`);
           console.log(`  Monster: ${singleEncounter.monster}`);
           console.log(`  Catch Attempts: ${singleEncounter.catchAttempts}`);
           console.log(`  NodeId: ${singleEncounter.nodeId}`);
         } else {
-          console.log('❌ 未找到匹配记录');
+          console.log('❌ No matching record found');
         }
       } catch (error) {
         console.log(
-          'ℹ️ getTableByCondition 可能不支持，错误:',
+          'ℹ️ getTableByCondition may not be supported, error:',
           (error as Error).message
         );
       }
 
-      // 方法2: 使用 getAllTables 限制数量为 1
-      console.log('\n方法2: 使用 getAllTables first: 1 查询单个记录...');
+      // Method 2: Use getAllTables limit to 1
+      console.log(
+        '\nMethod 2: Using getAllTables first: 1 to query single record...'
+      );
 
       const result = await this.client.getAllTables('encounters', {
         first: 1,
@@ -453,17 +479,17 @@ class GraphQLTester {
 
       if (result.edges.length > 0) {
         const encounter = result.edges[0].node;
-        console.log('✅ 通过 first: 1 查询到单个记录:');
+        console.log('✅ Queried single record through first: 1:');
         console.log(`  Player: ${encounter.player}`);
         console.log(`  Monster: ${encounter.monster}`);
         console.log(`  Catch Attempts: ${encounter.catchAttempts}`);
         console.log(`  NodeId: ${encounter.nodeId}`);
       } else {
-        console.log('❌ 未找到匹配记录');
+        console.log('❌ No matching record found');
       }
 
-      // 方法3: 测试查询不存在的记录
-      console.log('\n方法3: 测试查询不存在的记录...');
+      // Method 3: Test querying non-existent record
+      console.log('\nMethod 3: Testing query for non-existent record...');
 
       const notFound = await this.client.getAllTables('encounters', {
         first: 1,
@@ -474,13 +500,15 @@ class GraphQLTester {
       });
 
       if (notFound.edges.length === 0) {
-        console.log('✅ 正确处理了不存在的记录，返回空结果');
+        console.log(
+          '✅ Correctly handled non-existent record, returned empty result'
+        );
       } else {
-        console.log('⚠️ 意外找到了记录');
+        console.log('⚠️ Unexpectedly found record');
       }
 
-      // 方法4: 测试精确查询（如果表支持其他字段查询）
-      console.log('\n方法4: 测试使用其他条件查询...');
+      // Method 4: Test exact query (if table supports other field queries)
+      console.log('\nMethod 4: Testing query using other conditions...');
 
       const catchAttemptsResult = await this.client.getAllTables('encounters', {
         first: 1,
@@ -492,83 +520,76 @@ class GraphQLTester {
 
       if (catchAttemptsResult.edges.length > 0) {
         const encounter = catchAttemptsResult.edges[0].node;
-        console.log('✅ 通过 catchAttempts 查询到记录:');
+        console.log('✅ Queried record by catchAttempts:');
         console.log(`  Player: ${encounter.player}`);
         console.log(`  Catch Attempts: ${encounter.catchAttempts}`);
       } else {
-        console.log('ℹ️ 未找到 catchAttempts = 5 的记录');
+        console.log('ℹ️ No record found with catchAttempts = 5');
       }
     } catch (error) {
-      console.error('❌ 单个数据查询测试异常:', error);
+      console.error('❌ Single data query test exception:', error);
     }
   }
 
-  // 执行所有测试
+  // Run all tests
   async runAllTests() {
-    console.log('🧪 === Dubhe GraphQL 客户端测试 ===');
-    console.log('🌐 服务器地址:', CONFIG.endpoint);
+    console.log('🎯 === Starting comprehensive GraphQL test ===\n');
 
-    if (this.supportsSubscriptions && CONFIG.subscriptionEndpoint) {
-      console.log('📡 订阅地址:', CONFIG.subscriptionEndpoint);
-    } else {
-      console.log('📡 订阅功能: 不可用 (缺少WebSocket支持)');
+    await this.testBasicQuery();
+    await this.testParameterizedQuery();
+    await this.testClientMethods();
+    await this.testSingleDataQuery();
+
+    if (this.supportsSubscriptions) {
+      await this.testSubscription();
+      await this.testClientSubscription();
     }
 
-    try {
-      // 测试查询功能
-      await this.testBasicQuery();
-      await this.testParameterizedQuery();
-      await this.testClientMethods();
+    console.log('\n🎉 === All tests completed ===');
+    console.log('\n💡 Tips:');
+    console.log(
+      '  1. Ensure GraphQL server is running at: http://localhost:4000/graphql'
+    );
+    console.log('  2. Check if there is data in the database');
+    console.log(
+      '  3. For subscription tests, you can trigger data changes through indexer'
+    );
+    console.log(
+      '  4. If encountering WebSocket errors, ensure ws module is installed: npm install ws'
+    );
 
-      // 测试单个数据查询
-      await this.testSingleDataQuery();
-
-      // 只有在支持WebSocket时才测试订阅功能
-      if (this.supportsSubscriptions) {
-        await this.testSubscription();
-        await this.testClientSubscription();
-      } else {
-        console.log('\n💡 === 如何启用订阅功能 ===');
-        console.log('1. 安装ws模块：npm install ws');
-        console.log('2. 确保GraphQL服务器支持WebSocket订阅');
-        console.log('3. 重新运行测试脚本');
-      }
-    } catch (error) {
-      console.error('❌ 测试过程中发生异常:', error);
-    } finally {
-      console.log('\n🔚 === 测试完成，关闭客户端 ===');
-      this.client.close();
-    }
+    // Close client connection
+    this.client.close();
   }
 }
 
-// 主函数
+// Main function
 async function main() {
-  console.log('🔍 检查运行环境...');
-  console.log(`📍 Node.js环境: ${typeof window === 'undefined' ? '是' : '否'}`);
-  console.log(`🔌 WebSocket支持: ${hasWebSocketSupport ? '可用' : '不可用'}`);
+  console.log('🚀 === DubheGraphqlClient Apollo Integration Test ===\n');
 
-  const tester = new GraphQLTester();
-  await tester.runAllTests();
+  try {
+    const tester = new GraphQLTester();
+    await tester.runAllTests();
+  } catch (error) {
+    console.error('❌ Test execution failed:', error);
+    process.exit(1);
+  }
 }
 
-// 错误处理
-process.on('unhandledRejection', (error) => {
-  console.error('❌ 未处理的Promise拒绝:', error);
+// Error handling
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise rejection:', promise, 'reason:', reason);
   process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  console.log('\n👋 收到中断信号，正在退出...');
-  process.exit(0);
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  process.exit(1);
 });
 
-// 运行测试
+// Run test
 if (require.main === module) {
-  main().catch((error) => {
-    console.error('❌ 主函数执行失败:', error);
-    process.exit(1);
-  });
+  main();
 }
 
 export { GraphQLTester, main };

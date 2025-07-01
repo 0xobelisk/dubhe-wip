@@ -6,7 +6,7 @@ import sys
 import os
 from dotenv import load_dotenv
 
-# 加载环境变量
+# Load environment variables
 load_dotenv()
 
 def test_notifications():
@@ -18,13 +18,13 @@ def test_notifications():
     print(f"Connecting to database...")
     
     try:
-        # 连接到数据库
+        # Connect to database
         conn = psycopg2.connect(database_url)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         
         cursor = conn.cursor()
         
-        # 监听通知频道
+        # Listen to notification channels
         cursor.execute('LISTEN "store:all";')
         cursor.execute('LISTEN "table:store_encounter:change";')
         
@@ -34,7 +34,7 @@ def test_notifications():
         print("\nWaiting for notifications... (Press Ctrl+C to exit)")
         
         while True:
-            # 等待通知
+            # Wait for notifications
             if select.select([conn], [], [], 5) == ([], [], []):
                 print(".", end="", flush=True)
                 continue
@@ -46,7 +46,7 @@ def test_notifications():
                     print(f"  Channel: {notify.channel}")
                     print(f"  Payload: {notify.payload}")
                     
-                    # 尝试解析 JSON payload
+                    # Try to parse JSON payload
                     try:
                         payload_data = json.loads(notify.payload)
                         print(f"  Parsed data:")

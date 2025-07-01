@@ -1,35 +1,35 @@
 /**
- * ECS Monster Hunter 测试脚本
+ * ECS Monster Hunter Test Script
  *
- * 使用最新的 Dubhe ECS 系统测试 monster_hunter 游戏的组件查询
- * 主要测试 position 和 player 组件的查询功能
+ * Test the monster_hunter game component queries using the latest Dubhe ECS system
+ * Mainly test position and player component query functionality
  */
 
 import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
 import { createECSWorld, DubheECSWorld } from '../src';
 import dubheMetadata from '../dubhe.config_1.json';
 
-// GraphQL 端点配置
+// GraphQL endpoint configuration
 const GRAPHQL_ENDPOINT =
   process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
 
 /**
- * 主测试函数
+ * Main test function
  */
 async function testMonsterHunterECS() {
-  console.log('🎮 === Monster Hunter ECS 测试 ===\n');
+  console.log('🎮 === Monster Hunter ECS Test ===\n');
 
   let world: DubheECSWorld | null = null;
 
-  // 1. 创建 GraphQL client（使用 dubhe 配置）
-  console.log('🔌 创建 GraphQL client...');
+  // 1. Create GraphQL client (using dubhe configuration)
+  console.log('🔌 Creating GraphQL client...');
   const client = createDubheGraphqlClient({
     endpoint: GRAPHQL_ENDPOINT,
     dubheMetadata,
   });
 
-  // 2. 创建 ECS world（自动使用 dubhe-config 模式）
-  console.log('🌍 创建 ECS world...');
+  // 2. Create ECS world (automatically uses dubhe-config mode)
+  console.log('🌍 Creating ECS world...');
   world = createECSWorld(client);
   const components = await world.getAvailableComponents();
   console.log('components', components);

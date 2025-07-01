@@ -8,27 +8,27 @@
   },
   "scenarios": {
     "quick": {
-      "name": "快速压测",
+      "name": "Quick Load Test",
       "duration": 10,
       "connections": 5,
-      "description": "基础性能测试"
+      "description": "Basic performance testing"
     },
     "standard": {
-      "name": "标准压测",
+      "name": "Standard Load Test",
       "duration": 30,
       "connections": 10,
-      "description": "标准性能测试"
+      "description": "Standard performance testing"
     },
     "stress": {
-      "name": "压力测试",
+      "name": "Stress Test",
       "duration": 60,
       "connections": 20,
-      "description": "高负载压力测试"
+      "description": "High load stress testing"
     }
   },
   "queryTypes": {
     "basic": {
-      "name": "基础查询",
+      "name": "Basic Query",
       "tests": [
         {
           "type": "getAllTables",
@@ -41,7 +41,7 @@
       ]
     },
     "filtered": {
-      "name": "过滤查询",
+      "name": "Filtered Query",
       "tests": [
         {
           "type": "getAllTables",
@@ -53,7 +53,7 @@
       ]
     },
     "batch": {
-      "name": "批量查询",
+      "name": "Batch Query",
       "tests": [
         {
           "type": "batchQuery",
@@ -67,7 +67,7 @@
   },
   "subscriptionTypes": {
     "basic": {
-      "name": "基础订阅",
+      "name": "Basic Subscription",
       "duration": 30,
       "tests": [
         {
@@ -80,7 +80,7 @@
       ]
     },
     "filtered": {
-      "name": "过滤订阅",
+      "name": "Filtered Subscription",
       "duration": 30,
       "tests": [
         {

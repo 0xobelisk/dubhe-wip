@@ -139,7 +139,7 @@ impl DubheIndexerWorker {
             .execute(&mut conn)
             .await?;
 
-        // 设置简化的日志系统（可选）
+        // Set up simplified logging system (optional)
         setup_simple_logging(&mut conn).await?;
 
         for table in &self.tables {
@@ -160,11 +160,11 @@ impl DubheIndexerWorker {
                 diesel::sql_query(&field_sql).execute(&mut conn).await?;
             }
 
-            // 为每个表创建统一实时引擎触发器
+            // Create unified realtime engine trigger for each table
             let table_name_with_prefix = format!("store_{}", table.name);
             create_realtime_trigger(&mut conn, &table_name_with_prefix).await?;
             println!(
-                "✅ 表和触发器已创建: {} (支持Live Queries + Native WebSocket)",
+                "✅ Table and trigger created: {} (supports Live Queries + Native WebSocket)",
                 table_name_with_prefix
             );
         }
@@ -229,7 +229,7 @@ impl DubheIndexerWorker {
         // for i in 0..worker_pool_number {
         //     let worker_start = start_checkpoint + (i as u64 * checkpoints_per_worker);
         //     let worker_end = if i == worker_pool_number - 1 {
-        //         // 最后一个 worker 处理剩余的检查点
+        //         // Last worker handles remaining checkpoints
         //         end_checkpoint
         //     } else {
         //         worker_start + checkpoints_per_worker - 1
@@ -315,9 +315,9 @@ impl DubheIndexerWorker {
             }
         }
 
-        // 记录数据变更（PostGraphile会自动检测）
+        // Log data changes (PostGraphile will automatically detect)
         if let Err(e) = log_data_change(&mut conn, &table_name, "INSERT", 1).await {
-            eprintln!("记录日志失败: {:?}", e);
+            eprintln!("Failed to log data change: {:?}", e);
         }
 
         Ok(())
@@ -394,9 +394,9 @@ impl DubheIndexerWorker {
             }
         }
 
-        // 记录数据变更（PostGraphile会自动检测）
+        // Log data changes (PostGraphile will automatically detect)
         if let Err(e) = log_data_change(&mut conn, &table_name, "UPDATE", 1).await {
-            eprintln!("记录日志失败: {:?}", e);
+            eprintln!("Failed to log data change: {:?}", e);
         }
 
         Ok(())
