@@ -18,8 +18,7 @@
     "check-balance": "pnpm dubhe check-balance --network",
     "// Production Environment": "----------------",
     "prod:localnet": "pnpm account:gen && pnpm faucet localnet",
-    "prod:testnet": "pnpm account:gen && pnpm check-balance testnet",
-    "prod:mainnet": "pnpm account:gen && pnpm check-balance mainnet"
+    "prod:testnet": "pnpm account:gen && pnpm check-balance testnet"
   },
   "dependencies": {
     "@0xobelisk/sui-cli": "link:../../../../../packages/sui-cli",

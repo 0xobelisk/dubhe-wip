@@ -10,6 +10,7 @@ import * as os from 'os';
 import * as net from 'net';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
+import packageJson from '../../package.json';
 
 // Check result type
 interface CheckResult {
@@ -532,6 +533,9 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
 
     if (version) {
       // Find specific version
+      if (!version.startsWith('v')) {
+        version = `v${version}`;
+      }
       selectedRelease = releases.find((r) => r.tag_name === version) || null;
       if (!selectedRelease) {
         console.error(`Version ${version} not found`);
@@ -792,6 +796,60 @@ function checkBinaryExists(toolName: string): boolean {
   );
 
   return fs.existsSync(binaryPath);
+}
+
+// Check dubhe-indexer version consistency with sui-cli
+async function checkDubheIndexerVersionConsistency(): Promise<CheckResult> {
+  try {
+    const currentSuiCliVersion = packageJson.version;
+
+    // Get dubhe-indexer version
+    const result = await execCommand('dubhe-indexer', ['--version']);
+    if (result.code !== 0) {
+      return {
+        name: 'Dubhe-indexer Version Consistency',
+        status: 'warning',
+        message: 'Cannot get dubhe-indexer version',
+        fixSuggestion: 'Unable to verify version consistency'
+      };
+    }
+
+    // Parse version from output (expected format: "dubhe-indexer 1.2.0-pre.46" or similar)
+    const versionMatch = result.stdout.trim().match(/dubhe-indexer\s+(\S+)/);
+    if (!versionMatch) {
+      return {
+        name: 'Dubhe-indexer Version Consistency',
+        status: 'warning',
+        message: 'Cannot parse dubhe-indexer version',
+        fixSuggestion: 'Unable to verify version consistency'
+      };
+    }
+
+    const dubheIndexerVersion = versionMatch[1];
+
+    // Compare versions
+    if (currentSuiCliVersion === dubheIndexerVersion) {
+      return {
+        name: 'Dubhe-indexer Version Consistency',
+        status: 'success',
+        message: `Versions match (${currentSuiCliVersion})`
+      };
+    } else {
+      return {
+        name: 'Dubhe-indexer Version Consistency',
+        status: 'warning',
+        message: `Version mismatch: sui-cli ${currentSuiCliVersion}, dubhe-indexer ${dubheIndexerVersion}`,
+        fixSuggestion: `Consider reinstalling dubhe-indexer to match sui-cli version ${currentSuiCliVersion}`
+      };
+    }
+  } catch (error) {
+    return {
+      name: 'Dubhe-indexer Version Consistency',
+      status: 'warning',
+      message: 'Version check failed',
+      fixSuggestion: 'Unable to verify version consistency'
+    };
+  }
 }
 
 // Check if command is available in PATH
@@ -1194,6 +1252,12 @@ async function runDoctorChecks(options: {
       if (!version) {
         process.exit(1);
       }
+    } else if (toolName === 'dubhe-indexer') {
+      // Default to sui-cli version for dubhe-indexer
+      version = packageJson.version;
+      console.log(
+        chalk.blue(`📦 Installing dubhe-indexer version ${version} (matching sui-cli version)`)
+      );
     }
 
     const success = await downloadAndInstallTool(toolName, version || undefined);
@@ -1241,6 +1305,12 @@ async function runDoctorChecks(options: {
   const dubheIndexerCheck = await checkCommand('dubhe-indexer');
   results.push(dubheIndexerCheck);
 
+  // Dubhe indexer version consistency check (only if basic check passed)
+  if (dubheIndexerCheck.status === 'success') {
+    const dubheIndexerVersionCheck = await checkDubheIndexerVersionConsistency();
+    results.push(dubheIndexerVersionCheck);
+  }
+
   // Port availability checks
   const postgresPortCheck = await checkPostgreSQLPort();
   results.push(postgresPortCheck);
@@ -1281,6 +1351,58 @@ async function runDoctorChecks(options: {
   console.log(`   ${chalk.green('✓ Passed:')} ${summary.success} items`);
   console.log(`   ${chalk.yellow('! Warning:')} ${summary.warning} items`);
   console.log(`   ${chalk.red('✗ Failed:')} ${summary.error} items`);
+
+  // Handle dubhe-indexer version inconsistency
+  const versionInconsistencyWarning = results.find(
+    (r) =>
+      r.name === 'Dubhe-indexer Version Consistency' &&
+      r.status === 'warning' &&
+      r.message.includes('Version mismatch')
+  );
+
+  if (versionInconsistencyWarning) {
+    console.log(chalk.yellow('\n⚠️  Dubhe-indexer version inconsistency detected!'));
+    console.log(chalk.gray(`   ${versionInconsistencyWarning.message}`));
+
+    try {
+      const answer = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'reinstallDubheIndexer',
+          message: 'Would you like to reinstall dubhe-indexer to match the sui-cli version?',
+          default: true
+        }
+      ]);
+
+      if (answer.reinstallDubheIndexer) {
+        console.log(chalk.blue('\n📦 Reinstalling dubhe-indexer...\n'));
+        console.log(chalk.blue(`${'='.repeat(60)}`));
+        console.log(chalk.blue('📦 Installing dubhe-indexer...'));
+        console.log(chalk.blue(`${'='.repeat(60)}`));
+
+        // Get the current sui-cli version to install matching dubhe-indexer
+        const success = await downloadAndInstallTool('dubhe-indexer', packageJson.version);
+
+        if (success) {
+          console.log(chalk.green('\n✅ Dubhe-indexer reinstallation completed successfully!'));
+          console.log(
+            chalk.blue('   Please restart your terminal or run: source ~/.zshrc (or ~/.bashrc)')
+          );
+          console.log(chalk.blue('   Then run: dubhe doctor to verify the installation'));
+        } else {
+          console.log(chalk.red('\n❌ Dubhe-indexer reinstallation failed'));
+          console.log(
+            chalk.gray('   You can try manual installation: dubhe doctor --install dubhe-indexer')
+          );
+        }
+      } else {
+        console.log(chalk.gray('\nVersion inconsistency ignored. You can reinstall later with:'));
+        console.log(chalk.gray('   dubhe doctor --install dubhe-indexer'));
+      }
+    } catch (error) {
+      console.log(chalk.gray('\nVersion inconsistency check cancelled.'));
+    }
+  }
 
   // Handle missing tools
   const allFailedTools = results.filter((r) => r.status === 'error');
@@ -1345,7 +1467,15 @@ async function runDoctorChecks(options: {
             console.log(chalk.blue(`📦 Installing ${tool.name}...`));
             console.log(chalk.blue(`${'='.repeat(60)}`));
 
-            const success = await downloadAndInstallTool(tool.name);
+            // Use sui-cli version for dubhe-indexer
+            const installVersion = tool.name === 'dubhe-indexer' ? packageJson.version : undefined;
+            if (tool.name === 'dubhe-indexer') {
+              console.log(
+                chalk.blue(`   Using version ${installVersion} (matching sui-cli version)`)
+              );
+            }
+
+            const success = await downloadAndInstallTool(tool.name, installVersion);
             installationResults.push({ name: tool.name, success });
 
             if (success) {

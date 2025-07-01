@@ -16,11 +16,7 @@
     "validate": "pnpm lint && pnpm format:check && pnpm type-check",
     "faucet": "pnpm dubhe faucet --network",
     "account:gen": "pnpm dubhe generate-key --use-next-public",
-    "check-balance": "pnpm dubhe check-balance --network",
-    "// Production Environment": "----------------",
-    "prod:localnet": "pnpm account:gen && pnpm faucet localnet",
-    "prod:testnet": "pnpm account:gen && pnpm check-balance testnet",
-    "prod:mainnet": "pnpm account:gen && pnpm check-balance mainnet"
+    "check-balance": "pnpm dubhe check-balance --network"
   },
   "dependencies": {
     "@0xobelisk/sui-cli": "link:../../../../../packages/sui-cli",

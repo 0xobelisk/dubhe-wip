@@ -183,14 +183,16 @@ export async function startLocalNode(data_dir: string, force?: boolean) {
   console.log('🚀 Starting Local Node...');
   let suiProcess: ReturnType<typeof spawn> | null = null;
   try {
-    suiProcess = spawn(
-      'sui',
-      ['start', '--with-faucet', '--force-regenesis', '--data-ingestion-dir', data_dir],
-      {
-        env: { ...process.env, RUST_LOG: 'off,sui_node=info' },
-        stdio: 'ignore'
-      }
-    );
+    const args = ['start', '--with-faucet'];
+    if (force) {
+      args.push('--force-regenesis');
+    }
+    args.push('--data-ingestion-dir', data_dir);
+
+    suiProcess = spawn('sui', args, {
+      env: { ...process.env, RUST_LOG: 'off,sui_node=info' },
+      stdio: 'ignore'
+    });
 
     suiProcess.on('error', (error) => {
       console.error(chalk.red('\n❌ Failed to Start Local Node'));
@@ -198,8 +200,8 @@ export async function startLocalNode(data_dir: string, force?: boolean) {
     });
     await delay(5000);
     console.log('  ├─ Faucet: Enabled');
-    console.log('  └─ Force Regenesis: Yes');
-    console.log('  └─ HTTP server: http://127.0.0.1:9000/');
+    console.log(`  ├─ Force Regenesis: ${force ? 'Yes' : 'No'}`);
+    console.log('  ├─ HTTP server: http://127.0.0.1:9000/');
     console.log('  └─ Faucet server: http://127.0.0.1:9123/');
 
     await printAccounts();
