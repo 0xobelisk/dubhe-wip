@@ -1,6 +1,6 @@
-import { defineDapp } from '@0xobelisk/sui-common';
+import { defineConfig } from '@0xobelisk/sui-common';
 
-export const dubheConfig = defineDapp({
+export const dubheConfig = defineConfig({
   name: 'example',
   description: 'example',
   enums: {

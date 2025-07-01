@@ -1,6 +1,6 @@
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { defineConfig } from '@0xobelisk/sui-common';
 
-export const dubheConfig = {
+export const dubheConfig = defineConfig({
   name: 'counter',
   description: 'counter contract',
   components: {
@@ -17,4 +17,4 @@ export const dubheConfig = {
   errors: {
     invalid_increment: "Number can't be incremented, must be more than 0"
   }
-} as DubheConfig;
+});
