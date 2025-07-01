@@ -2,13 +2,13 @@ scrollback: 10000
 procs:
   client:
     cwd: packages/client
-    shell: pnpm dubhe wait --url http://127.0.0.1:9123/ && pnpm prod:localnet && pnpm dev
+    shell: pnpm dubhe wait --localnet && pnpm prod:localnet && pnpm dev
   graphql:
     cwd: packages/contracts
     shell: docker-compose up
   contracts:
     cwd: packages/contracts
-    shell: pnpm dubhe wait --url http://127.0.0.1:9123/ && pnpm dubhe wait --url http://127.0.0.1:4000/ && pnpm setup:localnet
+    shell: pnpm dubhe wait --localnet && pnpm setup:localnet
   node:
     cwd: packages/contracts
     shell: pnpm dubhe node --force
