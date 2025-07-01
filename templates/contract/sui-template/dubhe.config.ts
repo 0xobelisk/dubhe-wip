@@ -1,7 +1,8 @@
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { defineDapp } from '@0xobelisk/sui-common';
 
-export const dubheConfig = {
+export const dubheConfig = defineDapp({
   name: 'template',
   description: 'template',
-  schemas: {}
-} as DubheConfig;
+  components: {},
+  resources: {},
+});
