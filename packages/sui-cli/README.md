@@ -26,7 +26,7 @@ Some commands expect a Dubhe config in the same folder where the CLI is being ex
 
 ### `schemagen`
 
-Generates Store libraries from a `dubhe.config.ts` file. See the [Store Config and `schemagen` documentation](../schemas/config) in the Store section for more details.
+Generates Store libraries from a `dubhe.config.ts` file. See the [Store Config and `schemagen` documentation](https://dubhe-docs.obelisk.build/dubhe/sui/store/config) in the Store section for more details.
 
 ```bash
 # in a folder with a dubhe.config.ts
@@ -58,7 +58,7 @@ dubhe publish --network mainnet
 
 Upgrade Dubhe contract project.
 
-When you add a new schema or modify the system code, you need to upgrade the contract through the `upgrade` method. ([Contract upgrade specification](../migrating-from-others))
+When you add a new schema or modify the system code, you need to upgrade the contract through the `upgrade` method. ([Migration Guide](https://dubhe-docs.obelisk.build/dubhe/migration))
 
 ```bash
 dubhe upgrade --network <network:mainnet/testnet/devnet/localnet>
