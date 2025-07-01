@@ -11,7 +11,7 @@ const checkDuplicateKeys = (config: DubheConfig): void => {
   }
 };
 
-export const defineDapp = (config: DubheConfig): DubheConfig => {
+export const defineConfig = (config: DubheConfig): DubheConfig => {
   checkDuplicateKeys(config);
   return config;
 };

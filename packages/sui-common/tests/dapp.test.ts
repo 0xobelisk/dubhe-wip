@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { defineDapp } from '../src/codegen/utils/renderMove/dapp';
+import { defineConfig } from '../src/codegen/utils/renderMove/dapp';
 import { DubheConfig, MoveType } from '../src/codegen/types';
 
-describe('defineDapp', () => {
+describe('defineConfig', () => {
   it('should generate correct Move module with basic config', () => {
     const config: DubheConfig = {
       name: 'game',
@@ -34,7 +34,7 @@ describe('defineDapp', () => {
       }
     };
 
-    const result = defineDapp(config);
+    const result = defineConfig(config);
   });
 
   it('should handle config with offchain table', () => {
@@ -61,7 +61,7 @@ describe('defineDapp', () => {
       }
     };
 
-    defineDapp(config);
+    defineConfig(config);
   });
 
   it('should handle config with simple table type', () => {
@@ -81,7 +81,7 @@ describe('defineDapp', () => {
       }
     };
 
-    defineDapp(config);
+    defineConfig(config);
   });
 
   it('should handle empty config', () => {
@@ -92,7 +92,7 @@ describe('defineDapp', () => {
       resources: {}
     };
 
-    defineDapp(config);
+    defineConfig(config);
   });
 
   it('should throw error when duplicate keys exist between components and resources', () => {
@@ -118,6 +118,6 @@ describe('defineDapp', () => {
       }
     };
 
-    expect(() => defineDapp(config)).toThrow('Duplicate keys found between components and resources: player');
+    expect(() => defineConfig(config)).toThrow('Duplicate keys found between components and resources: player');
   });
 }); 
