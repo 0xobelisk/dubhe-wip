@@ -24,7 +24,7 @@ In early development, Dubhe aims to reduce project setup time from days to hours
 ## 🔑 Key Features
 - ⚡️ Built with [Move](https://move-language.github.io/move/)
 - 🏛️ Harvard Structural Architecture
-- 📦 Structured [Schema-based](https://obelisk.build/engine/docs/schemas/) Storage
+- 📦 Structured [Schema-based](https://dubhe-docs.obelisk.build/dubhe/sui/schemas) Storage
 - 🌐 Multi-Move Ecosystem Support
 - 🛠️ Development Tools:
   - Sandbox Networking & Indexing
@@ -43,6 +43,7 @@ In early development, Dubhe aims to reduce project setup time from days to hours
 
 | Package | Description | Version |
 |---------|-------------|----------|
+| [create-dubhe](./packages/create-dubhe) | Project scaffolding tool | [![npm](https://img.shields.io/npm/v/create-dubhe.svg)](https://www.npmjs.com/package/create-dubhe) |
 | [@0xobelisk/sui-cli](./packages/sui-cli) | Sui CLI for testing, deployment & more | [![npm](https://img.shields.io/npm/v/@0xobelisk/sui-cli.svg)](https://www.npmjs.com/package/@0xobelisk/sui-cli) |
 | [@0xobelisk/sui-client](./packages/sui-client) | Sui TypeScript Client | [![npm](https://img.shields.io/npm/v/@0xobelisk/sui-client.svg)](https://www.npmjs.com/package/@0xobelisk/sui-client) |
 | [@0xobelisk/sui-common](./packages/sui-common) | Sui Core Utilities | [![npm](https://img.shields.io/npm/v/@0xobelisk/sui-common.svg)](https://www.npmjs.com/package/@0xobelisk/sui-common) |
@@ -63,27 +64,8 @@ In early development, Dubhe aims to reduce project setup time from days to hours
 
 ## Contributors ✨
 
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+Thanks to these outstanding contributors:
 
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Zombieliu"><img src="https://avatars.githubusercontent.com/u/50917820?v=4?s=100" width="100px;" alt="Henry"/><br /><sub><b>Henry</b></sub></a><br /><a href="https://github.com/0xobelisk/dubhe/commits?author=Zombieliu" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/web3olalala"><img src="https://avatars.githubusercontent.com/u/111047493?v=4?s=100" width="100px;" alt="Bob"/><br /><sub><b>Bob</b></sub></a><br /><a href="https://github.com/0xobelisk/dubhe/commits?author=web3olalala" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/vladilen11"><img src="https://avatars.githubusercontent.com/u/125375292?v=4?s=100" width="100px;" alt="Frank"/><br /><sub><b>Frank</b></sub></a><br /><a href="https://github.com/0xobelisk/dubhe/commits?author=vladilen11" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/tiankonglan"><img src="https://avatars.githubusercontent.com/u/3362585?v=4?s=100" width="100px;" alt="Frank"/><br /><sub><b>Lewis</b></sub></a><br /><a href="https://github.com/0xobelisk/dubhe/commits?author=tiankonglan" title="Code">💻</a></td>
-    </tr>
-  </tbody>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the
-[all-contributors](https://github.com/all-contributors/all-contributors)
-specification. Contributions of any kind welcome!
+<a href="https://github.com/0xobelisk/dubhe/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=0xobelisk/dubhe&columns=8&max=24" />
+</a>
