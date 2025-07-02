@@ -382,7 +382,7 @@ jobs:
           - `@0xobelisk/graphql-client`
           - `@0xobelisk/ecs`
           - `@0xobelisk/graphql-server`
-          - `@0xobelisk/create-dubhe`
+          - `create-dubhe`
 
           #### Rust Binaries (dubhe-indexer)
 
@@ -395,7 +395,7 @@ jobs:
 
           #### NPM Package Installation
           ```bash
-          npm install @0xobelisk/create-dubhe@${{ needs.get-version.outputs.version }}
+          npm install @0xobelisk/sui-cli@${{ needs.get-version.outputs.version }}
           # or
           pnpm add @0xobelisk/sui-client@${{ needs.get-version.outputs.version }}
           ```
@@ -409,7 +409,7 @@ jobs:
 
           ```bash
           # Create new project
-          npx @0xobelisk/create-dubhe@${{ needs.get-version.outputs.version }}
+          npx create-dubhe@${{ needs.get-version.outputs.version }}
 
           # Run indexer
           ./dubhe-indexer --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
