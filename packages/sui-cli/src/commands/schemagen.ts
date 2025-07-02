@@ -1,6 +1,7 @@
 import type { CommandModule } from 'yargs';
 import { schemaGen, loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 import chalk from 'chalk';
+import path from "node:path";
 
 type Options = {
   'config-path'?: string;
@@ -27,8 +28,10 @@ const commandModule: CommandModule<Options, Options> = {
 
   async handler({ 'config-path': configPath, network }) {
     try {
+      if (!configPath) throw new Error('Config path is required');
       const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
-      await schemaGen(dubheConfig, undefined, network);
+      const rootDir = path.dirname(configPath);
+      await schemaGen(rootDir, dubheConfig, network);
       process.exit(0);
     } catch (error: any) {
       console.log(chalk.red('Schemagen failed!'));

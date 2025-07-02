@@ -1,21 +1,19 @@
 import { Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
-import { DubheCliError } from './errors';
 import {
   saveContractData,
-  validatePrivateKey,
   updateDubheDependency,
+  updateMoveTomlAddress,
   switchEnv,
-  delay
+  delay,
+  getDubheDappHub,
+  initializeDubhe,
+  saveMetadata
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const PluginSchemaId = {
-  merak: '0x492e9c4c945d1b148d7e9958c0bc932219c02af3f994fd4073a4e7c3553e08d3'
-};
 
 async function removeEnvContent(
   filePath: string,
@@ -146,6 +144,38 @@ function buildContract(projectPath: string): string[][] {
   return [modules, dependencies];
 }
 
+interface ObjectChange {
+  type: string;
+  objectType?: string;
+  packageId?: string;
+  objectId?: string;
+}
+
+async function waitForNode(dubhe: Dubhe): Promise<string> {
+  const chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
+  console.log(`  ├─ ChainId: ${chainId}`);
+  const address = dubhe.getAddress();
+  const coins = await dubhe.suiInteractor.currentClient.getCoins({
+    owner: address,
+    coinType: '0x2::sui::SUI'
+  });
+
+  if (coins.data.length > 0) {
+    const balance = coins.data.reduce((sum, coin) => sum + Number(coin.balance), 0);
+    if (balance > 0) {
+      console.log(`  ├─ Deployer balance: ${balance / 10 ** 9} SUI`);
+      return chainId;
+    } else {
+      console.log(
+        chalk.yellow(
+          `  ├─ Deployer balance: 0 SUI, please ensure your account has sufficient SUI balance`
+        )
+      );
+    }
+  }
+  return chainId;
+}
+
 async function publishContract(
   dubhe: Dubhe,
   dubheConfig: DubheConfig,
@@ -153,14 +183,15 @@ async function publishContract(
   projectPath: string,
   gasBudget?: number
 ) {
-  const chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
-  await removeEnvContent(`${projectPath}/Move.lock`, network);
   console.log('\n🚀 Starting Contract Publication...');
   console.log(`  ├─ Project: ${projectPath}`);
   console.log(`  ├─ Network: ${network}`);
-  console.log(`  ├─ ChainId: ${chainId}`);
+  console.log('  ├─ Waiting for node...');
+
+  const chainId = await waitForNode(dubhe);
   console.log('  ├─ Validating Environment...');
 
+  await removeEnvContent(`${projectPath}/Move.lock`, network);
   console.log(`  └─ Account: ${dubhe.getAddress()}`);
 
   console.log('\n📦 Building Contract...');
@@ -183,7 +214,7 @@ async function publishContract(
     process.exit(1);
   }
 
-  if (result.effects?.status.status === 'failure') {
+  if (!result || result.effects?.status.status === 'failure') {
     console.log(chalk.red('  └─ Publication failed'));
     process.exit(1);
   }
@@ -191,18 +222,37 @@ async function publishContract(
   console.log('  ├─ Processing publication results...');
   let version = 1;
   let packageId = '';
-  let schemaId = '';
-  let schemas = dubheConfig.schemas;
+  let dappHub = '';
+  let components = dubheConfig.components;
+  let resources = dubheConfig.resources;
+  let enums = dubheConfig.enums;
   let upgradeCapId = '';
+  let startCheckpoint = '';
 
-  result.objectChanges!.map((object) => {
+  let printObjects: any[] = [];
+
+  result.objectChanges!.map((object: ObjectChange) => {
     if (object.type === 'published') {
       console.log(`  ├─ Package ID: ${object.packageId}`);
-      packageId = object.packageId;
+      packageId = object.packageId || '';
     }
-    if (object.type === 'created' && object.objectType === '0x2::package::UpgradeCap') {
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType === '0x2::package::UpgradeCap'
+    ) {
       console.log(`  ├─ Upgrade Cap: ${object.objectId}`);
-      upgradeCapId = object.objectId;
+      upgradeCapId = object.objectId || '';
+    }
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType.includes('dapp_service::DappHub')
+    ) {
+      dappHub = object.objectId || '';
+    }
+    if (object.type === 'created') {
+      printObjects.push(object);
     }
   });
 
@@ -213,15 +263,15 @@ async function publishContract(
   console.log('\n⚡ Executing Deploy Hook...');
   await delay(5000);
 
+  startCheckpoint = await dubhe.suiInteractor.currentClient.getLatestCheckpointSequenceNumber();
+
   const deployHookTx = new Transaction();
-  let args = [deployHookTx.object('0x6')];
-  if (dubheConfig.plugins) {
-    dubheConfig.plugins.forEach((plugin) => {
-      args.push(deployHookTx.object(PluginSchemaId[plugin]));
-    });
-  }
+  let args = [];
+  let dubheDappHub = dubheConfig.name === 'dubhe' ? dappHub : await getDubheDappHub(network);
+  args.push(deployHookTx.object(dubheDappHub));
+  args.push(deployHookTx.object('0x6'));
   deployHookTx.moveCall({
-    target: `${packageId}::${dubheConfig.name}_genesis::run`,
+    target: `${packageId}::genesis::run`,
     arguments: args
   });
 
@@ -238,30 +288,33 @@ async function publishContract(
     console.log('  ├─ Hook execution successful');
     console.log(`  ├─ Transaction: ${deployHookResult.digest}`);
 
-    console.log('\n📋 Created Schemas:');
-    deployHookResult.objectChanges?.map((object) => {
-      if (object.type === 'created' && object.objectType.includes('schema::Schema')) {
-        schemaId = object.objectId;
-      }
-      if (
-        object.type === 'created' &&
-        object.objectType.includes('schema') &&
-        !object.objectType.includes('dynamic_field')
-      ) {
-        console.log(`  ├─ Type: ${object.objectType}`);
-        console.log(`  └─ ID: ${object.objectId}`);
-      }
+    console.log('\n📋 Created Objects:');
+    printObjects.map((object: ObjectChange) => {
+      console.log(`  ├─ ID: ${object.objectId}`);
+      console.log(`  └─ Type: ${object.objectType}`);
     });
 
-    saveContractData(
+    await saveContractData(
       dubheConfig.name,
       network,
+      startCheckpoint,
       packageId,
-      schemaId,
+      dappHub,
       upgradeCapId,
       version,
-      schemas
+      components,
+      resources,
+      enums
     );
+
+    await saveMetadata(dubheConfig.name, network, packageId);
+
+    // Insert package id to dubhe config
+    let config = JSON.parse(fs.readFileSync(`${process.cwd()}/dubhe.config.json`, 'utf-8'));
+    config.package_id = packageId;
+    config.start_checkpoint = startCheckpoint;
+    fs.writeFileSync(`${process.cwd()}/dubhe.config.json`, JSON.stringify(config, null, 2));
+
     console.log('\n✅ Contract Publication Complete\n');
   } else {
     console.log(chalk.yellow('  └─ Deploy hook execution failed'));
@@ -277,15 +330,13 @@ async function checkDubheFramework(projectPath: string): Promise<boolean> {
     console.log(chalk.yellow('\nℹ️ Dubhe Framework Files Not Found'));
     console.log(chalk.yellow('  ├─ Expected Path:'), projectPath);
     console.log(chalk.yellow('  ├─ To set up Dubhe Framework:'));
-    console.log(chalk.yellow('  │  1. Create directory: mkdir -p contracts/dubhe-framework'));
+    console.log(chalk.yellow('  │  1. Create directory: mkdir -p contracts/dubhe'));
     console.log(
       chalk.yellow(
-        '  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe-framework contracts/dubhe-framework'
+        '  │  2. Clone repository: git clone https://github.com/0xobelisk/dubhe contracts/dubhe'
       )
     );
-    console.log(
-      chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe-framework')
-    );
+    console.log(chalk.yellow('  │  3. Or download from: https://github.com/0xobelisk/dubhe'));
     console.log(chalk.yellow('  └─ After setup, restart the local node'));
     return false;
   }
@@ -297,15 +348,20 @@ export async function publishDubheFramework(
   network: 'mainnet' | 'testnet' | 'devnet' | 'localnet'
 ) {
   const path = process.cwd();
-  const projectPath = `${path}/contracts/dubhe-framework`;
+  const projectPath = `${path}/src/dubhe`;
 
   if (!(await checkDubheFramework(projectPath))) {
     return;
   }
 
-  // const chainId = await client.getChainIdentifier();
-  const chainId = await dubhe.suiInteractor.currentClient.getChainIdentifier();
+  console.log('\n🚀 Starting Dubhe Framework Publication...');
+  console.log('  ├─ Waiting for node...');
+
+  const chainId = await waitForNode(dubhe);
+
   await removeEnvContent(`${projectPath}/Move.lock`, network);
+  await updateMoveTomlAddress(projectPath, "0x0");
+
   const [modules, dependencies] = buildContract(projectPath);
   const tx = new Transaction();
   const [upgradeCap] = tx.publish({ modules, dependencies });
@@ -320,20 +376,60 @@ export async function publishDubheFramework(
     process.exit(1);
   }
 
-  if (result.effects?.status.status === 'failure') {
+  if (!result || result.effects?.status.status === 'failure') {
     console.log(chalk.red('  └─ Publication failed'));
     process.exit(1);
   }
-  let packageId = '';
 
-  result.objectChanges!.map((object) => {
+  let version = 1;
+  let packageId = '';
+  let dappHub = '';
+  let upgradeCapId = '';
+
+  result.objectChanges!.map((object: ObjectChange) => {
     if (object.type === 'published') {
-      packageId = object.packageId;
+      packageId = object.packageId || '';
+    }
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType === '0x2::package::UpgradeCap'
+    ) {
+      upgradeCapId = object.objectId || '';
+    }
+    if (
+      object.type === 'created' &&
+      object.objectType &&
+      object.objectType.includes('dapp_service::DappHub')
+    ) {
+      dappHub = object.objectId || '';
     }
   });
 
+  await delay(3000);
+  const deployHookTx = new Transaction();
+  deployHookTx.moveCall({
+    target: `${packageId}::genesis::run`,
+    arguments: [deployHookTx.object(dappHub), deployHookTx.object('0x6')]
+  });
+
+  let deployHookResult;
+  try {
+    deployHookResult = await dubhe.signAndSendTxn({ tx: deployHookTx });
+  } catch (error: any) {
+    console.error(chalk.red('  └─ Deploy hook execution failed'));
+    console.error(error.message);
+    process.exit(1);
+  }
+
+  if (deployHookResult.effects?.status.status !== 'success') {
+    throw new Error('Deploy hook execution failed');
+  }
+
+  await updateMoveTomlAddress(projectPath, packageId);
+  await saveContractData('dubhe', network, packageId, "0", dappHub, upgradeCapId, version, {}, {}, {});
+
   updateEnvFile(`${projectPath}/Move.lock`, network, 'publish', chainId, packageId);
-  await delay(1000);
 }
 
 export async function publishHandler(
@@ -343,30 +439,19 @@ export async function publishHandler(
 ) {
   await switchEnv(network);
 
-  const privateKey = process.env.PRIVATE_KEY;
-  if (!privateKey) {
-    throw new DubheCliError(
-      `Missing PRIVATE_KEY environment variable.
-Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
-in your contracts directory to use the default sui private key.`
-    );
-  }
-  const privateKeyFormat = validatePrivateKey(privateKey);
-  if (privateKeyFormat === false) {
-    throw new DubheCliError(`Please check your privateKey.`);
-  }
-
-  const dubhe = new Dubhe({
-    secretKey: privateKeyFormat,
-    networkType: network
+  const dubhe = initializeDubhe({
+    network
   });
 
-  if (network === 'localnet') {
+  const path = process.cwd();
+  const projectPath = `${path}/src/${dubheConfig.name}`;
+
+  if (network === 'localnet' && dubheConfig.name !== 'dubhe') {
     await publishDubheFramework(dubhe, network);
   }
 
-  const path = process.cwd();
-  const projectPath = `${path}/contracts/${dubheConfig.name}`;
-  await updateDubheDependency(`${projectPath}/Move.toml`, network);
+  if (dubheConfig.name !== 'dubhe') {
+    await updateDubheDependency(`${projectPath}/Move.toml`, network);
+  }
   await publishContract(dubhe, dubheConfig, network, projectPath, gasBudget);
 }

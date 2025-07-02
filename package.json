@@ -13,7 +13,14 @@
 		"*.{ts,tsx,css,md,mdx,sol}": "prettier --write",
 		"package.json": "pnpm sort-package-json"
 	},
+	"pnpm": {
+		"overrides": {
+			"graphql": "^15.8.0"
+		}
+	},
 	"devDependencies": {
+		"tsup": "8.3.0",
+		"tsx": "4.19.0",
 		"@changesets/changelog-github": "^0.4.8",
 		"@changesets/cli": "^2.26.1",
 		"@types/node": "^18.15.11",
@@ -35,5 +42,6 @@
 	"engines": {
 		"node": "18.x",
 		"pnpm": "8.x || 9.x"
-	}
+	},
+	"packageManager": "pnpm@9.12.3"
 }

@@ -28,8 +28,6 @@ import {
   SuiTxArg,
   SuiObjectArg,
   SuiVecTxArg,
-  SubscribableType,
-  IndexerTransactionResult,
 } from './types';
 import {
   convertHttpToWebSocket,
@@ -39,17 +37,6 @@ import {
 } from './utils';
 import { bcs, fromHEX, toHEX } from '@mysten/bcs';
 import { ContractDataParsingError } from './errors';
-import {
-  ConnectionResponse,
-  IndexerTransaction,
-  IndexerEvent,
-  IndexerSchema,
-  SuiIndexerClient,
-  StorageResponse,
-  StorageItemResponse,
-  JsonPathOrder,
-} from './libs/suiIndexerClient';
-import { Http } from './libs/http';
 
 export function isUndefined(value?: unknown): value is undefined {
   return value === undefined;
@@ -130,10 +117,8 @@ function createTx(
  * @description This class is used to aggregate the tools that used to interact with SUI network.
  */
 export class Dubhe {
-  public http: Http;
   public accountManager: SuiAccountManager;
   public suiInteractor: SuiInteractor;
-  public suiIndexerClient: SuiIndexerClient;
   public contractFactory: SuiContractFactory;
   public packageId: string | undefined;
   public metadata: SuiMoveNormalizedModules | undefined;
@@ -249,10 +234,6 @@ export class Dubhe {
     fullnodeUrls,
     packageId,
     metadata,
-    customFetch,
-    defaultOptions,
-    indexerUrl,
-    indexerWsUrl,
   }: DubheParams = {}) {
     networkType = networkType ?? 'mainnet';
 
@@ -263,12 +244,6 @@ export class Dubhe {
     // Init the rpc provider
     fullnodeUrls = fullnodeUrls || [defaultParams.fullNode];
     this.suiInteractor = new SuiInteractor(fullnodeUrls, networkType);
-
-    indexerUrl = indexerUrl || defaultParams.indexerUrl;
-    indexerWsUrl = indexerWsUrl || convertHttpToWebSocket(indexerUrl);
-    this.http = new Http(indexerUrl, indexerWsUrl, customFetch, defaultOptions);
-
-    this.suiIndexerClient = new SuiIndexerClient(this.http);
 
     this.packageId = packageId ? normalizePackageId(packageId) : undefined;
     if (metadata !== undefined) {
@@ -1136,270 +1111,294 @@ export class Dubhe {
     });
   }
 
-  async getTransactions({
-    first,
-    after,
-    sender,
-    digest,
-    checkpoint,
-    orderBy,
-  }: {
-    first?: number;
-    after?: string;
-    sender?: string;
-    digest?: string;
-    checkpoint?: number;
-    orderBy?: string[];
-  }): Promise<ConnectionResponse<IndexerTransaction>> {
-    return await this.suiIndexerClient.getTransactions({
-      first,
-      after,
-      sender,
-      digest,
-      checkpoint,
-      orderBy,
-    });
-  }
+  // async getTransactions({
+  //   first,
+  //   after,
+  //   sender,
+  //   digest,
+  //   checkpoint,
+  //   packageId,
+  //   module,
+  //   functionName,
+  //   orderBy,
+  //   showEvent,
+  // }: {
+  //   first?: number;
+  //   after?: string;
+  //   sender?: string;
+  //   digest?: string;
+  //   checkpoint?: number;
+  //   packageId?: string;
+  //   module?: string;
+  //   functionName?: string[];
+  //   orderBy?: string[];
+  //   showEvent?: boolean;
+  // }): Promise<ConnectionResponse<IndexerTransaction>> {
+  //   return await this.suiIndexerClient.getTransactions({
+  //     first,
+  //     after,
+  //     sender,
+  //     digest,
+  //     checkpoint,
+  //     packageId,
+  //     module,
+  //     functionName,
+  //     orderBy,
+  //     showEvent,
+  //   });
+  // }
 
-  async getTransaction(
-    digest: string
-  ): Promise<IndexerTransaction | undefined> {
-    return await this.suiIndexerClient.getTransaction(digest);
-  }
+  // async getTransaction(
+  //   digest: string
+  // ): Promise<IndexerTransaction | undefined> {
+  //   return await this.suiIndexerClient.getTransaction(digest);
+  // }
 
-  /**
-   * Wait for the transaction to be processed by the indexer and return all transaction-related data
-   * @param digest transaction digest
-   * @param options option parameters
-   * @returns result object containing transaction, events and schema data
-   */
-  async waitForIndexerTransaction(
-    digest: string,
-    options?: {
-      checkInterval?: number;
-      timeout?: number;
-      maxRetries?: number;
-      pageSize?: number;
-    }
-  ): Promise<IndexerTransactionResult> {
-    const {
-      checkInterval = 100,
-      timeout = 30000,
-      maxRetries = 300,
-      pageSize = 100,
-    } = options ?? {};
+  // /**
+  //  * Wait for the transaction to be processed by the indexer and return all transaction-related data
+  //  * @param digest transaction digest
+  //  * @param options option parameters
+  //  * @returns result object containing transaction, events and schema data
+  //  */
+  // async waitForIndexerTransaction(
+  //   digest: string,
+  //   options?: {
+  //     checkInterval?: number;
+  //     timeout?: number;
+  //     maxRetries?: number;
+  //     pageSize?: number;
+  //   }
+  // ): Promise<IndexerTransactionResult> {
+  //   const {
+  //     checkInterval = 100,
+  //     timeout = 30000,
+  //     maxRetries = 300,
+  //     pageSize = 100,
+  //   } = options ?? {};
 
-    const startTime = Date.now();
-    let retryCount = 0;
+  //   const startTime = Date.now();
+  //   let retryCount = 0;
 
-    while (retryCount < maxRetries) {
-      try {
-        if (Date.now() - startTime > timeout) {
-          throw new Error(`Waiting for transaction ${digest} timed out`);
-        }
+  //   while (retryCount < maxRetries) {
+  //     try {
+  //       if (Date.now() - startTime > timeout) {
+  //         throw new Error(`Waiting for transaction ${digest} timed out`);
+  //       }
 
-        await new Promise((resolve) => setTimeout(resolve, checkInterval));
+  //       await new Promise((resolve) => setTimeout(resolve, checkInterval));
 
-        const tx = await this.getTransaction(digest);
-        if (tx) {
-          const events: IndexerEvent[] = [];
-          const schemaChanges: IndexerSchema[] = [];
+  //       const tx = await this.getTransaction(digest);
+  //       if (tx) {
+  //         const events: IndexerEvent[] = [];
+  //         const schemaChanges: IndexerSchema[] = [];
 
-          let hasNextEventsPage = true;
-          let eventsCursor: string | undefined;
+  //         let hasNextEventsPage = true;
+  //         let eventsCursor: string | undefined;
 
-          while (hasNextEventsPage) {
-            const eventsResponse = await this.getEvents({
-              digest,
-              first: pageSize,
-              after: eventsCursor,
-            });
+  //         while (hasNextEventsPage) {
+  //           const eventsResponse = await this.getEvents({
+  //             digest,
+  //             first: pageSize,
+  //             after: eventsCursor,
+  //           });
 
-            events.push(...eventsResponse.edges.map((edge) => edge.node));
+  //           events.push(...eventsResponse.edges.map((edge) => edge.node));
 
-            hasNextEventsPage = eventsResponse.pageInfo.hasNextPage;
-            eventsCursor = eventsResponse.pageInfo.endCursor;
-          }
+  //           hasNextEventsPage = eventsResponse.pageInfo.hasNextPage;
+  //           eventsCursor = eventsResponse.pageInfo.endCursor;
+  //         }
 
-          let hasNextSchemasPage = true;
-          let schemasCursor: string | undefined;
+  //         let hasNextSchemasPage = true;
+  //         let schemasCursor: string | undefined;
 
-          while (hasNextSchemasPage) {
-            const schemasResponse = await this.getStorage({
-              last_update_digest: digest,
-              first: pageSize,
-              after: schemasCursor,
-            });
+  //         while (hasNextSchemasPage) {
+  //           const schemasResponse = await this.getStorage({
+  //             last_update_digest: digest,
+  //             first: pageSize,
+  //             after: schemasCursor,
+  //           });
 
-            schemaChanges.push(...schemasResponse.data);
+  //           schemaChanges.push(...schemasResponse.data);
 
-            hasNextSchemasPage = schemasResponse.pageInfo.hasNextPage;
-            schemasCursor = schemasResponse.pageInfo.endCursor;
-          }
+  //           hasNextSchemasPage = schemasResponse.pageInfo.hasNextPage;
+  //           schemasCursor = schemasResponse.pageInfo.endCursor;
+  //         }
 
-          return {
-            tx,
-            events,
-            schemaChanges,
-          };
-        }
+  //         return {
+  //           tx,
+  //           events,
+  //           schemaChanges,
+  //         };
+  //       }
 
-        retryCount++;
-      } catch (error) {
-        throw new Error(
-          `Error while waiting for transaction ${digest}: ${error}`
-        );
-      }
-    }
+  //       retryCount++;
+  //     } catch (error) {
+  //       throw new Error(
+  //         `Error while waiting for transaction ${digest}: ${error}`
+  //       );
+  //     }
+  //   }
 
-    throw new Error(
-      `Reached maximum retries (${maxRetries}), failed to wait for transaction ${digest}`
-    );
-  }
+  //   throw new Error(
+  //     `Reached maximum retries (${maxRetries}), failed to wait for transaction ${digest}`
+  //   );
+  // }
 
-  async getEvents({
-    first,
-    after,
-    name,
-    sender,
-    digest,
-    checkpoint,
-    orderBy,
-  }: {
-    first?: number;
-    after?: string;
-    name?: string;
-    sender?: string;
-    digest?: string;
-    checkpoint?: string;
-    orderBy?: string[];
-  }): Promise<ConnectionResponse<IndexerEvent>> {
-    return await this.suiIndexerClient.getEvents({
-      first,
-      after,
-      name,
-      sender,
-      digest,
-      checkpoint,
-      orderBy,
-    });
-  }
+  // async getEvents({
+  //   first,
+  //   after,
+  //   names,
+  //   sender,
+  //   digest,
+  //   checkpoint,
+  //   orderBy,
+  // }: {
+  //   first?: number;
+  //   after?: string;
+  //   names?: string[];
+  //   sender?: string;
+  //   digest?: string;
+  //   checkpoint?: string;
+  //   orderBy?: string[];
+  // }): Promise<ConnectionResponse<IndexerEvent>> {
+  //   return await this.suiIndexerClient.getEvents({
+  //     first,
+  //     after,
+  //     names,
+  //     sender,
+  //     digest,
+  //     checkpoint,
+  //     orderBy,
+  //   });
+  // }
 
-  async getSchemas({
-    name,
-    key1,
-    key2,
-    is_removed,
-    last_update_checkpoint,
-    last_update_digest,
-    value,
-    first,
-    after,
-    orderBy,
-    jsonOrderBy,
-  }: {
-    name?: string;
-    key1?: any;
-    key2?: any;
-    is_removed?: boolean;
-    last_update_checkpoint?: string;
-    last_update_digest?: string;
-    value?: any;
-    first?: number;
-    after?: string;
-    orderBy?: string[];
-    jsonOrderBy?: JsonPathOrder[];
-  }): Promise<ConnectionResponse<IndexerSchema>> {
-    return await this.suiIndexerClient.getSchemas({
-      name,
-      key1,
-      key2,
-      is_removed,
-      last_update_checkpoint,
-      last_update_digest,
-      value,
-      first,
-      after,
-      orderBy,
-      jsonOrderBy,
-    });
-  }
+  // async getSchemas({
+  //   name,
+  //   key1,
+  //   key2,
+  //   is_removed,
+  //   last_update_checkpoint,
+  //   last_update_digest,
+  //   value,
+  //   first,
+  //   after,
+  //   orderBy,
+  //   jsonOrderBy,
+  // }: {
+  //   name?: string;
+  //   key1?: any;
+  //   key2?: any;
+  //   is_removed?: boolean;
+  //   last_update_checkpoint?: string;
+  //   last_update_digest?: string;
+  //   value?: any;
+  //   first?: number;
+  //   after?: string;
+  //   orderBy?: string[];
+  //   jsonOrderBy?: JsonPathOrder[];
+  // }): Promise<ConnectionResponse<IndexerSchema>> {
+  //   return await this.suiIndexerClient.getSchemas({
+  //     name,
+  //     key1,
+  //     key2,
+  //     is_removed,
+  //     last_update_checkpoint,
+  //     last_update_digest,
+  //     value,
+  //     first,
+  //     after,
+  //     orderBy,
+  //     jsonOrderBy,
+  //   });
+  // }
 
-  async getStorage({
-    name,
-    key1,
-    key2,
-    is_removed,
-    last_update_checkpoint,
-    last_update_digest,
-    value,
-    first,
-    after,
-    orderBy,
-    jsonOrderBy,
-  }: {
-    name?: string;
-    key1?: any;
-    key2?: any;
-    is_removed?: boolean;
-    last_update_checkpoint?: string;
-    last_update_digest?: string;
-    value?: any;
-    first?: number;
-    after?: string;
-    orderBy?: string[];
-    jsonOrderBy?: JsonPathOrder[];
-  }): Promise<StorageResponse<IndexerSchema>> {
-    return await this.suiIndexerClient.getStorage({
-      name,
-      key1,
-      key2,
-      is_removed,
-      last_update_checkpoint,
-      last_update_digest,
-      value,
-      first,
-      after,
-      orderBy,
-      jsonOrderBy,
-    });
-  }
+  // async getStorage({
+  //   name,
+  //   key1,
+  //   key2,
+  //   is_removed,
+  //   last_update_checkpoint,
+  //   last_update_digest,
+  //   value,
+  //   first,
+  //   after,
+  //   orderBy,
+  //   jsonOrderBy,
+  // }: {
+  //   name?: string;
+  //   key1?: any;
+  //   key2?: any;
+  //   is_removed?: boolean;
+  //   last_update_checkpoint?: string;
+  //   last_update_digest?: string;
+  //   value?: any;
+  //   first?: number;
+  //   after?: string;
+  //   orderBy?: string[];
+  //   jsonOrderBy?: JsonPathOrder[];
+  // }): Promise<StorageResponse<IndexerSchema>> {
+  //   return await this.suiIndexerClient.getStorage({
+  //     name,
+  //     key1,
+  //     key2,
+  //     is_removed,
+  //     last_update_checkpoint,
+  //     last_update_digest,
+  //     value,
+  //     first,
+  //     after,
+  //     orderBy,
+  //     jsonOrderBy,
+  //   });
+  // }
 
-  async getStorageItem({
-    name,
-    key1,
-    key2,
-    is_removed,
-    last_update_checkpoint,
-    last_update_digest,
-    value,
-  }: {
-    name: string;
-    key1?: any;
-    key2?: any;
-    is_removed?: boolean;
-    last_update_checkpoint?: string;
-    last_update_digest?: string;
-    value?: any;
-  }): Promise<StorageItemResponse<IndexerSchema> | undefined> {
-    const response = await this.suiIndexerClient.getStorageItem({
-      name,
-      key1,
-      key2,
-      is_removed,
-      last_update_checkpoint,
-      last_update_digest,
-      value,
-    });
-    return response;
-  }
+  // async getStorageItem({
+  //   name,
+  //   key1,
+  //   key2,
+  //   is_removed,
+  //   last_update_checkpoint,
+  //   last_update_digest,
+  //   value,
+  // }: {
+  //   name: string;
+  //   key1?: any;
+  //   key2?: any;
+  //   is_removed?: boolean;
+  //   last_update_checkpoint?: string;
+  //   last_update_digest?: string;
+  //   value?: any;
+  // }): Promise<StorageItemResponse<IndexerSchema> | undefined> {
+  //   const response = await this.suiIndexerClient.getStorageItem({
+  //     name,
+  //     key1,
+  //     key2,
+  //     is_removed,
+  //     last_update_checkpoint,
+  //     last_update_digest,
+  //     value,
+  //   });
+  //   return response;
+  // }
 
-  async subscribe(
-    types: SubscribableType[],
-    handleData: (data: any) => void
-  ): Promise<WebSocket> {
-    return this.suiIndexerClient.subscribe(types, handleData);
-  }
+  // async subscribe({
+  //   types,
+  //   handleData,
+  //   onOpen,
+  //   onClose,
+  // }: {
+  //   types: SubscribableType[];
+  //   handleData: (data: any) => void;
+  //   onOpen?: () => void;
+  //   onClose?: () => void;
+  // }): Promise<WebSocket> {
+  //   return this.suiIndexerClient.subscribe({
+  //     types,
+  //     handleData,
+  //     onOpen,
+  //     onClose,
+  //   });
+  // }
 
   #processKeyParameter(tx: Transaction, keyType: string, value: any) {
     // Handle basic types
@@ -1542,10 +1541,6 @@ export class Dubhe {
 
   client() {
     return this.suiInteractor.currentClient;
-  }
-
-  indexerClient() {
-    return this.suiIndexerClient;
   }
 
   async getObject(objectId: string) {

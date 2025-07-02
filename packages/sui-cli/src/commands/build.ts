@@ -1,5 +1,5 @@
 import type { CommandModule } from 'yargs';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
 import chalk from 'chalk';
 import { DubheConfig, loadConfig } from '@0xobelisk/sui-common';
 import { switchEnv, updateDubheDependency } from '../utils';
@@ -44,7 +44,7 @@ const commandModule: CommandModule<Options, Options> = {
       console.log('🚀 Running move build');
       const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
       const path = process.cwd();
-      const projectPath = `${path}/contracts/${dubheConfig.name}`;
+      const projectPath = `${path}/src/${dubheConfig.name}`;
       await switchEnv(network);
       await updateDubheDependency(projectPath + '/Move.toml', network);
       const command = `sui move build --path ${projectPath} ${
@@ -52,6 +52,7 @@ const commandModule: CommandModule<Options, Options> = {
       }`;
       const output = execSync(command, { encoding: 'utf-8' });
       console.log(output);
+      exec(`pnpm dubhe convert-json --config-path ${configPath}`)
     } catch (error: any) {
       console.error(chalk.red('Error executing sui move build:'));
       console.log(error.stdout);

@@ -17,25 +17,19 @@ const TEMPLATES = {
     title: '101',
     description: 'Quick start',
     value: '101',
-    path: 'template/101/{chain}-template'
+    path: '101/{chain}-template'
   },
   WEB: {
     title: 'Web',
     description: 'Web template',
     value: 'web',
-    path: 'template/nextjs/{chain}-template'
+    path: 'nextjs/{chain}-template'
   },
   CONTRACT: {
     title: 'Contract',
     description: 'Contract template',
     value: 'contract',
-    path: 'template/contract/{chain}-template'
-  },
-  COCOS: {
-    title: 'Cocos',
-    description: 'Cocos Creator',
-    value: 'cocos',
-    path: 'template/cocos/{chain}-template'
+    path: 'contract/{chain}-template'
   }
 } as const;
 
@@ -44,13 +38,13 @@ export const CHAINS: Chain[] = [
     title: 'sui',
     description: 'Sui',
     value: 'sui',
-    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT, TEMPLATES.COCOS]
+    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT]
   },
   {
     title: 'aptos',
     description: 'Aptos',
     value: 'aptos',
-    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT, TEMPLATES.COCOS]
+    supportedTemplates: [TEMPLATES.QUICK_START, TEMPLATES.WEB, TEMPLATES.CONTRACT]
   },
   {
     title: 'rooch',

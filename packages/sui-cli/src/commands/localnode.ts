@@ -1,18 +1,32 @@
 import type { CommandModule } from 'yargs';
 import { startLocalNode } from '../utils/startNode';
 
-const commandModule: CommandModule = {
+type Options = {
+  'data-dir': string;
+  force: boolean;
+};
+
+const commandModule: CommandModule<Options, Options> = {
   command: 'node',
 
   describe: 'Manage local Sui node',
 
-  builder(yargs) {
-    return yargs;
+  builder: {
+    'data-dir': {
+      type: 'string',
+      default: '.chk',
+      desc: 'Path to the data directory'
+    },
+    force: {
+      type: 'boolean',
+      default: false,
+      desc: 'Force restart: stop existing node and remove data directory'
+    }
   },
 
-  async handler() {
+  async handler({ 'data-dir': data_dir, force }) {
     try {
-      await startLocalNode();
+      await startLocalNode(data_dir, force);
     } catch (error) {
       console.error('Error executing command:', error);
       process.exit(1);

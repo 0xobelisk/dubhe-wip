@@ -23,13 +23,6 @@ import type {
 import { SuiTx } from '../libs/suiTxBuilder';
 
 import { SuiMoveMoudleFuncType } from '../libs/suiContractFactory/types';
-import { FetchOptions } from '../libs/http';
-import {
-  IndexerEvent,
-  IndexerSchema,
-  IndexerTransaction,
-  SubscriptionKind,
-} from '../libs/suiIndexerClient';
 
 export const ObjectContentFields = record(string(), any());
 export type ObjectContentFields = Infer<typeof ObjectContentFields>;
@@ -57,10 +50,6 @@ export type DubheParams = {
   networkType?: NetworkType;
   packageId?: string;
   metadata?: SuiMoveNormalizedModules;
-  customFetch?: typeof fetch;
-  defaultOptions?: FetchOptions;
-  indexerUrl?: string;
-  indexerWsUrl?: string;
 };
 
 export type SchemaFieldType = {
@@ -312,13 +301,3 @@ export type ObjectContent = {
 export type SuiDubheReturnType<T extends boolean> = T extends true
   ? SuiTransactionBlockResponse
   : SuiTx;
-
-export type SubscribableType =
-  | { kind: SubscriptionKind.Event; name?: string; sender?: string }
-  | { kind: SubscriptionKind.Schema; name?: string };
-
-export type IndexerTransactionResult = {
-  tx: IndexerTransaction;
-  events: IndexerEvent[];
-  schemaChanges: IndexerSchema[];
-};

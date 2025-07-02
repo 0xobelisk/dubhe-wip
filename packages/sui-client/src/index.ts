@@ -11,17 +11,5 @@ export { SuiAccountManager } from './libs/suiAccountManager';
 export { SuiTx } from './libs/suiTxBuilder';
 export { MultiSigClient } from './libs/multiSig';
 export { SuiContractFactory } from './libs/suiContractFactory';
-export { SubscriptionKind } from './libs/suiIndexerClient';
 export { loadMetadata } from './metadata';
 export type * from './types';
-export type {
-  IndexerEvent,
-  IndexerSchema,
-  IndexerTransaction,
-  ConnectionResponse,
-  StorageResponse,
-  StorageItemResponse,
-  PageInfo,
-  JsonPathOrder,
-  JsonValueType,
-} from './libs/suiIndexerClient';

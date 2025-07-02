@@ -9,14 +9,12 @@ function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export async function generateDeployHook(config: DubheConfig, srcPrefix: string) {
-  const path = `${srcPrefix}/contracts/${config.name}/sources/scripts/deploy_hook.move`;
+export async function generateDeployHook(config: DubheConfig, path: string) {
   if (!existsSync(path)) {
-    const code = `module ${config.name}::${config.name}_deploy_hook {
-			  use ${config.name}::${config.name}_schema::Schema;
-        ${config.plugins?.length ? config.plugins.map((plugin) => `use ${plugin}::${plugin}_schema::Schema as ${capitalizeFirstLetter(plugin)}Schema;`).join('\n') : '' }
+    const code = `module ${config.name}::deploy_hook {
+			  use dubhe::dapp_service::DappHub;
 
-  public(package) fun run(_schema: &mut Schema, ${config.plugins?.length ? config.plugins.map((plugin) => `_${plugin}_schema: &mut ${capitalizeFirstLetter(plugin)}Schema`).join(', ') + ', ' : ''} _ctx: &mut TxContext) {
+  public(package) fun run(_dapp_hub: &mut DappHub, _ctx: &mut TxContext) {
 
   }
 }`;
@@ -25,8 +23,8 @@ export async function generateDeployHook(config: DubheConfig, srcPrefix: string)
 }
 
 export async function generateMigrate(config: DubheConfig, srcPrefix: string) {
-  if (!existsSync(`${srcPrefix}/contracts/${config.name}/sources/scripts/migrate.move`)) {
-    let code = `module ${config.name}::${config.name}_migrate {
+  if (!existsSync(`${srcPrefix}/src/${config.name}/sources/scripts/migrate.move`)) {
+    let code = `module ${config.name}::migrate {
     const ON_CHAIN_VERSION: u32 = 1;
 
     public fun on_chain_version(): u32 {
@@ -36,7 +34,7 @@ export async function generateMigrate(config: DubheConfig, srcPrefix: string) {
 `;
     await formatAndWriteMove(
       code,
-      `${srcPrefix}/contracts/${config.name}/sources/scripts/migrate.move`,
+      `${srcPrefix}/src/${config.name}/sources/scripts/migrate.move`,
       'formatAndWriteMove'
     );
   }

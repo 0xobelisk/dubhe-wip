@@ -1,53 +1,28 @@
-import { Dubhe, Transaction, UpgradePolicy } from '@0xobelisk/sui-client';
+import { Transaction, UpgradePolicy } from '@0xobelisk/sui-client';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
-import { DubheCliError, UpgradeError } from './errors';
+import { UpgradeError } from './errors';
 import {
   getOldPackageId,
   getVersion,
   getUpgradeCap,
   saveContractData,
-  validatePrivateKey,
-  getOnchainSchemas,
   switchEnv,
-  getSchemaId
+  initializeDubhe,
+  getOnchainResources,
+  getOnchainComponents,
+  getStartCheckpoint,
+  updateGenesisUpgradeFunction,
+  getDubheDappHub
 } from './utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DubheConfig } from '@0xobelisk/sui-common';
 
 type Migration = {
-  schemaName: string;
-  fields: string;
+  name: string;
+  fields: any;
 };
-
-function updateMigrateMethod(projectPath: string, migrations: Migration[]): void {
-  let filePath = `${projectPath}/sources/codegen/core/schema.move`;
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
-  const migrateMethodRegex = new RegExp(
-    `public fun migrate\\(_schema: &mut Schema, _ctx: &mut TxContext\\) {[^}]*}`
-  );
-  const newMigrateMethod = `
-public fun migrate(_schema: &mut Schema, _ctx: &mut TxContext) {
-${migrations
-  .map((migration) => {
-    let storage_type = '';
-    if (migration.fields.includes('StorageValue')) {
-      storage_type = `storage_value::new(b"${migration.schemaName}", _ctx)`;
-    } else if (migration.fields.includes('StorageMap')) {
-      storage_type = `storage_map::new(b"${migration.schemaName}", _ctx)`;
-    } else if (migration.fields.includes('StorageDoubleMap')) {
-      storage_type = `storage_double_map::new(b"${migration.schemaName}", _ctx)`;
-    }
-    return `storage::add_field<${migration.fields}>(&mut _schema.id, b"${migration.schemaName}", ${storage_type});`;
-  })
-  .join('')}
-}
-`;
-
-  const updatedContent = fileContent.replace(migrateMethodRegex, newMigrateMethod);
-  fs.writeFileSync(filePath, updatedContent, 'utf-8');
-}
 
 function replaceEnvField(
   filePath: string,
@@ -88,6 +63,7 @@ function replaceEnvField(
 
   return previousValue;
 }
+
 export async function upgradeHandler(
   config: DubheConfig,
   name: string,
@@ -96,44 +72,39 @@ export async function upgradeHandler(
   await switchEnv(network);
 
   const path = process.cwd();
-  const projectPath = `${path}/contracts/${name}`;
-  const privateKey = process.env.PRIVATE_KEY;
-  if (!privateKey)
-    throw new DubheCliError(
-      `Missing PRIVATE_KEY environment variable.
-Run 'echo "PRIVATE_KEY=YOUR_PRIVATE_KEY" > .env'
-in your contracts directory to use the default sui private key.`
-    );
+  const projectPath = `${path}/src/${name}`;
 
-  const privateKeyFormat = validatePrivateKey(privateKey);
-  if (privateKeyFormat === false) {
-    throw new DubheCliError(`Please check your privateKey.`);
-  }
-  const dubhe = new Dubhe({
-    networkType: network,
-    secretKey: privateKeyFormat
-  });
+  const dubhe = initializeDubhe({network});
 
   let oldVersion = Number(await getVersion(projectPath, network));
   let oldPackageId = await getOldPackageId(projectPath, network);
   let upgradeCap = await getUpgradeCap(projectPath, network);
-  let schemaId = await getSchemaId(projectPath, network);
-
-  const original_published_id = replaceEnvField(
-    `${projectPath}/Move.lock`,
-    network,
-    'original-published-id',
-    '0x0000000000000000000000000000000000000000000000000000000000000000'
-  );
+  let startCheckpoint = await getStartCheckpoint(projectPath, network);
+  let dappHub = await getDubheDappHub(network);
+  let onchainResources = await getOnchainResources(projectPath, network);
+  let onchainComponents = await getOnchainComponents(projectPath, network);
 
   let pendingMigration: Migration[] = [];
-  let schemas = await getOnchainSchemas(projectPath, network);
-  Object.entries(config.schemas).forEach(([key, value]) => {
-    if (!schemas.hasOwnProperty(key)) {
-      pendingMigration.push({ schemaName: key, fields: value });
+  Object.entries(config.resources).forEach(([key, value]) => {
+    if (!onchainResources.hasOwnProperty(key)) { 
+      pendingMigration.push({ name: key, fields: value });
     }
   });
-  updateMigrateMethod(projectPath, pendingMigration);
+  Object.entries(config.components).forEach(([key, value]) => {
+    if (!onchainComponents.hasOwnProperty(key)) { 
+      pendingMigration.push({ name: key, fields: value });
+    }
+  });
+
+  const tables = pendingMigration.map((migration) => migration.name);
+  updateGenesisUpgradeFunction(projectPath, tables);
+
+  const original_published_id = replaceEnvField(
+      `${projectPath}/Move.lock`,
+      network,
+      'original-published-id',
+      '0x0000000000000000000000000000000000000000000000000000000000000000'
+    );
 
   try {
     let modules: any, dependencies: any, digest: any;
@@ -143,7 +114,7 @@ in your contracts directory to use the default sui private key.`
         dependencies: extractedDependencies,
         digest: extractedDigest
       } = JSON.parse(
-        execSync(`sui move build --dump-bytecode-as-base64 --path ${path}/contracts/${name}`, {
+        execSync(`sui move build --dump-bytecode-as-base64 --path ${path}/src/${name}`, {
           encoding: 'utf-8'
         })
       );
@@ -214,11 +185,14 @@ in your contracts directory to use the default sui private key.`
     saveContractData(
       name,
       network,
+      startCheckpoint,
       newPackageId,
-      schemaId,
+      dappHub,
       upgradeCap,
       oldVersion + 1,
-      config.schemas
+      config.components,
+      config.resources,
+      config.enums
     );
 
     console.log(`\n🚀 Starting Migration Process...`);
@@ -230,9 +204,9 @@ in your contracts directory to use the default sui private key.`
     const migrateTx = new Transaction();
     const newVersion = oldVersion + 1;
     migrateTx.moveCall({
-      target: `${newPackageId}::${name}_migrate::migrate_to_v${newVersion}`,
+      target: `${newPackageId}::migrate::migrate_to_v${newVersion}`,
       arguments: [
-        migrateTx.object(schemaId),
+        migrateTx.object(dappHub),
         migrateTx.pure.address(newPackageId),
         migrateTx.pure.u32(newVersion)
       ]
@@ -244,7 +218,9 @@ in your contracts directory to use the default sui private key.`
         console.log(chalk.green(`Migration Transaction Digest: ${result.digest}`));
       },
       onError: (error) => {
-        console.log(chalk.red('Migration Transaction failed!, Please execute the migration manually.'));
+        console.log(
+          chalk.red('Migration Transaction failed!, Please execute the migration manually.')
+        );
         console.error(error);
       }
     });
