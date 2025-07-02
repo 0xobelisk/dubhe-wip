@@ -11,6 +11,37 @@ interface WaitOptions {
   interval: number;
 }
 
+function withoutProxy<T>(fn: () => Promise<T>): Promise<T> {
+  const originalProxy = {
+    HTTP_PROXY: process.env.HTTP_PROXY,
+    HTTPS_PROXY: process.env.HTTPS_PROXY,
+    http_proxy: process.env.http_proxy,
+    https_proxy: process.env.https_proxy,
+    NO_PROXY: process.env.NO_PROXY,
+    no_proxy: process.env.no_proxy
+  };
+
+  try {
+    delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY;
+    delete process.env.http_proxy;
+    delete process.env.https_proxy;
+    process.env.NO_PROXY = '127.0.0.1,localhost,*.local';
+    process.env.no_proxy = '127.0.0.1,localhost,*.local';
+
+    return fn();
+  } finally {
+    Object.keys(originalProxy).forEach((key) => {
+      const value = originalProxy[key as keyof typeof originalProxy];
+      if (value !== undefined) {
+        process.env[key] = value;
+      } else {
+        delete process.env[key];
+      }
+    });
+  }
+}
+
 // Check if PostgreSQL port is occupied (service is running)
 async function checkPostgreSQLRunning(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -55,15 +86,17 @@ async function waitForLocalnetServices(options: WaitOptions): Promise<void> {
   while (Date.now() - startTime < options.timeout) {
     try {
       // Check HTTP services using wait-on (excluding 9000 port)
-      await waitOn({
-        resources: [
-          'http://127.0.0.1:9123', // Sui faucet
-          'http://127.0.0.1:4000' // GraphQL server
-        ],
-        timeout: options.interval,
-        interval: 500,
-        validateStatus: (status: number) => status === 200
-      });
+      await withoutProxy(() =>
+        waitOn({
+          resources: [
+            'http://127.0.0.1:9123', // Sui faucet
+            'http://127.0.0.1:4000' // GraphQL server
+          ],
+          timeout: options.interval,
+          interval: 500,
+          validateStatus: (status: number) => status === 200
+        })
+      );
 
       // Check PostgreSQL separately
       const postgresRunning = await checkPostgreSQLRunning();
@@ -134,12 +167,14 @@ const commandModule: CommandModule = {
 
         spinner.start();
 
-        await waitOn({
-          resources: [options.url!],
-          timeout: options.timeout,
-          interval: options.interval,
-          validateStatus: (status: number) => status === 200
-        });
+        await withoutProxy(() =>
+          waitOn({
+            resources: [options.url!],
+            timeout: options.timeout,
+            interval: options.interval,
+            validateStatus: (status: number) => status === 200
+          })
+        );
 
         spinner.succeed(chalk.green('Service is ready!'));
       }

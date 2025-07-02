@@ -3,14 +3,15 @@ import chalk from 'chalk';
 import { spawn } from 'child_process';
 import Table from 'cli-table3';
 import inquirer from 'inquirer';
-import * as cliProgress from 'cli-progress';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
+import axios, { AxiosRequestConfig } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import packageJson from '../../package.json';
+import { downloadWithAxios } from '../utils/axios-downloader';
 
 // Check result type
 interface CheckResult {
@@ -132,105 +133,17 @@ async function execCommand(
   });
 }
 
-// Download file with progress bar
-async function downloadFileWithProgress(url: string, outputPath: string): Promise<void> {
-  const response = await fetchWithProxy(url, {
-    headers: {
-      'User-Agent': 'dubhe-cli'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  const contentLength = response.headers.get('content-length');
-  const totalSize = contentLength ? parseInt(contentLength) : 0;
-
-  // Create progress bar
-  const progressBar = new cliProgress.SingleBar({
-    format:
-      chalk.cyan('Download Progress') +
-      ' |{bar}| {percentage}% | {value}/{total} MB | Speed: {speed} MB/s | ETA: {eta}s',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    hideCursor: true,
-    barsize: 30,
-    forceRedraw: true
-  });
-
-  if (totalSize > 0) {
-    progressBar.start(Math.round((totalSize / 1024 / 1024) * 100) / 100, 0, {
-      speed: '0.00'
-    });
-  } else {
-    console.log(chalk.blue('📥 Downloading... (unable to get file size)'));
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error('Unable to get response stream');
-  }
-
-  const chunks: Uint8Array[] = [];
-  let downloadedBytes = 0;
-  const startTime = Date.now();
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) break;
-
-      chunks.push(value);
-      downloadedBytes += value.length;
-
-      // Update progress bar
-      if (totalSize > 0) {
-        const downloadedMB = Math.round((downloadedBytes / 1024 / 1024) * 100) / 100;
-        const elapsedTime = (Date.now() - startTime) / 1000;
-        const speed = elapsedTime > 0 ? Math.round((downloadedMB / elapsedTime) * 100) / 100 : 0;
-
-        progressBar.update(downloadedMB, {
-          speed: speed.toFixed(2)
-        });
-      }
-    }
-
-    // Merge all chunks
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const buffer = new Uint8Array(totalLength);
-    let offset = 0;
-
-    for (const chunk of chunks) {
-      buffer.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    // Write file
-    fs.writeFileSync(outputPath, buffer);
-
-    if (totalSize > 0) {
-      progressBar.stop();
-    }
-
-    const totalMB = Math.round((downloadedBytes / 1024 / 1024) * 100) / 100;
-    const elapsedTime = (Date.now() - startTime) / 1000;
-    const avgSpeed = elapsedTime > 0 ? Math.round((totalMB / elapsedTime) * 100) / 100 : 0;
-
-    console.log(
-      chalk.green(`✓ Download completed! ${totalMB} MB, average speed: ${avgSpeed} MB/s`)
-    );
-  } catch (error) {
-    if (totalSize > 0) {
-      progressBar.stop();
-    }
-    throw error;
-  }
-}
-
-// Enhanced fetch function with proxy support
-async function fetchWithProxy(url: string, options: RequestInit = {}): Promise<Response> {
+// Enhanced axios function with proxy support
+async function fetchWithAxios(
+  url: string,
+  options: AxiosRequestConfig = {}
+): Promise<{
+  ok: boolean;
+  status: number;
+  statusText: string;
+  json: () => Promise<any>;
+  headers: any;
+}> {
   // Check for proxy environment variables
   const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
@@ -248,49 +161,135 @@ async function fetchWithProxy(url: string, options: RequestInit = {}): Promise<R
         hostname.endsWith('.' + noProxyItem) ||
         (noProxyItem.startsWith('.') && hostname.endsWith(noProxyItem))
       ) {
-        return fetch(url, options); // No proxy needed
+        // No proxy needed
+        try {
+          const response = await axios(url, options);
+          return {
+            ok: response.status >= 200 && response.status < 300,
+            status: response.status,
+            statusText: response.statusText,
+            json: async () => response.data,
+            headers: response.headers
+          };
+        } catch (error: any) {
+          return {
+            ok: false,
+            status: error.response?.status || 0,
+            statusText: error.response?.statusText || error.message,
+            json: async () => error.response?.data || {},
+            headers: error.response?.headers || {}
+          };
+        }
       }
     }
   }
 
-  const protocol = new URL(url).protocol;
-  let agent;
+  let httpsAgent;
+  let httpAgent;
+  let proxyUrl: string | undefined;
 
-  // Create appropriate proxy agent
-  if (protocol === 'https:' && httpsProxy) {
-    agent = new HttpsProxyAgent(httpsProxy);
-  } else if (protocol === 'http:' && httpProxy) {
-    agent = new HttpProxyAgent(httpProxy);
-  } else if (httpsProxy && protocol === 'https:') {
-    agent = new HttpsProxyAgent(httpsProxy);
-  }
-
-  if (agent) {
-    // Try to use the agent - this method works with undici (Node.js 18+)
+  // Create appropriate proxy agents based on available proxy settings
+  if (httpsProxy) {
+    proxyUrl = httpsProxy;
     try {
-      const fetchOptions: any = {
-        ...options,
-        dispatcher: agent
-      };
-      return await fetch(url, fetchOptions);
+      // Validate proxy URL format
+      new URL(httpsProxy);
+      httpsAgent = new HttpsProxyAgent(httpsProxy);
     } catch (error) {
-      // If dispatcher doesn't work, try with agent property
+      console.log(chalk.yellow(`   ⚠️ Warning: Invalid HTTPS proxy URL format: ${httpsProxy}`));
+    }
+  }
+
+  if (httpProxy) {
+    proxyUrl = proxyUrl || httpProxy;
+    try {
+      // Validate proxy URL format
+      new URL(httpProxy);
+      httpAgent = new HttpProxyAgent(httpProxy);
+      // For HTTPS requests through HTTP proxy, also create an HTTPS agent
+      if (!httpsAgent) {
+        httpsAgent = new HttpsProxyAgent(httpProxy);
+      }
+    } catch (error) {
+      console.log(chalk.yellow(`   ⚠️ Warning: Invalid HTTP proxy URL format: ${httpProxy}`));
+    }
+  }
+
+  if ((httpsAgent || httpAgent) && proxyUrl) {
+    // Use axios with proxy agent
+    try {
+      const axiosConfig: AxiosRequestConfig = {
+        ...options
+      };
+
+      // Set appropriate agents
+      if (httpsAgent) {
+        axiosConfig.httpsAgent = httpsAgent;
+      }
+      if (httpAgent) {
+        axiosConfig.httpAgent = httpAgent;
+      }
+
+      const response = await axios(url, axiosConfig);
+      return {
+        ok: response.status >= 200 && response.status < 300,
+        status: response.status,
+        statusText: response.statusText,
+        json: async () => response.data,
+        headers: response.headers
+      };
+    } catch (error: any) {
+      // Log detailed error information for debugging
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      console.log(
+        chalk.yellow(
+          `   ⚠️ Warning: Could not use proxy (${proxyUrl}), falling back to direct connection`
+        )
+      );
+      console.log(chalk.gray(`     Proxy error: ${errorMsg}`));
+
+      // Fall back to direct connection
       try {
-        const fetchOptions: any = {
-          ...options,
-          agent
+        const response = await axios(url, options);
+        return {
+          ok: response.status >= 200 && response.status < 300,
+          status: response.status,
+          statusText: response.statusText,
+          json: async () => response.data,
+          headers: response.headers
         };
-        return await fetch(url, fetchOptions);
-      } catch (agentError) {
-        console.log(
-          chalk.yellow(`   ⚠️ Warning: Could not use proxy, falling back to direct connection`)
-        );
-        return fetch(url, options);
+      } catch (fallbackError: any) {
+        return {
+          ok: false,
+          status: fallbackError.response?.status || 0,
+          statusText: fallbackError.response?.statusText || fallbackError.message,
+          json: async () => fallbackError.response?.data || {},
+          headers: fallbackError.response?.headers || {}
+        };
       }
     }
   }
 
-  return fetch(url, options);
+  // No proxy needed, use axios directly
+  try {
+    const response = await axios(url, options);
+    return {
+      ok: response.status >= 200 && response.status < 300,
+      status: response.status,
+      statusText: response.statusText,
+      json: async () => response.data,
+      headers: response.headers
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      status: error.response?.status || 0,
+      statusText: error.response?.statusText || error.message,
+      json: async () => error.response?.data || {},
+      headers: error.response?.headers || {}
+    };
+  }
 }
 
 // Fetch GitHub releases with retry
@@ -307,7 +306,7 @@ async function fetchGitHubReleases(
         console.log(chalk.gray(`     Retry ${attempt}/${retries}...`));
       }
 
-      const response = await fetchWithProxy(url, {
+      const response = await fetchWithAxios(url, {
         headers: {
           'User-Agent': 'dubhe-cli',
           Accept: 'application/vnd.github.v3+json'
@@ -576,7 +575,7 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
 
     // Verify download link
     try {
-      const headResponse = await fetchWithProxy(asset.browser_download_url, {
+      const headResponse = await fetchWithAxios(asset.browser_download_url, {
         method: 'HEAD',
         headers: { 'User-Agent': 'dubhe-cli' }
       });
@@ -585,7 +584,7 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
           chalk.yellow(`   ⚠️ Warning: Unable to access download file (${headResponse.status})`)
         );
       } else {
-        const fileSize = headResponse.headers.get('content-length');
+        const fileSize = headResponse.headers['content-length'];
         if (fileSize) {
           console.log(
             chalk.gray(
@@ -616,7 +615,7 @@ async function downloadAndInstallTool(toolName: string, version?: string): Promi
           console.log(chalk.gray(`   Attempt ${attempt} to download...`));
         }
 
-        await downloadFileWithProgress(asset.browser_download_url, tempFile);
+        await downloadWithAxios(asset.browser_download_url, tempFile);
         break;
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1268,6 +1267,10 @@ async function runDoctorChecks(options: {
 
   // Execute all checks
   console.log('Running checks...\n');
+
+  // // Proxy configuration check
+  // const proxyCheck = await testProxyConnectivity();
+  // results.push(proxyCheck);
 
   // Required tools check
   const nodeCheck = await checkNodeVersion();
