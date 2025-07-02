@@ -98,7 +98,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   },
   'dubhe-indexer': {
     name: 'dubhe-indexer',
-    repo: '0xobelisk/dubhe-wip',
+    repo: '0xobelisk/dubhe',
     binaryName: 'dubhe-indexer',
     installDir: path.join(os.homedir(), '.dubhe', 'bin')
   }
@@ -917,7 +917,7 @@ function getInstallSuggestion(command: string): string {
     'docker-compose': 'Visit https://docs.docker.com/compose/install/ to install Docker Compose',
     sui: 'Run `dubhe doctor --install sui` to auto-install, or visit https://docs.sui.io/guides/developer/getting-started/sui-install',
     'dubhe-indexer':
-      'Run `dubhe doctor --install dubhe-indexer` to auto-install, or download from https://github.com/0xobelisk/dubhe-wip/releases',
+      'Run `dubhe doctor --install dubhe-indexer` to auto-install, or download from https://github.com/0xobelisk/dubhe/releases',
     pnpm: 'Run: npm install -g pnpm',
     node: 'Visit https://nodejs.org/ to download and install Node.js'
   };

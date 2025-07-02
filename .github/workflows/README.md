@@ -107,7 +107,7 @@ git tag v1.2.3
 git push origin v1.2.3
 
 # 3. Monitor release progress in GitHub Actions
-# https://github.com/your-org/dubhe-wip/actions
+# https://github.com/0xobelisk/dubhe/actions
 ```
 
 ### Check Release Status

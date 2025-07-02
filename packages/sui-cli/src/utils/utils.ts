@@ -240,9 +240,9 @@ function getDubheDependency(network: 'mainnet' | 'testnet' | 'devnet' | 'localne
     case 'localnet':
       return 'Dubhe = { local = "../dubhe" }';
     case 'testnet':
-      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "v${packageJson.version}" }`;
+      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe.git", subdir = "packages/sui-framework/src/dubhe", rev = "v${packageJson.version}" }`;
     case 'mainnet':
-      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe-wip.git", subdir = "packages/sui-framework/src/dubhe", rev = "v${packageJson.version}" }`;
+      return `Dubhe = { git = "https://github.com/0xobelisk/dubhe.git", subdir = "packages/sui-framework/src/dubhe", rev = "v${packageJson.version}" }`;
     default:
       throw new Error(`Unsupported network: ${network}`);
   }
@@ -444,10 +444,7 @@ export function generateConfigJson(config: DubheConfig): string {
     if (typeof component === 'string') {
       return {
         [name]: {
-          fields: [
-            { entity_id: 'address' },
-            { value: component }
-          ],
+          fields: [{ entity_id: 'address' }, { value: component }],
           keys: ['entity_id'],
           offchain: false
         }
@@ -457,9 +454,7 @@ export function generateConfigJson(config: DubheConfig): string {
     if (Object.keys(component as object).length === 0) {
       return {
         [name]: {
-          fields: [
-            { entity_id: 'address' }
-          ],
+          fields: [{ entity_id: 'address' }],
           keys: ['entity_id'],
           offchain: false
         }
@@ -490,9 +485,7 @@ export function generateConfigJson(config: DubheConfig): string {
     if (typeof resource === 'string') {
       return {
         [name]: {
-          fields: [
-            { value: resource }
-          ],
+          fields: [{ value: resource }],
           keys: [],
           offchain: false
         }
@@ -527,20 +520,26 @@ export function generateConfigJson(config: DubheConfig): string {
   // handle enums
   const enums = Object.entries(config.enums || {}).map(([name, enumFields]) => {
     // Sort enum values by first letter
-    let sortedFields = enumFields.sort((a, b) => a.localeCompare(b)).map((value, index) => ({
-      [index]: value
-    }));
+    let sortedFields = enumFields
+      .sort((a, b) => a.localeCompare(b))
+      .map((value, index) => ({
+        [index]: value
+      }));
 
     return {
       [name]: sortedFields
     };
   });
 
-  return JSON.stringify({
-    components,
-    resources,
-    enums
-  }, null, 2);
+  return JSON.stringify(
+    {
+      components,
+      resources,
+      enums
+    },
+    null,
+    2
+  );
 }
 
 /**
@@ -552,7 +551,10 @@ export function updateMoveTomlAddress(path: string, packageAddress: string) {
   const moveTomlPath = `${path}/Move.toml`;
   const moveTomlContent = fs.readFileSync(moveTomlPath, 'utf-8');
   // Use regex to match any dubhe address, not just "0x0"
-  const updatedContent = moveTomlContent.replace(/dubhe\s*=\s*"[^"]*"/, `dubhe = "${packageAddress}"`);
+  const updatedContent = moveTomlContent.replace(
+    /dubhe\s*=\s*"[^"]*"/,
+    `dubhe = "${packageAddress}"`
+  );
   fs.writeFileSync(moveTomlPath, updatedContent, 'utf-8');
 }
 
@@ -561,7 +563,8 @@ export function updateGenesisUpgradeFunction(path: string, tables: string[]) {
   const genesisContent = fs.readFileSync(genesisPath, 'utf-8');
 
   // Match the first pair of // ========================================== lines (with any content, including empty, between them)
-  const separatorRegex = /(\/\/ ==========================================)[\s\S]*?(\/\/ ==========================================)/;
+  const separatorRegex =
+    /(\/\/ ==========================================)[\s\S]*?(\/\/ ==========================================)/;
   const match = genesisContent.match(separatorRegex);
 
   if (!match) {
@@ -569,7 +572,9 @@ export function updateGenesisUpgradeFunction(path: string, tables: string[]) {
   }
 
   // Generate new table registration code
-  const registerTablesCode = tables.map((table) => `    ${table}::register_table(dapp_hub, _ctx);`).join('\n');
+  const registerTablesCode = tables
+    .map((table) => `    ${table}::register_table(dapp_hub, _ctx);`)
+    .join('\n');
 
   // Build new content, preserve separators, replace middle content
   const newContent = `${match[1]}\n${registerTablesCode}\n${match[2]}`;
