@@ -8,8 +8,6 @@ import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
 import axios, { AxiosRequestConfig } from 'axios';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import { HttpProxyAgent } from 'http-proxy-agent';
 import packageJson from '../../package.json';
 import { downloadWithAxios } from '../utils/axios-downloader';
 
@@ -133,7 +131,7 @@ async function execCommand(
   });
 }
 
-// Enhanced axios function with proxy support
+// Enhanced axios function
 async function fetchWithAxios(
   url: string,
   options: AxiosRequestConfig = {}
@@ -144,136 +142,16 @@ async function fetchWithAxios(
   json: () => Promise<any>;
   headers: any;
 }> {
-  // Check for proxy environment variables
-  const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
-  const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
-  const noProxy = process.env.NO_PROXY || process.env.no_proxy;
-
-  // Check if URL should be bypassed (NO_PROXY)
-  if (noProxy) {
-    const noProxyList = noProxy.split(',').map((item) => item.trim());
-    const hostname = new URL(url).hostname;
-
-    for (const noProxyItem of noProxyList) {
-      if (
-        noProxyItem === '*' ||
-        hostname === noProxyItem ||
-        hostname.endsWith('.' + noProxyItem) ||
-        (noProxyItem.startsWith('.') && hostname.endsWith(noProxyItem))
-      ) {
-        // No proxy needed
-        try {
-          const response = await axios(url, options);
-          return {
-            ok: response.status >= 200 && response.status < 300,
-            status: response.status,
-            statusText: response.statusText,
-            json: async () => response.data,
-            headers: response.headers
-          };
-        } catch (error: any) {
-          return {
-            ok: false,
-            status: error.response?.status || 0,
-            statusText: error.response?.statusText || error.message,
-            json: async () => error.response?.data || {},
-            headers: error.response?.headers || {}
-          };
-        }
-      }
-    }
-  }
-
-  let httpsAgent;
-  let httpAgent;
-  let proxyUrl: string | undefined;
-
-  // Create appropriate proxy agents based on available proxy settings
-  if (httpsProxy) {
-    proxyUrl = httpsProxy;
-    try {
-      // Validate proxy URL format
-      new URL(httpsProxy);
-      httpsAgent = new HttpsProxyAgent(httpsProxy);
-    } catch (error) {
-      console.log(chalk.yellow(`   ⚠️ Warning: Invalid HTTPS proxy URL format: ${httpsProxy}`));
-    }
-  }
-
-  if (httpProxy) {
-    proxyUrl = proxyUrl || httpProxy;
-    try {
-      // Validate proxy URL format
-      new URL(httpProxy);
-      httpAgent = new HttpProxyAgent(httpProxy);
-      // For HTTPS requests through HTTP proxy, also create an HTTPS agent
-      if (!httpsAgent) {
-        httpsAgent = new HttpsProxyAgent(httpProxy);
-      }
-    } catch (error) {
-      console.log(chalk.yellow(`   ⚠️ Warning: Invalid HTTP proxy URL format: ${httpProxy}`));
-    }
-  }
-
-  if ((httpsAgent || httpAgent) && proxyUrl) {
-    // Use axios with proxy agent
-    try {
-      const axiosConfig: AxiosRequestConfig = {
-        ...options
-      };
-
-      // Set appropriate agents
-      if (httpsAgent) {
-        axiosConfig.httpsAgent = httpsAgent;
-      }
-      if (httpAgent) {
-        axiosConfig.httpAgent = httpAgent;
-      }
-
-      const response = await axios(url, axiosConfig);
-      return {
-        ok: response.status >= 200 && response.status < 300,
-        status: response.status,
-        statusText: response.statusText,
-        json: async () => response.data,
-        headers: response.headers
-      };
-    } catch (error: any) {
-      // Log detailed error information for debugging
-      const errorMsg = error instanceof Error ? error.message : String(error);
-
-      console.log(
-        chalk.yellow(
-          `   ⚠️ Warning: Could not use proxy (${proxyUrl}), falling back to direct connection`
-        )
-      );
-      console.log(chalk.gray(`     Proxy error: ${errorMsg}`));
-
-      // Fall back to direct connection
-      try {
-        const response = await axios(url, options);
-        return {
-          ok: response.status >= 200 && response.status < 300,
-          status: response.status,
-          statusText: response.statusText,
-          json: async () => response.data,
-          headers: response.headers
-        };
-      } catch (fallbackError: any) {
-        return {
-          ok: false,
-          status: fallbackError.response?.status || 0,
-          statusText: fallbackError.response?.statusText || fallbackError.message,
-          json: async () => fallbackError.response?.data || {},
-          headers: fallbackError.response?.headers || {}
-        };
-      }
-    }
-  }
-
-  // No proxy needed, use axios directly
   try {
-    const response = await axios(url, options);
+    // Configure axios with better defaults for network issues
+    const axiosConfig: AxiosRequestConfig = {
+      timeout: 30000,
+      maxRedirects: 5,
+      validateStatus: (status) => status < 500, // Accept all status codes < 500
+      ...options
+    };
+
+    const response = await axios(url, axiosConfig);
     return {
       ok: response.status >= 200 && response.status < 300,
       status: response.status,
@@ -282,10 +160,25 @@ async function fetchWithAxios(
       headers: response.headers
     };
   } catch (error: any) {
+    // Handle network errors more gracefully
+    let status = error.response?.status || 0;
+    let statusText = error.response?.statusText || error.message;
+
+    // Handle specific network error cases
+    if (error.code === 'ENOTFOUND') {
+      statusText = 'DNS resolution failed - please check your internet connection';
+    } else if (error.code === 'ECONNRESET') {
+      statusText = 'Connection reset - please check your network connection';
+    } else if (error.code === 'ETIMEDOUT') {
+      statusText = 'Connection timeout - please check your network connection';
+    } else if (error.message.includes('protocol mismatch')) {
+      statusText = 'Protocol mismatch - please check your network configuration';
+    }
+
     return {
       ok: false,
-      status: error.response?.status || 0,
-      statusText: error.response?.statusText || error.message,
+      status,
+      statusText,
       json: async () => error.response?.data || {},
       headers: error.response?.headers || {}
     };
@@ -1267,10 +1160,6 @@ async function runDoctorChecks(options: {
 
   // Execute all checks
   console.log('Running checks...\n');
-
-  // // Proxy configuration check
-  // const proxyCheck = await testProxyConnectivity();
-  // results.push(proxyCheck);
 
   // Required tools check
   const nodeCheck = await checkNodeVersion();
