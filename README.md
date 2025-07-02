@@ -64,7 +64,7 @@ In early development, Dubhe aims to reduce project setup time from days to hours
 
 ## Contributors ✨
 
-Thanks to these outstanding contributors:
+Thanks to these outstanding contributors ❤️
 
 <div align="center">
   <a href="https://github.com/0xobelisk/dubhe/graphs/contributors">
