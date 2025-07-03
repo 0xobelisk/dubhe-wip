@@ -208,7 +208,7 @@ export function createWelcomePage(tables: DynamicTable[], config: WelcomePageCon
               enableSubscriptions === 'true' ? ' and subscription' : ''
             } operations</p>
 						<p>3. Dynamic tables (store_*) automatically generate fields based on table_fields metadata</p>
-						<p>4. System tables provide core data access for sui-indexer</p>
+						<p>4. System tables provide core data access for dubhe-indexer</p>
 						${enableSubscriptions === 'true' ? '<p>5. Use WebSocket for real-time data subscriptions</p>' : ''}
 					</div>
 				</div>

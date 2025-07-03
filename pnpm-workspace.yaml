@@ -1,5 +1,4 @@
 packages:
   - packages/*
-  - "!packages/sui-indexer"
   - templates/**
   - e2e-tests

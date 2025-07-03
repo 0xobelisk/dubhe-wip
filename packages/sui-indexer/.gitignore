@@ -1,7 +1,0 @@
-*.db
-*.db-journal
-.env
-node_modules
-dist
-contracts
-.data
