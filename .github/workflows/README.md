@@ -24,14 +24,13 @@ git push origin v1.2.3
 - `@0xobelisk/sui-common`
 - `@0xobelisk/sui-client` 
 - `@0xobelisk/sui-cli`
-- `@0xobelisk/sui-indexer`
 - `@0xobelisk/graphql-client`
 - `@0xobelisk/ecs`
 - `@0xobelisk/graphql-server`
 - `@0xobelisk/create-dubhe`
 
 #### Rust Binaries
-- `dubhe-sui-indexer` (Linux x64/ARM64, macOS x64/ARM64, Windows x64)
+- `dubhe-indexer` (Linux x64/ARM64, macOS x64/ARM64, Windows x64)
 
 ---
 

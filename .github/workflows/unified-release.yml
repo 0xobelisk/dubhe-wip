@@ -214,7 +214,7 @@ jobs:
           VERSION="${{ needs.get-version.outputs.version }}"
           echo "Updating Node.js packages to version: ${VERSION}"
 
-          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          packages=("sui-common" "sui-client" "sui-cli" "graphql-client" "ecs" "graphql-server" "create-dubhe")
           for package in "${packages[@]}"; do
             echo "Updating packages/$package to ${VERSION}..."
             cd "packages/$package" && pnpm version ${VERSION} --no-git-tag-version
@@ -231,7 +231,7 @@ jobs:
           VERSION="${{ needs.get-version.outputs.version }}"
           echo "Checking if packages with version ${VERSION} already exist..."
 
-          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          packages=("sui-common" "sui-client" "sui-cli" "graphql-client" "ecs" "graphql-server" "create-dubhe")
           for package in "${packages[@]}"; do
             if npm view @0xobelisk/$package@${VERSION} > /dev/null 2>&1; then
               echo "❌ Package @0xobelisk/$package@${VERSION} already exists"
@@ -246,7 +246,6 @@ jobs:
           cd packages/sui-common && pnpm build
           cd ../sui-client && pnpm build
           cd ../sui-cli && pnpm build
-          cd ../sui-indexer && pnpm build
           cd ../graphql-client && pnpm build
           cd ../ecs && pnpm build
           cd ../graphql-server && pnpm build
@@ -256,7 +255,7 @@ jobs:
         shell: bash
         run: |
           echo "Verifying all packages have dist directories..."
-          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          packages=("sui-common" "sui-client" "sui-cli" "graphql-client" "ecs" "graphql-server" "create-dubhe")
           for package in "${packages[@]}"; do
             if [ -d "packages/$package/dist" ] || [ -d "packages/$package/lib" ] || [ -f "packages/$package/index.js" ]; then
               echo "✅ Package $package build output found"
@@ -271,7 +270,6 @@ jobs:
           cd packages/sui-common && pnpm publish --access public --no-git-checks
           cd ../sui-client && pnpm publish --access public --no-git-checks
           cd ../sui-cli && pnpm publish --access public --no-git-checks
-          cd ../sui-indexer && pnpm publish --access public --no-git-checks
           cd ../graphql-client && pnpm publish --access public --no-git-checks
           cd ../ecs && pnpm publish --access public --no-git-checks
           cd ../graphql-server && pnpm publish --access public --no-git-checks
@@ -378,7 +376,6 @@ jobs:
           - `@0xobelisk/sui-common`
           - `@0xobelisk/sui-client`
           - `@0xobelisk/sui-cli`
-          - `@0xobelisk/sui-indexer`
           - `@0xobelisk/graphql-client`
           - `@0xobelisk/ecs`
           - `@0xobelisk/graphql-server`
@@ -473,7 +470,7 @@ jobs:
           fi
 
           # Update Node.js package versions
-          packages=("sui-common" "sui-client" "sui-cli" "sui-indexer" "graphql-client" "ecs" "graphql-server" "create-dubhe")
+          packages=("sui-common" "sui-client" "sui-cli" "graphql-client" "ecs" "graphql-server" "create-dubhe")
           for package in "${packages[@]}"; do
             cd "packages/$package" && pnpm version ${VERSION} --no-git-tag-version
             cd - > /dev/null

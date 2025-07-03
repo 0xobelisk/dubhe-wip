@@ -25,7 +25,6 @@
   "keywords": [
     "graphql",
     "postgraphile",
-    "sui-indexer",
     "database-adapter",
     "websocket",
     "subscription",
