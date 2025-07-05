@@ -1,0 +1,549 @@
+---
+title: GraphQL Client - Dubhe
+description: Learn how to use the GraphQL Client for advanced data querying and subscriptions.
+---
+
+# Dubhe GraphQL Client
+
+The Dubhe GraphQL Client provides a powerful interface for querying indexed blockchain data with advanced filtering, pagination, and real-time subscription capabilities. It's built on Apollo Client and integrates seamlessly with PostGraphile-generated APIs.
+
+## Installation
+
+```bash
+pnpm install @0xobelisk/graphql-client
+```
+
+## Getting Started
+
+### Basic Setup
+
+```typescript
+import { createDubheGraphqlClient, DubheGraphqlClient } from '@0xobelisk/graphql-client';
+
+const client = createDubheGraphqlClient({
+  endpoint: 'http://localhost:4000/graphql',
+  subscriptionEndpoint: 'ws://localhost:4000/graphql',
+  headers: {
+    'Authorization': 'Bearer your-token',
+  },
+  dubheMetadata: yourDubheMetadata, // Optional: for automatic field parsing
+});
+```
+
+### Configuration Options
+
+```typescript
+interface DubheClientConfig {
+  endpoint: string;
+  subscriptionEndpoint?: string;
+  headers?: Record<string, string>;
+  fetchOptions?: RequestInit;
+  retryOptions?: {
+    max?: number;
+    delay?: {
+      initial?: number;
+      max?: number;
+      jitter?: boolean;
+    };
+    attempts?: {
+      max?: number;
+      retryIf?: (error: any, operation: any) => boolean;
+    };
+  };
+  dubheMetadata?: DubheMetadata;
+  cacheConfig?: {
+    paginatedTables?: string[];
+    strategy?: 'none' | 'filter-only' | 'filter-orderby' | 'table-level';
+  };
+}
+```
+
+### Advanced Configuration
+
+```typescript
+const client = createDubheGraphqlClient({
+  endpoint: 'https://api.example.com/graphql',
+  subscriptionEndpoint: 'wss://api.example.com/graphql',
+  headers: {
+    'Authorization': 'Bearer token',
+    'X-Custom-Header': 'value',
+  },
+  retryOptions: {
+    max: 5,
+    delay: {
+      initial: 300,
+      max: 5000,
+      jitter: true,
+    },
+    attempts: {
+      max: 3,
+      retryIf: (error) => {
+        return error.networkError || error.graphQLErrors?.length === 0;
+      },
+    },
+  },
+  cacheConfig: {
+    paginatedTables: ['accounts', 'transactions'],
+    strategy: 'filter-orderby',
+  },
+});
+```
+
+## Querying Data
+
+### Basic Table Queries
+
+```typescript
+// Query all records from a table
+const accounts = await client.getAllTables('account', {
+  first: 10,
+  orderBy: [{ field: 'updatedAt', direction: 'DESC' }],
+});
+
+console.log(accounts.edges); // Array of account records
+console.log(accounts.pageInfo); // Pagination information
+console.log(accounts.totalCount); // Total number of records
+```
+
+### Filtering
+
+```typescript
+// Query with filters
+const filteredAccounts = await client.getAllTables('account', {
+  first: 20,
+  filter: {
+    balance: { greaterThan: '1000' },
+    assetId: { startsWith: '0x2' },
+    isActive: { equalTo: true },
+  },
+  orderBy: [{ field: 'balance', direction: 'DESC' }],
+});
+```
+
+### Advanced Filtering
+
+```typescript
+// Complex filtering with logical operators
+const complexQuery = await client.getAllTables('account', {
+  filter: {
+    and: [
+      {
+        or: [
+          { balance: { greaterThan: '50000' } },
+          { assetId: { in: ['0x123', '0x456'] } },
+        ],
+      },
+      {
+        not: {
+          account: { includesInsensitive: 'test' },
+        },
+      },
+    ],
+  },
+});
+```
+
+### Pagination
+
+```typescript
+// Cursor-based pagination
+let currentPage = await client.getAllTables('transaction', {
+  first: 10,
+  orderBy: [{ field: 'createdAt', direction: 'DESC' }],
+});
+
+// Get next page
+if (currentPage.pageInfo.hasNextPage) {
+  const nextPage = await client.getAllTables('transaction', {
+    first: 10,
+    after: currentPage.pageInfo.endCursor,
+    orderBy: [{ field: 'createdAt', direction: 'DESC' }],
+  });
+}
+```
+
+### Single Record Queries
+
+```typescript
+// Get single record by condition
+const account = await client.getTableByCondition('account', {
+  assetId: '0x123',
+  account: '0x456',
+});
+
+if (account) {
+  console.log('Account found:', account);
+} else {
+  console.log('Account not found');
+}
+```
+
+## Real-time Subscriptions
+
+### Basic Subscriptions
+
+```typescript
+// Subscribe to table changes
+const subscription = client.subscribeToTableChanges('account', {
+  fields: ['assetId', 'account', 'balance', 'updatedAt'],
+  initialEvent: true,
+  first: 10,
+  onData: (data) => {
+    const accounts = data.listen.query.accounts.nodes;
+    console.log('Accounts updated:', accounts);
+  },
+  onError: (error) => {
+    console.error('Subscription error:', error);
+  },
+});
+
+// Unsubscribe when done
+subscription.unsubscribe();
+```
+
+### Filtered Subscriptions
+
+```typescript
+// Subscribe with filters
+const filteredSubscription = client.subscribeToTableChanges('transaction', {
+  filter: {
+    sender: { equalTo: '0x123' },
+    function: { like: '%transfer%' },
+  },
+  orderBy: [{ field: 'createdAt', direction: 'DESC' }],
+  first: 5,
+  onData: (data) => {
+    console.log('New transactions:', data.listen.query.transactions.nodes);
+  },
+});
+```
+
+### Multi-table Subscriptions
+
+```typescript
+// Subscribe to multiple tables
+const multiSubscription = client.subscribeToMultipleTables([
+  {
+    tableName: 'account',
+    options: {
+      fields: ['assetId', 'balance'],
+      filter: { balance: { greaterThan: '1000' } },
+    },
+  },
+  {
+    tableName: 'transaction',
+    options: {
+      fields: ['sender', 'function', 'createdAt'],
+      first: 5,
+    },
+  },
+], {
+  onData: (allData) => {
+    console.log('Account data:', allData.account);
+    console.log('Transaction data:', allData.transaction);
+  },
+});
+```
+
+### Custom Listen Subscriptions
+
+```typescript
+// Advanced subscription with custom query
+const customSubscription = client.subscribeWithListen(
+  'custom_topic',
+  `
+    accounts(first: 10, filter: { balance: { gt: "1000" } }) {
+      nodes {
+        assetId
+        account
+        balance
+      }
+    }
+  `,
+  {
+    initialEvent: true,
+    onData: (data) => {
+      console.log('Custom query result:', data.listen.query);
+    },
+  }
+);
+```
+
+## Batch Operations
+
+### Batch Queries
+
+```typescript
+// Execute multiple queries in parallel
+const batchResults = await client.batchQuery([
+  {
+    key: 'accounts',
+    tableName: 'account',
+    params: {
+      fields: ['assetId', 'balance'],
+      first: 10,
+    },
+  },
+  {
+    key: 'transactions',
+    tableName: 'transaction',
+    params: {
+      fields: ['sender', 'digest'],
+      first: 5,
+    },
+  },
+]);
+
+console.log('Accounts:', batchResults.accounts);
+console.log('Transactions:', batchResults.transactions);
+```
+
+## Error Handling
+
+### Retry Configuration
+
+```typescript
+const resilientClient = createDubheGraphqlClient({
+  endpoint: 'https://api.example.com/graphql',
+  retryOptions: {
+    max: 3,
+    delay: {
+      initial: 1000,
+      max: 10000,
+      jitter: true,
+    },
+    attempts: {
+      max: 5,
+      retryIf: (error) => {
+        // Retry on network errors or server errors
+        return Boolean(
+          error.networkError ||
+          (error.graphQLErrors && error.graphQLErrors.length === 0)
+        );
+      },
+    },
+  },
+});
+```
+
+### Query Error Handling
+
+```typescript
+try {
+  const result = await client.getAllTables('account');
+  console.log('Success:', result);
+} catch (error) {
+  if (error.networkError) {
+    console.error('Network error:', error.networkError);
+  } else if (error.graphQLErrors) {
+    console.error('GraphQL errors:', error.graphQLErrors);
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+### Subscription Error Handling
+
+```typescript
+const subscription = client.subscribeToTableChanges('account', {
+  onData: (data) => {
+    console.log('Data received:', data);
+  },
+  onError: (error) => {
+    console.error('Subscription error:', error);
+    
+    // Implement reconnection logic
+    setTimeout(() => {
+      console.log('Attempting to reconnect...');
+      // Recreate subscription
+    }, 5000);
+  },
+  onComplete: () => {
+    console.log('Subscription completed');
+  },
+});
+```
+
+## Performance Optimization
+
+### Caching
+
+```typescript
+// Configure caching for better performance
+const cachedClient = createDubheGraphqlClient({
+  endpoint: 'https://api.example.com/graphql',
+  cacheConfig: {
+    paginatedTables: ['account', 'transaction'],
+    strategy: 'filter-orderby',
+    customMergeStrategies: {
+      account: {
+        keyArgs: ['filter', 'orderBy'],
+        merge: (existing, incoming) => {
+          // Custom merge logic
+          return {
+            ...existing,
+            edges: [...(existing?.edges || []), ...incoming.edges],
+          };
+        },
+      },
+    },
+  },
+});
+
+// Clear cache when needed
+cachedClient.clearCache();
+```
+
+### Field Selection
+
+```typescript
+// Only query needed fields to reduce bandwidth
+const optimizedQuery = await client.getAllTables('account', {
+  fields: ['assetId', 'balance'], // Only fetch required fields
+  first: 100,
+});
+```
+
+## Integration Patterns
+
+### React Integration
+
+```typescript
+import { useEffect, useState } from 'react';
+
+function AccountList() {
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Initial data load
+    client.getAllTables('account', { first: 10 })
+      .then(result => {
+        setAccounts(result.edges.map(edge => edge.node));
+        setLoading(false);
+      });
+
+    // Real-time updates
+    const subscription = client.subscribeToTableChanges('account', {
+      onData: (data) => {
+        const newAccounts = data.listen.query.accounts.nodes;
+        setAccounts(newAccounts);
+      },
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      {accounts.map(account => (
+        <div key={account.assetId}>
+          {account.account}: {account.balance}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Vue Integration
+
+```typescript
+import { ref, onMounted, onUnmounted } from 'vue';
+
+export function useAccounts() {
+  const accounts = ref([]);
+  const loading = ref(true);
+  let subscription = null;
+
+  onMounted(async () => {
+    // Load initial data
+    const result = await client.getAllTables('account', { first: 10 });
+    accounts.value = result.edges.map(edge => edge.node);
+    loading.value = false;
+
+    // Subscribe to updates
+    subscription = client.subscribeToTableChanges('account', {
+      onData: (data) => {
+        accounts.value = data.listen.query.accounts.nodes;
+      },
+    });
+  });
+
+  onUnmounted(() => {
+    if (subscription) {
+      subscription.unsubscribe();
+    }
+  });
+
+  return { accounts, loading };
+}
+```
+
+## API Reference
+
+### DubheGraphqlClient Methods
+
+#### Query Methods
+
+- `getAllTables<T>(tableName: string, params?: BaseQueryParams): Promise<Connection<T>>` - Query all records from a table
+- `getTableByCondition<T>(tableName: string, condition: Record<string, any>, fields?: string[]): Promise<T | null>` - Get single record by condition
+- `batchQuery(queries: BatchQuery[]): Promise<Record<string, any>>` - Execute multiple queries in parallel
+
+#### Subscription Methods
+
+- `subscribeToTableChanges<T>(tableName: string, options?: SubscriptionOptions): Observable<SubscriptionResult<T>>` - Subscribe to table changes
+- `subscribeToMultipleTables<T>(configs: MultiTableSubscriptionConfig[], globalOptions?: SubscriptionOptions): Observable<MultiTableSubscriptionData>` - Subscribe to multiple tables
+- `subscribeWithListen<T>(topic: string, query: string, options?: AdvancedSubscriptionOptions): Observable<SubscriptionResult<T>>` - Custom listen subscription
+
+#### Utility Methods
+
+- `clearCache(): void` - Clear Apollo Client cache
+- `close(): void` - Close all connections
+- `getApolloClient(): ApolloClient` - Get underlying Apollo Client instance
+
+### Types
+
+```typescript
+interface Connection<T> {
+  edges: Array<{
+    cursor: string;
+    node: T;
+  }>;
+  pageInfo: {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor?: string;
+    endCursor?: string;
+  };
+  totalCount?: number;
+}
+
+interface BaseQueryParams {
+  first?: number;
+  last?: number;
+  after?: string;
+  before?: string;
+  filter?: Record<string, any>;
+  orderBy?: OrderBy[];
+  fields?: string[];
+}
+
+interface OrderBy {
+  field: string;
+  direction: 'ASC' | 'DESC';
+}
+```
+
+## Best Practices
+
+1. **Use field selection** to minimize data transfer
+2. **Implement proper error handling** with retry logic
+3. **Configure caching** for frequently accessed data
+4. **Use subscriptions** for real-time updates instead of polling
+5. **Batch queries** when possible to reduce network overhead
+6. **Clean up subscriptions** to prevent memory leaks
+7. **Use filters** to reduce server load and improve performance

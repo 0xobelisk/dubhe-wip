@@ -10,6 +10,11 @@ services:
     volumes:
       - .data/postgres:/var/lib/postgresql/data
     restart: always
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   graphql-server:
     build: .
@@ -18,12 +23,12 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: always
     command: npx @0xobelisk/graphql-server start
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4000/health']
-      interval: 60s
-      timeout: 10s
-      retries: 10
-      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
