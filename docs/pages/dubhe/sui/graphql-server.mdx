@@ -1,0 +1,634 @@
+---
+title: GraphQL Server - Dubhe
+description: Learn how to deploy and configure the GraphQL Server for database connections.
+---
+
+# Dubhe GraphQL Server
+
+The Dubhe GraphQL Server is a universal server adapter that automatically connects to databases created by `sui-rust-indexer` and dynamically generates complete GraphQL APIs. It provides advanced filtering, real-time subscriptions, and comprehensive data access capabilities.
+
+## Installation
+
+```bash
+pnpm install @0xobelisk/graphql-server
+```
+
+Or install globally:
+
+```bash
+npm install -g @0xobelisk/graphql-server
+```
+
+## Quick Start
+
+### Using the CLI
+
+```bash
+# Start the server with default configuration
+dubhe-graphql-server start
+
+# Start with custom configuration
+dubhe-graphql-server start --port 4000 --database-url postgres://user:pass@localhost:5432/db
+```
+
+### Environment Configuration
+
+Create a `.env` file in your project root:
+
+```env
+# Database configuration (connect to sui-rust-indexer database)
+DATABASE_URL=postgres://username:password@localhost:5432/sui_indexer_db
+
+# Server configuration
+PORT=4000
+NODE_ENV=development
+
+# GraphQL configuration
+GRAPHQL_ENDPOINT=/graphql
+PG_SCHEMA=public
+
+# Feature toggles
+ENABLE_CORS=true
+ENABLE_SUBSCRIPTIONS=true
+
+# Performance settings
+QUERY_TIMEOUT=30000
+MAX_CONNECTIONS=20
+HEARTBEAT_INTERVAL=30000
+
+# Subscription capabilities
+ENABLE_LIVE_QUERIES=true
+ENABLE_PG_SUBSCRIPTIONS=true
+ENABLE_NATIVE_WEBSOCKET=true
+REALTIME_PORT=4001
+```
+
+## Core Features
+
+### Intelligent Database Adaptation
+
+The server automatically scans and adapts to your database structure:
+
+- **Dynamic Scanning**: Automatically discovers all tables created by `sui-rust-indexer`
+- **PostGraphile Powered**: Generates GraphQL APIs based on database schema
+- **Zero Configuration**: No manual schema definition required
+
+### Advanced Filtering
+
+Supports 20+ filtering operators:
+
+```graphql
+# Basic filtering
+query GetHighValueAccounts {
+  storeAccounts(filter: {
+    balance: { gt: "1000" }
+  }) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# Complex logical combinations
+query GetComplexFilteredAccounts {
+  storeAccounts(filter: {
+    and: [
+      {
+        or: [
+          { balance: { gt: "1000" } },
+          { assetId: { like: "%special%" } }
+        ]
+      },
+      {
+        not: {
+          account: { includesInsensitive: "test" }
+        }
+      }
+    ]
+  }) {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+```
+
+### Real-time Subscriptions
+
+Built-in WebSocket support for real-time data:
+
+```graphql
+# Subscribe to schema changes
+subscription OnSchemaChanges {
+  allDubheStoreSchemas(first: 1, orderBy: [CREATED_AT_DESC]) {
+    nodes {
+      id
+      name
+      value
+      createdAt
+    }
+  }
+}
+
+# Subscribe to new events
+subscription OnNewEvents {
+  allDubheStoreEvents(first: 1, orderBy: [CREATED_AT_DESC]) {
+    nodes {
+      id
+      name
+      value
+      checkpoint
+    }
+  }
+}
+```
+
+## Deployment
+
+### Docker Deployment
+
+Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  graphql-server:
+    image: dubhe-graphql-server
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/sui_indexer
+      - PORT=4000
+      - ENABLE_SUBSCRIPTIONS=true
+    depends_on:
+      - postgres
+  
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=sui_indexer
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+Run with:
+
+```bash
+docker-compose up -d
+```
+
+### Manual Deployment
+
+```bash
+# Build the project
+pnpm build
+
+# Set environment variables
+export DATABASE_URL="postgres://user:password@localhost:5432/sui_indexer"
+export PORT=4000
+export ENABLE_SUBSCRIPTIONS=true
+
+# Start the server
+pnpm start
+```
+
+### Production Configuration
+
+```env
+NODE_ENV=production
+DATABASE_URL=postgres://user:password@prod-db:5432/sui_indexer
+PORT=4000
+
+# Security
+ENABLE_CORS=false
+CORS_ORIGIN=https://yourdomain.com
+
+# Performance
+MAX_CONNECTIONS=50
+QUERY_TIMEOUT=60000
+HEARTBEAT_INTERVAL=30000
+
+# Monitoring
+ENABLE_METRICS=true
+LOG_LEVEL=info
+```
+
+## API Usage
+
+### System Tables
+
+Query built-in system tables:
+
+```graphql
+# Query Schemas table
+query GetSchemas {
+  allDubheStoreSchemas(first: 10) {
+    nodes {
+      id
+      name
+      key1
+      key2
+      value
+      lastUpdateCheckpoint
+      isRemoved
+      createdAt
+    }
+  }
+}
+
+# Query Transactions table
+query GetTransactions {
+  allDubheStoreTransactions(first: 10) {
+    nodes {
+      id
+      sender
+      checkpoint
+      digest
+      package
+      module
+      function
+      arguments
+      createdAt
+    }
+  }
+}
+
+# Query Events table
+query GetEvents {
+  allDubheStoreEvents(first: 10) {
+    nodes {
+      id
+      sender
+      name
+      value
+      checkpoint
+      digest
+      createdAt
+    }
+  }
+}
+```
+
+### Dynamic Tables
+
+Query dynamically created tables from your contract configuration:
+
+```graphql
+# Query store_accounts table (if exists)
+query GetAccounts {
+  allStoreAccounts {
+    nodes {
+      assetId
+      account
+      balance
+    }
+  }
+}
+
+# Query store_position table (if exists)
+query GetPositions {
+  allStorePositions {
+    nodes {
+      player
+      x
+      y
+    }
+  }
+}
+```
+
+### Pagination
+
+```graphql
+# Paginated query
+query GetSchemasPaginated($after: Cursor) {
+  allDubheStoreSchemas(first: 10, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+      id
+      name
+      value
+    }
+  }
+}
+```
+
+### Filtering and Sorting
+
+```graphql
+# Conditional filtering
+query GetSchemasByName($name: String!) {
+  allDubheStoreSchemas(condition: { name: $name }) {
+    nodes {
+      id
+      name
+      key1
+      key2
+      value
+    }
+  }
+}
+
+# Sorted query
+query GetRecentTransactions {
+  allDubheStoreTransactions(
+    first: 20, 
+    orderBy: [CREATED_AT_DESC]
+  ) {
+    nodes {
+      id
+      sender
+      function
+      checkpoint
+      createdAt
+    }
+  }
+}
+```
+
+## Configuration
+
+### Server Configuration
+
+```typescript
+interface ServerConfig {
+  port: string;
+  databaseUrl: string;
+  schema: string;
+  endpoint: string;
+  cors: boolean;
+  subscriptions: boolean;
+  env: string;
+  debug: boolean;
+  queryTimeout: number;
+  maxConnections: number;
+  heartbeatInterval: number;
+  enableMetrics: boolean;
+  enableLiveQueries: boolean;
+  enablePgSubscriptions: boolean;
+  enableNativeWebSocket: boolean;
+  realtimePort?: number;
+  debugNotifications: boolean;
+}
+```
+
+### Database Permissions
+
+Set up proper database permissions:
+
+```sql
+-- Create read-only user
+CREATE USER graphql_readonly WITH PASSWORD 'secure_password';
+
+-- Grant query permissions
+GRANT CONNECT ON DATABASE sui_indexer TO graphql_readonly;
+GRANT USAGE ON SCHEMA public TO graphql_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO graphql_readonly;
+
+-- If write permissions needed
+GRANT INSERT, UPDATE, DELETE ON specific_tables TO graphql_readonly;
+```
+
+## Monitoring and Debugging
+
+### Health Checks
+
+The server provides several monitoring endpoints:
+
+- `http://localhost:4000/` - Welcome page with system information
+- `http://localhost:4000/health` - Health check endpoint
+- `http://localhost:4000/subscription-config` - Subscription configuration
+- `http://localhost:4000/subscription-docs` - Configuration documentation
+
+### Debug Mode
+
+Enable debug mode for detailed logging:
+
+```bash
+DEBUG=postgraphile:* dubhe-graphql-server start --debug
+```
+
+### Performance Monitoring
+
+```env
+ENABLE_METRICS=true
+LOG_LEVEL=debug
+```
+
+## Integration
+
+### Frontend Integration
+
+#### Apollo Client Setup
+
+```typescript
+import { ApolloClient, InMemoryCache, split, HttpLink } from '@apollo/client';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { createClient } from 'graphql-ws';
+
+const httpLink = new HttpLink({
+  uri: 'http://localhost:4000/graphql',
+});
+
+const wsLink = new GraphQLWsLink(createClient({
+  url: 'ws://localhost:4000/graphql',
+}));
+
+const splitLink = split(
+  ({ query }) => {
+    const definition = getMainDefinition(query);
+    return (
+      definition.kind === 'OperationDefinition' &&
+      definition.operation === 'subscription'
+    );
+  },
+  wsLink,
+  httpLink,
+);
+
+const client = new ApolloClient({
+  link: splitLink,
+  cache: new InMemoryCache(),
+});
+```
+
+#### React Integration
+
+```typescript
+import { useQuery, useSubscription } from '@apollo/client';
+import { gql } from '@apollo/client';
+
+const GET_ACCOUNTS = gql`
+  query GetAccounts($first: Int!) {
+    allStoreAccounts(first: $first) {
+      nodes {
+        assetId
+        account
+        balance
+      }
+    }
+  }
+`;
+
+const ACCOUNT_SUBSCRIPTION = gql`
+  subscription OnAccountChanges {
+    allStoreAccounts(first: 10, orderBy: [UPDATED_AT_DESC]) {
+      nodes {
+        assetId
+        account
+        balance
+      }
+    }
+  }
+`;
+
+function AccountList() {
+  const { data, loading, error } = useQuery(GET_ACCOUNTS, {
+    variables: { first: 10 },
+  });
+
+  useSubscription(ACCOUNT_SUBSCRIPTION, {
+    onSubscriptionData: ({ subscriptionData }) => {
+      console.log('Account updated:', subscriptionData.data);
+    },
+  });
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      {data.allStoreAccounts.nodes.map(account => (
+        <div key={account.assetId}>
+          {account.account}: {account.balance}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Backend Integration
+
+```typescript
+// Node.js integration
+import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client/core';
+import fetch from 'cross-fetch';
+
+const client = new ApolloClient({
+  link: createHttpLink({
+    uri: 'http://localhost:4000/graphql',
+    fetch,
+  }),
+  cache: new InMemoryCache(),
+});
+
+// Query data
+const result = await client.query({
+  query: gql`
+    query GetTransactions {
+      allDubheStoreTransactions(first: 10) {
+        nodes {
+          id
+          sender
+          digest
+        }
+      }
+    }
+  `,
+});
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed**
+   ```
+   Solution: Check DATABASE_URL and database service status
+   ```
+
+2. **Table Scan Empty**
+   ```
+   Solution: Ensure sui-rust-indexer is running and has created tables
+   ```
+
+3. **Schema Generation Failed**
+   ```
+   Solution: Check if table_fields table exists and has data
+   ```
+
+4. **WebSocket Connection Failed**
+   ```
+   Solution: Check firewall settings and ENABLE_SUBSCRIPTIONS configuration
+   ```
+
+### Debug Commands
+
+```bash
+# View generated schema
+ls -la *.graphql
+
+# Check database connection
+psql $DATABASE_URL -c "SELECT version();"
+
+# Test GraphQL endpoint
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ __schema { types { name } } }"}'
+```
+
+## Architecture
+
+### How It Works
+
+```
+sui-rust-indexer database
+         ↓
+  [Database Introspector]
+         ↓
+   [PostGraphile]
+         ↓
+  [GraphQL API]
+         ↓
+   [WebSocket]
+```
+
+1. **Database Scanning**: Automatically scans all tables at startup
+2. **Structure Parsing**: Reads dynamic table structures from metadata
+3. **Schema Generation**: PostGraphile generates GraphQL schema
+4. **API Service**: Provides complete GraphQL CRUD operations
+
+### Supported Table Types
+
+1. **System Tables**: 
+   - `__dubheStoreTransactions` - Transaction records
+   - `__dubheStoreSchemas` - Schema data
+   - `__dubheStoreEvents` - Event records
+   - `table_fields` - Table structure metadata
+
+2. **Dynamic Tables**: 
+   - `store_*` - Tables dynamically created based on configuration
+
+## Best Practices
+
+1. **Use connection pooling** for production deployments
+2. **Configure proper database permissions** for security
+3. **Enable CORS carefully** in production
+4. **Monitor subscription connections** to prevent resource exhaustion
+5. **Use read replicas** for heavy query workloads
+6. **Implement rate limiting** for public APIs
+7. **Set up proper logging** for debugging and monitoring
+8. **Use environment-specific configurations** for different deployment stages

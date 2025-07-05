@@ -29,8 +29,13 @@ Core features:
 8. [`config-store`](#config-store): Store configuration for the Dubhe project
 9. [`build`](#build): Build Dubhe Move contracts
 10. [`test`](#test): Run tests for Dubhe contracts
-11. [`call`](#call): Call a function in a module
-12. [`query`](#query): Query schema struct state
+11. [`doctor`](#doctor): Check development environment and install required tools
+12. [`wait`](#wait): Wait for services to be ready
+13. [`watch`](#watch): Watch configuration file for changes
+14. [`switch-env`](#switch-env): Switch between different network environments
+15. [`convert-json`](#convert-json): Convert Dubhe config to JSON format
+16. [`load-metadata`](#load-metadata): Load package metadata
+17. [`info`](#info): Display account and network information
 
 ## Installation
 
@@ -92,7 +97,11 @@ Options:
 Manage local Sui node using the official `sui` binary.
 
 ```bash
-dubhe node
+dubhe node [--data-dir <path>] [--force]
+
+Options:
+  --data-dir    Path to the data directory (default: ".chk")
+  --force       Force restart: stop existing node and remove data directory (default: false)
 ```
 
 Local RPC endpoint: `http://127.0.0.1:9000`
@@ -116,11 +125,11 @@ Options:
 Generate new account keypair.
 
 ```bash
-dubhe generate-key [--force] [--output-ts-path <path>]
+dubhe generate-key [--force] [--use-next-public]
 
 Options:
-  --force           Force generate new keypair
-  --output-ts-path  Path to output TypeScript key file (e.g., ./src/config/key.ts)
+  --force           Force generate new keypair (default: false)
+  --use-next-public Use NEXT_PUBLIC_ prefix for client-side usage (default: false)
 ```
 
 ### `check-balance`
@@ -128,11 +137,10 @@ Options:
 Check account balance on specified network.
 
 ```bash
-dubhe check-balance --network <network> [--amount <number>]
+dubhe check-balance --network <network>
 
 Options:
-  --network    Network to check balance on (mainnet/testnet/devnet/localnet)
-  --amount     Amount of SUI to check for (default: 2)
+  --network    Network to check balance on (mainnet/testnet/devnet/localnet) (default: localnet)
 ```
 
 ### `config-store`
@@ -171,66 +179,116 @@ dubhe test [--config-path <path>] [--test <test_name>] [--gas-limit <limit>]
 Options:
   --config-path    Path to config file (default: "dubhe.config.ts")
   --test          Name of specific test to run
-  --gas-limit     Set gas limit for test
+  --gas-limit     Set gas limit for test (default: "100000000")
 ```
 
-### `call`
+### `doctor`
 
-Call a function in a module.
+Check development environment and install required tools automatically.
 
 ```bash
-dubhe call --network <network> --module <module_name> --function <function_name> [options]
+dubhe doctor [--install-all]
 
 Options:
-  --network        Network to use (mainnet/testnet/devnet/localnet) (default: localnet)
-  --module         Module name (required)
-  --function       Function name (required)
-  --config-path    Path to config file (default: "dubhe.config.ts")
-  --package-id     Package ID (optional)
-  --metadata-path  Path to metadata JSON file (optional)
-  --params         Parameters for the function (optional)
+  --install-all    Automatically install all missing tools (default: false)
 ```
 
-### `query`
+The doctor command checks for:
+- Node.js version compatibility
+- Docker service availability
+- Required development tools (sui, postgres, etc.)
+- Port availability for local services
+- Network connectivity
 
-Query schema struct state. Supports different storage types:
+### `wait`
 
-- StorageValue (no params required)
-- StorageMap (1 param required)
-- StorageDoubleMap (2 params required)
+Wait for service(s) to be ready before proceeding.
 
 ```bash
-dubhe query --network <network> --schema <schema_name> [options]
+dubhe wait [--url <url>] [--localnet] [--timeout <ms>] [--interval <ms>]
 
 Options:
-  --network        Network to use (mainnet/testnet/devnet/localnet) (default: localnet)
-  --schema         Schema name (required)
-  --config-path    Path to config file (default: "dubhe.config.ts")
-  --object-id     Object ID (optional)
-  --package-id    Package ID (optional)
-  --metadata-path Path to metadata JSON file (optional)
-  --params        Parameters for storage type (optional)
+  --url        URL to wait for (single service)
+  --localnet   Wait for all dubhe localnet services (default: false)
+  --timeout    Timeout in milliseconds (default: 180000)
+  --interval   Check interval in milliseconds (default: 1000)
 ```
 
 Examples:
 
-1. Query StorageValue:
+1. Wait for a specific service:
 
 ```bash
-dubhe query --network devnet --schema counter --field value
+dubhe wait --url http://localhost:4000
 ```
 
-2. Query StorageMap:
+2. Wait for all localnet services:
 
 ```bash
-dubhe query --network devnet --schema token --field balances --params "0x123...def"
+dubhe wait --localnet
 ```
 
-3. Query StorageDoubleMap:
+### `watch`
+
+Watch configuration file for changes and automatically run schemagen.
 
 ```bash
-dubhe query --network devnet --schema game --field player_relations --params "0x123...456" "0x789...abc"
+dubhe watch
 ```
+
+This command monitors `dubhe.config.ts` for changes and automatically runs `dubhe schemagen` when the file is modified.
+
+### `switch-env`
+
+Switch between different network environments.
+
+```bash
+dubhe switch-env --network <network>
+
+Options:
+  --network    Target network (mainnet/testnet/devnet/localnet) (default: localnet)
+```
+
+### `convert-json`
+
+Convert Dubhe configuration to JSON format.
+
+```bash
+dubhe convert-json [--config-path <path>] [--output-path <path>]
+
+Options:
+  --config-path    Path to config file (default: "dubhe.config.ts")
+  --output-path    Output path for JSON file (default: "dubhe.config.json")
+```
+
+### `load-metadata`
+
+Load package metadata for a deployed contract.
+
+```bash
+dubhe load-metadata --network <network> [--config-path <path>] [--package-id <id>]
+
+Options:
+  --network        Network to use (mainnet/testnet/devnet/localnet) (default: localnet)
+  --config-path    Path to config file (default: "dubhe.config.ts")
+  --package-id     Package ID to load metadata for (optional)
+```
+
+### `info`
+
+Display account and network information.
+
+```bash
+dubhe info --network <network>
+
+Options:
+  --network    Network to check (mainnet/testnet/devnet/localnet) (default: localnet)
+```
+
+This command shows:
+- Current network
+- Account address
+- Account balance
 
 ## Environment Setup
 

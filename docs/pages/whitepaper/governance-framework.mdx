@@ -1,0 +1,70 @@
+# Governance Framework
+
+## Dubhe OpenGov Governance
+
+### Design Goals
+
+- **Fully On-chain**: All decisions executed natively on DubheOS, no off-chain approval.
+- **Risk Stratification**: 7 parallel "Tracks" based on proposal impact.
+- **Time-for-Conviction**: Conviction Voting rewards longer lock-in with higher vote weight.
+- **Efficient & Transparent**: Emergency upgrades in 12 hours; major changes in 28 days max.
+
+### Parallel Tracks
+
+| Track              | Examples                          | Max in Parallel | Vote Duration | Timelock |
+| ------------------ | --------------------------------- | --------------- | ------------- | -------- |
+| **Root**           | Runtime upgrades, protocol params | 1               | 7d            | 14d      |
+| **Treasury-L**     | >$20k Treasury Spend              | 2               | 5d            | 7d       |
+| **Treasury-S**     | ≤$20k Grants/Bounties             | 5               | 3d            | 2d       |
+| **Param-Fast**     | Emergency fixes, gas caps         | 3               | 12h           | 12h      |
+| **Param-Std**      | Chain param changes               | 5               | 3d            | 2d       |
+| **Tip/Bounty**     | Micro community rewards           | 15              | 2d            | 1d       |
+| **Builder Refund** | Dev bond refunds                  | 10              | 2d            | 1d       |
+
+> All tracks use Adaptive Quorum — the closer to deadline, the closer the threshold to 50%.
+
+### Conviction Voting Multipliers
+
+| Lock Multiplier | Actual Lock Time | Vote Weight |
+| --------------- | ---------------- | ----------- |
+| 0×              | 0 days           | 1×          |
+| 1×              | 14 days          | 2×          |
+| 2×              | 1 month          | 3×          |
+| 4×              | 2 months         | 4×          |
+| 8×              | 4 months         | 5×          |
+| 16×             | 8 months         | 6×          |
+
+### Governance Flow
+
+Submit → Lead-in (Threshold Check) → Vote → Confirm → Timelock → On-chain Execution
+
+- **Lead-in**: Must meet minimum support before voting.
+- **Vote**: Users can add weight or change votes during period; proposal fails if "Kill Threshold" is met.
+- **Timelock**: Root = 14d; others = 12h–7d.
+
+### Treasury Management
+
+- **Treasury Address**: `0xDUBHETreasurySafe` — 5/9 multisig, executes approved proposals only.
+- **Revenues**: 33.33% of fees, unclaimed rewards, MEV premiums.
+- **Spending**: Any address may submit; >$20k requires Treasury-L, including audit & KPI proof.
+
+### Safety & Emergency
+
+| Scenario              | Trigger                 | Max Execution Time |
+| --------------------- | ----------------------- | ------------------ |
+| Consensus bug hotfix  | Param-Fast Track        | 24h                |
+| Lock contract failure | Root Fast Track + ⅔ YES | 12h                |
+| Multisig key leak     | DAO proposal to rotate  | 24h                |
+
+### Governance Participation
+
+1. **Lock**: Choose multiplier on Dubhe Portal → get voting weight.
+2. **Propose**: Upload metadata (GitHub/IPFS) → pick Track → deposit refundable bond.
+3. **Vote**: Sign via wallet or Passkey / zkLogin; add weight or flip votes anytime.
+4. **Track**: Governance Dashboard shows proposal statuses, countdowns, approval trends.
+
+> Incentives: 2% of Builders Bonus + Community Incentives each quarter is awarded to active voters by weight.
+
+> Dubhe OpenGov is scheduled to go live with DubheOS Beta in Q1 2026. Governance parameters may be adjusted after 6 months of mainnet operation.
+
+---
