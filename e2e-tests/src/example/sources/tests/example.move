@@ -1,3 +1,4 @@
+#[test_only]
 module example::example_test {
     use sui::test_scenario;
     use example::init_test;
