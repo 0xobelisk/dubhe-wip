@@ -8,6 +8,12 @@ import chalk from 'chalk';
 dotenv.config();
 import { printDubhe } from '../utils';
 
+let shouldHandlerExit = true;
+
+export const handler_exit = (status: number = 0) => {
+  if (shouldHandlerExit) process.exit(status);
+};
+
 type Options = {
   network: any;
 };
@@ -30,6 +36,7 @@ const ShellCommand: CommandModule<Options, Options> = {
     });
   },
   handler: async ({ network }) => {
+    shouldHandlerExit = false;
     const commandHistory: string[] = [];
 
     function completer(line: string) {

@@ -11,6 +11,7 @@ import * as net from 'net';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import packageJson from '../../package.json';
+import { handler_exit } from './shell';
 
 // Check result type
 interface CheckResult {
@@ -1169,7 +1170,7 @@ async function runDoctorChecks(options: {
     const toolName = options.listVersions;
     if (!TOOL_CONFIGS[toolName]) {
       console.error(chalk.red(`❌ Unsupported tool: ${toolName}`));
-      process.exit(1);
+      handler_exit(1);
     }
 
     console.log(chalk.blue(`📋 Available versions for ${toolName}:`));
@@ -1182,7 +1183,7 @@ async function runDoctorChecks(options: {
 
     if (releases.length === 0) {
       console.log(chalk.red('Unable to get version information'));
-      process.exit(1);
+      handler_exit(1);
     }
 
     // Process version compatibility check
@@ -1232,7 +1233,7 @@ async function runDoctorChecks(options: {
       }
     }
 
-    process.exit(0);
+    handler_exit(0);
   }
 
   console.log(chalk.gray('Checking your development environment...\n'));
@@ -1243,14 +1244,14 @@ async function runDoctorChecks(options: {
     if (!TOOL_CONFIGS[toolName]) {
       console.error(chalk.red(`❌ Unsupported tool: ${toolName}`));
       console.log(chalk.gray(`Supported tools: ${Object.keys(TOOL_CONFIGS).join(', ')}`));
-      process.exit(1);
+      handler_exit(1);
     }
 
     let version: string | null = null;
     if (options.selectVersion) {
       version = await selectVersion(toolName);
       if (!version) {
-        process.exit(1);
+        handler_exit(1);
       }
     } else if (toolName === 'dubhe-indexer') {
       // Default to sui-cli version for dubhe-indexer
@@ -1261,7 +1262,7 @@ async function runDoctorChecks(options: {
     }
 
     const success = await downloadAndInstallTool(toolName, version || undefined);
-    process.exit(success ? 0 : 1);
+    handler_exit(success ? 0 : 1);
   }
 
   const results: CheckResult[] = [];
@@ -1553,7 +1554,7 @@ async function runDoctorChecks(options: {
           '\n❌ Your environment has some issues. Please fix them according to the suggestions above.'
         )
       );
-      process.exit(1);
+      handler_exit(1);
     } else if (summary.warning > 0) {
       console.log(
         chalk.yellow(
@@ -1610,7 +1611,7 @@ const commandModule: CommandModule = {
       });
     } catch (error) {
       console.error(chalk.red('Error occurred during check:'), error);
-      process.exit(1);
+      handler_exit(1);
     }
   }
 };
