@@ -48,7 +48,7 @@ const ShellCommand: CommandModule<Options, Options> = {
       historySize: 200
     });
 
-    rl.on('line', (line) => {
+    rl.on('line', async (line) => {
       const fullCommand = line.trim();
       if (!fullCommand) {
         rl.prompt();
@@ -69,7 +69,7 @@ const ShellCommand: CommandModule<Options, Options> = {
           if (builder) {
             const argv = yargsInstance.parseSync([commandName, ...parts.slice(1)]);
             if (handler) {
-              handler(argv);
+              await handler(argv);
             }
           }
         } catch (error) {
