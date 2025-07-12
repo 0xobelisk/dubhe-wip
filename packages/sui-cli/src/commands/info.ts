@@ -3,6 +3,7 @@ import { logError, initializeDubhe } from '../utils';
 import dotenv from 'dotenv';
 import chalk from 'chalk';
 dotenv.config();
+import { handler_exit } from './shell';
 
 type Options = {
   network: any;
@@ -41,7 +42,7 @@ const InfoCommand: CommandModule<Options, Options> = {
       }
     } catch (error) {
       logError(error);
-      process.exit(1);
+      handler_exit(1);
     }
   }
 };
