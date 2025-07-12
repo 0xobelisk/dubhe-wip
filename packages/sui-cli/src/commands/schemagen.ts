@@ -1,7 +1,7 @@
 import type { CommandModule } from 'yargs';
 import { schemaGen, loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 import chalk from 'chalk';
-import path from "node:path";
+import path from 'node:path';
 
 type Options = {
   'config-path'?: string;
