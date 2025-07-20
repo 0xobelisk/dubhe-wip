@@ -6,6 +6,7 @@ use dubhe::wrapper_system;
 use dubhe::errors::{invalid_metadata_error};
 use dubhe::asset_metadata;
 use dubhe::bridge_config;
+use dubhe::dapp_system;
 
 public entry fun force_register_wrapped_asset<T>(
       dapp_hub: &mut DappHub, 
@@ -16,7 +17,7 @@ public entry fun force_register_wrapped_asset<T>(
       icon_url: vector<u8>, 
       ctx: &mut TxContext
 ) {
-      dapp_hub.ensure_dapp_admin<DappKey>(ctx.sender());
+      dapp_system::ensure_dapp_admin<DappKey>(dapp_hub, ctx.sender());
       wrapper_system::do_register<T>(
             dapp_hub, 
             name, 
@@ -28,7 +29,7 @@ public entry fun force_register_wrapped_asset<T>(
 }
 
 public entry fun force_set_asset_metadata(dapp_hub: &mut DappHub, asset_id: address, name: vector<u8>, symbol: vector<u8>, description: vector<u8>, icon_url: vector<u8>, ctx: &mut TxContext) {
-      dapp_hub.ensure_dapp_admin<DappKey>(ctx.sender());
+      dapp_system::ensure_dapp_admin<DappKey>(dapp_hub, ctx.sender());
       asset_metadata::ensure_has(dapp_hub, asset_id);
 
       let mut asset_metadata = asset_metadata::get_struct(dapp_hub, asset_id);
@@ -48,6 +49,6 @@ public entry fun set_bridge(dapp_hub: &mut DappHub,
       opened: bool, 
       ctx: &mut TxContext
 ) {
-      dapp_hub.ensure_dapp_admin<DappKey>(ctx.sender());
+      dapp_system::ensure_dapp_admin<DappKey>(dapp_hub, ctx.sender());
       bridge_config::set(dapp_hub, chain, min_amount, fee, opened);
 }

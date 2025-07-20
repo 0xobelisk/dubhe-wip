@@ -195,8 +195,8 @@ impl TableMetadata {
         }
 
         // Always add created_at and updated_at fields
-        fields.push("created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
-        fields.push("updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
+        fields.push("created_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
+        fields.push("updated_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP".to_string());
         fields.push("last_updated_checkpoint BIGINT DEFAULT 0".to_string());
         fields.push("is_deleted BOOLEAN DEFAULT FALSE".to_string());
 
@@ -548,7 +548,7 @@ mod tests {
         assert_eq!(tables.len(), 4);
         let table = &tables[0];
         assert_eq!(
-                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter0 (entity_id TEXT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
+                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter0 (entity_id TEXT, created_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
             );
         assert_eq!(
                 table.generate_insert_table_fields_sql(), vec![
@@ -557,7 +557,7 @@ mod tests {
             );
         let table = &tables[1];
         assert_eq!(
-                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter1 (entity_id TEXT, value BIGINT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
+                table.generate_create_table_sql(), "CREATE TABLE IF NOT EXISTS store_counter1 (entity_id TEXT, value BIGINT, created_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
             );
         assert_eq!(
                 table.generate_insert_table_fields_sql(), vec![
@@ -567,7 +567,7 @@ mod tests {
             );
         let table = &tables[2];
         assert_eq!(
-                table.generate_create_table_sql(),  "CREATE TABLE IF NOT EXISTS store_counter2 (entity_id TEXT, value TEXT, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
+                table.generate_create_table_sql(),  "CREATE TABLE IF NOT EXISTS store_counter2 (entity_id TEXT, value TEXT, created_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, updated_at_ts TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, last_updated_checkpoint BIGINT DEFAULT 0, is_deleted BOOLEAN DEFAULT FALSE, PRIMARY KEY (entity_id))"
             );
         assert_eq!(
                 table.generate_insert_table_fields_sql(), vec![

@@ -503,10 +503,12 @@ impl Worker for DubheIndexerWorker {
                                     .expect("Failed to parse set record");
                             println!("Set record: {:?}", set_record);
 
-                            // Process StoreSetRecord event
-                            self.handle_store_set_record(current_checkpoint, &set_record)
-                                .await?;
-                            set_record_count += 1;
+                            if set_record.table_id != vec![111, 110, 116, 100, 97, 112, 112, 95, 102, 101, 101, 95, 115, 116, 97, 116, 101] {
+                               // Process StoreSetRecord event
+                                self.handle_store_set_record(current_checkpoint, &set_record)
+                                 .await?;
+                                set_record_count += 1;
+                            } 
                         }
 
                         if event.type_.name.to_string() == "Store_SetField" {

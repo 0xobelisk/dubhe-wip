@@ -33,7 +33,7 @@ module dubhe::type_info {
         address::from_ascii_bytes(type_name.as_bytes())
     }
 
-    public fun get_package_id_string<T>(): String {
+    public fun get_type_name_string<T>(): String {
         type_name::get<T>().into_string()
     }
 }

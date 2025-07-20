@@ -2,6 +2,10 @@ import { DubheConfig } from '../../types';
 import { ComponentType } from '../../types';
 import { formatAndWriteMove } from '../formatAndWrite';
 
+function getDappModuleName(projectName: string): string {
+  return projectName === 'dubhe' ? 'dapp_service' : `dapp_system`;
+}
+
 export async function generateResources(config: DubheConfig, path: string) {
   console.log('\n📦 Starting Resources Generation...');
   
@@ -50,6 +54,7 @@ function generateSimpleComponentCode(projectName: string, componentName: string,
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
     use dubhe::dapp_service::{Self, DappHub};
+    use dubhe::dapp_system;
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
 ${isEnum ? `    use ${projectName}::${enumModule};
@@ -79,11 +84,10 @@ ${isEnum ? `    use ${projectName}::${enumModule};
 
     public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
         let dapp_key = dapp_key::new();
-        dapp_service::register_table(
+        ${getDappModuleName(projectName)}::register_table(
             dapp_hub, 
             dapp_key,
             get_table_id(), 
-            TABLE_NAME, 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
@@ -94,17 +98,17 @@ ${isEnum ? `    use ${projectName}::${enumModule};
 
     public fun has(dapp_hub: &DappHub): bool {
         let key_tuple = vector::empty();
-        dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+        ${getDappModuleName(projectName)}::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
     }
 
     public(package) fun delete(dapp_hub: &mut DappHub) {
         let key_tuple = vector::empty();
-        dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+        ${getDappModuleName(projectName)}::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
     }
 
     public fun get(dapp_hub: &DappHub): (${valueType}) {
         let key_tuple = vector::empty();
-        let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
+        let value_tuple = ${getDappModuleName(projectName)}::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
         let mut bsc_type = sui::bcs::new(value_tuple);
         ${isEnum ? `let value = ${projectName}::${enumModule}::decode(&mut bsc_type);` : `let value = sui::bcs::peel_${getBcsType(valueType)}(&mut bsc_type);`}
         (value)
@@ -113,7 +117,7 @@ ${isEnum ? `    use ${projectName}::${enumModule};
     public(package) fun set(dapp_hub: &mut DappHub, value: ${valueType}) {
         let key_tuple = vector::empty();
         let value_tuple = encode(value);
-        dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
     }
 
     public fun encode(value: ${valueType}): vector<vector<u8>> {
@@ -165,6 +169,7 @@ function generateComponentCode(projectName: string, componentName: string, resou
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
     use dubhe::dapp_service::{Self, DappHub};
+    use dubhe::dapp_system;
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
 ${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module};
@@ -209,6 +214,7 @@ ${tableFunctions}
     use sui::bcs::{to_bytes};
     use dubhe::table_id;
     use dubhe::dapp_service::{Self, DappHub};
+    use dubhe::dapp_system;
     use ${projectName}::dapp_key;
     use ${projectName}::dapp_key::DappKey;
 ${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module};
@@ -299,11 +305,10 @@ function generateTableFunctions(
   // Generate register table function
   const registerFunction = `    public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
         let dapp_key = dapp_key::new();
-        dapp_service::register_table(
+        ${getDappModuleName(projectName)}::register_table(
             dapp_hub, 
             dapp_key,
             get_table_id(), 
-            TABLE_NAME, 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
@@ -315,38 +320,24 @@ function generateTableFunctions(
   // Generate has series functions
   const hasFunctions = `    public fun has(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): bool {
         ${keyTupleCode}
-        dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+        ${getDappModuleName(projectName)}::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
     }
 
     public fun ensure_has(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}) {
         ${keyTupleCode}
-        dapp_service::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+        ${getDappModuleName(projectName)}::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
     }
 
     public fun ensure_not_has(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}) {
         ${keyTupleCode}
-        dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+        ${getDappModuleName(projectName)}::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
     }
-
-${!isSingleValue ? valueNames.map((name, index) => `    public fun has_${name}(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): bool {
-        ${keyTupleCode}
-        dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, ${index})
-    }
-
-    public fun ensure_has_${name}(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}) {
-        ${keyTupleCode}
-        dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, ${index})
-    }
-
-    public fun ensure_not_has_${name}(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}) {
-        ${keyTupleCode}
-        dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, ${index})
-    }`).join('\n\n') : ''}`;
+  `;
 
   // Generate delete function
   const deleteFunction = `    public(package) fun delete(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}) {
         ${keyTupleCode}
-        dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+        ${getDappModuleName(projectName)}::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
     }`;
 
   // Generate getter and setter functions, only generated when there are multiple value fields
@@ -358,7 +349,7 @@ ${!isSingleValue ? valueNames.map((name, index) => `    public fun has_${name}(d
     
     return `    public fun get_${name}(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): ${fieldType} {
         ${keyTupleCode}
-        let value = dapp_service::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, ${index});
+        let value = ${getDappModuleName(projectName)}::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, ${index});
         let mut bsc_type = sui::bcs::new(value);
         ${isEnum ? `let ${name} = ${projectName}::${enumType?.module}::decode(&mut bsc_type);` : `let ${name} = sui::bcs::peel_${getBcsType(fieldType)}(&mut bsc_type);`}
         ${name}
@@ -367,7 +358,7 @@ ${!isSingleValue ? valueNames.map((name, index) => `    public fun has_${name}(d
     public(package) fun set_${name}(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, ${name}: ${fieldType}) {
         ${keyTupleCode}
         let value = ${isEnum ? `${projectName}::${enumType?.module}::encode(${name})` : `to_bytes(&${name})`};
-        dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, ${index}, value);
+        ${getDappModuleName(projectName)}::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, ${index}, value);
     }`;
   }).join('\n\n') : '';
 
@@ -376,12 +367,12 @@ ${!isSingleValue ? valueNames.map((name, index) => `    public fun has_${name}(d
     ? `    public(package) fun set(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}) {
         ${keyTupleCode}
         let value_tuple = vector::empty();
-        dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
     }`
     : isSingleValue
     ? `    public fun get(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): ${Object.values(valueFields)[0]} {
         ${keyTupleCode}
-        let value = dapp_service::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0);
+        let value = ${getDappModuleName(projectName)}::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0);
         let mut bsc_type = sui::bcs::new(value);
         ${!isBasicType(Object.values(valueFields)[0] as string) 
           ? `let value = ${projectName}::${enumTypes.find(e => e.type === Object.values(valueFields)[0])?.module}::decode(&mut bsc_type);` 
@@ -392,11 +383,11 @@ ${!isSingleValue ? valueNames.map((name, index) => `    public fun has_${name}(d
     public(package) fun set(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, value: ${Object.values(valueFields)[0]}) {
         ${keyTupleCode}
         let value_tuple = encode(value);
-        dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
     }`
     : `    public fun get(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): (${Object.values(valueFields).join(', ')}) {
         ${keyTupleCode}
-        let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
+        let value_tuple = ${getDappModuleName(projectName)}::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
         let mut bsc_type = sui::bcs::new(value_tuple);
         ${valueNames.map(name => {
           const fieldType = fields[name];
@@ -410,20 +401,20 @@ ${!isSingleValue ? valueNames.map((name, index) => `    public fun has_${name}(d
     public(package) fun set(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, ${valueNames.map(n => `${n}: ${fields[n]}`).join(', ')}) {
         ${keyTupleCode}
         let value_tuple = encode(${valueNames.join(', ')});
-        dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
     }`;
 
   // Generate struct related functions
   const structFunctions = includeStruct ? `    public fun get_struct(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): ${toPascalCase(componentName)} {
         ${keyTupleCode}
-        let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
+        let value_tuple = ${getDappModuleName(projectName)}::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
         decode(value_tuple)
     }
 
     public(package) fun set_struct(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, ${componentName}: ${toPascalCase(componentName)}) {
         ${keyTupleCode}
         let value_tuple = encode_struct(${componentName});
-        dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
     }` : '';
 
   // Generate encode and decode functions

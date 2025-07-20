@@ -14,52 +14,72 @@ fn format_sql_value(value: &Value, field_type: &str) -> String {
         "vector<u8>" | "vector<u16>" | "vector<u32>" | "vector<u64>" => {
             if value.is_array() {
                 let array = value.as_array().unwrap();
-                let values: Vec<String> = array.iter().map(|v| v.to_string()).collect();
-                format!("ARRAY[{}]", values.join(", "))
+                if array.is_empty() {
+                    "'{}'".to_string()
+                } else {
+                    let values: Vec<String> = array.iter().map(|v| v.to_string()).collect();
+                    format!("ARRAY[{}]", values.join(", "))
+                }
             } else {
-                "ARRAY[]".to_string()
+                "'{}'".to_string()
             }
         },
         "vector<u128>" | "vector<u256>" => {
             if value.is_array() {
                 let array = value.as_array().unwrap();
-                let values: Vec<String> = array.iter().map(|v| format!("'{}'", v.as_str().unwrap_or(""))).collect();
-                format!("ARRAY[{}]", values.join(", "))
+                if array.is_empty() {
+                    "'{}'".to_string()
+                } else {
+                    let values: Vec<String> = array.iter().map(|v| format!("'{}'", v.as_str().unwrap_or(""))).collect();
+                    format!("ARRAY[{}]", values.join(", "))
+                }
             } else {
-                "ARRAY[]".to_string()
+                "'{}'".to_string()
             }
         }
         "vector<bool>" => {
             if value.is_array() {
                 let array = value.as_array().unwrap();
-                let values: Vec<String> = array
-                    .iter()
-                    .map(|v| v.as_bool().unwrap_or(false).to_string())
-                    .collect();
-                format!("ARRAY[{}]", values.join(", "))
+                if array.is_empty() {
+                    "'{}'".to_string()
+                } else {
+                    let values: Vec<String> = array
+                        .iter()
+                        .map(|v| v.as_bool().unwrap_or(false).to_string())
+                        .collect();
+                    format!("ARRAY[{}]", values.join(", "))
+                }
             } else {
-                "ARRAY[]".to_string()
+                "'{}'".to_string()
             }
         }
         "vector<address>" => {
             if value.is_array() {
                 let array = value.as_array().unwrap();
-                let values: Vec<String> = array
-                    .iter()
-                    .map(|v| format!("'{}'", v.as_str().unwrap_or("")))
-                    .collect();
-                format!("ARRAY[{}]", values.join(", "))
+                if array.is_empty() {
+                    "'{}'".to_string()
+                } else {
+                    let values: Vec<String> = array
+                        .iter()
+                        .map(|v| format!("'{}'", v.as_str().unwrap_or("")))
+                        .collect();
+                    format!("ARRAY[{}]", values.join(", "))
+                }
             } else {
-                "ARRAY[]".to_string()
+                "'{}'".to_string()
             }
         },
         "vector<vector<u8>>" => {
             if value.is_array() {
                 let array = value.as_array().unwrap();
-                let values: Vec<String> = array.iter().map(|v| v.to_string()).collect();
-                format!("ARRAY[{}]", values.join(", "))
+                if array.is_empty() {
+                    "'{}'".to_string()
+                } else {
+                    let values: Vec<String> = array.iter().map(|v| v.to_string()).collect();
+                    format!("ARRAY[{}]", values.join(", "))
+                }
             } else {
-                "ARRAY[]".to_string()
+                "'{}'".to_string()
             }
         }
         _ => {
@@ -107,7 +127,7 @@ pub fn generate_set_record_sql(
             format_sql_value(&value_values[field_name], field_type)
         ));
     }
-    update_clauses.push("updated_at = CURRENT_TIMESTAMP".to_string());
+    update_clauses.push("updated_at_ts = CURRENT_TIMESTAMP".to_string());
     update_clauses.push(format!("last_updated_checkpoint = {}", current_checkpoint));
 
     let base_sql = format!(
@@ -172,7 +192,7 @@ pub fn generate_set_field_sql(
     }
 
     format!(
-        "UPDATE store_{} SET {} = {}, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = {} WHERE {}",
+        "UPDATE store_{} SET {} = {}, updated_at_ts = CURRENT_TIMESTAMP, last_updated_checkpoint = {} WHERE {}",
         table_name,
         field_name,
         format_sql_value(&value, field_type),
@@ -199,7 +219,7 @@ pub fn generate_delete_record_sql(
     }
 
     format!(
-        "UPDATE store_{} SET is_deleted = true, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = {} WHERE {}",
+        "UPDATE store_{} SET is_deleted = true, updated_at_ts = CURRENT_TIMESTAMP, last_updated_checkpoint = {} WHERE {}",
         table_name,
         current_checkpoint,
         where_clause.join(" AND ")
@@ -220,7 +240,30 @@ mod tests {
         // Test empty vector<bool>
         let empty_array = serde_json::json!([]);
         let result = format_sql_value(&empty_array, "vector<bool>");
-        assert_eq!(result, "ARRAY[]");
+        assert_eq!(result, "'{}'");
+    }
+
+    #[test]
+    fn test_format_sql_value_empty_arrays() {
+        // Test empty vector<u8>
+        let empty_u8_array = serde_json::json!([]);
+        let result = format_sql_value(&empty_u8_array, "vector<u8>");
+        assert_eq!(result, "'{}'");
+        
+        // Test empty vector<u32>
+        let empty_u32_array = serde_json::json!([]);
+        let result = format_sql_value(&empty_u32_array, "vector<u32>");
+        assert_eq!(result, "'{}'");
+        
+        // Test empty vector<address>
+        let empty_address_array = serde_json::json!([]);
+        let result = format_sql_value(&empty_address_array, "vector<address>");
+        assert_eq!(result, "'{}'");
+        
+        // Test empty vector<vector<u8>>
+        let empty_nested_array = serde_json::json!([]);
+        let result = format_sql_value(&empty_nested_array, "vector<vector<u8>>");
+        assert_eq!(result, "'{}'");
     }
 
     #[test]
@@ -244,7 +287,7 @@ mod tests {
             &key_values,
             &value_values,
         );
-        assert_eq!(sql, "INSERT INTO store_test_table (id, name, value, last_updated_checkpoint) VALUES (1, '0x1234567890123456789012345678901234567890', 100, 1024) ON CONFLICT (id, name) DO UPDATE SET value = 100, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 1024");
+        assert_eq!(sql, "INSERT INTO store_test_table (id, name, value, last_updated_checkpoint) VALUES (1, '0x1234567890123456789012345678901234567890', 100, 1024) ON CONFLICT (id, name) DO UPDATE SET value = 100, updated_at_ts = CURRENT_TIMESTAMP, last_updated_checkpoint = 1024");
 
         // Test case 2: empty key_fields (single row table)
         let empty_key_fields: Vec<(String, String)> = vec![];
@@ -268,7 +311,7 @@ mod tests {
             &key_values,
             &value_values,
         );
-        assert_eq!(sql, "WITH upsert AS (\n                UPDATE store_test_table SET field1 = 100, field2 = '0x1234567890123456789012345678901234567890', field3 = true, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 2048 \n                WHERE EXISTS (SELECT 1 FROM store_test_table)\n                RETURNING *\n            )\n            INSERT INTO store_test_table (field1, field2, field3, last_updated_checkpoint)\n            SELECT 100, '0x1234567890123456789012345678901234567890', true, 2048\n            WHERE NOT EXISTS (SELECT 1 FROM upsert)");
+        assert_eq!(sql, "WITH upsert AS (\n                UPDATE store_test_table SET field1 = 100, field2 = '0x1234567890123456789012345678901234567890', field3 = true, updated_at_ts = CURRENT_TIMESTAMP, last_updated_checkpoint = 2048 \n                WHERE EXISTS (SELECT 1 FROM store_test_table)\n                RETURNING *\n            )\n            INSERT INTO store_test_table (field1, field2, field3, last_updated_checkpoint)\n            SELECT 100, '0x1234567890123456789012345678901234567890', true, 2048\n            WHERE NOT EXISTS (SELECT 1 FROM upsert)");
     }
 
     #[test]
@@ -276,7 +319,7 @@ mod tests {
         let table_name = "test_table";
         let field_name = "value";
         let field_type = "u64";
-        let value = serde_json::json!({ "value": 100u64 });
+        let value = serde_json::json!(100u64);
         let key_fields = vec![
             ("id".to_string(), "u64".to_string()),
             ("name".to_string(), "address".to_string()),
@@ -292,6 +335,6 @@ mod tests {
             &key_fields,
             &key_values,
         );
-        assert_eq!(sql, "UPDATE store_test_table SET value = 100, updated_at = CURRENT_TIMESTAMP, last_updated_checkpoint = 1024 WHERE id = 1 AND name = '0x1234567890123456789012345678901234567890'");
+        assert_eq!(sql, "UPDATE store_test_table SET value = 100, updated_at_ts = CURRENT_TIMESTAMP, last_updated_checkpoint = 1024 WHERE id = 1 AND name = '0x1234567890123456789012345678901234567890'");
     }
 }

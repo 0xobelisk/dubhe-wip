@@ -5,6 +5,7 @@ use sui::address;
 use dubhe::dapp_service::DappHub;
 use dubhe::dapp_key;
 use dubhe::dapp_key::DappKey;
+use dubhe::dapp_system;
 
 public struct DUBHE has drop {}
 
@@ -28,20 +29,20 @@ public entry fun deposit_treasury_cap(
     treasury_cap: TreasuryCap<DUBHE>,
     ctx: &mut TxContext
 ) {
-    dapp_hub.ensure_dapp_admin<DappKey>(ctx.sender());
+    dapp_system::ensure_dapp_admin<DappKey>(dapp_hub, ctx.sender());
     let dapp_key = dapp_key::new();
     let treasury_cap_key = get_treasury_cap_key();
-    dapp_hub.get_objects(dapp_key).add<address, TreasuryCap<DUBHE>>(treasury_cap_key, treasury_cap);
+    dapp_system::get_mut_dapp_objects(dapp_hub, dapp_key).add<address, TreasuryCap<DUBHE>>(treasury_cap_key, treasury_cap);
 }
 
 public entry fun withdraw_treasury_cap(
     dapp_hub: &mut DappHub,
     ctx: &mut TxContext
 ) {
-    dapp_hub.ensure_dapp_admin<DappKey>(ctx.sender());
+    dapp_system::ensure_dapp_admin<DappKey>(dapp_hub, ctx.sender());
     let dapp_key = dapp_key::new();
     let treasury_cap_key = get_treasury_cap_key();
-    let treasury_cap = dapp_hub.get_objects(dapp_key).remove<address, TreasuryCap<DUBHE>>(treasury_cap_key);
+    let treasury_cap = dapp_system::get_mut_dapp_objects(dapp_hub, dapp_key).remove<address, TreasuryCap<DUBHE>>(treasury_cap_key);
     transfer::public_transfer(treasury_cap, tx_context::sender(ctx));
 }
 

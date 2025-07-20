@@ -222,49 +222,120 @@
         ],
         "offchain": false
       }
+    },
+    {
+      "dapp_metadata": {
+        "fields": [
+          {
+            "dapp_key": "vector<u8>"
+          },
+          {
+            "name": "vector<u8>"
+          },
+          {
+            "description": "vector<u8>"
+          },
+          {
+            "website_url": "vector<u8>"
+          },
+          {
+            "cover_url": "vector<vector<u8>>"
+          },
+          {
+            "partners": "vector<vector<u8>>"
+          },
+          {
+            "package_ids": "vector<address>"
+          },
+          {
+            "created_at": "u64"
+          },
+          {
+            "admin": "address"
+          },
+          {
+            "version": "u32"
+          },
+          {
+            "pausable": "bool"
+          }
+        ],
+        "keys": [
+          "dapp_key"
+        ],
+        "offchain": false
+      }
+    },
+    {
+      "dapp_fee_config": {
+        "fields": [
+          {
+            "free_credit": "u256"
+          },
+          {
+            "base_fee": "u256"
+          },
+          {
+            "byte_fee": "u256"
+          }
+        ],
+        "keys": [],
+        "offchain": false
+      }
+    },
+    {
+      "dapp_fee_state": {
+        "fields": [
+          {
+            "dapp_key": "vector<u8>"
+          },
+          {
+            "base_fee": "u256"
+          },
+          {
+            "byte_fee": "u256"
+          },
+          {
+            "free_credit": "u256"
+          },
+          {
+            "total_bytes_size": "u256"
+          },
+          {
+            "total_recharged": "u256"
+          },
+          {
+            "total_paid": "u256"
+          }
+        ],
+        "keys": [
+          "dapp_key"
+        ],
+        "offchain": false
+      }
     }
   ],
   "enums": [
     {
       "AccountStatus": [
-        {
-          "0": "Blocked"
-        },
-        {
-          "1": "Frozen"
-        },
-        {
-          "2": "Liquid"
-        }
+        "Blocked",
+        "Frozen",
+        "Liquid"
       ]
     },
     {
       "AssetStatus": [
-        {
-          "0": "Frozen"
-        },
-        {
-          "1": "Liquid"
-        }
+        "Frozen",
+        "Liquid"
       ]
     },
     {
       "AssetType": [
-        {
-          "0": "Lp"
-        },
-        {
-          "1": "Package"
-        },
-        {
-          "2": "Private"
-        },
-        {
-          "3": "Wrapped"
-        }
+        "Lp",
+        "Package",
+        "Private",
+        "Wrapped"
       ]
     }
-  ],
-  "package_id": "0x4727fa99ca6aa1f426572107ba49a39ee266a6e60d4891d1c8039fb76bfa423b",
-  "start_checkpoint": "436"
+  ]
 }

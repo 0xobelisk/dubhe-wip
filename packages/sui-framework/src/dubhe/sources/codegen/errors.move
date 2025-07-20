@@ -197,4 +197,60 @@
   public fun bridge_not_opened_error(condition: bool) {
     assert!(condition, BRIDGE_NOT_OPENED)
   }
+
+  #[error]
+
+  const NOT_LATEST_VERSION: vector<u8> = b"Not latest version";
+
+  public fun not_latest_version_error(condition: bool) {
+    assert!(condition, NOT_LATEST_VERSION)
+  }
+
+  #[error]
+
+  const DAPP_ALREADY_PAUSED: vector<u8> = b"Dapp already paused";
+
+  public fun dapp_already_paused_error(condition: bool) {
+    assert!(condition, DAPP_ALREADY_PAUSED)
+  }
+
+  #[error]
+
+  const INVALID_PACKAGE_ID: vector<u8> = b"Invalid package id";
+
+  public fun invalid_package_id_error(condition: bool) {
+    assert!(condition, INVALID_PACKAGE_ID)
+  }
+
+  #[error]
+
+  const INVALID_VERSION: vector<u8> = b"Invalid version";
+
+  public fun invalid_version_error(condition: bool) {
+    assert!(condition, INVALID_VERSION)
+  }
+
+  #[error]
+
+  const DAPP_NOT_INITIALIZED: vector<u8> = b"Dapp not initialized";
+
+  public fun dapp_not_initialized_error(condition: bool) {
+    assert!(condition, DAPP_NOT_INITIALIZED)
+  }
+
+  #[error]
+
+  const DAPP_ALREADY_INITIALIZED: vector<u8> = b"Dapp already initialized";
+
+  public fun dapp_already_initialized_error(condition: bool) {
+    assert!(condition, DAPP_ALREADY_INITIALIZED)
+  }
+
+  #[error]
+
+  const INSUFFICIENT_CREDIT: vector<u8> = b"Insufficient credit";
+
+  public fun insufficient_credit_error(condition: bool) {
+    assert!(condition, INSUFFICIENT_CREDIT)
+  }
 }

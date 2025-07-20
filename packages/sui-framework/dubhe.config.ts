@@ -107,6 +107,41 @@ export const dubheConfig = {
             },
             keys: ['coin_type']    
         },
+        dapp_metadata: {
+            fields: {
+                dapp_key: 'vector<u8>',
+                name: 'vector<u8>',
+                description: 'vector<u8>',
+                website_url: 'vector<u8>',
+                cover_url: 'vector<vector<u8>>',
+                partners: 'vector<vector<u8>>',
+                package_ids: 'vector<address>',
+                created_at: 'u64',
+                admin: 'address',
+                version: 'u32',
+                pausable: 'bool'
+            },
+            keys: ['dapp_key']
+        },
+        dapp_fee_config: {
+            fields: { 
+                free_credit: 'u256',
+                base_fee: 'u256',
+                byte_fee: 'u256',
+            }
+        },
+        dapp_fee_state: {
+            fields: {
+                dapp_key: 'vector<u8>',
+                base_fee: 'u256',
+                byte_fee: 'u256',
+                free_credit: 'u256',
+                total_bytes_size: 'u256',
+                total_recharged: 'u256',
+                total_paid: 'u256',
+            },
+            keys: ['dapp_key']
+        }
     },
     components: { },
      errors: {
@@ -134,5 +169,12 @@ export const dubheConfig = {
         less_than_amount_out_min: "Less than expected",
         more_than_amount_in_max: "More than expected",
         bridge_not_opened: "Bridge is not opened",
+        not_latest_version: "Not latest version",
+        dapp_already_paused: "Dapp already paused",
+        invalid_package_id: "Invalid package id",
+        invalid_version: "Invalid version",
+        dapp_not_initialized: "Dapp not initialized",
+        dapp_already_initialized: "Dapp already initialized",
+        insufficient_credit: "Insufficient credit",
     },
 } as DubheConfig;
