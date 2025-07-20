@@ -253,4 +253,12 @@
   public fun insufficient_credit_error(condition: bool) {
     assert!(condition, INSUFFICIENT_CREDIT)
   }
+
+  #[error]
+
+  const DAPP_NOT_BEEN_DELEGATED: vector<u8> = b"Dapp not been delegated";
+
+  public fun dapp_not_been_delegated_error(condition: bool) {
+    assert!(condition, DAPP_NOT_BEEN_DELEGATED)
+  }
 }

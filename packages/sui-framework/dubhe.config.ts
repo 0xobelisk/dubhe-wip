@@ -141,6 +141,14 @@ export const dubheConfig = {
                 total_paid: 'u256',
             },
             keys: ['dapp_key']
+        },
+        dapp_proxy: {
+            fields: {
+                dapp_key: 'vector<u8>',
+                delegator: 'address',
+                enabled: 'bool',
+            },
+            keys: ['dapp_key']
         }
     },
     components: { },
@@ -176,5 +184,6 @@ export const dubheConfig = {
         dapp_not_initialized: "Dapp not initialized",
         dapp_already_initialized: "Dapp already initialized",
         insufficient_credit: "Insufficient credit",
+        dapp_not_been_delegated: "Dapp not been delegated",
     },
 } as DubheConfig;

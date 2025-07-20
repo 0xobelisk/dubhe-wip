@@ -313,6 +313,25 @@
         ],
         "offchain": false
       }
+    },
+    {
+      "dapp_proxy": {
+        "fields": [
+          {
+            "dapp_key": "vector<u8>"
+          },
+          {
+            "delegator": "address"
+          },
+          {
+            "enabled": "bool"
+          }
+        ],
+        "keys": [
+          "dapp_key"
+        ],
+        "offchain": false
+      }
     }
   ],
   "enums": [
@@ -337,5 +356,7 @@
         "Wrapped"
       ]
     }
-  ]
+  ],
+  "package_id": "0x4805b1fee654164754e222a617e8ee0eefcc858bf194305a9832582c23c7bc0d",
+  "start_checkpoint": "220211001"
 }

@@ -63,6 +63,37 @@ module dubhe::dapp_service {
         );
     }
 
+     /// Set a record
+    public(package) fun set_record_internal(
+        self: &mut DappHub,
+        dapp_key: String,
+        table_id: vector<u8>,
+        key_tuple: vector<vector<u8>>,
+        value_tuple: vector<vector<u8>>
+    ) {
+        let dapp_store = self.dapp_stores.borrow_mut(dapp_key);
+        assert!(dapp_store.get_dapp_key() == dapp_key, ENoPermissionPackageId);
+
+        if(table_id::table_type(&table_id) == table_id::offchain_table_type()) {
+            emit_store_set_record(
+                table_id,
+                key_tuple,
+                value_tuple
+            );
+            return
+        };
+
+        // Set record
+        dapp_store.set_record(table_id, key_tuple, value_tuple);
+
+        // Emit event
+        emit_store_set_record(
+            table_id,
+            key_tuple,
+            value_tuple
+        );
+    }
+
     /// Set a record
     public(package) fun set_record<DappKey: copy + drop>(
         self: &mut DappHub,
@@ -72,6 +103,7 @@ module dubhe::dapp_service {
         value_tuple: vector<vector<u8>>
     ) {
         let dapp_key = type_name::get<DappKey>().into_string();
+        std::debug::print(&dapp_key);
         let dapp_store = self.dapp_stores.borrow_mut(dapp_key);
         assert!(dapp_store.get_dapp_key() == dapp_key, ENoPermissionPackageId);
 

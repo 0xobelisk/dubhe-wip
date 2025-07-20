@@ -32,6 +32,8 @@
 
   use dubhe::dapp_fee_state;
 
+  use dubhe::dapp_proxy;
+
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
@@ -49,6 +51,7 @@
     dapp_metadata::register_table(dapp_hub, ctx);
     dapp_fee_config::register_table(dapp_hub, ctx);
     dapp_fee_state::register_table(dapp_hub, ctx);
+    dapp_proxy::register_table(dapp_hub, ctx);
     // Logic that needs to be automated once the contract is deployed
     dubhe::deploy_hook::run(dapp_hub, ctx);
   }

@@ -11,7 +11,6 @@ use dubhe::dapp_metadata::DappMetadata;
 use dubhe::table_metadata;
 use dubhe::table_metadata::TableMetadata;
 use dubhe::type_info;
-use std::unit_test::assert_eq;
 use std::u8;
 
 /// Error codes
