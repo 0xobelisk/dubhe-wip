@@ -2,7 +2,7 @@
 
 [move]
 version = 3
-manifest_digest = "6284355CB9091DBCBB69E137F9BDDB269A855843F5317B81EBB62E19A6A5E27B"
+manifest_digest = "4699EC456FC429995B349824D4769BECD15E740FB3571FDE084DA7BC647826E7"
 deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 dependencies = [
   { id = "Dubhe", name = "Dubhe" },
@@ -30,8 +30,27 @@ dependencies = [
 ]
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 [env.localnet]
-chain-id = "a7b5c8f2"
-original-published-id = "0x36480e494cd3eca889511872ce318586ea166788943c6f4b88c137db9b15db01"
-latest-published-id = "0x36480e494cd3eca889511872ce318586ea166788943c6f4b88c137db9b15db01"
+chain-id = "81014042"
+original-published-id = "0xe46223f8add429ed9247d71c169d3591f3978f39e03c280e35c26c1be25c3675"
+latest-published-id = "0xe46223f8add429ed9247d71c169d3591f3978f39e03c280e35c26c1be25c3675"
+published-version = "1"
+
+[env.testnet]
+chain-id = "4c78adac"
+original-published-id = "0xedaa1ba18939e758cedf6e4d3acf08ca4231427c4e7bbf525ae2bb4880d281c5"
+latest-published-id = "0xedaa1ba18939e758cedf6e4d3acf08ca4231427c4e7bbf525ae2bb4880d281c5"
 published-version = "1"

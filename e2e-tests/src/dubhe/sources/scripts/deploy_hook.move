@@ -13,6 +13,7 @@
   use dubhe::wrapper_system;
   use sui::sui::SUI;
   use dubhe::dubhe::DUBHE;
+  use dubhe::dapp_fee_config;
 
   public(package) fun run(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let next_asset_id = 0;
@@ -32,6 +33,12 @@
     // set bridge config
     bridge_config::set(dapp_hub, b"Dubhe OS", 10 * 10000000, 2 * 10000000, true);
     bridge_config::set(dapp_hub, b"Aptos", 10 * 10000000, 2 * 10000000, true);
+
+    // set free credit
+    let free_credit = 1000 * 10000000;
+    let base_fee = 80000;
+    let byte_fee = 500;
+    dapp_fee_config::set(dapp_hub, free_credit, base_fee, byte_fee);
 
     let sui_asset_id = wrapper_system::do_register<SUI>(
       dapp_hub,

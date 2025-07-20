@@ -2,7 +2,6 @@ module dubhe::table_metadata;
 
 /// Table metadata structure
 public struct TableMetadata has store {
-    name: vector<u8>,
     key_schemas: vector<vector<u8>>,
     key_names: vector<vector<u8>>,
     value_schemas: vector<vector<u8>>,
@@ -11,24 +10,17 @@ public struct TableMetadata has store {
 
 /// Create a new table metadata
 public fun new(
-    name: vector<u8>,
     key_schemas: vector<vector<u8>>,
     key_names: vector<vector<u8>>,
     value_schemas: vector<vector<u8>>,
     value_names: vector<vector<u8>>
 ): TableMetadata {
     TableMetadata {
-        name,
         key_schemas,
         key_names,
         value_schemas,
         value_names
     }
-}
-
-/// Get and set functions       
-public fun get_name(self: &TableMetadata): vector<u8> {
-    self.name
 }
 
 public fun get_key_schemas(self: &TableMetadata): vector<vector<u8>> {
@@ -45,10 +37,6 @@ public fun get_value_schemas(self: &TableMetadata): vector<vector<u8>> {
 
 public fun get_value_names(self: &TableMetadata): vector<vector<u8>> {
     self.value_names
-}
-
-public(package) fun set_name(self: &mut TableMetadata, name: vector<u8>) {
-    self.name = name;
 }
 
 public(package) fun set_key_schemas(self: &mut TableMetadata, key_schemas: vector<vector<u8>>) {

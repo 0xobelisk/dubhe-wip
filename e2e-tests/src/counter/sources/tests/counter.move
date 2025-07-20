@@ -4,6 +4,8 @@ module counter::counter_test {
     use counter::counter_system;
     use counter::init_test;
     use counter::value;
+    use dubhe::dapp_system;
+    use counter::dapp_key::DappKey;
 
     #[test]
     public fun inc() {
@@ -15,8 +17,21 @@ module counter::counter_test {
         counter_system::inc(&mut dapp_hub);
         assert!(value::get(&dapp_hub) == 1);
 
-        counter_system::inc(&mut dapp_hub);
+        // let mut i = 0;
+        // while(i < 1000) {
+        //     counter_system::inc(&mut dapp_hub);
+        //     i = i + 1;
+        // };
+
+        let ctx = test_scenario::ctx(&mut scenario);
+        dapp_system::set_storage<DappKey>(&mut dapp_hub, 2, ctx);
+
         assert!(value::get(&dapp_hub) == 2);
+
+
+
+        // counter_system::inc(&mut dapp_hub);
+        // assert!(value::get(&dapp_hub) == 2);
 
         dapp_hub.destroy();
         scenario.end();

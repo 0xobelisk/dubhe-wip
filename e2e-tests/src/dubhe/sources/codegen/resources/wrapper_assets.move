@@ -12,6 +12,8 @@
 
   use dubhe::dapp_service::{Self, DappHub};
 
+  use dubhe::dapp_system;
+
   use dubhe::dapp_key;
 
   use dubhe::dapp_key::DappKey;
@@ -44,7 +46,6 @@
             dapp_hub, 
             dapp_key,
             get_table_id(), 
-            TABLE_NAME, 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 

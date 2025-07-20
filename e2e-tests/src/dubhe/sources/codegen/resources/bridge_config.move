@@ -12,6 +12,8 @@
 
   use dubhe::dapp_service::{Self, DappHub};
 
+  use dubhe::dapp_system;
+
   use dubhe::dapp_key;
 
   use dubhe::dapp_key::DappKey;
@@ -82,7 +84,6 @@
             dapp_hub, 
             dapp_key,
             get_table_id(), 
-            TABLE_NAME, 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
@@ -107,60 +108,6 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&chain));
     dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
-  }
-
-  public fun has_min_amount(dapp_hub: &DappHub, chain: vector<u8>): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun ensure_has_min_amount(dapp_hub: &DappHub, chain: vector<u8>) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun ensure_not_has_min_amount(dapp_hub: &DappHub, chain: vector<u8>) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun has_fee(dapp_hub: &DappHub, chain: vector<u8>): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun ensure_has_fee(dapp_hub: &DappHub, chain: vector<u8>) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun ensure_not_has_fee(dapp_hub: &DappHub, chain: vector<u8>) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun has_opened(dapp_hub: &DappHub, chain: vector<u8>): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
-  }
-
-  public fun ensure_has_opened(dapp_hub: &DappHub, chain: vector<u8>) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
-  }
-
-  public fun ensure_not_has_opened(dapp_hub: &DappHub, chain: vector<u8>) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&chain));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
   }
 
   public(package) fun delete(dapp_hub: &mut DappHub, chain: vector<u8>) {

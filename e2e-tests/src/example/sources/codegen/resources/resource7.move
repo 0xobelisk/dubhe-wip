@@ -12,6 +12,8 @@
 
   use dubhe::dapp_service::{Self, DappHub};
 
+  use dubhe::dapp_system;
+
   use example::dapp_key;
 
   use example::dapp_key::DappKey;
@@ -68,11 +70,10 @@
 
   public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
-    dapp_service::register_table(
+    dapp_system::register_table(
             dapp_hub, 
             dapp_key,
             get_table_id(), 
-            TABLE_NAME, 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
@@ -83,57 +84,27 @@
 
   public fun has(dapp_hub: &DappHub): bool {
     let key_tuple = vector::empty();
-    dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+    dapp_system::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
   public fun ensure_has(dapp_hub: &DappHub) {
     let key_tuple = vector::empty();
-    dapp_service::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+    dapp_system::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
   public fun ensure_not_has(dapp_hub: &DappHub) {
     let key_tuple = vector::empty();
-    dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
-  }
-
-  public fun has_player(dapp_hub: &DappHub): bool {
-    let key_tuple = vector::empty();
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun ensure_has_player(dapp_hub: &DappHub) {
-    let key_tuple = vector::empty();
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun ensure_not_has_player(dapp_hub: &DappHub) {
-    let key_tuple = vector::empty();
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun has_value(dapp_hub: &DappHub): bool {
-    let key_tuple = vector::empty();
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun ensure_has_value(dapp_hub: &DappHub) {
-    let key_tuple = vector::empty();
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun ensure_not_has_value(dapp_hub: &DappHub) {
-    let key_tuple = vector::empty();
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
+    dapp_system::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
   public(package) fun delete(dapp_hub: &mut DappHub) {
     let key_tuple = vector::empty();
-    dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
 
   public fun get_player(dapp_hub: &DappHub): address {
     let key_tuple = vector::empty();
-    let value = dapp_service::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0);
+    let value = dapp_system::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0);
     let mut bsc_type = sui::bcs::new(value);
     let player = sui::bcs::peel_address(&mut bsc_type);
     player
@@ -142,12 +113,12 @@
   public(package) fun set_player(dapp_hub: &mut DappHub, player: address) {
     let key_tuple = vector::empty();
     let value = to_bytes(&player);
-    dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
   }
 
   public fun get_value(dapp_hub: &DappHub): u32 {
     let key_tuple = vector::empty();
-    let value = dapp_service::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1);
+    let value = dapp_system::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1);
     let mut bsc_type = sui::bcs::new(value);
     let value = sui::bcs::peel_u32(&mut bsc_type);
     value
@@ -156,12 +127,12 @@
   public(package) fun set_value(dapp_hub: &mut DappHub, value: u32) {
     let key_tuple = vector::empty();
     let value = to_bytes(&value);
-    dapp_service::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
   }
 
   public fun get(dapp_hub: &DappHub): (address, u32) {
     let key_tuple = vector::empty();
-    let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
+    let value_tuple = dapp_system::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     let mut bsc_type = sui::bcs::new(value_tuple);
     let player = sui::bcs::peel_address(&mut bsc_type);
     let value = sui::bcs::peel_u32(&mut bsc_type);
@@ -171,19 +142,19 @@
   public(package) fun set(dapp_hub: &mut DappHub, player: address, value: u32) {
     let key_tuple = vector::empty();
     let value_tuple = encode(player, value);
-    dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }
 
   public fun get_struct(dapp_hub: &DappHub): Resource7 {
     let key_tuple = vector::empty();
-    let value_tuple = dapp_service::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
+    let value_tuple = dapp_system::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     decode(value_tuple)
   }
 
   public(package) fun set_struct(dapp_hub: &mut DappHub, resource7: Resource7) {
     let key_tuple = vector::empty();
     let value_tuple = encode_struct(resource7);
-    dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }
 
   public fun encode(player: address, value: u32): vector<vector<u8>> {

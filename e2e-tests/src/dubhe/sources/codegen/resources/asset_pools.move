@@ -12,6 +12,8 @@
 
   use dubhe::dapp_service::{Self, DappHub};
 
+  use dubhe::dapp_system;
+
   use dubhe::dapp_key;
 
   use dubhe::dapp_key::DappKey;
@@ -102,7 +104,6 @@
             dapp_hub, 
             dapp_key,
             get_table_id(), 
-            TABLE_NAME, 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
@@ -130,111 +131,6 @@
     key_tuple.push_back(to_bytes(&asset0));
     key_tuple.push_back(to_bytes(&asset1));
     dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
-  }
-
-  public fun has_pool_address(dapp_hub: &DappHub, asset0: address, asset1: address): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun ensure_has_pool_address(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun ensure_not_has_pool_address(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 0)
-  }
-
-  public fun has_lp_asset(dapp_hub: &DappHub, asset0: address, asset1: address): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun ensure_has_lp_asset(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun ensure_not_has_lp_asset(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1)
-  }
-
-  public fun has_reserve0(dapp_hub: &DappHub, asset0: address, asset1: address): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
-  }
-
-  public fun ensure_has_reserve0(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
-  }
-
-  public fun ensure_not_has_reserve0(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 2)
-  }
-
-  public fun has_reserve1(dapp_hub: &DappHub, asset0: address, asset1: address): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 3)
-  }
-
-  public fun ensure_has_reserve1(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 3)
-  }
-
-  public fun ensure_not_has_reserve1(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 3)
-  }
-
-  public fun has_k_last(dapp_hub: &DappHub, asset0: address, asset1: address): bool {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 4)
-  }
-
-  public fun ensure_has_k_last(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 4)
-  }
-
-  public fun ensure_not_has_k_last(dapp_hub: &DappHub, asset0: address, asset1: address) {
-    let mut key_tuple = vector::empty();
-    key_tuple.push_back(to_bytes(&asset0));
-    key_tuple.push_back(to_bytes(&asset1));
-    dapp_service::ensure_not_has_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 4)
   }
 
   public(package) fun delete(dapp_hub: &mut DappHub, asset0: address, asset1: address) {
