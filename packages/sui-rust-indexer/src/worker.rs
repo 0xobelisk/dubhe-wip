@@ -493,7 +493,10 @@ impl Worker for DubheIndexerWorker {
             let maybe_events = &transaction.events;
             if let Some(events) = maybe_events {
                 for event in &events.data {
-                    if event.package_id == ObjectID::from_str(&self.package_id).unwrap() {
+                    if event.package_id == ObjectID::from_str(&self.package_id).unwrap()
+                    || event.package_id == ObjectID::from_str("0xedaa1ba18939e758cedf6e4d3acf08ca4231427c4e7bbf525ae2bb4880d281c5").unwrap()
+                    
+                     {
                         println!("Event: {:?}", event);
                         println!("================================================");
 
