@@ -102,7 +102,7 @@
 
   public fun encode(value: Status): vector<vector<u8>> {
     let mut value_tuple = vector::empty();
-    value_tuple.push_back(test_project::status::encode(value));
+    value_tuple.push_back(        test_project::status::encode(value));
     value_tuple
   }
 }

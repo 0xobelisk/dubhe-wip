@@ -73,7 +73,7 @@
     key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = dapp_system::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     let mut bsc_type = sui::bcs::new(value_tuple);
-    let value = string(sui::bcs::peel_vec_u8(&mut bsc_type));
+    let value = dubhe::bcs::peel_string(&mut bsc_type);
     (value)
   }
 

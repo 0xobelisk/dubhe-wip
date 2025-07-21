@@ -116,6 +116,7 @@ describe('schemaGen', () => {
         },
         keys: ['player']
       },
+      component17: 'vector<String>',
       //
       test_component: {
         fields: {
