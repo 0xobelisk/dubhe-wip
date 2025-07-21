@@ -22,76 +22,100 @@ use dubhe::dapp_fee_config;
 use dubhe::dapp_fee_config::free_credit;
 use dubhe::dapp_proxy;
 use std::bcs;
+use std::ascii::String;
+use std::ascii::string;
+
 
 public fun register_table<DappKey: copy + drop>(
   dh: &mut DappHub,
   dapp_key: DappKey,
-  table_id: vector<u8>,
-  key_schemas: vector<vector<u8>>,
-  key_names: vector<vector<u8>>,
-  value_schemas: vector<vector<u8>>,
-  value_names: vector<vector<u8>>,
+  type_: String,
+  table_id: String,
+  key_schemas: vector<String>,
+  key_names: vector<String>,
+  value_schemas: vector<String>,
+  value_names: vector<String>,
+  offchain: bool,
   ctx: &mut TxContext
 ) {
-  dapp_service::register_table(dh, dapp_key, table_id, key_schemas, key_names, value_schemas, value_names, ctx);
+  dapp_service::register_table(
+    dh, 
+    dapp_key, 
+    type_,
+    table_id, 
+    key_schemas, 
+    key_names, 
+    value_schemas, 
+    value_names, 
+    offchain, 
+    ctx
+  );
 }
 
 /// Set a record
 public fun set_record<DappKey: copy + drop>(
   dh: &mut DappHub,
   dapp_key: DappKey,
-  table_id: vector<u8>,
+  table_id: String,
   key_tuple: vector<vector<u8>>,
-  value_tuple: vector<vector<u8>>
+  value_tuple: vector<vector<u8>>,
+  offchain: bool
 ) {
-  dapp_service::set_record<DappKey>(dh, dapp_key, table_id, key_tuple, value_tuple);
-
-   let dapp_key = type_info::get_type_name_string<DappKey>().into_bytes();
+  dapp_service::set_record<DappKey>(
+    dh, 
+    dapp_key, 
+    table_id, 
+    key_tuple, 
+    value_tuple, 
+    offchain
+  );
+  let dapp_key = type_info::get_type_name_string<DappKey>();
   charge_fee(dh, dapp_key, key_tuple, value_tuple);
 }
-
-
-// fun set_record_internal(
-//   dh: &mut DappHub,
-//   dapp_key: std::ascii::String,
-//   table_id: vector<u8>,
-//   key_tuple: vector<vector<u8>>,
-//   value_tuple: vector<vector<u8>>
-// ) {
-//   dapp_service::set_record(dh, dapp_key, table_id, key_tuple, value_tuple);
-
-//   let dapp_key = dapp_key.into_bytes();
-//   charge_fee(dh, dapp_key, key_tuple, value_tuple);
-// }
 
 /// Set a field
 public fun set_field<DappKey: copy + drop>(
   dh: &mut DappHub,
   dapp_key: DappKey,
-  table_id: vector<u8>,
+  table_id: String,
   key_tuple: vector<vector<u8>>,
   field_index: u8,
-  value: vector<u8>
+  value: vector<u8>,
+  offchain: bool
 ) {
-  dapp_service::set_field(dh, dapp_key, table_id, key_tuple, field_index, value);
-
-  let dapp_key = type_info::get_type_name_string<DappKey>().into_bytes();
+  dapp_service::set_field(
+    dh, 
+    dapp_key, 
+    table_id, 
+    key_tuple, 
+    field_index, 
+    value, 
+    offchain
+  );
+  let dapp_key = type_info::get_type_name_string<DappKey>();
   charge_fee(dh, dapp_key, key_tuple, vector[value]);
 }
 
 public fun delete_record<DappKey: copy + drop>(
   dh: &mut DappHub,
   dapp_key: DappKey,
-  table_id: vector<u8>,
-  key_tuple: vector<vector<u8>>
+  table_id: String,
+  key_tuple: vector<vector<u8>>,
+  offchain: bool
 ) {
-  dapp_service::delete_record(dh, dapp_key, table_id, key_tuple);
+  dapp_service::delete_record(
+    dh, 
+    dapp_key, 
+    table_id, 
+    key_tuple, 
+    offchain
+  );
 }
 
 /// Get a record
 public fun get_record<DappKey: copy + drop>(
   dh: &DappHub,
-  table_id: vector<u8>,
+  table_id: String,
   key_tuple: vector<vector<u8>>
 ): vector<u8> {
   dapp_service::get_record<DappKey>(dh, table_id, key_tuple)
@@ -100,7 +124,7 @@ public fun get_record<DappKey: copy + drop>(
 /// Get a field
 public fun get_field<DappKey: copy + drop>(
   dh: &DappHub,
-  table_id: vector<u8>,
+  table_id: String,
   key_tuple: vector<vector<u8>>,
   field_index: u8
 ): vector<u8> {
@@ -110,7 +134,7 @@ public fun get_field<DappKey: copy + drop>(
 
 public fun has_record<DappKey: copy + drop>(
   dh: &DappHub,
-  table_id: vector<u8>,
+  table_id: String,
   key_tuple: vector<vector<u8>>
 ): bool {
   dapp_service::has_record<DappKey>(dh, table_id, key_tuple)
@@ -118,7 +142,7 @@ public fun has_record<DappKey: copy + drop>(
 
 public fun ensure_has_record<DappKey: copy + drop>(
   dh: &DappHub,
-  table_id: vector<u8>,
+  table_id: String,
   key_tuple: vector<vector<u8>>
 ) {
   dapp_service::ensure_has_record<DappKey>(dh, table_id, key_tuple)
@@ -126,7 +150,7 @@ public fun ensure_has_record<DappKey: copy + drop>(
 
 public fun ensure_not_has_record<DappKey: copy + drop>(
   dh: &DappHub,
-  table_id: vector<u8>,
+  table_id: String,
   key_tuple: vector<vector<u8>>
 ) {
   dapp_service::ensure_not_has_record<DappKey>(dh, table_id, key_tuple)
