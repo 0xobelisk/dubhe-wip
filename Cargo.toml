@@ -1,9 +1,11 @@
-[package]
-name = "dubhe-indexer"
-version = "1.2.0-pre.56"
-edition = "2021"
+[workspace]
+resolver = "2"
 
-[dependencies]
+members = [
+  "crates/dubhe-indexer",
+]
+
+[workspace.dependencies]
 async-trait = "0.1.83"
 tokio = { version = "1.38.0", features = ["full"]}
 sui_types = { git = "https://github.com/mystenlabs/sui", package = "sui-types", tag = "mainnet-v1.48.2"}
@@ -63,7 +65,3 @@ tempfile = "3.3.0"
 tap = "1.0.1"
 sui-protocol-config ={ git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
 sui-rpc-api = { git = "https://github.com/mystenlabs/sui", tag = "mainnet-v1.48.2"}
-
-
-[dev-dependencies]
-rand = "0.8.5"
