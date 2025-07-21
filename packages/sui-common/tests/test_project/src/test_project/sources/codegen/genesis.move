@@ -2,9 +2,11 @@
 
   use sui::clock::Clock;
 
-  use dubhe::dapp_service::{Self, DappHub};
+  use dubhe::dapp_service::DappHub;
 
   use test_project::dapp_key;
+
+  use dubhe::dapp_system;
 
   use test_project::component0;
 
@@ -36,6 +38,10 @@
 
   use test_project::component14;
 
+  use test_project::component15;
+
+  use test_project::component16;
+
   use test_project::test_component;
 
   use test_project::resource0;
@@ -54,12 +60,18 @@
 
   use test_project::resource7;
 
+  use test_project::resource8;
+
+  use test_project::resource9;
+
+  use test_project::resource10;
+
   use test_project::test_resource;
 
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
-    dapp_service::create_dapp(dapp_hub, dapp_key, b"test_project", b"Test project for schema generation", clock, ctx);
+    dapp_system::create_dapp(dapp_hub, dapp_key, b"test_project", b"Test project for schema generation", clock, ctx);
     // Register tables
     component0::register_table(dapp_hub, ctx);
     component1::register_table(dapp_hub, ctx);
@@ -76,6 +88,8 @@
     component12::register_table(dapp_hub, ctx);
     component13::register_table(dapp_hub, ctx);
     component14::register_table(dapp_hub, ctx);
+    component15::register_table(dapp_hub, ctx);
+    component16::register_table(dapp_hub, ctx);
     test_component::register_table(dapp_hub, ctx);
     resource0::register_table(dapp_hub, ctx);
     resource1::register_table(dapp_hub, ctx);
@@ -85,8 +99,20 @@
     resource5::register_table(dapp_hub, ctx);
     resource6::register_table(dapp_hub, ctx);
     resource7::register_table(dapp_hub, ctx);
+    resource8::register_table(dapp_hub, ctx);
+    resource9::register_table(dapp_hub, ctx);
+    resource10::register_table(dapp_hub, ctx);
     test_resource::register_table(dapp_hub, ctx);
     // Logic that needs to be automated once the contract is deployed
     test_project::deploy_hook::run(dapp_hub, ctx);
+  }
+
+  public(package) fun upgrade(dapp_hub: &mut DappHub, new_package_id: address, new_version: u32, ctx: &mut TxContext) {
+    // Upgrade Dapp
+    let dapp_key = dapp_key::new();
+    dapp_system::upgrade_dapp(dapp_hub, dapp_key, new_package_id, new_version, ctx);
+    // Register new tables
+    // ==========================================
+    // ==========================================
   }
 }

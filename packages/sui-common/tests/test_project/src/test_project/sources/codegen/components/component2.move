@@ -8,9 +8,13 @@
 
   use sui::bcs::{to_bytes};
 
+  use std::ascii::{string, String, into_bytes};
+
   use dubhe::table_id;
 
   use dubhe::dapp_service::{Self, DappHub};
+
+  use dubhe::dapp_system;
 
   use test_project::dapp_key;
 
@@ -40,11 +44,10 @@
 
   public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
-    dapp_service::register_table(
+    dapp_system::register_table(
             dapp_hub, 
             dapp_key,
             get_table_id(), 
-            TABLE_NAME, 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
@@ -56,31 +59,31 @@
   public fun has(dapp_hub: &DappHub, player_id: u32): bool {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player_id));
-    dapp_service::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+    dapp_system::has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
   public fun ensure_has(dapp_hub: &DappHub, player_id: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player_id));
-    dapp_service::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+    dapp_system::ensure_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
   public fun ensure_not_has(dapp_hub: &DappHub, player_id: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player_id));
-    dapp_service::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
+    dapp_system::ensure_not_has_record<DappKey>(dapp_hub, get_table_id(), key_tuple)
   }
 
   public(package) fun delete(dapp_hub: &mut DappHub, player_id: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player_id));
-    dapp_service::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
   }
 
   public(package) fun set(dapp_hub: &mut DappHub, player_id: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player_id));
     let value_tuple = vector::empty();
-    dapp_service::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
   }
 }

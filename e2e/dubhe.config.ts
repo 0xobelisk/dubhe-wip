@@ -119,6 +119,7 @@ export const dubheConfig = defineConfig({
     component29: "vector<address>",
     component30: "vector<bool>",
     component31: "vector<vector<u8>>",
+    component32: "String",
     // component32: "vector<vector<u16>>",
     // component33: "vector<vector<u32>>",
     // component34: "vector<vector<u64>>",
@@ -180,5 +181,12 @@ export const dubheConfig = defineConfig({
         value: 'u32'
       }
     },
+
+    resource8: {
+      fields: {
+        player: 'address',
+        name: 'String'
+      }
+    }
   }
 })

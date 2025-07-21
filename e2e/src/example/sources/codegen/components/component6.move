@@ -8,6 +8,8 @@
 
   use sui::bcs::{to_bytes};
 
+  use std::ascii::{string, String, into_bytes};
+
   use dubhe::table_id;
 
   use dubhe::dapp_service::{Self, DappHub};
