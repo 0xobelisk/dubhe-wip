@@ -42,6 +42,8 @@
 
   use test_project::component16;
 
+  use test_project::component17;
+
   use test_project::test_component;
 
   use test_project::resource0;
@@ -90,6 +92,7 @@
     component14::register_table(dapp_hub, ctx);
     component15::register_table(dapp_hub, ctx);
     component16::register_table(dapp_hub, ctx);
+    component17::register_table(dapp_hub, ctx);
     test_component::register_table(dapp_hub, ctx);
     resource0::register_table(dapp_hub, ctx);
     resource1::register_table(dapp_hub, ctx);

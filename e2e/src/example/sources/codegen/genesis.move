@@ -74,6 +74,10 @@
 
   use example::component32;
 
+  use example::component33;
+
+  use example::component34;
+
   use example::resource0;
 
   use example::resource1;
@@ -91,6 +95,8 @@
   use example::resource7;
 
   use example::resource8;
+
+  use example::resource9;
 
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
@@ -130,6 +136,8 @@
     component30::register_table(dapp_hub, ctx);
     component31::register_table(dapp_hub, ctx);
     component32::register_table(dapp_hub, ctx);
+    component33::register_table(dapp_hub, ctx);
+    component34::register_table(dapp_hub, ctx);
     resource0::register_table(dapp_hub, ctx);
     resource1::register_table(dapp_hub, ctx);
     resource2::register_table(dapp_hub, ctx);
@@ -139,6 +147,7 @@
     resource6::register_table(dapp_hub, ctx);
     resource7::register_table(dapp_hub, ctx);
     resource8::register_table(dapp_hub, ctx);
+    resource9::register_table(dapp_hub, ctx);
     // Logic that needs to be automated once the contract is deployed
     example::deploy_hook::run(dapp_hub, ctx);
   }

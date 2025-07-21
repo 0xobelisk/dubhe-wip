@@ -129,7 +129,7 @@
     key_tuple.push_back(to_bytes(&name));
     let value = dapp_system::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1);
     let mut bsc_type = sui::bcs::new(value);
-    let value = string(sui::bcs::peel_vec_u8(&mut bsc_type));
+    let value = dubhe::bcs::peel_string(&mut bsc_type);
     value
   }
 
@@ -146,7 +146,7 @@
     let value_tuple = dapp_system::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     let mut bsc_type = sui::bcs::new(value_tuple);
     let player = sui::bcs::peel_address(&mut bsc_type);
-    let value = string(sui::bcs::peel_vec_u8(&mut bsc_type));
+    let value = dubhe::bcs::peel_string(&mut bsc_type);
     (player, value)
   }
 
