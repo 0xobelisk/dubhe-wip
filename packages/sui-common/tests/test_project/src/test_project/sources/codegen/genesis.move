@@ -8,6 +8,8 @@
 
   use dubhe::dapp_system;
 
+  use std::ascii::string;
+
   use test_project::component0;
 
   use test_project::component1;
@@ -73,7 +75,7 @@
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
-    dapp_system::create_dapp(dapp_hub, dapp_key, b"test_project", b"Test project for schema generation", clock, ctx);
+    dapp_system::create_dapp(dapp_hub, dapp_key, string(b"test_project"), string(b"Test project for schema generation"), clock, ctx);
     // Register tables
     component0::register_table(dapp_hub, ctx);
     component1::register_table(dapp_hub, ctx);

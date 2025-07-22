@@ -22,6 +22,10 @@
 
   const TABLE_NAME: vector<u8> = b"test_resource";
 
+  const TABLE_TYPE: vector<u8> = b"Resource";
+
+  const OFFCHAIN: bool = false;
+
   public struct TestResource has copy, drop, store {
     player: address,
     value: u32,
@@ -50,36 +54,42 @@
     self.value = value
   }
 
-  public fun get_table_id(): vector<u8> {
-    table_id::encode(table_id::onchain_table_type(), TABLE_NAME)
+  public fun get_table_id(): String {
+    string(TABLE_NAME)
   }
 
-  public fun get_key_schemas(): vector<vector<u8>> {
+  public fun get_key_schemas(): vector<String> {
     vector[]
   }
 
-  public fun get_value_schemas(): vector<vector<u8>> {
-    vector[b"address", b"u32"]
+  public fun get_value_schemas(): vector<String> {
+    vector[string(b"address"),
+    string(b"u32")
+    ]
   }
 
-  public fun get_key_names(): vector<vector<u8>> {
+  public fun get_key_names(): vector<String> {
     vector[]
   }
 
-  public fun get_value_names(): vector<vector<u8>> {
-    vector[b"player", b"value"]
+  public fun get_value_names(): vector<String> {
+    vector[string(b"player"),
+    string(b"value")
+    ]
   }
 
   public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_system::register_table(
-            dapp_hub, 
-            dapp_key,
+            dapp_hub,
+             dapp_key,
+            string(TABLE_TYPE),
             get_table_id(), 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
             get_value_names(), 
+            OFFCHAIN,
             ctx
         );
   }
@@ -101,7 +111,7 @@
 
   public(package) fun delete(dapp_hub: &mut DappHub) {
     let key_tuple = vector::empty();
-    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, OFFCHAIN);
   }
 
   public fun get_player(dapp_hub: &DappHub): address {
@@ -115,7 +125,7 @@
   public(package) fun set_player(dapp_hub: &mut DappHub, player: address) {
     let key_tuple = vector::empty();
     let value = to_bytes(&player);
-    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value, OFFCHAIN);
   }
 
   public fun get_value(dapp_hub: &DappHub): u32 {
@@ -129,7 +139,7 @@
   public(package) fun set_value(dapp_hub: &mut DappHub, value: u32) {
     let key_tuple = vector::empty();
     let value = to_bytes(&value);
-    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value, OFFCHAIN);
   }
 
   public fun get(dapp_hub: &DappHub): (address, u32) {
@@ -144,7 +154,7 @@
   public(package) fun set(dapp_hub: &mut DappHub, player: address, value: u32) {
     let key_tuple = vector::empty();
     let value_tuple = encode(player, value);
-    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
   }
 
   public fun get_struct(dapp_hub: &DappHub): TestResource {
@@ -156,7 +166,7 @@
   public(package) fun set_struct(dapp_hub: &mut DappHub, test_resource: TestResource) {
     let key_tuple = vector::empty();
     let value_tuple = encode_struct(test_resource);
-    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
   }
 
   public fun encode(player: address, value: u32): vector<vector<u8>> {

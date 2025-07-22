@@ -1,17 +1,18 @@
 module example::example_system;
 
 use dubhe::dapp_service::DappHub;
-use example::{resource0, resource1, resource2, resource3, resource4, resource5, resource6, resource7};
+use example::{resource0, resource1, resource2, resource3, resource4, resource5, resource6, resource7, resource8, resource9};
 use example::{component0, component1, component2, component3, component4, component5, 
 component6, component7, component8, component9, component10, component11, component12, component13, component14,
 component15, component16, component17, component18, component19, component20, component21, component22, 
 component23, 
 component24, component25, component26, component27, component28, component29, component30, 
 component31, 
-// component32, component33, component34, component35, component36, component37, component38
+component32, component33
 };
 use sui::address;
 use example::direction;
+use std::ascii::{string};
 
 
 public entry fun resources(dh: &mut DappHub) {
@@ -34,6 +35,19 @@ public entry fun resources(dh: &mut DappHub) {
     resource5::set(dh, player, value, value);
     resource6::set(dh, player, value, value, value, value);
     resource7::set(dh, player, value);
+
+    let mut str = string(b"Hello World");
+    str.append(value.to_string().to_ascii());
+    resource8::set(dh, player, str);
+
+    let mut vec_str = if (resource9::has(dh, player)) {
+        resource9::get_name(dh, player)
+    } else {
+        vector[string(b"Default Value")]
+    };
+    vec_str.push_back(str);
+
+    resource9::set(dh, player, vec_str, value);
 }
 
 public entry fun components(dh: &mut DappHub) {
@@ -85,6 +99,18 @@ public entry fun components(dh: &mut DappHub) {
     component29::set(dh, player, vector[address::from_u256(value as u256)]);
     component30::set(dh, player, vector[value % 2 == 0]);
     component31::set(dh, player, vector[vector[value as u8]]);
+    let mut str = string(b"Hello World");
+    str.append(value.to_string().to_ascii());
+    component32::set(dh, player, str);
+
+    let mut vec_str = if (component33::has(dh, player)) {
+        component33::get(dh, player)
+    } else {
+        vector[string(b"Default Value")]
+    };
+    vec_str.push_back(str);
+    component33::set(dh, player, vec_str);
+
     // component32::set(dh, player, vector[vector[value as u16]]);
     // component33::set(dh, player, vector[vector[value as u32]]);
     // component34::set(dh, player, vector[vector[value as u64]]);

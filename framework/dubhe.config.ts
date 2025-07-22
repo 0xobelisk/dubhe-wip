@@ -23,15 +23,15 @@ export const dubheConfig = {
             fields: {
                 asset_id: 'address',
                 // The user friendly name of this asset. Limited in length by `StringLimit`.
-                name: 'vector<u8>',
+                name: 'String',
                 // The ticker symbol for this asset. Limited in length by `StringLimit`.
-                symbol: 'vector<u8>',
+                symbol: 'String',
                 // A short description of this asset.
-                description: 'vector<u8>',
+                description: 'String',
                 // The number of decimals this asset uses to represent one unit.
                 decimals: 'u8',
                 // Asset icon url 
-                icon_url: 'vector<u8>',
+                icon_url: 'String',
                 // Can change `owner`, `issuer`, `freezer` and `admin` accounts.
                 owner: 'address',
                 // The total supply across all accounts.
@@ -74,7 +74,7 @@ export const dubheConfig = {
         },
         bridge_config: {
             fields: {
-                chain: 'vector<u8>',
+                chain: 'String',
                 min_amount: 'u256',
                 fee: 'u256',
                 opened: 'bool'
@@ -86,7 +86,7 @@ export const dubheConfig = {
             fields: {
                 from: 'address',
                 to: 'address',
-                to_chain: 'vector<u8>',
+                to_chain: 'String',
                 amount: 'u256',
                 fee: 'u256'
             }
@@ -96,25 +96,25 @@ export const dubheConfig = {
             fields: {
                 from: 'address',
                 to: 'address',
-                from_chain: 'vector<u8>',
+                from_chain: 'String',
                 amount: 'u256'
             }
         },
         wrapper_assets: {
             fields: {
-                coin_type: 'vector<u8>',
+                coin_type: 'String',
                 asset_id: 'address',
             },
             keys: ['coin_type']    
         },
         dapp_metadata: {
             fields: {
-                dapp_key: 'vector<u8>',
-                name: 'vector<u8>',
-                description: 'vector<u8>',
-                website_url: 'vector<u8>',
-                cover_url: 'vector<vector<u8>>',
-                partners: 'vector<vector<u8>>',
+                dapp_key: 'String',
+                name: 'String',
+                description: 'String',
+                website_url: 'String',
+                cover_url: 'vector<String>',
+                partners: 'vector<String>',
                 package_ids: 'vector<address>',
                 created_at: 'u64',
                 admin: 'address',
@@ -132,7 +132,7 @@ export const dubheConfig = {
         },
         dapp_fee_state: {
             fields: {
-                dapp_key: 'vector<u8>',
+                dapp_key: 'String',
                 base_fee: 'u256',
                 byte_fee: 'u256',
                 free_credit: 'u256',
@@ -144,7 +144,7 @@ export const dubheConfig = {
         },
         dapp_proxy: {
             fields: {
-                dapp_key: 'vector<u8>',
+                dapp_key: 'String',
                 delegator: 'address',
                 enabled: 'bool',
             },
@@ -185,5 +185,6 @@ export const dubheConfig = {
         dapp_already_initialized: "Dapp already initialized",
         insufficient_credit: "Insufficient credit",
         dapp_not_been_delegated: "Dapp not been delegated",
+        dapp_already_delegated: "Dapp already delegated",
     },
 } as DubheConfig;

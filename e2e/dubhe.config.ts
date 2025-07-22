@@ -199,7 +199,7 @@ export const dubheConfig = defineConfig({
       fields: {
         player: 'address',
         name: 'vector<String>',
-        age: 'u8'
+        age: 'u32'
       },
       keys: ['player']
     },
