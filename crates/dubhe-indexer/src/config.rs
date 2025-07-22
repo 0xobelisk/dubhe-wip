@@ -4,6 +4,8 @@ use crate::{args::DubheIndexerArgs};
 use anyhow::Result;
 use sui_sdk::SuiClientBuilder;
 use sui_sdk::SuiClient;
+use std::path::PathBuf;
+use tempfile::TempDir;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DubheConfig {
@@ -68,6 +70,14 @@ impl DubheConfig {
     pub async fn get_sui_client(&self) -> Result<SuiClient> {
         let sui_client = SuiClientBuilder::default().build(&self.sui.rpc_url).await?;
         Ok(sui_client)
+    }
+
+    pub fn get_checkpoint_url(&self) -> Result<(PathBuf, Option<String>)> {
+        if self.sui.checkpoint_url.starts_with("http") {
+            Ok((TempDir::new()?.path().to_path_buf(), Some(self.sui.checkpoint_url.clone())))
+        } else {
+            Ok((PathBuf::from(self.sui.checkpoint_url.clone()), None))
+        }
     }
 
     /// Initialize logging system based on configuration

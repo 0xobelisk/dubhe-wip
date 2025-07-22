@@ -121,10 +121,11 @@ async fn main() -> Result<()> {
         gc_checkpoint_files: false,
         ..Default::default()
     };
+    let (local_path, remote_store_url) = config.get_checkpoint_url()?;
     executor
         .run(
-            TempDir::new()?.path().to_path_buf(),
-            Some(config.sui.checkpoint_url),
+            local_path,
+            remote_store_url,
             vec![],
             reader_options,
             exit_receiver,
