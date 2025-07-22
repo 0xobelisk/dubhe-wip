@@ -1,6 +1,5 @@
 module dubhe::table_metadata;
 
-use std::ascii::string;
 use std::ascii::String;
 
 /// Table metadata structure

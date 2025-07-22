@@ -1,7 +1,6 @@
 module dubhe::dubhe_events;
 
 use sui::event;
-use std::ascii::string;
 use std::ascii::String;
 
 

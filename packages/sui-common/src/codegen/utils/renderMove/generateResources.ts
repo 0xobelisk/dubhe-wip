@@ -62,37 +62,41 @@ ${isEnum && valueType !== 'string' && valueType !== 'String' ? `    use ${projec
     use ${projectName}::${enumModule}::{${valueType}};` : ''}
 
     const TABLE_NAME: vector<u8> = b"${componentName}";
+    const TABLE_TYPE: vector<u8> = b"Resource";
+    const OFFCHAIN: bool = ${type === 'Offchain'};
 
-    public fun get_table_id(): vector<u8> {
-        table_id::encode(table_id::${type === 'Offchain' ? 'offchain_table_type' : 'onchain_table_type'}(), TABLE_NAME)
+    public fun get_table_id(): String {
+        string(TABLE_NAME)
     }
 
-    public fun get_key_schemas(): vector<vector<u8>> { 
+    public fun get_key_schemas(): vector<String> { 
         vector[]
     }
 
-    public fun get_value_schemas(): vector<vector<u8>> { 
-        vector[b"${valueType}"]
+    public fun get_value_schemas(): vector<String> { 
+        vector[string(b"${valueType}")]
     }
 
-    public fun get_key_names(): vector<vector<u8>> { 
+    public fun get_key_names(): vector<String> { 
         vector[]
     }
 
-    public fun get_value_names(): vector<vector<u8>> { 
-        vector[b"value"]
+    public fun get_value_names(): vector<String> { 
+        vector[string(b"value")]
     }
 
     public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
         let dapp_key = dapp_key::new();
         ${getDappModuleName(projectName)}::register_table(
-            dapp_hub, 
-            dapp_key,
+            dapp_hub,
+             dapp_key,
+            string(TABLE_TYPE),
             get_table_id(), 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
             get_value_names(), 
+            OFFCHAIN,
             ctx
         );
     }
@@ -104,7 +108,7 @@ ${isEnum && valueType !== 'string' && valueType !== 'String' ? `    use ${projec
 
     public(package) fun delete(dapp_hub: &mut DappHub) {
         let key_tuple = vector::empty();
-        ${getDappModuleName(projectName)}::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+        ${getDappModuleName(projectName)}::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, OFFCHAIN);
     }
 
     public fun get(dapp_hub: &DappHub): (${valueType === 'string' || valueType === 'String' ? 'String' : valueType}) {
@@ -118,7 +122,7 @@ ${isEnum && valueType !== 'string' && valueType !== 'String' ? `    use ${projec
     public(package) fun set(dapp_hub: &mut DappHub, value: ${valueType === 'string' || valueType === 'String' ? 'String' : valueType}) {
         let key_tuple = vector::empty();
         let value_tuple = encode(value);
-        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
     }
 
     public fun encode(value: ${valueType === 'string' || valueType === 'String' ? 'String' : valueType}): vector<vector<u8>> {
@@ -178,6 +182,8 @@ ${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module}
     use ${projectName}::${e.module}::{${e.type}};`).join('\n') : ''}
 
     const TABLE_NAME: vector<u8> = b"${componentName}";
+    const TABLE_TYPE: vector<u8> = b"Resource";
+    const OFFCHAIN: bool = ${type === 'Offchain'};
 
 ${tableFunctions}
 }`;
@@ -224,6 +230,8 @@ ${enumTypes.length > 0 ? enumTypes.map(e => `    use ${projectName}::${e.module}
     use ${projectName}::${e.module}::{${e.type}};`).join('\n') : ''}
 
     const TABLE_NAME: vector<u8> = b"${componentName}";
+    const TABLE_TYPE: vector<u8> = b"Resource";
+    const OFFCHAIN: bool = ${type === 'Offchain'};
 
     public struct ${toPascalCase(componentName)} has copy, drop, store {
 ${structFields}
@@ -287,37 +295,39 @@ function generateTableFunctions(
     : 'let key_tuple = vector::empty();';
   
   // Generate table ID related functions
-  const tableIdFunctions = `    public fun get_table_id(): vector<u8> {
-        table_id::encode(table_id::${type === 'Offchain' ? 'offchain_table_type' : 'onchain_table_type'}(), TABLE_NAME)
+  const tableIdFunctions = `    public fun get_table_id(): String {
+        string(TABLE_NAME)
     }
 
-    public fun get_key_schemas(): vector<vector<u8>> { 
-        vector[${keys.map(k => `b"${fields[k]}"`).join(', ')}]
+    public fun get_key_schemas(): vector<String> { 
+        vector[${keys.map(k => `string(b"${fields[k]}")`).join(', ')}]
     }
 
-    public fun get_value_schemas(): vector<vector<u8>> { 
-        vector[${Object.values(valueFields).map(t => `b"${t}"`).join(', ')}]
+    public fun get_value_schemas(): vector<String> { 
+        vector[${Object.values(valueFields).map(t => `string(b"${t}")`).join(', ')}]
     }
 
-    public fun get_key_names(): vector<vector<u8>> { 
-        vector[${keys.map(k => `b"${k}"`).join(', ')}]
+    public fun get_key_names(): vector<String> { 
+        vector[${keys.map(k => `string(b"${k}")`).join(', ')}]
     }
 
-    public fun get_value_names(): vector<vector<u8>> { 
-        vector[${valueNames.map(n => `b"${n}"`).join(', ')}]
+    public fun get_value_names(): vector<String> { 
+        vector[${valueNames.map(n => `string(b"${n}")`).join(', ')}]
     }`;
 
   // Generate register table function
   const registerFunction = `    public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
         let dapp_key = dapp_key::new();
         ${getDappModuleName(projectName)}::register_table(
-            dapp_hub, 
-            dapp_key,
+            dapp_hub,
+             dapp_key,
+            string(TABLE_TYPE),
             get_table_id(), 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
             get_value_names(), 
+            OFFCHAIN,
             ctx
         );
     }`;
@@ -342,7 +352,7 @@ function generateTableFunctions(
   // Generate delete function
   const deleteFunction = `    public(package) fun delete(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}) {
         ${keyTupleCode}
-        ${getDappModuleName(projectName)}::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+        ${getDappModuleName(projectName)}::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, OFFCHAIN);
     }`;
 
   // Generate getter and setter functions, only generated when there are multiple value fields
@@ -363,7 +373,7 @@ function generateTableFunctions(
     public(package) fun set_${name}(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, ${name}: ${fieldType === 'string' || fieldType === 'String' ? 'String' : fieldType === 'vector<String>' ? 'vector<String>' : fieldType}) {
         ${keyTupleCode}
         let value = ${fieldType === 'string' || fieldType === 'String' ? `to_bytes(&into_bytes(${name}))` : fieldType === 'vector<String>' ? `to_bytes(&${name})` : isEnum ? `${projectName}::${enumType?.module}::encode(${name})` : `to_bytes(&${name})`};
-        ${getDappModuleName(projectName)}::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, ${index}, value);
+        ${getDappModuleName(projectName)}::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, ${index}, value, OFFCHAIN);
     }`;
   }).join('\n\n') : '';
 
@@ -372,7 +382,7 @@ function generateTableFunctions(
     ? `    public(package) fun set(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}) {
         ${keyTupleCode}
         let value_tuple = vector::empty();
-        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
     }`
     : isSingleValue
     ? `    public fun get(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): ${Object.values(valueFields)[0] === 'string' || Object.values(valueFields)[0] === 'String' ? 'String' : Object.values(valueFields)[0]} {
@@ -392,7 +402,7 @@ function generateTableFunctions(
     public(package) fun set(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, value: ${Object.values(valueFields)[0] === 'string' || Object.values(valueFields)[0] === 'String' ? 'String' : Object.values(valueFields)[0]}) {
         ${keyTupleCode}
         let value_tuple = encode(value);
-        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
     }`
     : `    public fun get(dapp_hub: &DappHub${keyParams ? ', ' + keyParams : ''}): (${Object.values(valueFields).map(t => t === 'string' || t === 'String' ? 'String' : t).join(', ')}) {
         ${keyTupleCode}
@@ -410,7 +420,7 @@ function generateTableFunctions(
     public(package) fun set(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, ${valueNames.map(n => `${n}: ${fields[n] === 'string' || fields[n] === 'String' ? 'String' : fields[n]}`).join(', ')}) {
         ${keyTupleCode}
         let value_tuple = encode(${valueNames.join(', ')});
-        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
     }`;
 
   // Generate struct related functions
@@ -423,7 +433,7 @@ function generateTableFunctions(
     public(package) fun set_struct(dapp_hub: &mut DappHub${keyParams ? ', ' + keyParams : ''}, ${componentName}: ${toPascalCase(componentName)}) {
         ${keyTupleCode}
         let value_tuple = encode_struct(${componentName});
-        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+        ${getDappModuleName(projectName)}::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
     }` : '';
 
   // Generate encode and decode functions

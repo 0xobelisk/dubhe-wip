@@ -8,6 +8,8 @@
 
   use dubhe::dapp_system;
 
+  use std::ascii::string;
+
   use example::component0;
 
   use example::component1;
@@ -101,7 +103,7 @@
   public entry fun run(dapp_hub: &mut DappHub, clock: &Clock, ctx: &mut TxContext) {
     // Create Dapp
     let dapp_key = dapp_key::new();
-    dapp_system::create_dapp(dapp_hub, dapp_key, b"example", b"example", clock, ctx);
+    dapp_system::create_dapp(dapp_hub, dapp_key, string(b"example"), string(b"example"), clock, ctx);
     // Register tables
     component0::register_table(dapp_hub, ctx);
     component1::register_table(dapp_hub, ctx);

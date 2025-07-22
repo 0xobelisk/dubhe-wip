@@ -1,11 +1,9 @@
 module dubhe::dapp_service {
     use std::ascii::String;
-    use dubhe::table_id;
     use dubhe::dubhe_events::{emit_store_set_field, emit_store_set_record, emit_store_delete_record};
     use std::type_name;
     use dubhe::dapp_store::DappStore;
     use dubhe::dapp_store;
-    use sui::clock::Clock;
     use sui::object_table;
     use sui::object_table::ObjectTable;
     use sui::bag::Bag;
@@ -13,11 +11,7 @@ module dubhe::dapp_service {
 
     /// Error codes
     const EInvalidKey: u64 = 2;
-    const EInvalidFieldIndex: u64 = 4;
     const ENoPermissionPackageId: u64 = 6;
-    const EInvalidPackageId: u64 = 7;
-    const ENoPermissionAdmin: u64 = 8;
-    const EInvalidVersion: u64 = 9;
 
     /// Storage structure
     public struct DappHub has key, store {
@@ -73,13 +67,13 @@ module dubhe::dapp_service {
         dapp_key: String,
         table_id: String,
         key_tuple: vector<vector<u8>>,
-        value_tuple: vector<vector<u8>>,
-        offchain: bool
+        value_tuple: vector<vector<u8>>
     ) {
         let dapp_store = self.dapp_stores.borrow_mut(dapp_key);
+        let table_metadata = dapp_store.get_table_metadatas().borrow(table_id);
         assert!(dapp_store.get_dapp_key() == dapp_key, ENoPermissionPackageId);
 
-        if(offchain) {
+        if(table_metadata.get_offchain()) {
             emit_store_set_record(
                 dapp_key,
                 table_id,

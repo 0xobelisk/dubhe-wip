@@ -22,6 +22,10 @@
 
   const TABLE_NAME: vector<u8> = b"component34";
 
+  const TABLE_TYPE: vector<u8> = b"Component";
+
+  const OFFCHAIN: bool = false;
+
   public struct Component34 has copy, drop, store {
     name: vector<String>,
     age: u8,
@@ -50,36 +54,46 @@
     self.age = age
   }
 
-  public fun get_table_id(): vector<u8> {
-    table_id::encode(table_id::onchain_table_type(), TABLE_NAME)
+  public fun get_table_id(): String {
+    string(TABLE_NAME)
   }
 
-  public fun get_key_schemas(): vector<vector<u8>> {
-    vector[b"address"]
+  public fun get_key_schemas(): vector<String> {
+    vector[
+    string(b"address")
+    ]
   }
 
-  public fun get_value_schemas(): vector<vector<u8>> {
-    vector[b"vector<String>", b"u8"]
+  public fun get_value_schemas(): vector<String> {
+    vector[string(b"vector<String>"),
+    string(b"u8")
+    ]
   }
 
-  public fun get_key_names(): vector<vector<u8>> {
-    vector[b"entity_id"]
+  public fun get_key_names(): vector<String> {
+    vector[
+    string(b"entity_id")
+    ]
   }
 
-  public fun get_value_names(): vector<vector<u8>> {
-    vector[b"name", b"age"]
+  public fun get_value_names(): vector<String> {
+    vector[string(b"name"),
+    string(b"age")
+    ]
   }
 
   public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_system::register_table(
-            dapp_hub, 
-            dapp_key,
+            dapp_hub,
+             dapp_key,
+            string(TABLE_TYPE),
             get_table_id(), 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
             get_value_names(), 
+            OFFCHAIN,
             ctx
         );
   }
@@ -105,7 +119,7 @@
   public(package) fun delete(dapp_hub: &mut DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&entity_id));
-    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, OFFCHAIN);
   }
 
   public fun get_name(dapp_hub: &DappHub, entity_id: address): vector<String> {
@@ -121,7 +135,7 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&entity_id));
     let value = to_bytes(&name);
-    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value, OFFCHAIN);
   }
 
   public fun get_age(dapp_hub: &DappHub, entity_id: address): u8 {
@@ -137,7 +151,7 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&entity_id));
     let value = to_bytes(&age);
-    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value, OFFCHAIN);
   }
 
   public fun get(dapp_hub: &DappHub, entity_id: address): (vector<String>, u8) {
@@ -154,7 +168,7 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = encode(name, age);
-    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
   }
 
   public fun get_struct(dapp_hub: &DappHub, entity_id: address): Component34 {
@@ -168,7 +182,7 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = encode_struct(component34);
-    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
   }
 
   public fun encode(name: vector<String>, age: u8): vector<vector<u8>> {

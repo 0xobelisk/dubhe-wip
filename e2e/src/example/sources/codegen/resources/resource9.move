@@ -22,12 +22,16 @@
 
   const TABLE_NAME: vector<u8> = b"resource9";
 
+  const TABLE_TYPE: vector<u8> = b"Resource";
+
+  const OFFCHAIN: bool = false;
+
   public struct Resource9 has copy, drop, store {
     name: vector<String>,
-    age: u8,
+    age: u32,
   }
 
-  public fun new(name: vector<String>, age: u8): Resource9 {
+  public fun new(name: vector<String>, age: u32): Resource9 {
     Resource9 {
             name,
             age,
@@ -38,7 +42,7 @@
     self.name
   }
 
-  public fun age(self: &Resource9): u8 {
+  public fun age(self: &Resource9): u32 {
     self.age
   }
 
@@ -46,40 +50,50 @@
     self.name = name
   }
 
-  public fun update_age(self: &mut Resource9, age: u8) {
+  public fun update_age(self: &mut Resource9, age: u32) {
     self.age = age
   }
 
-  public fun get_table_id(): vector<u8> {
-    table_id::encode(table_id::onchain_table_type(), TABLE_NAME)
+  public fun get_table_id(): String {
+    string(TABLE_NAME)
   }
 
-  public fun get_key_schemas(): vector<vector<u8>> {
-    vector[b"address"]
+  public fun get_key_schemas(): vector<String> {
+    vector[
+    string(b"address")
+    ]
   }
 
-  public fun get_value_schemas(): vector<vector<u8>> {
-    vector[b"vector<String>", b"u8"]
+  public fun get_value_schemas(): vector<String> {
+    vector[string(b"vector<String>"),
+    string(b"u32")
+    ]
   }
 
-  public fun get_key_names(): vector<vector<u8>> {
-    vector[b"player"]
+  public fun get_key_names(): vector<String> {
+    vector[
+    string(b"player")
+    ]
   }
 
-  public fun get_value_names(): vector<vector<u8>> {
-    vector[b"name", b"age"]
+  public fun get_value_names(): vector<String> {
+    vector[string(b"name"),
+    string(b"age")
+    ]
   }
 
   public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
     let dapp_key = dapp_key::new();
     dapp_system::register_table(
-            dapp_hub, 
-            dapp_key,
+            dapp_hub,
+             dapp_key,
+            string(TABLE_TYPE),
             get_table_id(), 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
             get_value_names(), 
+            OFFCHAIN,
             ctx
         );
   }
@@ -105,7 +119,7 @@
   public(package) fun delete(dapp_hub: &mut DappHub, player: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player));
-    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, OFFCHAIN);
   }
 
   public fun get_name(dapp_hub: &DappHub, player: address): vector<String> {
@@ -121,40 +135,40 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player));
     let value = to_bytes(&name);
-    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 0, value, OFFCHAIN);
   }
 
-  public fun get_age(dapp_hub: &DappHub, player: address): u8 {
+  public fun get_age(dapp_hub: &DappHub, player: address): u32 {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player));
     let value = dapp_system::get_field<DappKey>(dapp_hub, get_table_id(), key_tuple, 1);
     let mut bsc_type = sui::bcs::new(value);
-    let age = sui::bcs::peel_u8(&mut bsc_type);
+    let age = sui::bcs::peel_u32(&mut bsc_type);
     age
   }
 
-  public(package) fun set_age(dapp_hub: &mut DappHub, player: address, age: u8) {
+  public(package) fun set_age(dapp_hub: &mut DappHub, player: address, age: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player));
     let value = to_bytes(&age);
-    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value);
+    dapp_system::set_field(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, 1, value, OFFCHAIN);
   }
 
-  public fun get(dapp_hub: &DappHub, player: address): (vector<String>, u8) {
+  public fun get(dapp_hub: &DappHub, player: address): (vector<String>, u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player));
     let value_tuple = dapp_system::get_record<DappKey>(dapp_hub, get_table_id(), key_tuple);
     let mut bsc_type = sui::bcs::new(value_tuple);
     let name = dubhe::bcs::peel_vec_string(&mut bsc_type);
-    let age = sui::bcs::peel_u8(&mut bsc_type);
+    let age = sui::bcs::peel_u32(&mut bsc_type);
     (name, age)
   }
 
-  public(package) fun set(dapp_hub: &mut DappHub, player: address, name: vector<String>, age: u8) {
+  public(package) fun set(dapp_hub: &mut DappHub, player: address, name: vector<String>, age: u32) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player));
     let value_tuple = encode(name, age);
-    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
   }
 
   public fun get_struct(dapp_hub: &DappHub, player: address): Resource9 {
@@ -168,10 +182,10 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&player));
     let value_tuple = encode_struct(resource9);
-    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
   }
 
-  public fun encode(name: vector<String>, age: u8): vector<vector<u8>> {
+  public fun encode(name: vector<String>, age: u32): vector<vector<u8>> {
     let mut value_tuple = vector::empty();
     value_tuple.push_back(to_bytes(&name));
     value_tuple.push_back(to_bytes(&age));
@@ -185,7 +199,7 @@
   public fun decode(data: vector<u8>): Resource9 {
     let mut bsc_type = sui::bcs::new(data);
     let name = dubhe::bcs::peel_vec_string(&mut bsc_type);
-    let age = sui::bcs::peel_u8(&mut bsc_type);
+    let age = sui::bcs::peel_u32(&mut bsc_type);
     Resource9 {
             name,
             age,

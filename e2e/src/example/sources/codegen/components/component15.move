@@ -22,24 +22,36 @@
 
   const TABLE_NAME: vector<u8> = b"component15";
 
-  public fun get_table_id(): vector<u8> {
-    table_id::encode(table_id::onchain_table_type(), TABLE_NAME)
+  const TABLE_TYPE: vector<u8> = b"Component";
+
+  const OFFCHAIN: bool = false;
+
+  public fun get_table_id(): String {
+    string(TABLE_NAME)
   }
 
-  public fun get_key_schemas(): vector<vector<u8>> {
-    vector[b"address"]
+  public fun get_key_schemas(): vector<String> {
+    vector[
+    string(b"address")
+    ]
   }
 
-  public fun get_value_schemas(): vector<vector<u8>> {
-    vector[b"u8"]
+  public fun get_value_schemas(): vector<String> {
+    vector[
+    string(b"u8")
+    ]
   }
 
-  public fun get_key_names(): vector<vector<u8>> {
-    vector[b"entity_id"]
+  public fun get_key_names(): vector<String> {
+    vector[
+    string(b"entity_id")
+    ]
   }
 
-  public fun get_value_names(): vector<vector<u8>> {
-    vector[b"value"]
+  public fun get_value_names(): vector<String> {
+    vector[
+    string(b"value")
+    ]
   }
 
   public(package) fun register_table(dapp_hub: &mut DappHub, ctx: &mut TxContext) {
@@ -47,11 +59,13 @@
     dapp_system::register_table(
             dapp_hub, 
             dapp_key,
+            string(TABLE_TYPE),
             get_table_id(), 
             get_key_schemas(), 
             get_key_names(), 
             get_value_schemas(), 
             get_value_names(), 
+            OFFCHAIN,
             ctx
         );
   }
@@ -65,7 +79,7 @@
   public(package) fun delete(dapp_hub: &mut DappHub, entity_id: address) {
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&entity_id));
-    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple);
+    dapp_system::delete_record<DappKey>(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, OFFCHAIN);
   }
 
   public fun get(dapp_hub: &DappHub, entity_id: address): (u8) {
@@ -81,7 +95,7 @@
     let mut key_tuple = vector::empty();
     key_tuple.push_back(to_bytes(&entity_id));
     let value_tuple = encode(value);
-    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple);
+    dapp_system::set_record(dapp_hub, dapp_key::new(), get_table_id(), key_tuple, value_tuple, OFFCHAIN);
   }
 
   public fun encode(value: u8): vector<vector<u8>> {
