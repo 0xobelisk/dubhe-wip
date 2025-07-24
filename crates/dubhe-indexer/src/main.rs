@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::sui_data_ingestion_core as sdic;
-use crate::sui_data_ingestion_core::PostgressProgressStore;
 use crate::sui_data_ingestion_core::{setup_single_workflow, ProgressStore};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -21,20 +20,19 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 
 mod args;
-mod db;
-mod events;
+// mod db;
 mod sql;
 mod sui_data_ingestion_core;
-mod table;
 mod tls;
 mod worker;
 mod config;
 
 use crate::args::DubheIndexerArgs;
-use crate::db::get_connection_pool;
-use dubhe_common::TableMetadata;
+// use crate::db::get_connection_pool;
+use dubhe_common::{Storage, TableMetadata};
 use crate::worker::DubheIndexerWorker;
 use crate::config::DubheConfig;
+use dubhe_common::SqliteStorage;
 
 // testnet
 // cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
@@ -73,11 +71,16 @@ async fn main() -> Result<()> {
     let config_json = args.get_config_json()?;
     let (package_id, start_checkpoint, tables) = TableMetadata::from_json(config_json)?;
 
+    let sqlite = SqliteStorage::new(&config.database.url).await?;
+    sqlite.create_tables(&tables).await?;
+
     let mut dubhe_indexer_worker = DubheIndexerWorker {
         package_id,
         tables,
         with_graphql: args.with_graphql,
     };
+
+
 
     // // Handle force restart for local nodes only
     // if args.force {

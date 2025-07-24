@@ -13,7 +13,7 @@ use sui_types::full_checkpoint_content::CheckpointData;
 use serde_json::json;
 
 use crate::{
-    db::PgConnectionPool,
+    // db::PgConnectionPool,
     sql::{generate_delete_record_sql, generate_set_field_sql, generate_set_record_sql},
 };
 use dubhe_common::{StoreDeleteRecord, StoreSetField, StoreSetRecord, TableMetadata};
@@ -470,8 +470,6 @@ impl Worker for DubheIndexerWorker {
             let maybe_events = &transaction.events;
             if let Some(events) = maybe_events {
                 for event in &events.data {
-                        println!("Event: {:?}", event);
-                        println!("================================================");
                         if event.type_.name.to_string() == "Dubhe_Store_SetRecord" {
                             let set_record: StoreSetRecord =
                                 bcs::from_bytes(event.contents.as_slice())

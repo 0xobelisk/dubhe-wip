@@ -4,3 +4,4 @@ mod table;
 
 pub use events::*;
 pub use table::*;
+pub use db::*;
