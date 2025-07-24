@@ -86,17 +86,17 @@ jobs:
           VERSION_NO_V="${{ needs.get-version.outputs.version_no_v }}"
           echo "Updating Rust project version to: ${VERSION_NO_V}"
 
-          # Update sui-rust-indexer Cargo.toml (cross-platform compatible)
+          # Update dubhe-indexer Cargo.toml (cross-platform compatible)
           if [[ "${{ matrix.os }}" == macos-* ]]; then
             # macOS requires backup extension parameter
-            sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+            sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" crates/dubhe-indexer/Cargo.toml
           else
             # Linux/Windows with Git Bash
-            sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+            sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" crates/dubhe-indexer/Cargo.toml
           fi
 
           # Verify update
-          current_version=$(grep '^version = ' packages/sui-rust-indexer/Cargo.toml | cut -d'"' -f2)
+          current_version=$(grep '^version = ' crates/dubhe-indexer/Cargo.toml | cut -d'"' -f2)
           echo "Updated Cargo.toml version: $current_version"
 
           if [ "$current_version" != "${VERSION_NO_V}" ]; then
@@ -113,7 +113,7 @@ jobs:
       - name: Configure Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: packages/sui-rust-indexer
+          workspaces: crates/dubhe-indexer
 
       - name: Install Linux cross-compilation dependencies
         if: matrix.native_build == false && matrix.target == 'aarch64-unknown-linux-gnu'
@@ -129,12 +129,12 @@ jobs:
           echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
       - name: Compile project
-        working-directory: packages/sui-rust-indexer
+        working-directory: crates/dubhe-indexer
         run: |
           cargo build --release --target ${{ matrix.target }}
 
       - name: Prepare release files
-        working-directory: packages/sui-rust-indexer
+        working-directory: crates/dubhe-indexer
         shell: bash
         run: |
           mkdir -p dist
@@ -150,7 +150,7 @@ jobs:
 
           # Output information for subsequent steps
           echo "ARCHIVE_NAME=${archive_name}" >> $GITHUB_ENV
-          echo "ARCHIVE_PATH=packages/sui-rust-indexer/dist/${archive_name}.tar.gz" >> $GITHUB_ENV
+          echo "ARCHIVE_PATH=crates/dubhe-indexer/dist/${archive_name}.tar.gz" >> $GITHUB_ENV
 
       - name: Calculate file hash
         shell: bash
@@ -463,10 +463,10 @@ jobs:
           # Update Rust project version (cross-platform compatible)
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             # macOS requires backup extension parameter  
-            sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+            sed -i "" "s/^version = .*/version = \"${VERSION_NO_V}\"/" crates/dubhe-indexer/Cargo.toml
           else
             # Linux/Windows with Git Bash
-            sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" packages/sui-rust-indexer/Cargo.toml
+            sed -i "s/^version = .*/version = \"${VERSION_NO_V}\"/" crates/dubhe-indexer/Cargo.toml
           fi
 
           # Update Node.js package versions
