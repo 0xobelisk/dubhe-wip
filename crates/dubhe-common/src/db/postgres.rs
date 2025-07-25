@@ -3,6 +3,8 @@ use crate::db::Storage;
 use async_trait::async_trait;
 use anyhow::Result;
 use crate::table::TableMetadata;
+use crate::sql::DBData;
+use serde_json::Value;
 
 pub struct PostgresStorage {
     pool: Pool<Postgres>,
@@ -101,8 +103,12 @@ impl Storage for PostgresStorage {
         self.generate_create_table_sql(table)
     }
 
-    async fn insert(&self, _table_name: &str, _data: &serde_json::Value) -> Result<()> {
-        // TODO: Implement complex insert logic
+    async fn insert(&self, table_name: &str, values: Vec<DBData>, last_updated_checkpoint: u64) -> Result<()> {
         Ok(())
+    }
+
+    fn get_sql_type(&self, type_: &str) -> String {
+        // self.get_sql_type(type_)
+        "TEXT".to_string()
     }
 }

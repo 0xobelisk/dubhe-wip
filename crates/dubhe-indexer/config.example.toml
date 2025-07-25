@@ -13,9 +13,16 @@
 # Available log levels: debug, info, warn, error
 
 [sui]
-rpc_url = "https://fullnode.testnet.sui.io:443"
-checkpoint_url = "https://checkpoints.testnet.sui.io"
-origin_package_id = "0x2"
+# mainnet: https://fullnode.mainnet.sui.io:443
+# testnet: https://fullnode.testnet.sui.io:443
+# localnet: http://localhost:9000
+rpc_url = "http://localhost:9000"
+
+# mainnet: https://checkpoints.mainnet.sui.io
+# testnet: https://checkpoints.testnet.sui.io
+# localnet: /tmp/checkpoints
+checkpoint_url = "e2e/.chk"
+origin_package_id = "0x6648e8a3c4051deb4e89b06939185522e6c18495d8bd6626c4dcd67fba61e743"
 start_checkpoint = 10
 
 # Database configuration
@@ -26,8 +33,8 @@ db_type = "sqlite"
 # SQLite example: "sqlite:crate/dubhe-indexer/indexer.db"
 # PostgreSQL example: "postgres://user:password@localhost:5432/indexer"
 # url = "postgres://postgres:password@localhost:5432/indexer"
-url = "sqlite::memory:"
-# url = "sqlite:crates/dubhe-indexer/indexer.db"
+# url = "sqlite::memory:"
+url = "sqlite:crates/dubhe-indexer/indexer.db"
 # Maximum number of connections in the pool
 max_connections = 10
 

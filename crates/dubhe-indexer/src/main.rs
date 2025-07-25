@@ -29,17 +29,14 @@ mod config;
 
 use crate::args::DubheIndexerArgs;
 // use crate::db::get_connection_pool;
-use dubhe_common::{Storage, TableMetadata};
-use crate::worker::DubheIndexerWorker;
+use dubhe_common::{Database, Storage, TableMetadata};
+use crate::worker::{DubheIndexerWorker, TableSubscribers};
 use crate::config::DubheConfig;
 use dubhe_common::SqliteStorage;
-
-// testnet
-// cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url https://checkpoints.testnet.sui.io --start-checkpoint 1000
-// localnet
-// cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1
-// localnet with force restart (clear indexer database only)
-// cargo run -- --config dubhe.config.json --worker-pool-number 3 --store-url ./chk --start-checkpoint 1 --force
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use dubhe_indexer_api::grpc::start_grpc_server;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -71,15 +68,24 @@ async fn main() -> Result<()> {
     let config_json = args.get_config_json()?;
     let (package_id, start_checkpoint, tables) = TableMetadata::from_json(config_json)?;
 
-    let sqlite = SqliteStorage::new(&config.database.url).await?;
-    sqlite.create_tables(&tables).await?;
+    println!("tables: {:?}", tables);
 
-    let mut dubhe_indexer_worker = DubheIndexerWorker {
-        package_id,
-        tables,
-        with_graphql: args.with_graphql,
-    };
+    let database = Database::new(&config.database.url).await?;
 
+    // Initialize subscribers for GRPC
+    let subscribers: TableSubscribers = Arc::new(RwLock::new(HashMap::new()));
+    
+    let mut dubhe_indexer_worker = DubheIndexerWorker::new(config.clone(), tables.clone(), false, subscribers.clone()).await?;
+    dubhe_indexer_worker.database.create_tables(&tables).await?;
+    
+    // Start GRPC server in background
+    let grpc_addr = config.grpc.addr.clone();
+    let grpc_subscribers = subscribers.clone();
+    tokio::spawn(async move {
+        if let Err(e) = start_grpc_server(grpc_addr, grpc_subscribers).await {
+            log::error!("GRPC server error: {}", e);
+        }
+    });
 
 
     // // Handle force restart for local nodes only
@@ -115,7 +121,7 @@ async fn main() -> Result<()> {
     let mut executor = IndexerExecutor::new(progress_store, 1, metrics.clone());
     executor
         .register(WorkerPool::new(
-            dubhe_indexer_worker.clone(),
+            dubhe_indexer_worker,
             "latest_reader_progress".to_string(),
             concurrency,
         ))

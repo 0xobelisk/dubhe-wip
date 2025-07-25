@@ -1,32 +1,43 @@
+use crate::config::DubheConfig;
 use crate::sui_data_ingestion_core::Worker;
 use anyhow::Result;
 use async_trait::async_trait;
 use bcs;
-use diesel::prelude::*;
-use diesel::sql_types::{Bool, Integer, Nullable, Text};
-use diesel_async::RunQueryDsl;
+use notify::event;
 use serde_json::Value;
-use std::fs;
+use sui_types::full_checkpoint_content::CheckpointData;
 use std::str::FromStr;
 use sui_types::base_types::ObjectID;
-use sui_types::full_checkpoint_content::CheckpointData;
-use serde_json::json;
 
-use crate::{
-    // db::PgConnectionPool,
-    sql::{generate_delete_record_sql, generate_set_field_sql, generate_set_record_sql},
-};
-use dubhe_common::{StoreDeleteRecord, StoreSetField, StoreSetRecord, TableMetadata};
+use dubhe_common::{Database, EventParser, StoreDeleteRecord, StoreSetField, StoreSetRecord, TableMetadata};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
 
-#[derive(Clone)]
+use dubhe_indexer_api::types::{TableUpdate, TableRow};
+
+pub type TableSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableUpdate>>>>>;
+
 pub struct DubheIndexerWorker {
-    // pub pg_pool: PgConnectionPool,
-    pub package_id: String,
+    pub config: DubheConfig,
     pub tables: Vec<TableMetadata>,
     pub with_graphql: bool,
+    pub database: Database,
+    pub subscribers: TableSubscribers,
 }
 
 impl DubheIndexerWorker {
+    pub async fn new(config: DubheConfig, tables: Vec<TableMetadata>, with_graphql: bool, subscribers: TableSubscribers) -> Result<Self> {
+        let database = Database::new(&config.database.url).await?;
+        
+        Ok(Self {
+            config,
+            tables,
+            with_graphql,
+            database,
+            subscribers,
+        })
+    }
     // pub async fn clear_all_data(&self) -> Result<()> {
     //     let mut conn = self.pg_pool.get().await?;
 
@@ -470,39 +481,98 @@ impl Worker for DubheIndexerWorker {
             let maybe_events = &transaction.events;
             if let Some(events) = maybe_events {
                 for event in &events.data {
+                    if event.package_id == ObjectID::from_str(&self.config.sui.origin_package_id).unwrap() {
                         if event.type_.name.to_string() == "Dubhe_Store_SetRecord" {
                             let set_record: StoreSetRecord =
                                 bcs::from_bytes(event.contents.as_slice())
                                     .expect("Failed to parse set record");
-                            println!("Set record: {:?}", set_record);
 
-                           
-                            // Process StoreSetRecord event
-                            // self.handle_store_set_record(current_checkpoint, &set_record)
-                            //     .await?;
-                            set_record_count += 1;
+                            let expect_dapp_key = format!("{}::dapp_key::DappKey", self.config.sui.origin_package_id);
+                            let event_dapp_key = format!("0x{}", set_record.dapp_key);
+                            if  expect_dapp_key == event_dapp_key {
+                                println!("Set record: {:?}", set_record);
+
+                                // Process StoreSetRecord event
+                                let (table_name, values) = set_record.parse(&self.tables)?;
+                                
+                                // Send update to subscribers first (non-blocking)
+                                let mut fields = std::collections::HashMap::new();
+                                for value in &values {
+                                    fields.insert(value.column_name.clone(), value.column_value.to_string());
+                                }
+                                
+                                let table_row = dubhe_indexer_api::types::TableRow {
+                                    fields,
+                                    created_at: std::time::SystemTime::now()
+                                        .duration_since(std::time::UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_secs() as i64,
+                                    updated_at: std::time::SystemTime::now()
+                                        .duration_since(std::time::UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_secs() as i64,
+                                    last_updated_checkpoint: current_checkpoint as i64,
+                                };
+                                
+                                let update = TableUpdate {
+                                    table_id: table_name.clone(),
+                                    operation: "INSERT".to_string(),
+                                    data: Some(table_row),
+                                    checkpoint: current_checkpoint as i64,
+                                    timestamp: std::time::SystemTime::now()
+                                        .duration_since(std::time::UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_secs() as i64,
+                                };
+                                
+                                // Spawn async task to send update without blocking
+                                let subscribers = self.subscribers.clone();
+                                let table_name_clone = table_name.clone();
+                                tokio::spawn(async move {
+                                    let subscribers = subscribers.read().await;
+                                    if let Some(senders) = subscribers.get(&table_name_clone) {
+                                        for sender in senders {
+                                            let _ = sender.send(update.clone());
+                                        }
+                                    }
+                                });
+                                
+                                // Insert data into database after sending to subscribers
+                                self.database.insert(&table_name, values, current_checkpoint).await?;
+                                
+                                set_record_count += 1;
+                            }    
                         }
 
                         if event.type_.name.to_string() == "Dubhe_Store_SetField" {
                             let set_field: StoreSetField =
                                 bcs::from_bytes(event.contents.as_slice())
                                     .expect("Failed to parse set field");
-
-                            println!("Set field: {:?}", set_field);
-                            // Process StoreSetField event
-                            // self.handle_store_set_field(current_checkpoint, &set_field)
-                            //     .await?;
-                            set_field_count += 1;
+                            let expect_dapp_key = format!("{}::dapp_key::DappKey", self.config.sui.origin_package_id);
+                            let event_dapp_key = format!("0x{}", set_field.dapp_key);
+                            if  expect_dapp_key == event_dapp_key {
+                                println!("Set field: {:?}", set_field);
+                                // Process StoreSetField event
+                                // self.handle_store_set_field(current_checkpoint, &set_field)
+                                 //     .await?;
+                                set_field_count += 1;
+                            }
                         }
 
                         if event.type_.name.to_string() == "Dubhe_Store_DeleteRecord" {
                             let delete_record: StoreDeleteRecord =
                                 bcs::from_bytes(event.contents.as_slice())
                                     .expect("Failed to parse delete record");
-                            println!("Delete record: {:?}", delete_record);
-                            // self.handle_store_delete_record(current_checkpoint, &delete_record)
-                            //     .await?;
+                            let expect_dapp_key = format!("{}::dapp_key::DappKey", self.config.sui.origin_package_id);
+                            let event_dapp_key = format!("0x{}", delete_record.dapp_key);
+                            if  expect_dapp_key == event_dapp_key {
+                                println!("Delete record: {:?}", delete_record);
+                                // Process StoreDeleteRecord event
+                                // self.handle_store_delete_record(current_checkpoint, &delete_record)
+                                //     .await?;
+                            }
                         }
+                    }
                 }
             }
         }

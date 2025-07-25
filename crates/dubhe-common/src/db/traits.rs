@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serde_json::Value;
 use crate::table::TableMetadata;
+use crate::sql::DBData;
 use anyhow::Result;
 use sqlx::Pool;
 
@@ -18,11 +19,12 @@ pub trait Storage: Send + Sync {
     /// Create tables from configuration
     async fn create_tables(&self, tables: &[TableMetadata]) -> Result<()>;
     
-    /// Insert data into a table (placeholder for future implementation)
-    async fn insert(&self, _table_name: &str, _data: &Value) -> Result<()> {
-        // TODO: Implement complex insert logic
-        Ok(())
-    }
+    /// Insert data into a table
+    async fn insert(&self, table_name: &str, values: Vec<DBData>, last_updated_checkpoint: u64) -> Result<()>;
+
+
+    /// Get sql type
+    fn get_sql_type(&self, type_: &str) -> String;
     
     /// Generate CREATE TABLE SQL for a table
     fn generate_create_table_sql(&self, table: &TableMetadata) -> String;
