@@ -14,9 +14,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
-use dubhe_indexer_api::types::{TableUpdate, TableRow};
+use dubhe_indexer_grpc::types::{TableUpdate, TableRow};
+use dubhe_indexer_graphql::TableChange;
+
+use uuid::Uuid;
 
 pub type TableSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableUpdate>>>>>;
+pub type GraphQLSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>;
 
 pub struct DubheIndexerWorker {
     pub config: DubheConfig,
@@ -24,10 +28,17 @@ pub struct DubheIndexerWorker {
     pub with_graphql: bool,
     pub database: Database,
     pub subscribers: TableSubscribers,
+    pub graphql_subscribers: GraphQLSubscribers,
 }
 
 impl DubheIndexerWorker {
-    pub async fn new(config: DubheConfig, tables: Vec<TableMetadata>, with_graphql: bool, subscribers: TableSubscribers) -> Result<Self> {
+    pub async fn new(
+        config: DubheConfig, 
+        tables: Vec<TableMetadata>, 
+        with_graphql: bool, 
+        subscribers: TableSubscribers,
+        graphql_subscribers: GraphQLSubscribers,
+    ) -> Result<Self> {
         let database = Database::new(&config.database.url).await?;
         
         Ok(Self {
@@ -36,6 +47,7 @@ impl DubheIndexerWorker {
             with_graphql,
             database,
             subscribers,
+            graphql_subscribers,
         })
     }
     // pub async fn clear_all_data(&self) -> Result<()> {
@@ -473,7 +485,7 @@ impl Worker for DubheIndexerWorker {
     type Result = ();
     async fn process_checkpoint(&self, checkpoint: &CheckpointData) -> Result<()> {
         let current_checkpoint = checkpoint.checkpoint_summary.sequence_number;
-        println!("Processing current_checkpoint: {:?}", current_checkpoint);
+        // println!("Processing current_checkpoint: {:?}", current_checkpoint);
         let mut set_record_count = 0;
         let mut set_field_count = 0;
 
@@ -501,7 +513,7 @@ impl Worker for DubheIndexerWorker {
                                     fields.insert(value.column_name.clone(), value.column_value.to_string());
                                 }
                                 
-                                let table_row = dubhe_indexer_api::types::TableRow {
+                                let table_row = dubhe_indexer_grpc::types::TableRow {
                                     fields,
                                     created_at: std::time::SystemTime::now()
                                         .duration_since(std::time::UNIX_EPOCH)
@@ -527,12 +539,37 @@ impl Worker for DubheIndexerWorker {
                                 
                                 // Spawn async task to send update without blocking
                                 let subscribers = self.subscribers.clone();
+                                let graphql_subscribers = self.graphql_subscribers.clone();
                                 let table_name_clone = table_name.clone();
                                 tokio::spawn(async move {
+                                    // Send to GRPC subscribers
                                     let subscribers = subscribers.read().await;
                                     if let Some(senders) = subscribers.get(&table_name_clone) {
                                         for sender in senders {
                                             let _ = sender.send(update.clone());
+                                        }
+                                    }
+                                    
+                                    // Send to GraphQL subscribers
+                                    let graphql_subscribers = graphql_subscribers.read().await;
+                                    if let Some(senders) = graphql_subscribers.get(&table_name_clone) {
+                                        let table_change = TableChange {
+                                            id: Uuid::new_v4().to_string(),
+                                            table_name: table_name_clone.clone(),
+                                            operation: "INSERT".to_string(),
+                                            timestamp: chrono::Utc::now().to_rfc3339(),
+                                            data: serde_json::json!({
+                                                "table_id": table_name_clone,
+                                                "operation": "INSERT",
+                                                "checkpoint": update.checkpoint,
+                                                "timestamp": update.timestamp,
+                                                "fields": update.data.as_ref().map(|data| {
+                                                    data.fields.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<String, String>>()
+                                                }),
+                                            }),
+                                        };
+                                        for sender in senders {
+                                            let _ = sender.send(table_change.clone());
                                         }
                                     }
                                 });
@@ -576,8 +613,8 @@ impl Worker for DubheIndexerWorker {
                 }
             }
         }
-        println!("Set record count: {:?}", set_record_count);
-        println!("Set field count: {:?}", set_field_count);
+        // println!("Set record count: {:?}", set_record_count);
+        // println!("Set field count: {:?}", set_field_count);
 
         Ok(())
     }

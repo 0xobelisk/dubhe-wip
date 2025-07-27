@@ -156,7 +156,7 @@ mod tests {
         // Clean up any existing file
         let _ = std::fs::remove_file(db_path);
         
-        let storage = SqliteStorage::new(db_path).await.unwrap();
+        let storage = SqliteStorage::new(&format!("sqlite:{}", db_path)).await.unwrap();
         
         // Test basic connection
         storage.execute("SELECT 1").await.unwrap();

@@ -8,7 +8,8 @@ serde_yaml = { workspace = true }
 toml = { workspace = true }
 async-trait = { workspace = true }
 dubhe-common = { workspace = true }
-dubhe-indexer-api = { path = "../dubhe-indexer-api" }
+dubhe-indexer-grpc = { path = "../dubhe-indexer-grpc" }
+dubhe-indexer-graphql = { path = "../dubhe-indexer-graphql" }
 tokio = { workspace = true }
 sui_types = { workspace = true }
 # sui_data_ingestion_core = { git = "https://github.com/mystenlabs/sui", package = "sui-data-ingestion-core", tag = "mainnet-v1.48.2"}
@@ -52,6 +53,8 @@ tempfile = { workspace = true }
 tap = { workspace = true }
 sui-protocol-config ={ workspace = true }
 sui-rpc-api = { workspace = true }
+
+uuid = { version = "1.0", features = ["v4", "serde"] }
 
 
 [dev-dependencies]

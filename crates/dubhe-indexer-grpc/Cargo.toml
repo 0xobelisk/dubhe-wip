@@ -1,5 +1,5 @@
 [package]
-name = "dubhe-indexer-client"
+name = "dubhe-indexer-grpc"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,20 +7,22 @@ edition = "2021"
 tonic = "0.10"
 prost = "0.12"
 tokio = { version = "1.0", features = ["full"] }
+tokio-stream = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
 log = "0.4"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "postgres"] }
+async-trait = "0.1"
 futures = "0.3"
-tokio-stream = "0.1"
 
 [build-dependencies]
 tonic-build = "0.10"
 
 [lib]
-name = "dubhe_indexer_client"
+name = "dubhe_indexer_grpc"
 path = "src/lib.rs"
 
 [[bin]]
-name = "dubhe-indexer-client"
+name = "dubhe-indexer-grpc"
 path = "src/main.rs" 

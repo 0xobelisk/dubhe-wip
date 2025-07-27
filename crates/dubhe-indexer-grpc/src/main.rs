@@ -1,4 +1,4 @@
-use dubhe_indexer_api::grpc::{start_grpc_server, TableSubscribers};
+use dubhe_indexer_grpc::grpc::{start_grpc_server, TableSubscribers};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;

@@ -149,7 +149,7 @@ impl Storage for SqliteStorage {
     }
 
     fn generate_create_table_sql(&self, table: &TableMetadata) -> String {
-        self.generate_create_table_sql(table)
+        SqliteStorage::generate_create_table_sql(self, table)
     }
 
     async fn insert(&self, table_name: &str, values: Vec<DBData>, last_updated_checkpoint: u64) -> Result<()> {

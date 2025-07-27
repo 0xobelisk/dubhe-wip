@@ -36,7 +36,9 @@ use dubhe_common::SqliteStorage;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use dubhe_indexer_api::grpc::start_grpc_server;
+use dubhe_indexer_grpc::grpc::start_grpc_server;
+use dubhe_indexer_graphql::{GraphQLServerManager, GraphQLConfig, TableChange};
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -75,7 +77,17 @@ async fn main() -> Result<()> {
     // Initialize subscribers for GRPC
     let subscribers: TableSubscribers = Arc::new(RwLock::new(HashMap::new()));
     
-    let mut dubhe_indexer_worker = DubheIndexerWorker::new(config.clone(), tables.clone(), false, subscribers.clone()).await?;
+    // 创建 GraphQL 订阅者管理器
+    let graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>> = 
+        Arc::new(RwLock::new(HashMap::new()));
+    
+    let mut dubhe_indexer_worker = DubheIndexerWorker::new(
+        config.clone(), 
+        tables.clone(), 
+        false, 
+        subscribers.clone(),
+        graphql_subscribers.clone(),
+    ).await?;
     dubhe_indexer_worker.database.create_tables(&tables).await?;
     
     // Start GRPC server in background
@@ -84,6 +96,35 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         if let Err(e) = start_grpc_server(grpc_addr, grpc_subscribers).await {
             log::error!("GRPC server error: {}", e);
+        }
+    });
+
+    // Start GraphQL server in background
+    let graphql_config = dubhe_indexer_graphql::GraphQLConfig {
+        port: config.graphql.port,
+        database_url: config.database.url.clone(),
+        schema: "public".to_string(),
+        endpoint: "/graphql".to_string(), // Hardcoded after user request
+        cors: config.graphql.cors,
+        subscriptions: config.graphql.subscriptions,
+        env: "development".to_string(),
+        debug: config.graphql.debug,
+        query_timeout: config.graphql.query_timeout,
+        max_connections: config.graphql.max_connections,
+        heartbeat_interval: config.graphql.heartbeat_interval,
+        enable_metrics: config.graphql.enable_metrics,
+        enable_live_queries: config.graphql.enable_live_queries,
+        enable_pg_subscriptions: config.graphql.enable_pg_subscriptions,
+        enable_native_websocket: config.graphql.enable_native_websocket,
+        realtime_port: config.graphql.realtime_port,
+    };
+    
+    let graphql_config_clone = graphql_config.clone();
+    let graphql_subscribers_clone = graphql_subscribers.clone();
+    tokio::spawn(async move {
+        let mut graphql_manager = GraphQLServerManager::new(graphql_config_clone, graphql_subscribers_clone);
+        if let Err(e) = graphql_manager.start().await {
+            log::error!("GraphQL server error: {}", e);
         }
     });
 

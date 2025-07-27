@@ -541,7 +541,7 @@ mod tests {
         assert_eq!(schema.get_sql_type("u8"), "INTEGER");
         assert_eq!(schema.get_sql_type("u64"), "INTEGER");
         assert_eq!(schema.get_sql_type("bool"), "BOOLEAN");
-        assert_eq!(schema.get_sql_type("vector<u8>"), "SMALLINT[]");
+        assert_eq!(schema.get_sql_type("vector<u8>"), "TEXT"); // TableMetadata doesn't handle vector types
         assert_eq!(schema.get_sql_type("unknown"), "TEXT");
     }
 

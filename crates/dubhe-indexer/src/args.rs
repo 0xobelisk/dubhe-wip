@@ -28,9 +28,7 @@ pub struct DubheIndexerArgs {
     /// Force restart: clear indexer database (only for local nodes)
     #[arg(long, default_value = "false")]
     pub force: bool,
-    /// with graphql
-    #[arg(long, default_value = "false")]
-    pub with_graphql: bool,
+
 }
 
 impl DubheIndexerArgs {

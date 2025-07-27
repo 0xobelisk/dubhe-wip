@@ -14,6 +14,7 @@ pub struct DubheConfig {
     pub grpc: GrpcConfig,
     pub subscription: SubscriptionConfig,
     pub logging: LoggingConfig,
+    pub graphql: GraphQLConfig,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -47,6 +48,22 @@ pub struct SubscriptionConfig {
 #[derive(Clone, Debug, Deserialize)]
 pub struct LoggingConfig {
     pub level: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct GraphQLConfig {
+    pub port: u16,
+    pub cors: bool,
+    pub subscriptions: bool,
+    pub debug: bool,
+    pub query_timeout: u64,
+    pub max_connections: u32,
+    pub heartbeat_interval: u64,
+    pub enable_metrics: bool,
+    pub enable_live_queries: bool,
+    pub enable_pg_subscriptions: bool,
+    pub enable_native_websocket: bool,
+    pub realtime_port: Option<u16>,
 }
 
 impl DubheConfig {

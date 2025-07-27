@@ -22,19 +22,20 @@ rpc_url = "http://localhost:9000"
 # testnet: https://checkpoints.testnet.sui.io
 # localnet: /tmp/checkpoints
 checkpoint_url = "e2e/.chk"
-origin_package_id = "0x6648e8a3c4051deb4e89b06939185522e6c18495d8bd6626c4dcd67fba61e743"
+origin_package_id = "0x67155c995815053ee0fa0b4b70dbc76914647bbb49a7a849158ba8c398fc23fc"
 start_checkpoint = 10
 
 # Database configuration
 [database]
 # Database type: sqlite or postgres
-db_type = "sqlite"
+# db_type = "sqlite"
+db_type = "postgres"
 # Database connection URL
 # SQLite example: "sqlite:crate/dubhe-indexer/indexer.db"
 # PostgreSQL example: "postgres://user:password@localhost:5432/indexer"
-# url = "postgres://postgres:password@localhost:5432/indexer"
+url = "postgresql://postgres@localhost:5432/test"
 # url = "sqlite::memory:"
-url = "sqlite:crates/dubhe-indexer/indexer.db"
+# url = "sqlite:crates/dubhe-indexer/indexer.db"
 # Maximum number of connections in the pool
 max_connections = 10
 
@@ -56,7 +57,7 @@ channel_capacity = 1000
 # Logging configuration
 [logging]
 # Log level: debug, info, warn, error
-level = "info"
+level = "debug"
 
 # Monitoring configuration
 [metrics]
@@ -103,4 +104,23 @@ max_memory_mb = 4096
 # Maximum CPU usage (percentage)
 max_cpu_percent = 80
 # Maximum disk usage (GB)
-max_disk_gb = 100 
+max_disk_gb = 100
+
+# GraphQL server configuration
+[graphql]
+port = 4000
+database_url = "sqlite:///dubhe.db"
+schema = "public"
+endpoint = "/graphql"
+cors = true
+subscriptions = true
+env = "development"
+debug = true
+query_timeout = 30
+max_connections = 100
+heartbeat_interval = 30
+enable_metrics = true
+enable_live_queries = true
+enable_pg_subscriptions = false
+enable_native_websocket = true
+realtime_port = 4002 

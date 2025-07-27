@@ -14,7 +14,7 @@ A GRPC client for connecting to the Dubhe Indexer API and subscribing to real-ti
 ### Basic Usage
 
 ```rust
-use dubhe_indexer_client::DubheIndexerClient;
+use dubhe_indexer_grpc_client::DubheIndexerClient;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -33,10 +33,10 @@ async fn main() -> Result<()> {
 
 ```bash
 # Build the client
-cargo build --bin dubhe-indexer-client
+cargo build --bin dubhe-indexer-grpc-client
 
 # Run the client (subscribes to "counter" table by default)
-cargo run --bin dubhe-indexer-client
+cargo run --bin dubhe-indexer-grpc-client
 ```
 
 ### Customizing Table Subscriptions

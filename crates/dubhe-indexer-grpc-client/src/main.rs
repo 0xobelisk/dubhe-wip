@@ -1,4 +1,4 @@
-use dubhe_indexer_client::DubheIndexerClient;
+use dubhe_indexer_grpc_client::DubheIndexerClient;
 use anyhow::Result;
 
 #[tokio::main]
