@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, RwLock};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // 初始化日志
+    // Initialize logging
     env_logger::init();
 
     // Create config
@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
     // Create server manager
     let mut manager = GraphQLServerManager::new(config, graphql_subscribers);
     
-    // 启动服务器
+    // Start the server
     manager.start().await?;
 
     Ok(())

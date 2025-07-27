@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
-/// GraphQL查询响应
+/// GraphQL query response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphQLResponse<T> {
     pub data: Option<T>,
     pub errors: Option<Vec<GraphQLError>>,
 }
 
-/// GraphQL错误
+/// GraphQL error
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphQLError {
     pub message: String,
@@ -16,14 +16,14 @@ pub struct GraphQLError {
     pub path: Option<Vec<String>>,
 }
 
-/// GraphQL位置信息
+/// GraphQL location information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphQLLocation {
     pub line: i32,
     pub column: i32,
 }
 
-/// 表变化事件
+/// Table change event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableChange {
     pub id: String,
@@ -33,7 +33,7 @@ pub struct TableChange {
     pub data: serde_json::Value,
 }
 
-/// 事件
+/// Event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
     pub id: String,
@@ -42,7 +42,7 @@ pub struct Event {
     pub data: serde_json::Value,
 }
 
-/// 检查点更新
+/// Checkpoint update
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckpointUpdate {
     pub sequence_number: i64,
@@ -51,7 +51,7 @@ pub struct CheckpointUpdate {
     pub transactions_count: i32,
 }
 
-/// 查询响应
+/// Query response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryResponse {
     pub table_id: String,
@@ -61,7 +61,7 @@ pub struct QueryResponse {
     pub offset: i32,
 }
 
-/// 表元数据响应
+/// Table metadata response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableMetadataResponse {
     pub table_id: String,
@@ -71,7 +71,7 @@ pub struct TableMetadataResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-/// 表字段
+/// Table field
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableField {
     pub name: String,
@@ -80,14 +80,14 @@ pub struct TableField {
     pub is_enum: bool,
 }
 
-/// 表列表响应
+/// Table list response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListTablesResponse {
     pub tables: Vec<TableInfo>,
     pub total_count: i64,
 }
 
-/// 表信息
+/// Table information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableInfo {
     pub table_id: String,

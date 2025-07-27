@@ -8,7 +8,7 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
 
-/// GraphQL客户端
+/// GraphQL client
 pub struct DubheIndexerGraphQLClient {
     graphql_url: String,
     websocket_url: String,
@@ -16,7 +16,7 @@ pub struct DubheIndexerGraphQLClient {
 }
 
 impl DubheIndexerGraphQLClient {
-    /// 创建新的GraphQL客户端
+    /// Create a new GraphQL client
     pub fn new(graphql_url: String) -> Self {
         let websocket_url = graphql_url
             .replace("http://", "ws://")
@@ -29,7 +29,7 @@ impl DubheIndexerGraphQLClient {
         }
     }
 
-    /// 执行GraphQL查询
+    /// Execute GraphQL query
     pub async fn query<T>(&self, query: &str, variables: Option<HashMap<String, Value>>) -> Result<GraphQLResponse<T>>
     where
         T: for<'de> serde::Deserialize<'de>,
@@ -51,7 +51,7 @@ impl DubheIndexerGraphQLClient {
         Ok(response_data)
     }
 
-    /// 订阅表变化
+    /// Subscribe to table changes
     pub async fn subscribe_table_changes(
         &self,
         table_name: String,
@@ -77,7 +77,7 @@ impl DubheIndexerGraphQLClient {
         let (ws_stream, _) = connect_async(websocket_url).await?;
         let (mut write, mut read) = ws_stream.split();
 
-        // 发送订阅请求
+        // Send subscription request
         let subscribe_message = json!({
             "type": "start",
             "id": "1",
@@ -89,7 +89,7 @@ impl DubheIndexerGraphQLClient {
 
         write.send(Message::Text(subscribe_message.to_string())).await?;
 
-        // 处理WebSocket消息
+        // Handle WebSocket messages
         tokio::spawn(async move {
             while let Some(msg) = read.next().await {
                 match msg {
@@ -121,7 +121,7 @@ impl DubheIndexerGraphQLClient {
         Ok(rx)
     }
 
-    /// 订阅事件
+    /// Subscribe to events
     pub async fn subscribe_events(&self) -> Result<mpsc::UnboundedReceiver<Event>> {
         let (tx, rx) = mpsc::unbounded_channel();
         
@@ -140,7 +140,7 @@ impl DubheIndexerGraphQLClient {
         let (ws_stream, _) = connect_async(websocket_url).await?;
         let (mut write, mut read) = ws_stream.split();
 
-        // 发送订阅请求
+        // Send subscription request
         let subscribe_message = json!({
             "type": "start",
             "id": "2",
@@ -152,7 +152,7 @@ impl DubheIndexerGraphQLClient {
 
         write.send(Message::Text(subscribe_message.to_string())).await?;
 
-        // 处理WebSocket消息
+        // Handle WebSocket messages
         tokio::spawn(async move {
             while let Some(msg) = read.next().await {
                 match msg {
@@ -184,7 +184,7 @@ impl DubheIndexerGraphQLClient {
         Ok(rx)
     }
 
-    /// 订阅检查点更新
+    /// Subscribe to checkpoint updates
     pub async fn subscribe_checkpoint_updates(&self) -> Result<mpsc::UnboundedReceiver<CheckpointUpdate>> {
         let (tx, rx) = mpsc::unbounded_channel();
         
@@ -203,7 +203,7 @@ impl DubheIndexerGraphQLClient {
         let (ws_stream, _) = connect_async(websocket_url).await?;
         let (mut write, mut read) = ws_stream.split();
 
-        // 发送订阅请求
+        // Send subscription request
         let subscribe_message = json!({
             "type": "start",
             "id": "3",
@@ -215,7 +215,7 @@ impl DubheIndexerGraphQLClient {
 
         write.send(Message::Text(subscribe_message.to_string())).await?;
 
-        // 处理WebSocket消息
+        // Handle WebSocket messages
         tokio::spawn(async move {
             while let Some(msg) = read.next().await {
                 match msg {
@@ -247,7 +247,7 @@ impl DubheIndexerGraphQLClient {
         Ok(rx)
     }
 
-    /// 查询表数据
+    /// Query table data
     pub async fn query_table_data(
         &self,
         table_id: &str,
@@ -288,7 +288,7 @@ impl DubheIndexerGraphQLClient {
         Err(anyhow::anyhow!("Failed to get query response"))
     }
 
-    /// 获取表元数据
+    /// Get table metadata
     pub async fn get_table_metadata(&self, table_id: &str) -> Result<TableMetadataResponse> {
         let graphql_query = format!(
             r#"
@@ -323,7 +323,7 @@ impl DubheIndexerGraphQLClient {
         Err(anyhow::anyhow!("Failed to get table metadata"))
     }
 
-    /// 列出所有表
+    /// List all tables
     pub async fn list_tables(&self, table_type: Option<String>) -> Result<ListTablesResponse> {
         let table_type_filter = table_type
             .map(|t| format!(r#", tableType: "{}""#, t))
@@ -360,17 +360,17 @@ impl DubheIndexerGraphQLClient {
         Err(anyhow::anyhow!("Failed to get tables list"))
     }
 
-    /// 订阅并打印表变化
+    /// Subscribe and print table changes
     pub async fn subscribe_and_print_table_changes(&self, table_names: Vec<String>) -> Result<()> {
         let mut receivers = Vec::new();
 
-        // 为每个表创建订阅
+        // Create subscriptions for each table
         for table_name in table_names {
             let receiver = self.subscribe_table_changes(table_name.clone()).await?;
             receivers.push((table_name, receiver));
         }
 
-        // 处理所有订阅
+        // Handle all subscriptions
         loop {
             for (table_name, receiver) in &mut receivers {
                 if let Ok(change) = receiver.try_recv() {
@@ -387,7 +387,7 @@ impl DubheIndexerGraphQLClient {
         }
     }
 
-    /// 订阅并打印事件
+    /// Subscribe and print events
     pub async fn subscribe_and_print_events(&self) -> Result<()> {
         let mut receiver = self.subscribe_events().await?;
 
@@ -405,7 +405,7 @@ impl DubheIndexerGraphQLClient {
         }
     }
 
-    /// 订阅并打印检查点更新
+    /// Subscribe and print checkpoint updates
     pub async fn subscribe_and_print_checkpoint_updates(&self) -> Result<()> {
         let mut receiver = self.subscribe_checkpoint_updates().await?;
 

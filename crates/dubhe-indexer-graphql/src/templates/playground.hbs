@@ -109,7 +109,7 @@
       }
 
       createUrl = (endpoint, subscription = false) => {
-        // 使用 origin 而不是完整的 href，避免包含当前路径
+        // Use origin instead of full href to avoid including current path
         const baseUrl = window.location.origin;
         const url = new URL(baseUrl + endpoint);
         if (subscription) {

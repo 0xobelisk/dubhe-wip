@@ -1,40 +1,40 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
-/// GraphQL服务器配置
+/// GraphQL server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphQLConfig {
-    /// 服务器端口
+    /// Server port
     pub port: u16,
-    /// 数据库连接URL
+    /// Database connection URL
     pub database_url: String,
-    /// 数据库schema
+    /// Database schema
     pub schema: String,
-    /// GraphQL端点路径
+    /// GraphQL endpoint path
     pub endpoint: String,
-    /// 是否启用CORS
+    /// Enable CORS
     pub cors: bool,
-    /// 是否启用订阅
+    /// Enable subscriptions
     pub subscriptions: bool,
-    /// 环境模式
+    /// Environment mode
     pub env: String,
-    /// 是否启用调试模式
+    /// Enable debug mode
     pub debug: bool,
-    /// 查询超时时间（毫秒）
+    /// Query timeout (milliseconds)
     pub query_timeout: u64,
-    /// 最大连接数
+    /// Maximum connections
     pub max_connections: u32,
-    /// 心跳间隔（毫秒）
+    /// Heartbeat interval (milliseconds)
     pub heartbeat_interval: u64,
-    /// 是否启用指标
+    /// Enable metrics
     pub enable_metrics: bool,
-    /// 是否启用实时查询
+    /// Enable live queries
     pub enable_live_queries: bool,
-    /// 是否启用PostgreSQL订阅
+    /// Enable PostgreSQL subscriptions
     pub enable_pg_subscriptions: bool,
-    /// 是否启用原生WebSocket
+    /// Enable native WebSocket
     pub enable_native_websocket: bool,
-    /// 实时端口
+    /// Real-time port
     pub realtime_port: Option<u16>,
 }
 
@@ -62,32 +62,32 @@ impl Default for GraphQLConfig {
 }
 
 impl GraphQLConfig {
-    /// 从环境变量创建配置
+    /// Create configuration from environment variables
     pub fn from_env() -> Self {
         Self::default()
     }
 
-    /// 获取GraphQL端点URL
+    /// Get GraphQL endpoint URL
     pub fn graphql_endpoint(&self) -> String {
         format!("http://localhost:{}{}", self.port, self.endpoint)
     }
 
-    /// 获取WebSocket端点URL
+    /// Get WebSocket endpoint URL
     pub fn websocket_endpoint(&self) -> String {
         format!("ws://localhost:{}{}", self.port, self.endpoint)
     }
 
-    /// 获取健康检查端点
+    /// Get health check endpoint
     pub fn health_endpoint(&self) -> String {
         format!("http://localhost:{}/health", self.port)
     }
 
-    /// 获取Playground端点
+    /// Get Playground endpoint
     pub fn playground_endpoint(&self) -> String {
         format!("http://localhost:{}/playground", self.port)
     }
 
-    /// 获取订阅配置
+    /// Get subscription configuration
     pub fn subscription_config(&self) -> SubscriptionConfig {
         SubscriptionConfig {
             enabled: self.subscriptions,
@@ -98,7 +98,7 @@ impl GraphQLConfig {
     }
 }
 
-/// 订阅配置
+/// Subscription configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionConfig {
     pub enabled: bool,
@@ -107,7 +107,7 @@ pub struct SubscriptionConfig {
     pub subscription_endpoint: String,
 }
 
-// 辅助函数
+// Helper functions
 fn get_env_string(key: &str, default: &str) -> String {
     env::var(key).unwrap_or_else(|_| default.to_string())
 }

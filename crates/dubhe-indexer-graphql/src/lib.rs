@@ -17,7 +17,7 @@ pub use server::GraphQLServer;
 pub use schema::QueryRoot;
 pub use subscriptions::{SubscriptionRoot, TableChange};
 
-/// 动态表信息
+/// Dynamic table information
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DynamicTable {
     pub name: String,
@@ -33,10 +33,10 @@ pub struct TableColumn {
     pub default_value: Option<String>,
 }
 
-/// 订阅者管理
+/// Subscribers management
 pub type TableSubscribers = Arc<RwLock<HashMap<String, Vec<String>>>>;
 
-/// GraphQL服务器管理器
+/// GraphQL server manager
 pub struct GraphQLServerManager {
     config: GraphQLConfig,
     server: Option<GraphQLServer>,
@@ -67,16 +67,16 @@ impl GraphQLServerManager {
         Ok(())
     }
 
-    /// 停止GraphQL服务器
+    /// Stop GraphQL server
     pub async fn stop(&mut self) -> Result<()> {
         if let Some(server) = &mut self.server {
             server.shutdown().await?;
         }
-        log::info!("🛑 GraphQL服务器已停止");
+        log::info!("🛑 GraphQL server stopped");
         Ok(())
     }
 
-    /// 获取订阅者
+    /// Get subscribers
     pub fn get_subscribers(&self) -> TableSubscribers {
         self.subscribers.clone()
     }

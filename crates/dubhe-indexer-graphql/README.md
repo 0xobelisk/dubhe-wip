@@ -1,40 +1,40 @@
 # Dubhe Indexer GraphQL
 
-一个基于 Rust 的 GraphQL 服务器，为 Dubhe Indexer 提供 GraphQL API 支持。
+A Rust-based GraphQL server that provides GraphQL API support for Dubhe Indexer.
 
-## 功能特性
+## Features
 
-- 🚀 基于 `async-graphql` 和 `warp` 的高性能 GraphQL 服务器
-- 📊 数据库查询和实时订阅支持
-- 🎮 内置 GraphQL Playground 界面
-- 🔌 可扩展的插件系统
-- 🏥 健康检查端点
-- 📝 完整的日志记录
+- 🚀 High-performance GraphQL server based on `async-graphql` and `warp`
+- 📊 Database query and real-time subscription support
+- 🎮 Built-in GraphQL Playground interface
+- 🔌 Extensible plugin system
+- 🏥 Health check endpoints
+- 📝 Complete logging
 
-## 快速开始
+## Quick Start
 
-### 作为独立服务器运行
+### Running as a standalone server
 
 ```bash
-# 设置环境变量
+# Set environment variables
 export GRAPHQL_PORT=4000
 export DATABASE_URL="sqlite://data.db"
 export GRAPHQL_ENDPOINT="/graphql"
 
-# 运行服务器
+# Run the server
 cargo run --bin dubhe-indexer-graphql
 ```
 
-### 作为 dubhe-indexer 的一部分运行
+### Running as part of dubhe-indexer
 
 ```bash
-# 在 dubhe-indexer 中启动（会自动启动 GraphQL 服务器）
+# Start in dubhe-indexer (GraphQL server will be started automatically)
 cargo run --bin dubhe-indexer
 ```
 
-## 配置
+## Configuration
 
-GraphQL 服务器配置在 `config.example.toml` 中：
+GraphQL server configuration is in `config.example.toml`:
 
 ```toml
 [graphql]
@@ -51,40 +51,40 @@ enable_pg_subscriptions = true
 enable_native_websocket = true
 ```
 
-## API 端点
+## API Endpoints
 
 - **GraphQL API**: `http://localhost:4000/graphql`
 - **GraphQL Playground**: `http://localhost:4000/playground`
 - **GraphiQL**: `http://localhost:4000/graphiql`
-- **健康检查**: `http://localhost:4000/health`
-- **主页**: `http://localhost:4000/`
+- **Health Check**: `http://localhost:4000/health`
+- **Home Page**: `http://localhost:4000/`
 
-## 插件系统
+## Plugin System
 
-GraphQL Playground 支持插件系统，可以轻松添加新功能。
+GraphQL Playground supports a plugin system for easy addition of new features.
 
-### 使用内置插件
+### Using built-in plugins
 
 ```rust
 use dubhe_indexer_graphql::playground::{PlaygroundService, GraphiQLPlugin};
 
-// 创建服务
+// Create service
 let service = PlaygroundService::new(config);
 
-// 获取不带插件的 Playground
+// Get Playground without plugins
 let html = service.get_playground_html();
 
-// 获取带 explorer 插件的 Playground
+// Get Playground with explorer plugin
 let html_with_explorer = service.get_playground_html_with_explorer();
 
-// 获取带多个插件的 Playground
+// Get Playground with multiple plugins
 let html_with_plugins = service.get_playground_html_with_plugins(&[
     GraphiQLPlugin::explorer("4"),
-    // 可以添加更多插件
+    // Can add more plugins
 ]);
 ```
 
-### 创建自定义插件
+### Creating custom plugins
 
 ```rust
 use dubhe_indexer_graphql::playground::GraphiQLPlugin;
@@ -94,14 +94,14 @@ let custom_plugin = GraphiQLPlugin {
     constructor: "MyCustomPlugin.create".to_string(),
     head_assets: Some("<link rel=\"stylesheet\" href=\"path/to/style.css\" />".to_string()),
     body_assets: Some("<script src=\"path/to/script.js\"></script>".to_string()),
-    pre_configs: Some("// 插件配置代码".to_string()),
+    pre_configs: Some("// Plugin configuration code".to_string()),
     props: Some("{}".to_string()),
 };
 ```
 
-## GraphQL 查询示例
+## GraphQL Query Examples
 
-### 获取服务器信息
+### Get server information
 
 ```graphql
 query {
@@ -113,7 +113,7 @@ query {
 }
 ```
 
-### 获取数据库表列表
+### Get database table list
 
 ```graphql
 query {
@@ -129,7 +129,7 @@ query {
 }
 ```
 
-### 查询表数据
+### Query table data
 
 ```graphql
 query {
@@ -141,7 +141,7 @@ query {
 }
 ```
 
-### 订阅实时更新
+### Subscribe to real-time updates
 
 ```graphql
 subscription {
@@ -155,61 +155,61 @@ subscription {
 }
 ```
 
-## 数据库支持
+## Database Support
 
-- **SQLite**: 完全支持，包括查询和订阅
-- **PostgreSQL**: 基础支持，查询功能已实现
+- **SQLite**: Full support, including queries and subscriptions
+- **PostgreSQL**: Basic support, query functionality implemented
 
-## 开发
+## Development
 
-### 运行测试
+### Running tests
 
 ```bash
 cargo test
 ```
 
-### 代码检查
+### Code checking
 
 ```bash
 cargo check
 cargo clippy
 ```
 
-### 构建
+### Building
 
 ```bash
 cargo build --release
 ```
 
-## 架构
+## Architecture
 
 ```
 dubhe-indexer-graphql/
 ├── src/
-│   ├── lib.rs              # 库入口点
-│   ├── main.rs             # 二进制入口点
-│   ├── config.rs           # 配置管理
-│   ├── server.rs           # HTTP 服务器
+│   ├── lib.rs              # Library entry point
+│   ├── main.rs             # Binary entry point
+│   ├── config.rs           # Configuration management
+│   ├── server.rs           # HTTP server
 │   ├── schema.rs           # GraphQL Schema
-│   ├── database.rs         # 数据库抽象
-│   ├── subscriptions.rs    # 实时订阅
-│   ├── health.rs           # 健康检查
+│   ├── database.rs         # Database abstraction
+│   ├── subscriptions.rs    # Real-time subscriptions
+│   ├── health.rs           # Health checks
 │   └── playground.rs       # GraphQL Playground
 ├── templates/
-│   └── playground.hbs      # Playground HTML 模板
+│   └── playground.hbs      # Playground HTML template
 └── Cargo.toml
 ```
 
-## 依赖
+## Dependencies
 
-- `async-graphql`: GraphQL 框架
-- `async-graphql-warp`: Warp 集成
-- `warp`: HTTP 服务器
-- `dubhe-common`: 数据库抽象
-- `handlebars`: 模板引擎
-- `serde`: 序列化
-- `tokio`: 异步运行时
+- `async-graphql`: GraphQL framework
+- `async-graphql-warp`: Warp integration
+- `warp`: HTTP server
+- `dubhe-common`: Database abstraction
+- `handlebars`: Template engine
+- `serde`: Serialization
+- `tokio`: Async runtime
 
-## 许可证
+## License
 
 MIT License 

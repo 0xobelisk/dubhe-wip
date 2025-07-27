@@ -2,7 +2,7 @@ use async_graphql::{Context, Object, SimpleObject};
 use std::sync::Arc;
 use crate::database::DatabasePool;
 
-/// 查询根类型
+/// Query root type
 #[derive(Default)]
 pub struct QueryRoot {
     db_pool: Option<Arc<DatabasePool>>,
@@ -16,7 +16,7 @@ impl QueryRoot {
 
 #[Object]
 impl QueryRoot {
-    /// 获取服务器信息
+    /// Get server information
     async fn server_info(&self) -> ServerInfo {
         ServerInfo {
             name: "Dubhe GraphQL Server".to_string(),
@@ -25,7 +25,7 @@ impl QueryRoot {
         }
     }
 
-    /// 获取数据库表列表
+    /// Get database table list
     async fn tables(&self, _ctx: &Context<'_>) -> Vec<TableInfo> {
         if let Some(db_pool) = &self.db_pool {
             match db_pool.get_tables().await {
@@ -46,7 +46,7 @@ impl QueryRoot {
                 }
             }
         } else {
-            // 如果没有数据库连接，返回示例数据
+            // If no database connection, return sample data
             vec![
                 TableInfo {
                     name: "events".to_string(),
@@ -94,7 +94,7 @@ impl QueryRoot {
         }
     }
 
-    /// 获取表数据
+    /// Get table data
     async fn table_data(&self, _ctx: &Context<'_>, table_name: String, limit: Option<i32>) -> TableData {
         if let Some(db_pool) = &self.db_pool {
             match db_pool.query_table_data(&table_name, limit).await {
@@ -116,7 +116,7 @@ impl QueryRoot {
                 }
             }
         } else {
-            // 如果没有数据库连接，返回示例数据
+            // If no database connection, return sample data
             TableData {
                 table_name,
                 total_count: 100,
@@ -144,7 +144,7 @@ impl QueryRoot {
         }
     }
 
-    /// 获取订阅状态
+    /// Get subscription status
     async fn subscription_status(&self) -> SubscriptionStatus {
         SubscriptionStatus {
             enabled: true,
@@ -155,7 +155,7 @@ impl QueryRoot {
     }
 }
 
-/// 服务器信息
+/// Server information
 #[derive(SimpleObject)]
 pub struct ServerInfo {
     pub name: String,
@@ -163,7 +163,7 @@ pub struct ServerInfo {
     pub status: String,
 }
 
-/// 表信息
+/// Table information
 #[derive(SimpleObject)]
 pub struct TableInfo {
     pub name: String,
@@ -171,7 +171,7 @@ pub struct TableInfo {
     pub columns: Vec<ColumnInfo>,
 }
 
-/// 列信息
+/// Column information
 #[derive(SimpleObject)]
 pub struct ColumnInfo {
     pub name: String,
@@ -179,7 +179,7 @@ pub struct ColumnInfo {
     pub is_nullable: bool,
 }
 
-/// 表数据
+/// Table data
 #[derive(SimpleObject)]
 pub struct TableData {
     pub table_name: String,
@@ -187,7 +187,7 @@ pub struct TableData {
     pub data: Vec<serde_json::Value>,
 }
 
-/// 订阅状态
+/// Subscription status
 #[derive(SimpleObject)]
 pub struct SubscriptionStatus {
     pub enabled: bool,

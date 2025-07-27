@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
 
-/// 订阅根类型
+/// Subscription root type
 pub struct SubscriptionRoot {
     subscribers: TableSubscribers,
     graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
@@ -22,7 +22,7 @@ impl SubscriptionRoot {
         }
     }
 
-    /// 获取 GraphQL 订阅者管理器
+    /// Get GraphQL subscribers manager
     pub fn get_graphql_subscribers(&self) -> Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>> {
         self.graphql_subscribers.clone()
     }
@@ -30,7 +30,7 @@ impl SubscriptionRoot {
 
 #[Subscription]
 impl SubscriptionRoot {
-    /// 订阅表数据变化
+    /// Subscribe to table data changes
     async fn tableChanges(
         &self,
         _ctx: &Context<'_>,
@@ -39,16 +39,16 @@ impl SubscriptionRoot {
         let graphql_subscribers = self.graphql_subscribers.clone();
         
         let stream = async_stream::stream! {
-            // 为这个订阅创建一个发送者
+            // Create a sender for this subscription
             let (tx, mut rx) = mpsc::unbounded_channel::<TableChange>();
             
-            // 将发送者添加到订阅者列表
+            // Add sender to subscribers list
             {
                 let mut subscribers = graphql_subscribers.write().await;
                 subscribers.entry(table_name.clone()).or_insert_with(Vec::new).push(tx);
             }
             
-            // 监听来自 worker 的数据
+            // Listen for data from worker
             while let Some(change) = rx.recv().await {
                 yield change;
             }
@@ -57,7 +57,7 @@ impl SubscriptionRoot {
         Box::pin(stream)
     }
 
-    /// 订阅事件流
+    /// Subscribe to event stream
     async fn events(
         &self,
         _ctx: &Context<'_>,
@@ -85,7 +85,7 @@ impl SubscriptionRoot {
         Box::pin(stream)
     }
 
-    /// 订阅检查点更新
+    /// Subscribe to checkpoint updates
     async fn checkpointUpdates(
         &self,
         _ctx: &Context<'_>,
@@ -111,7 +111,7 @@ impl SubscriptionRoot {
     }
 }
 
-/// 表变化事件
+/// Table change event
 #[derive(SimpleObject, Clone)]
 pub struct TableChange {
     pub id: String,
@@ -121,7 +121,7 @@ pub struct TableChange {
     pub data: serde_json::Value,
 }
 
-/// 事件
+/// Event
 #[derive(SimpleObject)]
 pub struct Event {
     pub id: String,
@@ -130,7 +130,7 @@ pub struct Event {
     pub data: serde_json::Value,
 }
 
-/// 检查点更新
+/// Checkpoint update
 #[derive(SimpleObject)]
 pub struct CheckpointUpdate {
     pub sequence_number: i64,

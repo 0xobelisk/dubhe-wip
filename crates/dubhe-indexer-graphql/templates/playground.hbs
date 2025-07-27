@@ -48,7 +48,7 @@
       }
 
       createUrl = (endpoint, subscription = false) => {
-        // 使用绝对路径，而不是相对于当前页面
+        // Use absolute path instead of relative to current page
         const baseUrl = window.location.origin;
         const url = new URL(baseUrl + endpoint);
         if (subscription) {

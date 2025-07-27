@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Instant;
 use crate::config::GraphQLConfig;
 
-/// 健康检查服务
+/// Health check service
 #[derive(Clone)]
 pub struct HealthService {
     config: GraphQLConfig,
@@ -17,7 +17,7 @@ impl HealthService {
         }
     }
 
-    /// 获取健康状态
+    /// Get health status
     pub async fn get_health_status(&self) -> HealthStatus {
         HealthStatus {
             status: "healthy".to_string(),
@@ -29,7 +29,7 @@ impl HealthService {
         }
     }
 
-    /// 获取端点信息
+    /// Get endpoints information
     fn get_endpoints(&self) -> Endpoints {
         Endpoints {
             graphql: self.config.graphql_endpoint(),
@@ -39,7 +39,7 @@ impl HealthService {
         }
     }
 
-    /// 获取订阅状态
+    /// Get subscription status
     fn get_subscription_status(&self) -> SubscriptionHealth {
         SubscriptionHealth {
             enabled: self.config.subscriptions,
@@ -50,7 +50,7 @@ impl HealthService {
     }
 }
 
-/// 健康状态
+/// Health status
 #[derive(Serialize, Deserialize)]
 pub struct HealthStatus {
     pub status: String,
@@ -61,7 +61,7 @@ pub struct HealthStatus {
     pub subscriptions: SubscriptionHealth,
 }
 
-/// 端点信息
+/// Endpoints information
 #[derive(Serialize, Deserialize)]
 pub struct Endpoints {
     pub graphql: String,
@@ -70,7 +70,7 @@ pub struct Endpoints {
     pub websocket: String,
 }
 
-/// 订阅健康状态
+/// Subscription health status
 #[derive(Serialize, Deserialize)]
 pub struct SubscriptionHealth {
     pub enabled: bool,

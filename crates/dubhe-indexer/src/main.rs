@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
     // Initialize subscribers for GRPC
     let subscribers: TableSubscribers = Arc::new(RwLock::new(HashMap::new()));
     
-    // 创建 GraphQL 订阅者管理器
+            // Create GraphQL subscribers manager
     let graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>> = 
         Arc::new(RwLock::new(HashMap::new()));
     

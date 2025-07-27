@@ -20,7 +20,7 @@ use futures_util::{SinkExt, StreamExt};
 use async_graphql::Request;
 use serde_json::json;
 
-/// GraphQL服务器
+/// GraphQL server
 pub struct GraphQLServer {
     config: GraphQLConfig,
     subscribers: TableSubscribers,
@@ -32,13 +32,13 @@ pub struct GraphQLServer {
 }
 
 impl GraphQLServer {
-    /// 创建新的GraphQL服务器
+    /// Create a new GraphQL server
     pub async fn new(
         config: GraphQLConfig, 
         subscribers: TableSubscribers,
         graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
     ) -> Result<Self> {
-        // 尝试创建数据库连接池
+        // Try to create database connection pool
         let db_pool = DatabasePool::new(&config.database_url).await.ok().map(Arc::new);
         
         let query_root = QueryRoot::new(db_pool.clone());
@@ -59,7 +59,7 @@ impl GraphQLServer {
         })
     }
 
-    /// 处理 WebSocket 连接
+    /// Handle WebSocket connection
     async fn handle_websocket(
         ws: warp::ws::Ws,
         schema: Schema<QueryRoot, async_graphql::EmptyMutation, SubscriptionRoot>,
@@ -67,7 +67,7 @@ impl GraphQLServer {
         Ok(ws.on_upgrade(|socket| Self::handle_socket(socket, schema)))
     }
 
-    /// 处理 WebSocket 消息
+    /// Handle WebSocket messages
     async fn handle_socket(
         socket: warp::ws::WebSocket,
         schema: Schema<QueryRoot, async_graphql::EmptyMutation, SubscriptionRoot>,
@@ -78,7 +78,7 @@ impl GraphQLServer {
             let msg = match result {
                 Ok(msg) => msg,
                 Err(e) => {
-                    // 更优雅地处理连接错误，不记录为错误
+                    // Handle connection errors more gracefully, don't log as error
                     if e.to_string().contains("Connection reset") || e.to_string().contains("Broken pipe") {
                         log::debug!("WebSocket connection closed by client: {}", e);
                     } else {
@@ -88,50 +88,50 @@ impl GraphQLServer {
                 }
             };
 
-            // 处理关闭消息
+            // Handle close message
             if msg.is_close() {
                 log::debug!("Received WebSocket close message");
                 break;
             }
 
             if let Ok(text) = msg.to_str() {
-                log::info!("🔍 收到 WebSocket 消息: {}", text);
-                log::info!("📝 消息长度: {} 字节", text.len());
+                log::info!("🔍 Received WebSocket message: {}", text);
+                log::info!("📝 Message length: {} bytes", text.len());
                 
                 match serde_json::from_str::<serde_json::Value>(text) {
                     Ok(json) => {
-                        log::info!("✅ JSON 解析成功");
-                        log::info!("📋 完整 JSON: {}", serde_json::to_string_pretty(&json).unwrap());
+                        log::info!("✅ JSON parsing successful");
+                        log::info!("📋 Complete JSON: {}", serde_json::to_string_pretty(&json).unwrap());
                         
                         if let Some(msg_type) = json.get("type").and_then(|v| v.as_str()) {
-                            log::info!("🎯 消息类型: {}", msg_type);
+                            log::info!("🎯 Message type: {}", msg_type);
                             match msg_type {
                                 "connection_init" => {
-                                    log::info!("🔄 处理连接初始化");
-                                    // 处理连接初始化
+                                    log::info!("🔄 Handling connection initialization");
+                                    // Handle connection initialization
                                     let response_json = json!({
                                         "type": "connection_ack"
                                     });
                                     
-                                    log::info!("📤 发送连接确认: {}", response_json.to_string());
+                                    log::info!("📤 Sending connection acknowledgment: {}", response_json.to_string());
                                     if let Err(e) = sender.send(Message::text(response_json.to_string())).await {
-                                        log::error!("❌ 发送 connection_ack 失败: {}", e);
+                                        log::error!("❌ Failed to send connection_ack: {}", e);
                                         break;
                                     }
-                                    log::info!("✅ 连接确认发送成功");
+                                    log::info!("✅ Connection acknowledgment sent successfully");
                                 }
                                 "start" => {
-                                    log::info!("🚀 处理订阅开始");
+                                    log::info!("🚀 Handling subscription start");
                                     if let Some(payload) = json.get("payload") {
-                                        log::info!("📦 订阅载荷: {}", serde_json::to_string_pretty(payload).unwrap());
+                                        log::info!("📦 Subscription payload: {}", serde_json::to_string_pretty(payload).unwrap());
                                         
                                         if let Some(query) = payload.get("query").and_then(|v| v.as_str()) {
-                                            log::info!("🔍 订阅查询: {}", query);
+                                            log::info!("🔍 Subscription query: {}", query);
                                             let request = Request::new(query.to_string());
                                             let mut response_stream = schema.execute_stream(request);
                                             
-                                            log::info!("📡 开始执行订阅流");
-                                            // 处理订阅流
+                                            log::info!("📡 Starting subscription stream execution");
+                                            // Handle subscription stream
                                             while let Some(response) = response_stream.next().await {
                                                 let response_json = json!({
                                                     "type": "data",
@@ -142,75 +142,75 @@ impl GraphQLServer {
                                                     }
                                                 });
                                                 
-                                                log::info!("📤 发送数据响应: {}", response_json.to_string());
+                                                log::info!("📤 Sending data response: {}", response_json.to_string());
                                                 if let Err(e) = sender.send(Message::text(response_json.to_string())).await {
-                                                    log::error!("❌ 发送响应失败: {}", e);
+                                                    log::error!("❌ Failed to send response: {}", e);
                                                     break;
                                                 }
                                             }
                                             
-                                            // 发送完成消息
+                                            // Send completion message
                                             let complete_json = json!({
                                                 "type": "complete",
                                                 "id": json.get("id").unwrap_or(&json!("1"))
                                             });
                                             
-                                            log::info!("📤 发送完成消息: {}", complete_json.to_string());
+                                            log::info!("📤 Sending completion message: {}", complete_json.to_string());
                                             if let Err(e) = sender.send(Message::text(complete_json.to_string())).await {
-                                                log::error!("❌ 发送完成消息失败: {}", e);
+                                                log::error!("❌ Failed to send completion message: {}", e);
                                             }
                                         } else {
-                                            log::warn!("⚠️ 订阅载荷中没有找到查询");
+                                            log::warn!("⚠️ No query found in subscription payload");
                                         }
                                     } else {
-                                        log::warn!("⚠️ 订阅消息中没有载荷");
+                                        log::warn!("⚠️ No payload in subscription message");
                                     }
                                 }
                                 "stop" => {
-                                    log::info!("🛑 处理停止订阅");
-                                    // 处理停止订阅
+                                    log::info!("🛑 Handling subscription stop");
+                                    // Handle subscription stop
                                     let response_json = json!({
                                         "type": "complete",
                                         "id": json.get("id").unwrap_or(&json!("1"))
                                     });
                                     
-                                    log::info!("📤 发送停止响应: {}", response_json.to_string());
+                                    log::info!("📤 Sending stop response: {}", response_json.to_string());
                                     if let Err(e) = sender.send(Message::text(response_json.to_string())).await {
-                                        log::error!("❌ 发送停止响应失败: {}", e);
+                                        log::error!("❌ Failed to send stop response: {}", e);
                                     }
                                 }
                                 "ping" => {
-                                    log::info!("🏓 处理 ping");
-                                    // 处理 ping
+                                    log::info!("🏓 Handling ping");
+                                    // Handle ping
                                     let response_json = json!({
                                         "type": "pong"
                                     });
                                     
-                                    log::info!("📤 发送 pong: {}", response_json.to_string());
+                                    log::info!("📤 Sending pong: {}", response_json.to_string());
                                     if let Err(e) = sender.send(Message::text(response_json.to_string())).await {
-                                        log::error!("❌ 发送 pong 失败: {}", e);
+                                        log::error!("❌ Failed to send pong: {}", e);
                                     }
                                 }
                                 _ => {
-                                    log::warn!("⚠️ 未知消息类型: {}", msg_type);
+                                    log::warn!("⚠️ Unknown message type: {}", msg_type);
                                 }
                             }
                         }
                     }
                     Err(e) => {
-                        log::error!("❌ 解析 WebSocket 消息失败: {}", e);
-                        log::error!("📝 原始消息: {}", text);
+                                        log::error!("❌ Failed to parse WebSocket message: {}", e);
+                log::error!("📝 Original message: {}", text);
                     }
                 }
             } else {
-                log::info!("📝 收到非文本消息，类型: {:?}", msg);
+                log::info!("📝 Received non-text message, type: {:?}", msg);
             }
         }
         
-        log::info!("🔚 WebSocket 连接已关闭");
+        log::info!("🔚 WebSocket connection closed");
     }
 
-    /// 启动服务器
+    /// Start the server
     pub async fn start(self) -> Result<()> {
         let config = self.config.clone();
         let schema = self.schema.clone();
@@ -218,7 +218,7 @@ impl GraphQLServer {
         let playground_service = self.playground_service.clone();
         let graphql_subscribers = self.graphql_subscribers.clone();
 
-        // GraphQL路由 - 支持 POST 和 GET
+        // GraphQL route - supports POST and GET
         let graphql_post_route = warp::path("graphql")
             .and(warp::post())
             .and(async_graphql_warp::graphql(schema.clone()))
@@ -233,7 +233,7 @@ impl GraphQLServer {
                 Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
             });
 
-        // WebSocket 路由 - 与 HTTP 路由使用相同的路径
+        // WebSocket route - uses the same path as HTTP route
         let websocket_route = warp::path("graphql")
             .and(warp::ws())
             .and(with_schema(schema.clone()))
@@ -241,13 +241,13 @@ impl GraphQLServer {
                 Self::handle_websocket(ws, schema).await
             });
 
-        // GraphiQL 路由
+        // GraphiQL route
         let graphiql_route = warp::path("playground")
             .and(warp::get())
             .and(with_service(playground_service))
             .and_then(handle_playground);
 
-        // 健康检查路由
+        // Health check route
         let health_route = warp::path("health")
             .and(warp::get())
             .and(with_service(health_service))
@@ -259,7 +259,7 @@ impl GraphQLServer {
             .and(with_service(self.db_pool.clone())) // Pass db_pool to handler
             .and_then(handle_welcome_page); // Use new async handler
 
-        // Combine all routes - 确保 WebSocket 路由在 HTTP 路由之前
+        // Combine all routes - ensure WebSocket route comes before HTTP route
         let routes = websocket_route
             .or(graphql_post_route)
             .or(graphql_get_route)
@@ -285,9 +285,9 @@ impl GraphQLServer {
         Ok(())
     }
 
-    /// 关闭服务器
+    /// Shutdown the server
     pub async fn shutdown(&self) -> Result<()> {
-        log::info!("🛑 关闭GraphQL服务器...");
+        log::info!("🛑 Shutting down GraphQL server...");
         Ok(())
     }
 }
@@ -312,7 +312,7 @@ async fn handle_playground(service: PlaygroundService) -> Result<impl Reply, Rej
 }
 
 async fn handle_welcome_page(db_pool: Option<Arc<DatabasePool>>) -> Result<impl Reply, Rejection> {
-    // 获取表信息
+    // Get table information
     let tables = if let Some(pool) = db_pool {
         match pool.get_tables().await {
             Ok(tables) => tables,
@@ -325,7 +325,7 @@ async fn handle_welcome_page(db_pool: Option<Arc<DatabasePool>>) -> Result<impl 
         vec![]
     };
 
-    // 生成表列表 HTML
+    // Generate table list HTML
     let table_list = tables.iter().map(|table| {
         let key_fields = table.columns.iter()
             .filter(|col| col.name.contains("id") || col.name.contains("key"))
@@ -517,7 +517,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     } else if err.find::<GraphQLBadRequest>().is_some() {
         (400, "Bad Request")
     } else {
-        log::error!("未处理的错误: {:?}", err);
+        log::error!("Unhandled error: {:?}", err);
         (500, "Internal Server Error")
     };
 

@@ -2,7 +2,7 @@ use crate::config::GraphQLConfig;
 use handlebars::Handlebars;
 use serde_json::json;
 
-/// GraphQL Playground服务
+/// GraphQL Playground service
 #[derive(Clone)]
 pub struct PlaygroundService {
     config: GraphQLConfig,
@@ -13,15 +13,15 @@ impl PlaygroundService {
         Self { config }
     }
 
-    /// 获取Playground HTML
+    /// Get Playground HTML
     pub fn get_playground_html(&self) -> String {
         let mut handlebars = Handlebars::new();
         
-        // 注册模板
+        // Register template
         let template = include_str!("templates/playground.hbs");
         handlebars.register_template_string("playground", template).unwrap();
         
-        // 准备数据
+        // Prepare data
         let data = json!({
             "title": "Dubhe GraphQL Playground",
             "version": "6.0.0-canary-d779fd3f.0",
@@ -32,7 +32,7 @@ impl PlaygroundService {
             "ws_connection_params": {},
         });
         
-        // 渲染模板
+        // Render template
         handlebars.render("playground", &data).unwrap()
     }
 }
@@ -65,9 +65,9 @@ mod tests {
         let service = PlaygroundService::new(config);
         let html = service.get_playground_html();
         
-        // 检查 HTML 包含必要的元素
+        // Check HTML contains necessary elements
         assert!(html.contains("GraphiQL"));
         assert!(html.contains("/graphql"));
-        assert!(!html.contains("plugin-explorer")); // 不应该包含插件
+        assert!(!html.contains("plugin-explorer")); // Should not contain plugins
     }
 } 
