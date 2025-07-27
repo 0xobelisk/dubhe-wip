@@ -22,7 +22,7 @@ rpc_url = "http://localhost:9000"
 # testnet: https://checkpoints.testnet.sui.io
 # localnet: /tmp/checkpoints
 checkpoint_url = "e2e/.chk"
-origin_package_id = "0x67155c995815053ee0fa0b4b70dbc76914647bbb49a7a849158ba8c398fc23fc"
+origin_package_id = "0xccf782aa36f73896ea269e1f71eeb0ed404fe1a472f8c6e775353d19e6b09fc4"
 start_checkpoint = 10
 
 # Database configuration

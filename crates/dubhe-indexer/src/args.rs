@@ -28,6 +28,9 @@ pub struct DubheIndexerArgs {
     /// Force restart: clear indexer database (only for local nodes)
     #[arg(long, default_value = "false")]
     pub force: bool,
+    /// Start from the latest checkpoint
+    #[arg(long)]
+    pub origin_package_id: Option<String>,
 
 }
 

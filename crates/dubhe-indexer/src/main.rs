@@ -45,7 +45,14 @@ async fn main() -> Result<()> {
     // Parse command line arguments
     let args = DubheIndexerArgs::parse();
 
-    let config = DubheConfig::new(&args)?;
+    let mut config = DubheConfig::new(&args)?;
+
+    match &args.origin_package_id {
+        Some(package_id) => {
+            config.sui.origin_package_id = package_id.clone();
+        }
+        None => { }
+    };
 
     // Initialize logging system based on configuration
     config.init_logging()?;
