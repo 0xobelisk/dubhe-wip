@@ -77,7 +77,39 @@ impl DubheIndexerGraphQLClient {
         let (ws_stream, _) = connect_async(websocket_url).await?;
         let (mut write, mut read) = ws_stream.split();
 
-        // Send subscription request
+        // First, send connection initialization
+        let init_message = json!({
+            "type": "connection_init"
+        });
+        write.send(Message::Text(init_message.to_string())).await?;
+        
+        // Wait for connection_ack before sending subscription
+        let mut connection_acked = false;
+        while !connection_acked {
+            if let Some(msg) = read.next().await {
+                match msg {
+                    Ok(Message::Text(text)) => {
+                        if let Ok(data) = serde_json::from_str::<Value>(&text) {
+                            if let Some(msg_type) = data.get("type").and_then(|v| v.as_str()) {
+                                if msg_type == "connection_ack" {
+                                    connection_acked = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Ok(Message::Close(_)) => {
+                        return Err(anyhow::anyhow!("WebSocket connection closed during initialization"));
+                    }
+                    Err(e) => {
+                        return Err(anyhow::anyhow!("WebSocket error during initialization: {}", e));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Now send subscription request
         let subscribe_message = json!({
             "type": "start",
             "id": "1",
@@ -94,18 +126,34 @@ impl DubheIndexerGraphQLClient {
             while let Some(msg) = read.next().await {
                 match msg {
                     Ok(Message::Text(text)) => {
+                        println!("🔔 GraphQL client received WebSocket message: {}", text);
                         if let Ok(data) = serde_json::from_str::<Value>(&text) {
+                            println!("📋 Parsed JSON: {}", serde_json::to_string_pretty(&data).unwrap_or_default());
                             if let Some(payload) = data.get("payload") {
+                                println!("📦 Found payload");
                                 if let Some(data) = payload.get("data") {
+                                    println!("📊 Found data in payload");
                                     if let Some(table_changes) = data.get("tableChanges") {
+                                        println!("🎯 Found tableChanges in data: {}", table_changes);
                                         if let Ok(table_change) = serde_json::from_value::<TableChange>(
                                             table_changes.clone()
                                         ) {
+                                            println!("✅ Successfully parsed TableChange, sending to receiver");
                                             let _ = tx.send(table_change);
+                                        } else {
+                                            println!("❌ Failed to parse TableChange from: {}", table_changes);
                                         }
+                                    } else {
+                                        println!("⚠️ No tableChanges found in data. Available keys: {:?}", data.as_object().map(|obj| obj.keys().collect::<Vec<_>>()));
                                     }
+                                } else {
+                                    println!("⚠️ No data found in payload");
                                 }
+                            } else {
+                                println!("⚠️ No payload found in message");
                             }
+                        } else {
+                            println!("❌ Failed to parse JSON from WebSocket message");
                         }
                     }
                     Ok(Message::Close(_)) => break,
@@ -140,7 +188,39 @@ impl DubheIndexerGraphQLClient {
         let (ws_stream, _) = connect_async(websocket_url).await?;
         let (mut write, mut read) = ws_stream.split();
 
-        // Send subscription request
+        // First, send connection initialization
+        let init_message = json!({
+            "type": "connection_init"
+        });
+        write.send(Message::Text(init_message.to_string())).await?;
+        
+        // Wait for connection_ack before sending subscription
+        let mut connection_acked = false;
+        while !connection_acked {
+            if let Some(msg) = read.next().await {
+                match msg {
+                    Ok(Message::Text(text)) => {
+                        if let Ok(data) = serde_json::from_str::<Value>(&text) {
+                            if let Some(msg_type) = data.get("type").and_then(|v| v.as_str()) {
+                                if msg_type == "connection_ack" {
+                                    connection_acked = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Ok(Message::Close(_)) => {
+                        return Err(anyhow::anyhow!("WebSocket connection closed during initialization"));
+                    }
+                    Err(e) => {
+                        return Err(anyhow::anyhow!("WebSocket error during initialization: {}", e));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Now send subscription request
         let subscribe_message = json!({
             "type": "start",
             "id": "2",
@@ -203,7 +283,39 @@ impl DubheIndexerGraphQLClient {
         let (ws_stream, _) = connect_async(websocket_url).await?;
         let (mut write, mut read) = ws_stream.split();
 
-        // Send subscription request
+        // First, send connection initialization
+        let init_message = json!({
+            "type": "connection_init"
+        });
+        write.send(Message::Text(init_message.to_string())).await?;
+        
+        // Wait for connection_ack before sending subscription
+        let mut connection_acked = false;
+        while !connection_acked {
+            if let Some(msg) = read.next().await {
+                match msg {
+                    Ok(Message::Text(text)) => {
+                        if let Ok(data) = serde_json::from_str::<Value>(&text) {
+                            if let Some(msg_type) = data.get("type").and_then(|v| v.as_str()) {
+                                if msg_type == "connection_ack" {
+                                    connection_acked = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Ok(Message::Close(_)) => {
+                        return Err(anyhow::anyhow!("WebSocket connection closed during initialization"));
+                    }
+                    Err(e) => {
+                        return Err(anyhow::anyhow!("WebSocket error during initialization: {}", e));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Now send subscription request
         let subscribe_message = json!({
             "type": "start",
             "id": "3",

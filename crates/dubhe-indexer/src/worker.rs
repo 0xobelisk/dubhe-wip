@@ -569,8 +569,16 @@ impl Worker for DubheIndexerWorker {
                                             }),
                                         };
                                         for sender in senders {
-                                            let _ = sender.send(table_change.clone());
+                                            println!("📤 Sending table change to GraphQL subscriber: {:?}", table_name_clone);
+                                            let result = sender.send(table_change.clone());
+                                            if result.is_err() {
+                                                println!("❌ Failed to send table change to GraphQL subscriber: {:?}", result.err());
+                                            } else {
+                                                println!("✅ Successfully sent table change to GraphQL subscriber");
+                                            }
                                         }
+                                    } else {
+                                        println!("❌ No GraphQL subscribers found for table: {:?}", table_name_clone);
                                     }
                                 });
                                 

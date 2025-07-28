@@ -42,7 +42,7 @@ impl GraphQLServer {
         let db_pool = DatabasePool::new(&config.database_url).await.ok().map(Arc::new);
         
         let query_root = QueryRoot::new(db_pool.clone());
-        let schema = Schema::build(query_root, async_graphql::EmptyMutation, SubscriptionRoot::new(subscribers.clone()))
+        let schema = Schema::build(query_root, async_graphql::EmptyMutation, SubscriptionRoot::new(subscribers.clone(), graphql_subscribers.clone()))
             .finish();
 
         let health_service = HealthService::new(config.clone());

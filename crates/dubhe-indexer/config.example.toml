@@ -22,7 +22,7 @@ rpc_url = "http://localhost:9000"
 # testnet: https://checkpoints.testnet.sui.io
 # localnet: /tmp/checkpoints
 checkpoint_url = "e2e/.chk"
-origin_package_id = "0xccf782aa36f73896ea269e1f71eeb0ed404fe1a472f8c6e775353d19e6b09fc4"
+origin_package_id = "0x3d885fa136b62b0853c7bece0966b75a7c3b8c91f7b1639e69a4d814c57db9df"
 start_checkpoint = 10
 
 # Database configuration
@@ -57,7 +57,7 @@ channel_capacity = 1000
 # Logging configuration
 [logging]
 # Log level: debug, info, warn, error
-level = "debug"
+level = "error"
 
 # Monitoring configuration
 [metrics]

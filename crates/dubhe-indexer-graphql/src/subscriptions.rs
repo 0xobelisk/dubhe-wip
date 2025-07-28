@@ -15,10 +15,13 @@ pub struct SubscriptionRoot {
 }
 
 impl SubscriptionRoot {
-    pub fn new(subscribers: TableSubscribers) -> Self {
+    pub fn new(
+        subscribers: TableSubscribers,
+        graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
+    ) -> Self {
         Self { 
             subscribers,
-            graphql_subscribers: Arc::new(RwLock::new(HashMap::new())),
+            graphql_subscribers,
         }
     }
 
@@ -46,6 +49,11 @@ impl SubscriptionRoot {
             {
                 let mut subscribers = graphql_subscribers.write().await;
                 subscribers.entry(table_name.clone()).or_insert_with(Vec::new).push(tx);
+                println!("📝 GraphQL subscription registered for table: {}", table_name);
+                println!("📊 Total GraphQL subscribers count: {}", subscribers.len());
+                for (table, senders) in subscribers.iter() {
+                    println!("   Table '{}': {} subscribers", table, senders.len());
+                }
             }
             
             // Listen for data from worker

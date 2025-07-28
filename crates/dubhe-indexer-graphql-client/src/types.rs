@@ -27,6 +27,7 @@ pub struct GraphQLLocation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableChange {
     pub id: String,
+    #[serde(rename = "tableName")]
     pub table_name: String,
     pub operation: String,
     pub timestamp: String,
@@ -37,6 +38,7 @@ pub struct TableChange {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
     pub id: String,
+    #[serde(rename = "eventType")]
     pub event_type: String,
     pub timestamp: String,
     pub data: serde_json::Value,
@@ -45,17 +47,21 @@ pub struct Event {
 /// Checkpoint update
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckpointUpdate {
+    #[serde(rename = "sequenceNumber")]
     pub sequence_number: i64,
     pub digest: String,
     pub timestamp: String,
+    #[serde(rename = "transactionsCount")]
     pub transactions_count: i32,
 }
 
 /// Query response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryResponse {
+    #[serde(rename = "tableId")]
     pub table_id: String,
     pub data: Vec<serde_json::Value>,
+    #[serde(rename = "totalCount")]
     pub total_count: i64,
     pub limit: i32,
     pub offset: i32,
