@@ -4,6 +4,7 @@ module dubhe::entity_id {
     use std::ascii::{String};
     use std::vector;
     use std::bcs;
+    use sui::object::{Self};
 
     public fun asset_to_entity_id(name: String, asset_id: u256): address {
         let mut raw_bytes = vector::empty();
@@ -14,11 +15,9 @@ module dubhe::entity_id {
         address::from_bytes(entity_id_bytes)
     }
 
-    /// Generate entity key from object ID (validates and returns the object ID if valid)
-    /// This function validates that the object ID is a valid hex address format
-    public fun entity_key_from_object(object_id: address): address {
-        // In Move, address type already ensures valid format, so we just return it
-        object_id
+    /// Generate entity key from an object
+    public fun object_address<T:key>(obj: &T): address {
+        obj.key().id().address()
     }
 
     /// Generate entity key from bytes using keccak256 hash
