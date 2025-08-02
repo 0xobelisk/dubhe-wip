@@ -1,10 +1,11 @@
-use sqlx::{Pool, Postgres, PgPool};
+use sqlx::{Pool, Postgres, PgPool, Row, Column};
 use crate::db::Storage;
 use async_trait::async_trait;
 use anyhow::Result;
 use crate::table::TableMetadata;
 use crate::sql::DBData;
 use serde_json::Value;
+use std::collections::HashMap;
 
 pub struct PostgresStorage {
     pool: Pool<Postgres>,
@@ -323,6 +324,38 @@ impl PostgresStorage {
 
         sql_statements
     }
+
+    fn column_to_json_value(row: &sqlx::postgres::PgRow, column_index: usize) -> serde_json::Value {
+        
+        if let Ok(value) = row.try_get::<serde_json::Value, _>(column_index) {
+            return value;
+        }
+
+        // 尝试常见的类型转换，不依赖类型信息
+        if let Ok(value) = row.try_get::<bool, _>(column_index) {
+            return serde_json::Value::Bool(value);
+        }
+        if let Ok(value) = row.try_get::<i16, _>(column_index) {
+            return serde_json::Value::Number(serde_json::Number::from(value));
+        }
+        if let Ok(value) = row.try_get::<i32, _>(column_index) {
+            return serde_json::Value::Number(serde_json::Number::from(value));
+        }
+        if let Ok(value) = row.try_get::<i64, _>(column_index) {
+            return serde_json::Value::Number(serde_json::Number::from(value));
+        }
+        if let Ok(value) = row.try_get::<f32, _>(column_index) {
+            return serde_json::Value::Number(serde_json::Number::from_f64(value as f64).unwrap_or(serde_json::Number::from(0)));
+        }
+        if let Ok(value) = row.try_get::<f64, _>(column_index) {
+            return serde_json::Value::Number(serde_json::Number::from_f64(value).unwrap_or(serde_json::Number::from(0)));
+        }
+        if let Ok(value) = row.try_get::<String, _>(column_index) {
+            return serde_json::Value::String(value);
+        }
+
+        serde_json::Value::Null
+    }
 }
 
 #[async_trait]
@@ -403,6 +436,30 @@ impl Storage for PostgresStorage {
         }
         
         Ok(())
+    }
+
+    async fn query(&self, sql: &str) -> Result<Vec<serde_json::Value>> {
+        let rows = sqlx::query(sql)
+            .fetch_all(&self.pool)
+            .await?;
+            
+        let mut results = Vec::new();
+        for row in rows {
+            let mut row_data = serde_json::Map::new();
+            
+            // Get column names and values
+            for (i, column) in row.columns().iter().enumerate() {
+                let column_name = column.name();
+                
+                // 使用新的 column_to_json_value 方法
+                let json_value = Self::column_to_json_value(&row, i);
+                row_data.insert(column_name.to_string(), json_value);
+            }
+            
+            results.push(serde_json::Value::Object(row_data));
+        }
+        
+        Ok(results)
     }
 
     fn get_sql_type(&self, type_: &str) -> String {

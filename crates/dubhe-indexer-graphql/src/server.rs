@@ -5,7 +5,7 @@ use crate::subscriptions::SubscriptionRoot;
 use crate::health::HealthService;
 use crate::playground::PlaygroundService;
 use crate::database::DatabasePool;
-use crate::TableSubscribers;
+use crate::GrpcSubscribers;
 use crate::TableChange;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -23,7 +23,7 @@ use serde_json::json;
 /// GraphQL server
 pub struct GraphQLServer {
     config: GraphQLConfig,
-    subscribers: TableSubscribers,
+    subscribers: GrpcSubscribers,
     db_pool: Option<Arc<DatabasePool>>,
     schema: Schema<QueryRoot, async_graphql::EmptyMutation, SubscriptionRoot>,
     health_service: HealthService,
@@ -35,7 +35,7 @@ impl GraphQLServer {
     /// Create a new GraphQL server
     pub async fn new(
         config: GraphQLConfig, 
-        subscribers: TableSubscribers,
+        subscribers: GrpcSubscribers,
         graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
     ) -> Result<Self> {
         // Try to create database connection pool
@@ -254,7 +254,7 @@ impl GraphQLServer {
             .and_then(handle_health);
 
         // Root path - welcome page
-        let root_route = warp::path::end()
+        let welcome_route = warp::path("welcome")
             .and(warp::get())
             .and(with_service(self.db_pool.clone())) // Pass db_pool to handler
             .and_then(handle_welcome_page); // Use new async handler
@@ -265,7 +265,7 @@ impl GraphQLServer {
             .or(graphql_get_route)
             .or(graphiql_route)
             .or(health_route)
-            .or(root_route)
+            .or(welcome_route)
             .with(warp::cors()
                 .allow_any_origin()
                 .allow_methods(vec!["GET", "POST", "OPTIONS"])
@@ -514,8 +514,8 @@ async fn handle_welcome_page(db_pool: Option<Arc<DatabasePool>>) -> Result<impl 
 async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     let (code, message) = if err.is_not_found() {
         (404, "Not Found")
-    } else if err.find::<GraphQLBadRequest>().is_some() {
-        (400, "Bad Request")
+    } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
+        (405, "Method Not Allowed")
     } else {
         log::error!("Unhandled error: {:?}", err);
         (500, "Internal Server Error")

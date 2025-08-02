@@ -7,10 +7,9 @@ pub use sqlite::SqliteStorage;
 pub use postgres::PostgresStorage;
 
 use anyhow::Result;
-use async_trait::async_trait;
-use serde_json::Value;
 use crate::table::TableMetadata;
 use crate::sql::DBData;
+use std::collections::HashMap;
 
 /// Database storage enum that supports both SQLite and PostgreSQL
 pub enum Database {
@@ -59,6 +58,42 @@ impl Database {
         match self {
             Database::Sqlite(storage) => storage.generate_create_table_sql(table),
             Database::Postgres(storage) => storage.generate_create_table_sql(table),
+        }
+    }
+
+
+
+    /// Execute SQL query
+    pub async fn query(&self, sql: &str) -> Result<Vec<serde_json::Value>> {
+        match self {
+            Database::Sqlite(storage) => storage.query(sql).await,
+            Database::Postgres(storage) => storage.query(sql).await,
+        }
+    }
+
+    /// Count rows in a table with optional WHERE clause
+    pub async fn count_rows(&self, table_name: &str, where_clause: &str) -> Result<u64> {
+        let sql = if where_clause.is_empty() {
+            format!("SELECT COUNT(*) as count FROM {}", table_name)
+        } else {
+            format!("SELECT COUNT(*) as count FROM {}{}", table_name, where_clause)
+        };
+        
+        match self.query(&sql).await {
+            Ok(results) => {
+                if let Some(first_row) = results.first() {
+                    if let Some(count_value) = first_row.get("count") {
+                        if let Some(count) = count_value.as_u64() {
+                            return Ok(count);
+                        }
+                        if let Some(count) = count_value.as_i64() {
+                            return Ok(count as u64);
+                        }
+                    }
+                }
+                Ok(0)
+            }
+            Err(e) => Err(e),
         }
     }
 

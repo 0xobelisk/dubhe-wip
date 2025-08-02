@@ -34,13 +34,13 @@ pub struct TableColumn {
 }
 
 /// Subscribers management
-pub type TableSubscribers = Arc<RwLock<HashMap<String, Vec<String>>>>;
+pub type GrpcSubscribers = Arc<RwLock<HashMap<String, Vec<String>>>>;
 
 /// GraphQL server manager
 pub struct GraphQLServerManager {
     config: GraphQLConfig,
     server: Option<GraphQLServer>,
-    subscribers: TableSubscribers,
+    subscribers: GrpcSubscribers,
     graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
 }
 
@@ -77,7 +77,7 @@ impl GraphQLServerManager {
     }
 
     /// Get subscribers
-    pub fn get_subscribers(&self) -> TableSubscribers {
+    pub fn get_subscribers(&self) -> GrpcSubscribers {
         self.subscribers.clone()
     }
 } 

@@ -1,110 +1,118 @@
 use tonic::transport::Channel;
 use anyhow::Result;
-use futures::stream::StreamExt;
-use crate::types::dubhe_grpc_client::DubheGrpcClient;
-use crate::types::{
-    QueryRequest, QueryResponse, SubscribeRequest, TableUpdate,
-    TableMetadataRequest, TableMetadataResponse, ListTablesRequest, ListTablesResponse
-};
 
-pub struct DubheIndexerClient {
+use dubhe_indexer_grpc::types::dubhe_grpc_client::DubheGrpcClient;
+use crate::{
+    QueryRequest, QueryResponse, SubscribeRequest, TableChange,
+    FilterCondition, SortSpecification, PaginationRequest,
+};
+use prost_types::Value;
+use crate::types::{ApiResponse, Pagination};
+use prost_types::Struct;
+
+const MAX_PAGE_SIZE: u32 = 100;
+
+pub struct DubheIndexerGrpcClient {
     client: DubheGrpcClient<Channel>,
 }
 
-impl DubheIndexerClient {
-    pub async fn new(addr: String) -> Result<Self> {
-        let client = DubheGrpcClient::connect(addr).await?;
+impl DubheIndexerGrpcClient {
+    pub async fn new(indexer_url: String) -> Result<Self> {
+        let client = DubheGrpcClient::connect(indexer_url).await?;
+        
         Ok(Self { client })
     }
 
-    /// Query data from a specific table
-    pub async fn query_data(
+    /// Query data from a specific table using new protocol
+    pub async fn get_table(
         &mut self,
-        table_id: &str,
-        query: &str,
-        limit: i32,
-        offset: i32,
-    ) -> Result<QueryResponse> {
+        table_name: &str,
+    ) -> Result<ApiResponse<serde_json::Value>> {
         let request = QueryRequest {
-            table_id: table_id.to_string(),
-            query: query.to_string(),
-            limit,
-            offset,
+            table_name: table_name.to_string(),
+            ..Default::default()
         };
 
-        let response = self.client.query_data(request).await?;
-        Ok(response.into_inner())
+        let response = self.client.query_table(request).await?;
+        let api_response = Self::convert_query_response(response.into_inner());
+        Ok(api_response)
     }
 
     /// Subscribe to table updates
-    pub async fn subscribe_to_table(
+    pub async fn subscribe_table(
         &mut self,
         table_ids: Vec<String>,
-    ) -> Result<tonic::codec::Streaming<TableUpdate>> {
+    ) -> Result<tonic::codec::Streaming<TableChange>> {
         let request = SubscribeRequest { table_ids };
 
-        let response = self.client.subscribe_to_table(request).await?;
+        let response = self.client.subscribe_table(request).await?;
         Ok(response.into_inner())
     }
 
-    /// Get table metadata
-    pub async fn get_table_metadata(
-        &mut self,
-        table_id: &str,
-    ) -> Result<TableMetadataResponse> {
-        let request = TableMetadataRequest {
-            table_id: table_id.to_string(),
-        };
-
-        let response = self.client.get_table_metadata(request).await?;
-        Ok(response.into_inner())
-    }
-
-    /// List all available tables
-    pub async fn list_tables(
-        &mut self,
-        table_type: Option<String>,
-    ) -> Result<ListTablesResponse> {
-        let request = ListTablesRequest {
-            table_type: table_type.unwrap_or_default(),
-        };
-
-        let response = self.client.list_tables(request).await?;
-        Ok(response.into_inner())
-    }
-
-    /// Subscribe to table updates and print them to console
-    pub async fn subscribe_and_print(
-        &mut self,
-        table_ids: Vec<String>,
-    ) -> Result<()> {
-        let mut stream = self.subscribe_to_table(table_ids).await?;
-
-        println!("Subscribed to table updates. Waiting for data...");
-
-        while let Some(update_result) = stream.next().await {
-            match update_result {
-                Ok(update) => {
-                    println!("Received update:");
-                    println!("  Table ID: {}", update.table_id);
-                    println!("  Operation: {}", update.operation);
-                    println!("  Checkpoint: {}", update.checkpoint);
-                    println!("  Timestamp: {}", update.timestamp);
-                    
-                    if let Some(data) = update.data {
-                        println!("  Data fields:");
-                        for (key, value) in &data.fields {
-                            println!("    {}: {}", key, value);
-                        }
-                    }
-                    println!();
+    /// Convert protobuf Value to serde_json::Value
+    fn convert_protobuf_value(value: &Value) -> serde_json::Value {
+        match &value.kind {
+            Some(prost_types::value::Kind::StringValue(s)) => serde_json::Value::String(s.clone()),
+            Some(prost_types::value::Kind::NumberValue(n)) => {
+                serde_json::json!(n)
+            },
+            Some(prost_types::value::Kind::BoolValue(b)) => serde_json::Value::Bool(*b),
+            Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
+            Some(prost_types::value::Kind::StructValue(s)) => {
+                let mut map = serde_json::Map::new();
+                for (key, val) in &s.fields {
+                    map.insert(key.clone(), Self::convert_protobuf_value(val));
                 }
-                Err(e) => {
-                    eprintln!("Error receiving update: {}", e);
+                serde_json::Value::Object(map)
+            },
+            Some(prost_types::value::Kind::ListValue(l)) => {
+                let vec: Vec<serde_json::Value> = l.values.iter()
+                    .map(|v| Self::convert_protobuf_value(v))
+                    .collect();
+                serde_json::Value::Array(vec)
+            },
+            None => serde_json::Value::Null,
+        }
+    }
+
+    /// Convert protobuf Value to serde_json::Map
+    fn convert_protobuf_value_to_map(value: &Value) -> serde_json::Value {
+        match &value.kind {
+            Some(prost_types::value::Kind::StructValue(s)) => {
+                let mut map = serde_json::Map::new();
+                for (key, val) in &s.fields {
+                    map.insert(key.clone(), Self::convert_protobuf_value(val));
                 }
+                serde_json::Value::Object(map)
+            },
+            _ => {
+                // If it's not a struct, create a map with a single "value" key
+                let mut map = serde_json::Map::new();
+                map.insert("value".to_string(), Self::convert_protobuf_value(value));
+                serde_json::Value::Object(map)
             }
         }
-
-        Ok(())
     }
-} 
+
+    /// Convert protobuf Struct to serde_json::Value
+    fn convert_protobuf_struct_to_value(value: &Struct) -> serde_json::Value {
+        let mut map = serde_json::Map::new();
+        for (key, val) in &value.fields {
+            map.insert(key.clone(), Self::convert_protobuf_value(val));
+        }
+        serde_json::Value::Object(map)
+    }
+
+
+    fn convert_query_response(response: QueryResponse) -> ApiResponse<serde_json::Value> {
+        ApiResponse {
+            data: response.rows.iter().map(|v| Self::convert_protobuf_struct_to_value(v)).collect(),
+            pagination: response.pagination.map(|p| Pagination {
+                total: p.total_items as u64,
+                page: p.current_page as u32,
+                page_size: p.page_size as u32,
+                total_pages: p.total_pages as u32,
+            }),
+        }
+    }
+}

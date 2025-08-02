@@ -11,6 +11,7 @@ use dotenvy::dotenv;
 use sdic::{DataIngestionMetrics, FileProgressStore, IndexerExecutor};
 use sdic::{ReaderOptions, Worker, WorkerPool};
 use std::env;
+use std::net::SocketAddr;
 use sui_sdk::SuiClientBuilder;
 use sui_types::full_checkpoint_content::CheckpointData;
 use tokio::sync::oneshot;
@@ -26,11 +27,12 @@ mod sui_data_ingestion_core;
 mod tls;
 mod worker;
 mod config;
+mod proxy;
 
 use crate::args::DubheIndexerArgs;
 // use crate::db::get_connection_pool;
 use dubhe_common::{Database, Storage, TableMetadata};
-use crate::worker::{DubheIndexerWorker, TableSubscribers};
+use crate::worker::{DubheIndexerWorker, GrpcSubscribers};
 use crate::config::DubheConfig;
 use dubhe_common::SqliteStorage;
 use std::collections::HashMap;
@@ -61,8 +63,8 @@ async fn main() -> Result<()> {
     log::info!("Config file: {}, Worker pool: {}, Start checkpoint: {}", 
         args.config, args.worker_pool_number, args.start_checkpoint);
 
-    log::debug!("Configuration loaded - RPC URL: {}, Package ID: {}, Database: {}, GRPC: {}", 
-        config.sui.rpc_url, config.sui.origin_package_id, config.database.url, config.grpc.addr);
+    log::debug!("Configuration loaded - RPC URL: {}, Package ID: {}, Database: {}, Server: {}", 
+        config.sui.rpc_url, config.sui.origin_package_id, config.database.url, config.server.addr);
 
     let sui_client = config.get_sui_client().await?;
     let latest_checkpoint = sui_client
@@ -77,14 +79,12 @@ async fn main() -> Result<()> {
     let config_json = args.get_config_json()?;
     let (package_id, start_checkpoint, tables) = TableMetadata::from_json(config_json)?;
 
-    println!("tables: {:?}", tables);
-
     let database = Database::new(&config.database.url).await?;
 
     // Initialize subscribers for GRPC
-    let subscribers: TableSubscribers = Arc::new(RwLock::new(HashMap::new()));
+    let subscribers: GrpcSubscribers = Arc::new(RwLock::new(HashMap::new()));
     
-            // Create GraphQL subscribers manager
+    // Create GraphQL subscribers manager
     let graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>> = 
         Arc::new(RwLock::new(HashMap::new()));
     
@@ -97,21 +97,17 @@ async fn main() -> Result<()> {
     ).await?;
     dubhe_indexer_worker.database.create_tables(&tables).await?;
     
-    // Start GRPC server in background
-    let grpc_addr = config.grpc.addr.clone();
-    let grpc_subscribers = subscribers.clone();
-    tokio::spawn(async move {
-        if let Err(e) = start_grpc_server(grpc_addr, grpc_subscribers).await {
-            log::error!("GRPC server error: {}", e);
-        }
-    });
+    // Extract port from server.addr (format: "0.0.0.0:8080")
+    let server_port = config.server.addr.split(':').last()
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(8080);
 
-    // Start GraphQL server in background
+    // Create GraphQL configuration
     let graphql_config = dubhe_indexer_graphql::GraphQLConfig {
-        port: config.graphql.port,
+        port: server_port,
         database_url: config.database.url.clone(),
         schema: "public".to_string(),
-        endpoint: "/graphql".to_string(), // Hardcoded after user request
+        endpoint: "/graphql".to_string(),
         cors: config.graphql.cors,
         subscriptions: config.graphql.subscriptions,
         env: "development".to_string(),
@@ -126,15 +122,47 @@ async fn main() -> Result<()> {
         realtime_port: config.graphql.realtime_port,
     };
     
-    let graphql_config_clone = graphql_config.clone();
-    let graphql_subscribers_clone = graphql_subscribers.clone();
-    tokio::spawn(async move {
-        let mut graphql_manager = GraphQLServerManager::new(graphql_config_clone, graphql_subscribers_clone);
-        if let Err(e) = graphql_manager.start().await {
-            log::error!("GraphQL server error: {}", e);
+    // Parse server address
+    let server_addr: std::net::SocketAddr = config.server.addr.parse()
+        .map_err(|e| anyhow::anyhow!("Invalid server address {}: {}", config.server.addr, e))?;
+
+    // Print startup banner
+    println!("\n🚀 Dubhe Indexer Starting...");
+    println!("================================");
+    println!("📊 GraphQL Endpoint: http://{}/graphql", server_addr);
+    println!("🔌 gRPC Endpoint:    http://{} (Content-Type: application/grpc)", server_addr);
+    println!("🎮 Playground:       http://{}/playground", server_addr);
+    println!("💚 Health Check:     http://{}/health", server_addr);
+    println!("🏠 Welcome Page:     http://{}/", server_addr);
+
+    log::info!("🔧 Configuration loaded from: {}", args.config);
+    log::info!("📊 Database URL: {}", config.database.url);
+    log::info!("🌐 Server listening on: {}", server_addr);
+
+    // Start unified proxy server with independent GraphQL and gRPC backends (torii-style architecture)
+    let grpc_backend_addr: SocketAddr = "127.0.0.1:8081".parse().unwrap();
+    let graphql_backend_addr: SocketAddr = "127.0.0.1:8082".parse().unwrap();
+    
+    log::info!("🏗️  Setting up torii-style architecture:");
+    log::info!("   - Proxy Server:    {}", server_addr);
+    log::info!("   - gRPC Backend:    {}", grpc_backend_addr);
+    log::info!("   - GraphQL Backend: {}", graphql_backend_addr);
+    
+    let proxy_server = proxy::ProxyServer::new(
+        server_addr,                  // Main proxy endpoint
+        Some(grpc_backend_addr),      // Independent gRPC service
+        Some(graphql_backend_addr),   // Independent GraphQL service
+        subscribers.clone(),
+        graphql_subscribers.clone(),
+    );
+    
+    // Start proxy server in the main task (it will spawn backend services internally)
+    let proxy_handle = tokio::spawn(async move {
+        if let Err(e) = proxy_server.start(Arc::new(database)).await {
+            log::error!("❌ Proxy server failed: {}", e);
+            std::process::exit(1);
         }
     });
-
 
     // // Handle force restart for local nodes only
     // if args.force {
@@ -179,14 +207,40 @@ async fn main() -> Result<()> {
         ..Default::default()
     };
     let (local_path, remote_store_url) = config.get_checkpoint_url()?;
-    executor
-        .run(
-            local_path,
-            remote_store_url,
-            vec![],
-            reader_options,
-            exit_receiver,
-        )
-        .await?;
+    
+    // Start indexer executor
+    let executor_handle = tokio::spawn(async move {
+        log::info!("🚀 Starting indexer executor...");
+        executor
+            .run(
+                local_path,
+                remote_store_url,
+                vec![],
+                reader_options,
+                exit_receiver,
+            )
+            .await
+    });
+
+    // Wait for either proxy or executor to complete/fail
+    log::info!("🎯 All services started successfully!");
+    log::info!("📡 Dubhe Indexer is now running with unified gRPC/GraphQL endpoint");
+    
+    tokio::select! {
+        result = proxy_handle => {
+            match result {
+                Ok(_) => log::info!("✅ Proxy server completed successfully"),
+                Err(e) => log::error!("❌ Proxy server task failed: {}", e),
+            }
+        }
+        result = executor_handle => {
+            match result {
+                Ok(Ok(_)) => log::info!("✅ Indexer executor completed successfully"),
+                Ok(Err(e)) => log::error!("❌ Indexer executor failed: {}", e),
+                Err(e) => log::error!("❌ Indexer executor task failed: {}", e),
+            }
+        }
+    }
+    
     Ok(())
 }

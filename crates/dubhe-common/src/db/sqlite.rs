@@ -1,9 +1,10 @@
-use sqlx::{Pool, Sqlite, SqlitePool};
+use sqlx::{Pool, Sqlite, SqlitePool, Row, Column, TypeInfo};
 use crate::db::Storage;
 use async_trait::async_trait;
 use anyhow::Result;
 use crate::table::TableMetadata;
 use crate::sql::{DBData};
+use std::collections::HashMap;
 
 pub struct SqliteStorage {
     pool: Pool<Sqlite>,
@@ -124,6 +125,60 @@ impl SqliteStorage {
         };
         sql_type.to_string()
     }
+
+    fn column_to_json_value(&self, row: &sqlx::sqlite::SqliteRow, column_index: usize) -> serde_json::Value {
+        
+        if let Ok(value) = row.try_get::<serde_json::Value, _>(column_index) {
+            return value;
+        }
+
+        let column = row.columns().get(column_index);
+        if let Some(col) = column {
+            let type_name = col.type_info().name();
+            
+            match type_name {
+                "BOOLEAN" | "BOOL" => {
+                    if let Ok(value) = row.try_get::<bool, _>(column_index) {
+                        return serde_json::Value::Bool(value);
+                    }
+                    if let Ok(value) = row.try_get::<i64, _>(column_index) {
+                        return serde_json::Value::Bool(value != 0);
+                    }
+                }
+                "INTEGER" | "INT" => {
+                    if let Ok(value) = row.try_get::<i64, _>(column_index) {
+                        return serde_json::Value::Number(serde_json::Number::from(value));
+                    }
+                }
+                "REAL" | "FLOAT" | "DOUBLE" => {
+                    if let Ok(value) = row.try_get::<f64, _>(column_index) {
+                        return serde_json::Value::Number(serde_json::Number::from_f64(value).unwrap_or(serde_json::Number::from(0)));
+                    }
+                }
+                "TEXT" | "VARCHAR" | "STRING" => {
+                    if let Ok(value) = row.try_get::<String, _>(column_index) {
+                        return serde_json::Value::String(value);
+                    }
+                }
+                _ => {
+                    if let Ok(value) = row.try_get::<i64, _>(column_index) {
+                        return serde_json::Value::Number(serde_json::Number::from(value));
+                    }
+                    if let Ok(value) = row.try_get::<f64, _>(column_index) {
+                        return serde_json::Value::Number(serde_json::Number::from_f64(value).unwrap_or(serde_json::Number::from(0)));
+                    }
+                    if let Ok(value) = row.try_get::<String, _>(column_index) {
+                        return serde_json::Value::String(value);
+                    }
+                    if let Ok(value) = row.try_get::<bool, _>(column_index) {
+                        return serde_json::Value::Bool(value);
+                    }
+                }
+            }
+        }
+
+        serde_json::Value::Null
+    }
 }
 
 #[async_trait]
@@ -142,7 +197,8 @@ impl Storage for SqliteStorage {
     async fn create_tables(&self, tables: &[TableMetadata]) -> Result<()> {
         for table in tables {
             let sql = self.generate_create_table_sql(table);
-            log::info!("Creating table with SQL: {}", sql);
+            println!("dubhe-common: sqlite: Creating table with SQL: {}", sql);
+            log::debug!("dubhe-common: sqlite: Creating table with SQL: {}", sql);
             self.execute(&sql).await?;
         }
         Ok(())
@@ -215,8 +271,33 @@ impl Storage for SqliteStorage {
     }
 
 
+
+    async fn query(&self, sql: &str) -> Result<Vec<serde_json::Value>> {
+        let rows = sqlx::query(sql)
+            .fetch_all(&self.pool)
+            .await?;
+            
+        let mut results = Vec::new();
+        for row in rows {
+            let mut row_data = serde_json::Map::new();
+            
+            // Get column names and values
+            for (i, column) in row.columns().iter().enumerate() {
+                let column_name = column.name();
+                
+                // 使用新的 column_to_json_value 方法
+                let json_value = self.column_to_json_value(&row, i);
+                row_data.insert(column_name.to_string(), json_value);
+            }
+            
+            results.push(serde_json::Value::Object(row_data));
+        }
+        
+        Ok(results)
+    }
+
     fn get_sql_type(&self, type_: &str) -> String {
-        let mut sql_type = match type_ {
+        let sql_type = match type_ {
             "u8" => "INTEGER",
             "u16" => "INTEGER",
             "u32" => "INTEGER",
@@ -238,6 +319,7 @@ impl Storage for SqliteStorage {
         };
         sql_type.to_string()
     }
+
 }
 
 #[cfg(test)]
@@ -293,4 +375,31 @@ mod tests {
         assert!(sql.contains("created_at DATETIME"));
         assert!(sql.contains("updated_at DATETIME"));
     }
+}
+
+#[tokio::test]
+async fn test_sqlite_create_table() {
+    let storage = SqliteStorage::new("sqlite::memory:").await.unwrap();
+    let table = TableMetadata {
+        name: "counter".to_string(),
+        table_type: "resource".to_string(),
+        fields: vec![
+            crate::TableField {
+                field_name: "value".to_string(),
+                field_type: "u32".to_string(),
+                field_index: 0,
+                is_key: false,
+                is_enum: false,
+            }
+        ],
+        enums: HashMap::new(),
+        offchain: false,
+    };
+    storage.create_tables(&[table.clone()]).await.unwrap();
+    let sql = storage.generate_create_table_sql(&table);
+    println!("sql: {}", sql);
+    
+    let sql = "select * from counter";
+    let results = storage.query(&sql).await.unwrap();
+    println!("results: {:?}", results);
 }

@@ -22,7 +22,7 @@ rpc_url = "http://localhost:9000"
 # testnet: https://checkpoints.testnet.sui.io
 # localnet: /tmp/checkpoints
 checkpoint_url = "e2e/.chk"
-origin_package_id = "0x3d885fa136b62b0853c7bece0966b75a7c3b8c91f7b1639e69a4d814c57db9df"
+origin_package_id = "0xd732912cef6b66d0b065ceb092a813915be0b6bdfe07c770e01d8c41a27b7b87"
 start_checkpoint = 10
 
 # Database configuration
@@ -33,16 +33,16 @@ db_type = "postgres"
 # Database connection URL
 # SQLite example: "sqlite:crate/dubhe-indexer/indexer.db"
 # PostgreSQL example: "postgres://user:password@localhost:5432/indexer"
-url = "postgresql://postgres@localhost:5432/test"
-# url = "sqlite::memory:"
+# url = "postgresql://postgres@localhost:5432/test"
+url = "sqlite::memory:"
 # url = "sqlite:crates/dubhe-indexer/indexer.db"
 # Maximum number of connections in the pool
 max_connections = 10
 
-# GRPC service configuration
-[grpc]
-# Listen address
-addr = "0.0.0.0:50051"
+# Server configuration
+[server]
+# Listen address (shared by gRPC and GraphQL)
+addr = "0.0.0.0:8080"
 # TLS certificate configuration (optional)
 tls_cert = "/path/to/cert.pem"
 tls_key = "/path/to/key.pem"
@@ -108,7 +108,7 @@ max_disk_gb = 100
 
 # GraphQL server configuration
 [graphql]
-port = 4000
+port = 8080
 database_url = "sqlite:///dubhe.db"
 schema = "public"
 endpoint = "/graphql"

@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::TableMetadata;
-use serde_json::Value;
 use anyhow::Result;
 use log;
 use move_core_types::u256::U256;
 use sui_types::base_types::SuiAddress;
+use prost_types::{Value, value::Kind};
 
 pub trait MoveTypeParser {
     fn into_move_type(&self) -> Result<MoveType>;
@@ -167,6 +167,38 @@ impl ParsedMoveValue {
             ParsedMoveValue::Address(v) => format!("'{}'", v),
             ParsedMoveValue::Bool(v) => v.to_string(),
             ParsedMoveValue::String(v) => format!("'{}'", v),
+        }
+    }
+
+    pub fn into_google_protobuf_value(self) -> Value {
+        match self {
+            ParsedMoveValue::U8(n) => Value {
+                kind: Some(Kind::NumberValue(n as f64)),
+            },
+            ParsedMoveValue::U16(n) => Value {
+                kind: Some(Kind::NumberValue(n as f64)),
+            },
+            ParsedMoveValue::U32(n) => Value {
+                kind: Some(Kind::NumberValue(n as f64)),
+            },
+            ParsedMoveValue::U64(n) => Value {
+                kind: Some(Kind::NumberValue(n as f64)),
+            },
+            ParsedMoveValue::U128(n) => Value {
+                kind: Some(Kind::StringValue(n.to_string())),
+            },
+            ParsedMoveValue::U256(s) => Value {
+                kind: Some(Kind::StringValue(s)),
+            },
+            ParsedMoveValue::Address(s) => Value {
+                kind: Some(Kind::StringValue(s)),
+            },
+            ParsedMoveValue::Bool(b) => Value {
+                kind: Some(Kind::BoolValue(b)),
+            },
+            ParsedMoveValue::String(s) => Value {
+                kind: Some(Kind::StringValue(s)),
+            },
         }
     }
 }

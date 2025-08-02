@@ -11,7 +11,7 @@ use tempfile::TempDir;
 pub struct DubheConfig {
     pub sui: SuiConfig,
     pub database: DatabaseConfig,
-    pub grpc: GrpcConfig,
+    pub server: ServerConfig,
     pub subscription: SubscriptionConfig,
     pub logging: LoggingConfig,
     pub graphql: GraphQLConfig,
@@ -33,7 +33,7 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct GrpcConfig {
+pub struct ServerConfig {
     pub addr: String,
     pub tls_cert: Option<String>,
     pub tls_key: Option<String>,

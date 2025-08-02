@@ -4,6 +4,7 @@ use crate::table::TableMetadata;
 use crate::sql::DBData;
 use anyhow::Result;
 use sqlx::Pool;
+use std::collections::HashMap;
 
 #[async_trait]
 pub trait Storage: Send + Sync {
@@ -22,6 +23,8 @@ pub trait Storage: Send + Sync {
     /// Insert data into a table
     async fn insert(&self, table_name: &str, values: Vec<DBData>, last_updated_checkpoint: u64) -> Result<()>;
 
+    /// Execute raw SQL query and return results
+    async fn query(&self, sql: &str) -> Result<Vec<serde_json::Value>>;
 
     /// Get sql type
     fn get_sql_type(&self, type_: &str) -> String;

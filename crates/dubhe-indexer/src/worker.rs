@@ -14,12 +14,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
-use dubhe_indexer_grpc::types::{TableUpdate, TableRow};
+use dubhe_indexer_grpc::types::TableChange as GrpcTableChange;
 use dubhe_indexer_graphql::TableChange;
 
 use uuid::Uuid;
 
-pub type TableSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableUpdate>>>>>;
+pub type GrpcSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<GrpcTableChange>>>>>;
 pub type GraphQLSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>;
 
 pub struct DubheIndexerWorker {
@@ -27,7 +27,7 @@ pub struct DubheIndexerWorker {
     pub tables: Vec<TableMetadata>,
     pub with_graphql: bool,
     pub database: Database,
-    pub subscribers: TableSubscribers,
+    pub subscribers: GrpcSubscribers,
     pub graphql_subscribers: GraphQLSubscribers,
 }
 
@@ -36,7 +36,7 @@ impl DubheIndexerWorker {
         config: DubheConfig, 
         tables: Vec<TableMetadata>, 
         with_graphql: bool, 
-        subscribers: TableSubscribers,
+        subscribers: GrpcSubscribers,
         graphql_subscribers: GraphQLSubscribers,
     ) -> Result<Self> {
         let database = Database::new(&config.database.url).await?;
@@ -508,34 +508,17 @@ impl Worker for DubheIndexerWorker {
                                 let (table_name, values) = set_record.parse(&self.tables)?;
                                 
                                 // Send update to subscribers first (non-blocking)
-                                let mut fields = std::collections::HashMap::new();
-                                for value in &values {
-                                    fields.insert(value.column_name.clone(), value.column_value.to_string());
-                                }
+                                // let mut fields = std::collections::BTreeMap::new();
+                            
                                 
-                                let table_row = dubhe_indexer_grpc::types::TableRow {
-                                    fields,
-                                    created_at: std::time::SystemTime::now()
-                                        .duration_since(std::time::UNIX_EPOCH)
-                                        .unwrap()
-                                        .as_secs() as i64,
-                                    updated_at: std::time::SystemTime::now()
-                                        .duration_since(std::time::UNIX_EPOCH)
-                                        .unwrap()
-                                        .as_secs() as i64,
-                                    last_updated_checkpoint: current_checkpoint as i64,
-                                };
-                                
-                                let update = TableUpdate {
+                                let table_change = dubhe_indexer_grpc::types::TableChange {
                                     table_id: table_name.clone(),
-                                    operation: "INSERT".to_string(),
-                                    data: Some(table_row),
-                                    checkpoint: current_checkpoint as i64,
-                                    timestamp: std::time::SystemTime::now()
-                                        .duration_since(std::time::UNIX_EPOCH)
-                                        .unwrap()
-                                        .as_secs() as i64,
+                                    data: Some(dubhe_common::into_google_protobuf_struct(values.clone())),
                                 };
+
+
+                                println!("📤 Sending table change to GRPC subscriber: {:?}", table_name);
+                                println!("📤 Sending table change to GRPC subscriber: {:?}", table_change);
                                 
                                 // Spawn async task to send update without blocking
                                 let subscribers = self.subscribers.clone();
@@ -544,42 +527,42 @@ impl Worker for DubheIndexerWorker {
                                 tokio::spawn(async move {
                                     // Send to GRPC subscribers
                                     let subscribers = subscribers.read().await;
+                                    println!("📤 Subscribers: {:?}", subscribers);
                                     if let Some(senders) = subscribers.get(&table_name_clone) {
                                         for sender in senders {
-                                            let _ = sender.send(update.clone());
+                                            println!("📤 Sending table change to GRPC subscriber: {:?}", table_name_clone);
+                                            let _ = sender.send(table_change.clone());
                                         }
                                     }
                                     
                                     // Send to GraphQL subscribers
-                                    let graphql_subscribers = graphql_subscribers.read().await;
-                                    if let Some(senders) = graphql_subscribers.get(&table_name_clone) {
-                                        let table_change = TableChange {
-                                            id: Uuid::new_v4().to_string(),
-                                            table_name: table_name_clone.clone(),
-                                            operation: "INSERT".to_string(),
-                                            timestamp: chrono::Utc::now().to_rfc3339(),
-                                            data: serde_json::json!({
-                                                "table_id": table_name_clone,
-                                                "operation": "INSERT",
-                                                "checkpoint": update.checkpoint,
-                                                "timestamp": update.timestamp,
-                                                "fields": update.data.as_ref().map(|data| {
-                                                    data.fields.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<String, String>>()
-                                                }),
-                                            }),
-                                        };
-                                        for sender in senders {
-                                            println!("📤 Sending table change to GraphQL subscriber: {:?}", table_name_clone);
-                                            let result = sender.send(table_change.clone());
-                                            if result.is_err() {
-                                                println!("❌ Failed to send table change to GraphQL subscriber: {:?}", result.err());
-                                            } else {
-                                                println!("✅ Successfully sent table change to GraphQL subscriber");
-                                            }
-                                        }
-                                    } else {
-                                        println!("❌ No GraphQL subscribers found for table: {:?}", table_name_clone);
-                                    }
+                                    // let graphql_subscribers = graphql_subscribers.read().await;
+                                    // if let Some(senders) = graphql_subscribers.get(&table_name_clone) {
+                                    //     let table_change = TableChange {
+                                    //         id: Uuid::new_v4().to_string(),
+                                    //         table_name: table_name_clone.clone(),
+                                    //         operation: "INSERT".to_string(),
+                                    //         timestamp: chrono::Utc::now().to_rfc3339(),
+                                    //         data: serde_json::json!({
+                                    //             "table_id": table_name_clone,
+                                    //             "operation": "INSERT",
+                                    //             "checkpoint": update.checkpoint,
+                                    //             "timestamp": update.timestamp,
+                                    //             "fields": update.data.as_ref().map(|data| {
+                                    //                 data.fields.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<String, String>>()
+                                    //             }),
+                                    //         }),
+                                    //     };
+                                    //     for sender in senders {
+                                    //         println!("📤 Sending table change to GraphQL subscriber: {:?}", table_name_clone);
+                                    //         let result = sender.send(table_change.clone());
+                                    //         if result.is_err() {
+                                    //             println!("❌ Failed to send table change to GraphQL subscriber: {:?}", result.err());
+                                    //         } else {
+                                    //             println!("✅ Successfully sent table change to GraphQL subscriber");
+                                    //         }
+                                    //     }
+                                    // }
                                 });
                                 
                                 // Insert data into database after sending to subscribers

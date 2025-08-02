@@ -20,3 +20,11 @@ impl DBData {
         Self { column_name, column_type, column_value, is_primary_key }
     }
 }
+
+pub fn into_google_protobuf_struct(values: Vec<DBData>) -> prost_types::Struct {
+    let mut fields = std::collections::BTreeMap::new();
+    for value in values {
+        fields.insert(value.column_name, value.column_value.into_google_protobuf_value());
+    }
+    prost_types::Struct { fields }
+}

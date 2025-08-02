@@ -2,7 +2,7 @@ use async_graphql::{Context, SimpleObject, Subscription};
 use futures_util::Stream;
 use std::pin::Pin;
 use uuid::Uuid;
-use crate::TableSubscribers;
+use crate::GrpcSubscribers;
 use tokio::sync::mpsc;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -10,13 +10,13 @@ use std::collections::HashMap;
 
 /// Subscription root type
 pub struct SubscriptionRoot {
-    subscribers: TableSubscribers,
+    subscribers: GrpcSubscribers,
     graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
 }
 
 impl SubscriptionRoot {
     pub fn new(
-        subscribers: TableSubscribers,
+        subscribers: GrpcSubscribers,
         graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
     ) -> Self {
         Self { 
