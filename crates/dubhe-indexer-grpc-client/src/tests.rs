@@ -47,7 +47,7 @@ async fn test_grpc_client_subscribe() -> Result<()> {
 #[tokio::test]
 async fn test_grpc_client_query() -> Result<()> {
     let mut client = DubheIndexerGrpcClient::new("http://localhost:8080".to_string()).await?;
-    let res = client.get_table("store_component0").await?;
+    let res = client.get_table("component0").await?;
     println!("📋 Raw gRPC response: {:?}", res);
     Ok(())
 }

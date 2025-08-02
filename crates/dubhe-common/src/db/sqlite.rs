@@ -197,8 +197,6 @@ impl Storage for SqliteStorage {
     async fn create_tables(&self, tables: &[TableMetadata]) -> Result<()> {
         for table in tables {
             let sql = self.generate_create_table_sql(table);
-            println!("dubhe-common: sqlite: Creating table with SQL: {}", sql);
-            log::debug!("dubhe-common: sqlite: Creating table with SQL: {}", sql);
             self.execute(&sql).await?;
         }
         Ok(())

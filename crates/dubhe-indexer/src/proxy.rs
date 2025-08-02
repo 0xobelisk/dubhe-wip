@@ -132,7 +132,9 @@ async fn handle_request(
     println!("📨 Request from {}: {} {}", client_addr, method, path);
 
     // Check if it's a gRPC request based on content type and other indicators
-    if is_grpc_request(&req) {
+    // Root path "/" is also considered for gRPC requests
+    println!("🔍 Request path: {}", path);
+    if path.starts_with("/dubhe_grpc") {
         log::info!("🔌 Routing gRPC request: {}", path);
         return handle_grpc_request(req, grpc_addr).await;
     }
@@ -158,10 +160,6 @@ async fn handle_request(
         return Ok(serve_welcome_page());
     }
 
-    // Handle service information at root
-    if path == "/" {
-        return Ok(serve_service_info(version));
-    }
 
     // Default 404 response
     log::warn!("❌ No handler found for: {} {}", method, path);
@@ -179,9 +177,11 @@ async fn handle_request(
 /// Detect if a request is intended for gRPC service
 fn is_grpc_request(req: &Request<Body>) -> bool {
     let headers = req.headers();
+    let path = req.uri().path();
     
     // Debug: Print all headers to understand what tonic sends
     println!("🔍 Request headers: {:?}", headers);
+    println!("🔍 Request path: {}", path);
     
     // Check Content-Type header
     if let Some(content_type) = headers.get(CONTENT_TYPE) {
@@ -225,6 +225,13 @@ fn is_grpc_request(req: &Request<Body>) -> bool {
                     return true;
                 }
             }
+        }
+        
+        // For HTTP/2 requests to root path, consider them as potential gRPC requests
+        // This allows gRPC clients to use the root path as their endpoint
+        if path == "/" {
+            log::info!("✅ Detected potential gRPC request on root path with HTTP/2");
+            return true;
         }
     }
 

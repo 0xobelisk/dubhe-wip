@@ -23,11 +23,11 @@ pub struct SuiConfig {
     pub checkpoint_url: String,
     pub origin_package_id: String,
     pub start_checkpoint: u64,
+    pub progress_file_path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DatabaseConfig {
-    pub db_type: String,
     pub url: String,
     pub max_connections: u32,
 }

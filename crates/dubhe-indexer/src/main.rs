@@ -15,16 +15,17 @@ use std::net::SocketAddr;
 use sui_sdk::SuiClientBuilder;
 use sui_types::full_checkpoint_content::CheckpointData;
 use tokio::sync::oneshot;
+use std::net::TcpListener;
+use rand::Rng;
 
 use prometheus::Registry;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
 mod args;
-// mod db;
-mod sql;
+// mod sql;
 mod sui_data_ingestion_core;
-mod tls;
+// mod tls;
 mod worker;
 mod config;
 mod proxy;
@@ -129,19 +130,33 @@ async fn main() -> Result<()> {
     // Print startup banner
     println!("\n🚀 Dubhe Indexer Starting...");
     println!("================================");
+    println!("🔌 gRPC Endpoint:    http://{}", server_addr);
     println!("📊 GraphQL Endpoint: http://{}/graphql", server_addr);
-    println!("🔌 gRPC Endpoint:    http://{} (Content-Type: application/grpc)", server_addr);
+    println!("🏠 Welcome Page:     http://{}/welcome", server_addr);
     println!("🎮 Playground:       http://{}/playground", server_addr);
     println!("💚 Health Check:     http://{}/health", server_addr);
-    println!("🏠 Welcome Page:     http://{}/", server_addr);
-
+    
     log::info!("🔧 Configuration loaded from: {}", args.config);
     log::info!("📊 Database URL: {}", config.database.url);
     log::info!("🌐 Server listening on: {}", server_addr);
 
     // Start unified proxy server with independent GraphQL and gRPC backends (torii-style architecture)
-    let grpc_backend_addr: SocketAddr = "127.0.0.1:8081".parse().unwrap();
-    let graphql_backend_addr: SocketAddr = "127.0.0.1:8082".parse().unwrap();
+    // If the port is occupied, generate a new port
+    let grpc_backend_addr: SocketAddr = loop {
+        let port = rand::thread_rng().gen_range(8081..=8089);
+        let addr = format!("0.0.0.0:{}", port);
+        if TcpListener::bind(addr.parse::<SocketAddr>().unwrap()).is_ok() {
+            break addr.parse::<SocketAddr>().unwrap();
+        }
+    };
+
+    let graphql_backend_addr: SocketAddr = loop {
+        let port = rand::thread_rng().gen_range(8081..=8089);
+        let addr = format!("0.0.0.0:{}", port);
+        if TcpListener::bind(addr.parse::<SocketAddr>().unwrap()).is_ok() {
+            break addr.parse::<SocketAddr>().unwrap();
+        }
+    };
     
     log::info!("🏗️  Setting up torii-style architecture:");
     log::info!("   - Proxy Server:    {}", server_addr);
@@ -187,11 +202,22 @@ async fn main() -> Result<()> {
     //     .await?;
 
     let (exit_sender, exit_receiver) = oneshot::channel();
-    let concurrency = 2;
+    let concurrency = 20;
     let metrics = DataIngestionMetrics::new(&Registry::new());
-    let backfill_progress_file_path =
-        env::var("BACKFILL_PROGRESS_FILE_PATH").unwrap_or("crates/dubhe-indexer/local_reader_progress".to_string());
-    let mut progress_store = FileProgressStore::new(PathBuf::from(backfill_progress_file_path));
+    let backfill_progress_file_path = config.sui.progress_file_path
+        .clone()
+        .unwrap_or_else(|| "./local_reader_progress".to_string());
+    
+    // Check if the progress file exists, if not create it with default content
+    let progress_path = PathBuf::from(&backfill_progress_file_path);
+    if !progress_path.exists() {
+        log::info!("📁 Creating progress file: {}", backfill_progress_file_path);
+        let default_content = r#"{ "latest_reader_progress": 0}"#;
+        std::fs::write(&progress_path, default_content)?;
+        log::info!("✅ Progress file created successfully");
+    }
+    
+    let mut progress_store = FileProgressStore::new(progress_path);
     progress_store.save("latest_reader_progress".to_string(), latest_checkpoint).await?;
    
     let mut executor = IndexerExecutor::new(progress_store, 1, metrics.clone());

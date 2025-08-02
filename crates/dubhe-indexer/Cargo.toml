@@ -36,7 +36,7 @@ bcs = { workspace = true }
 hex = { workspace = true }
 clap = { workspace = true }
 chrono = { workspace = true }
-
+rand = { workspace = true }
 backoff = { workspace = true }
 
 futures = { workspace = true }
