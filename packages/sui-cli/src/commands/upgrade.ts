@@ -2,6 +2,7 @@ import type { CommandModule } from 'yargs';
 import { logError } from '../utils/errors';
 import { upgradeHandler } from '../utils/upgradeHandler';
 import { DubheConfig, loadConfig } from '@0xobelisk/sui-common';
+import { handlerExit } from './shell';
 import { getDefaultNetwork } from '../utils';
 import chalk from 'chalk';
 
@@ -41,9 +42,9 @@ const commandModule: CommandModule<Options, Options> = {
       await upgradeHandler(dubheConfig, dubheConfig.name, network);
     } catch (error: any) {
       logError(error);
-      process.exit(1);
+      handlerExit(1);
     }
-    process.exit(0);
+    handlerExit();
   }
 };
 

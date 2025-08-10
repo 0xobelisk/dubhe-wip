@@ -1,6 +1,7 @@
 import type { CommandModule } from 'yargs';
 import { storeConfigHandler } from '../utils/storeConfig';
 import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
+import { handlerExit } from './shell';
 import chalk from 'chalk';
 import { getDefaultNetwork } from '../utils';
 
@@ -42,9 +43,9 @@ const commandModule: CommandModule<Options, Options> = {
       await storeConfigHandler(dubheConfig, network, outputTsPath);
     } catch (error) {
       console.error('Error storing config:', error);
-      process.exit(1);
+      handlerExit(1);
     }
-    process.exit(0);
+    handlerExit();
   }
 };
 

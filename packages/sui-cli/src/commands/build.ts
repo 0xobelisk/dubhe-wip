@@ -2,6 +2,7 @@ import type { CommandModule } from 'yargs';
 import { execSync, exec } from 'child_process';
 import chalk from 'chalk';
 import { DubheConfig, loadConfig } from '@0xobelisk/sui-common';
+import { handlerExit } from './shell';
 import { getDefaultNetwork, switchEnv, updateDubheDependency } from '../utils';
 
 type Options = {
@@ -60,7 +61,7 @@ const commandModule: CommandModule<Options, Options> = {
     } catch (error: any) {
       console.error(chalk.red('Error executing sui move build:'));
       console.log(error.stdout);
-      process.exit(0);
+      handlerExit(1);
     }
   }
 };

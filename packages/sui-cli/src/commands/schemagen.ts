@@ -2,6 +2,7 @@ import type { CommandModule } from 'yargs';
 import { schemaGen, loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 import chalk from 'chalk';
 import path from 'node:path';
+import { handlerExit } from './shell';
 import { getDefaultNetwork } from '../utils';
 
 type Options = {
@@ -38,10 +39,11 @@ const commandModule: CommandModule<Options, Options> = {
       const dubheConfig = (await loadConfig(configPath)) as DubheConfig;
       const rootDir = path.dirname(configPath);
       await schemaGen(rootDir, dubheConfig, network);
-      process.exit(0);
+      handlerExit();
     } catch (error: any) {
       console.log(chalk.red('Schemagen failed!'));
       console.error(error.message);
+      handlerExit(1);
     }
   }
 };

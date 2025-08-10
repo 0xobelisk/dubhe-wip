@@ -2,6 +2,7 @@ import type { CommandModule } from 'yargs';
 import { logError } from '../utils/errors';
 import { loadConfig, DubheConfig } from '@0xobelisk/sui-common';
 import { loadMetadataHandler } from '../utils/metadataHandler';
+import { handlerExit } from './shell';
 import { getDefaultNetwork } from '../utils';
 import chalk from 'chalk';
 
@@ -47,9 +48,9 @@ const commandModule: CommandModule<Options, Options> = {
       await loadMetadataHandler(dubheConfig, network, packageId);
     } catch (error: any) {
       logError(error);
-      process.exit(1);
+      handlerExit(1);
     }
-    process.exit(0);
+    handlerExit();
   }
 };
 
