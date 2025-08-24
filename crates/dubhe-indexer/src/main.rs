@@ -1,15 +1,11 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::sui_data_ingestion_core as sdic;
-use crate::sui_data_ingestion_core::{setup_single_workflow, ProgressStore};
 use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use diesel::QueryableByName;
 use dotenvy::dotenv;
-use sdic::{DataIngestionMetrics, FileProgressStore, IndexerExecutor};
-use sdic::{ReaderOptions, Worker, WorkerPool};
 use std::env;
 use std::net::SocketAddr;
 use sui_sdk::SuiClientBuilder;
@@ -17,18 +13,22 @@ use sui_types::full_checkpoint_content::CheckpointData;
 use tokio::sync::oneshot;
 use std::net::TcpListener;
 use rand::Rng;
+use sui_indexer_alt_framework::cluster::{Args, IndexerCluster};
+use sui_indexer_alt_framework::{IndexerArgs};
+use crate::handlers::DubheEventHandler;
+use sui_indexer_alt_framework::pipeline::sequential::SequentialConfig;
+use sui_indexer_alt_framework::ingestion::ClientArgs;
+use url::Url;
 
 use prometheus::Registry;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
 mod args;
-// mod sql;
-mod sui_data_ingestion_core;
-// mod tls;
 mod worker;
 mod config;
 mod proxy;
+mod handlers;
 
 use crate::args::DubheIndexerArgs;
 // use crate::db::get_connection_pool;
@@ -60,9 +60,6 @@ async fn main() -> Result<()> {
     // Initialize logging system based on configuration
     config.init_logging()?;
 
-    log::info!("Dubhe Indexer starting up");
-    log::info!("Config file: {}, Worker pool: {}, Start checkpoint: {}", 
-        args.config, args.worker_pool_number, args.start_checkpoint);
 
     log::debug!("Configuration loaded - RPC URL: {}, Package ID: {}, Database: {}, Server: {}", 
         config.sui.rpc_url, config.sui.origin_package_id, config.database.url, config.server.addr);
@@ -74,11 +71,10 @@ async fn main() -> Result<()> {
         .await?;
     log::info!("Latest checkpoint: {:?}", latest_checkpoint);
 
-    // // let start_checkpoint = args.get_start_checkpoint(latest_checkpoint);
-    // let pg_pool = get_connection_pool().await;
-
     let config_json = args.get_config_json()?;
     let (package_id, start_checkpoint, tables) = TableMetadata::from_json(config_json)?;
+
+    config.sui.origin_package_id = package_id.clone();
 
     let database = Database::new(&config.database.url).await?;
 
@@ -88,15 +84,12 @@ async fn main() -> Result<()> {
     // Create GraphQL subscribers manager
     let graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>> = 
         Arc::new(RwLock::new(HashMap::new()));
+
+    if args.force{
+         database.clear().await?; 
+    }
     
-    let mut dubhe_indexer_worker = DubheIndexerWorker::new(
-        config.clone(), 
-        tables.clone(), 
-        false, 
-        subscribers.clone(),
-        graphql_subscribers.clone(),
-    ).await?;
-    dubhe_indexer_worker.database.create_tables(&tables).await?;
+    database.create_tables(&tables).await?;
     
     // Extract port from server.addr (format: "0.0.0.0:8080")
     let server_port = config.server.addr.split(':').last()
@@ -178,79 +171,49 @@ async fn main() -> Result<()> {
             std::process::exit(1);
         }
     });
+    let (local_ingestion_path, remote_store_url) = config.get_checkpoint_url()?;
 
-    // // Handle force restart for local nodes only
-    // if args.force {
-    //     if args.network == "localnet" {
-    //         // Clear database only (not the node's checkpoint data)
-    //         dubhe_indexer_worker.clear_all_data().await?;
-    //     } else {
-    //         return Err(anyhow::anyhow!(
-    //             "Force restart is only supported for local nodes"
-    //         ));
-    //     }
-    // }
-
-    // // Create database tables from configuration
-    // dubhe_indexer_worker.create_db_tables_from_config().await?;
-    // dubhe_indexer_worker
-    //     .create_reader_progress_db_table(
-    //         start_checkpoint,
-    //         latest_checkpoint,
-    //         args.worker_pool_number,
-    //     )
-    //     .await?;
-
-    let (exit_sender, exit_receiver) = oneshot::channel();
-    let concurrency = 20;
-    let metrics = DataIngestionMetrics::new(&Registry::new());
-    let backfill_progress_file_path = config.sui.progress_file_path
-        .clone()
-        .unwrap_or_else(|| "./local_reader_progress".to_string());
-    
-    // Check if the progress file exists, if not create it with default content
-    let progress_path = PathBuf::from(&backfill_progress_file_path);
-    if !progress_path.exists() {
-        log::info!("📁 Creating progress file: {}", backfill_progress_file_path);
-        let default_content = r#"{ "latest_reader_progress": 0}"#;
-        std::fs::write(&progress_path, default_content)?;
-        log::info!("✅ Progress file created successfully");
-    }
-    
-    let mut progress_store = FileProgressStore::new(progress_path);
-    progress_store.save("latest_reader_progress".to_string(), latest_checkpoint).await?;
-   
-    let mut executor = IndexerExecutor::new(progress_store, 1, metrics.clone());
-    executor
-        .register(WorkerPool::new(
-            dubhe_indexer_worker,
-            "latest_reader_progress".to_string(),
-            concurrency,
-        ))
-        .await?;
-    let reader_options = ReaderOptions {
-        gc_checkpoint_files: false,
+    let client_args = ClientArgs {
+        local_ingestion_path,
+        remote_store_url,
         ..Default::default()
     };
-    let (local_path, remote_store_url) = config.get_checkpoint_url()?;
-    
-    // Start indexer executor
-    let executor_handle = tokio::spawn(async move {
-        log::info!("🚀 Starting indexer executor...");
-        executor
-            .run(
-                local_path,
-                remote_store_url,
-                vec![],
-                reader_options,
-                exit_receiver,
-            )
-            .await
-    });
 
-    // Wait for either proxy or executor to complete/fail
-    log::info!("🎯 All services started successfully!");
-    log::info!("📡 Dubhe Indexer is now running with unified gRPC/GraphQL endpoint");
+     let indexer_args = IndexerArgs {
+        first_checkpoint: Some(latest_checkpoint - 1),
+        ..Default::default()
+     };
+
+
+    //  let mut args = Args::parse();
+    //  args.indexer_args.first_checkpoint = Some(latest_checkpoint);
+    let mut cluster = IndexerCluster::builder()
+        // .with_args(args)                    
+        .with_database_url(Url::parse(&config.database.url).unwrap())
+        // .with_indexer_args(indexer_args)
+        .with_client_args(client_args)
+        .build()
+        .await?;
+
+    // println!("🔄 Indexer args: {:?}", cluster.indexer_args);
+
+    let database = Database::new(&config.database.url).await?;
+    let dubhe_event_handler = DubheEventHandler::new(
+        config.sui.origin_package_id.clone(),
+        database,
+        tables.clone(),
+        subscribers.clone(),
+        graphql_subscribers.clone(),
+    );
+
+     // Register our custom sequential pipeline with the cluster
+     cluster.sequential_pipeline(
+        dubhe_event_handler,           // Our processor/handler implementation
+        SequentialConfig::default(),        // Use default batch sizes and checkpoint lag
+    ).await?;
+
+      // Start the indexer and wait for completion
+      let handle = cluster.run().await?;
     
     tokio::select! {
         result = proxy_handle => {
@@ -259,10 +222,9 @@ async fn main() -> Result<()> {
                 Err(e) => log::error!("❌ Proxy server task failed: {}", e),
             }
         }
-        result = executor_handle => {
+        result = handle => {
             match result {
-                Ok(Ok(_)) => log::info!("✅ Indexer executor completed successfully"),
-                Ok(Err(e)) => log::error!("❌ Indexer executor failed: {}", e),
+                Ok(_) => log::info!("✅ Indexer executor completed successfully"),
                 Err(e) => log::error!("❌ Indexer executor task failed: {}", e),
             }
         }

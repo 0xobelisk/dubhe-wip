@@ -31,4 +31,7 @@ pub trait Storage: Send + Sync {
     
     /// Generate CREATE TABLE SQL for a table
     fn generate_create_table_sql(&self, table: &TableMetadata) -> String;
+    
+    /// Clear all tables and triggers from the database
+    async fn clear(&self) -> Result<()>;
 } 

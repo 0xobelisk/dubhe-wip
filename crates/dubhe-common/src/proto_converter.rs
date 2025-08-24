@@ -16,7 +16,7 @@ pub fn json_to_proto_struct(json_value: &Value) -> Result<Struct> {
     }
 }
 
-/// 将 serde_json::Value 转换为 protobuf 的 Value
+/// Convert serde_json::Value to protobuf Value
 pub fn json_value_to_proto_value(json_value: &Value) -> Result<ProtoValue> {
     let proto_value = match json_value {
         Value::Null => ProtoValue {

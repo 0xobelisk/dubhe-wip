@@ -5,7 +5,7 @@ use anyhow::Result;
 use sui_sdk::SuiClientBuilder;
 use sui_sdk::SuiClient;
 use std::path::PathBuf;
-use tempfile::TempDir;
+use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DubheConfig {
@@ -89,11 +89,11 @@ impl DubheConfig {
         Ok(sui_client)
     }
 
-    pub fn get_checkpoint_url(&self) -> Result<(PathBuf, Option<String>)> {
+    pub fn get_checkpoint_url(&self) -> Result<(Option<PathBuf>, Option<Url>)> {
         if self.sui.checkpoint_url.starts_with("http") {
-            Ok((TempDir::new()?.path().to_path_buf(), Some(self.sui.checkpoint_url.clone())))
+            Ok((None, Some(Url::parse(&self.sui.checkpoint_url).unwrap())))
         } else {
-            Ok((PathBuf::from(self.sui.checkpoint_url.clone()), None))
+            Ok((Some(PathBuf::from(self.sui.checkpoint_url.clone())), None))
         }
     }
 

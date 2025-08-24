@@ -283,7 +283,7 @@ impl Storage for SqliteStorage {
             for (i, column) in row.columns().iter().enumerate() {
                 let column_name = column.name();
                 
-                // 使用新的 column_to_json_value 方法
+                // Use the new column_to_json_value method
                 let json_value = self.column_to_json_value(&row, i);
                 row_data.insert(column_name.to_string(), json_value);
             }
@@ -317,6 +317,35 @@ impl Storage for SqliteStorage {
         };
         sql_type.to_string()
     }
+
+    async fn clear(&self) -> Result<()> {
+        log::info!("🧹 Starting SQLite database cleanup...");
+        
+        // Get all tables that start with 'store_' (user tables)
+        let get_tables_sql = r#"
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name LIKE 'store_%'
+        "#;
+        
+        let tables = self.query(get_tables_sql).await?;
+        
+        // Drop all store_ tables
+        for table_row in tables {
+            if let Some(table_name) = table_row.get("name").and_then(|v| v.as_str()) {
+                let drop_table_sql = format!("DROP TABLE IF EXISTS {}", table_name);
+                self.execute(&drop_table_sql).await?;
+                log::debug!("✅ Dropped table: {}", table_name);
+            }
+        }
+        
+        // Drop the table_fields metadata table (if it exists)
+        let drop_table_fields_sql = "DROP TABLE IF EXISTS table_fields";
+        self.execute(drop_table_fields_sql).await?;
+        log::debug!("✅ Dropped table_fields metadata table");
+        
+        log::info!("🧹 SQLite database cleanup completed successfully");
+        Ok(())
+    } 
 
 }
 

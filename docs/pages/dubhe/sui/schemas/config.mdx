@@ -11,118 +11,157 @@ A Schemas config should be named `dubhe.config.ts`, and placed at the root of yo
 This is the minimal config:
 
 ```tsx
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { defineConfig } from '@0xobelisk/sui-common';
 
-export const dubheConfig = {
-  name: "example", // name of the Move project
-  description: "example desc", // description of the Move project
-  schemas: {}, // an empty config with no schemas，
-} as DubheConfig;
+export const dubheConfig = defineConfig({
+  name: 'example',
+  description: 'example',
+  enums: {},
+  components: {},
+  resources: {},
+  errors: {}
+})
 ```
 
 ### Generating the schemas
 
 To generate the schemas, run `pnpm dubhe schemagen` in the same folder as the config file.
 
-### Schema Data
-
-Currently, Schema supports all the basic types of Move, and will be added later according to the demand.
-
-```tsx
-export const dubheConfig = {
-  name: "example",
-  description: "example desc",
-  data: {
-      Student: {
-          name: "string",
-          age: "u8",
-      },
-  },
-  schemas: {},
-} as DubheConfig;
-```
-### Storages
-
-Schema currently supports three storage structures, StorageValue, StorageMap, StorageDoubleMap.
+如果你正在开发一个游戏合约，我们建议你可以使用ecs架构，components和resources可以轻松实现这个。
+你可以使用components来为任何的entity来定义组件，不管组件是什么数据，都会在合约中默认生成类型为address entity key,
+例如：
 
 ```tsx
-import { DubheConfig, storage } from "@0xobelisk/sui-common";
-export const dubheConfig = {
-  name: "example",
-  description: "example desc",
-  data: {
-      Student: {
-          name: "string",
-          age: "u8",
-      },
+import { defineConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = defineConfig({
+  name: 'example',
+  description: 'example',
+  enums: {},
+  components: {
+    player: {},
+    level: "u32",
+    monster: {
+      fields: {
+        attack: 'u32',
+        hp: 'u32'
+      }
+    },
   },
-  schemas: {
-     class: storage('u8'),
-     student: storage('address', 'Student'),
-     teacher: storage('address', 'u8', 'address'),
-  },
-} as DubheConfig;
+  resources: {}
+})
 ```
 
-### Events
+player组件会生成一个全局的数组，比如你可以添加任何entity key进去，作为判断这个entity是否可以移动
+level会生成全局的k-v数据类型，可以插入每个entity的等级数据
+monster会生成k-nv的数据类型，可以为entity插入多条数据，比如monster的攻击力和生命值
 
-```tsx
-import { DubheConfig, storage } from "@0xobelisk/sui-common";
-export const dubheConfig = {
-  name: "example",
-  description: "example desc",
-  data: {
-      Student: {
-          name: "string",
-          age: "u8",
-      },
-  },
-  schemas: {
-     class: storage('u8'),
-     student: storage('address', 'Student'),
-     teacher: storage('address', 'u8', 'address'),
-  },
-  events: {
-     student_added : {
-        address: "address",
-        info: "Student",
-    },
-    student_removed: {
-         address: "u32",
-    },
- }
-} as DubheConfig;
+```sui Move
+palyer::set(dapp_hub, entity_key1);
+palyer::set(dapp_hub, entity_key2);
+
+level::set(dapp_hub, entity_key1, 100);
+level::set(dapp_hub, entity_key2, 101);
+
+monster::set(dapp_hub, entity_key1, 100, 10000);
+monster::set(dapp_hub, entity_key2, 200, 10000);
 ```
 
-### Errors
+配合dubhe client sdk就能轻松查询对应的数据，比如查询entity_key1所有组件数据，entity_key1的某个单一组件数据
+
+除了组件数据类型，你可能还会使用到resources，跟单一entity没有关系的全局数据，你可以使用这个数据去存储，比如地图数据，排行榜数据
 ```tsx
-import { DubheConfig, storage } from "@0xobelisk/sui-common";
-export const dubheConfig = {
-  name: "example",
-  description: "example desc",
-  data: {
-      Student: {
-          name: "string",
-          age: "u8",
+import { defineConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = defineConfig({
+  name: 'example',
+  description: 'example',
+  enums: {},
+  components: {
+    player: {},
+    level: "u32",
+    monster: {
+      fields: {
+        attack: 'u32',
+        hp: 'u32'
+      }
+    },
+  },
+  resources: {
+     switch: 'bool'
+     maps: {
+      fields: {
+        map_id: 'u32',
+        data: 'vector<u8>',
+        height: 'u32',
+        width: 'u32'
       },
-  },
-  schemas: {
-     class: storage('u8'),
-     student: storage('address', 'Student'),
-     teacher: storage('address', 'u8', 'address'),
-  },
-  events: {
-     student_added : {
-        address: "address",
-        info: "Student",
+      key: ['map_id']
     },
-    student_removed: {
-         address: "u32",
+  }
+})
+```
+```sui Move
+switch::set(true);
+maps::set(dapp_hub, map_id, data, height, width);
+```
+
+
+如果你不想存储数据，只是想实现一个游戏过程结果的通知，你可以使用offchain字段，这样能轻松实现类似原生合约中event
+```tsx
+import { defineConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = defineConfig({
+  name: 'example',
+  description: 'example',
+  enums: {},
+  components: {
+    player: {},
+    level: "u32",
+    monster: {
+      fields: {
+        attack: 'u32',
+        hp: 'u32'
+      }
     },
- },
+  },
+  resources: {
+     switch: 'bool'
+     maps: {
+      fields: {
+        map_id: 'u32',
+        data: 'vector<u8>',
+        height: 'u32',
+        width: 'u32'
+      },
+      key: ['map_id']
+    },
+    capture_results: {
+      fields: {
+        monster: 'address',
+        result: 'bool'
+      },
+      offchain: true
+    }
+  }
+})
+```
+
+```sui Move
+capture_results::set(dapp_hub, monster, result)
+```
+
+You can also customize errors. Just make sure the condition is true to pass, otherwise an error will be thrown.
+```tsx
+import { defineConfig } from '@0xobelisk/sui-common';
+export const dubheConfig = defineConfig({
+  name: 'example',
+  description: 'example',
   errors: {
-    student_not_found: "Student not found",
-    student_already_exists: "Student already exists",
-    },
-} as DubheConfig;
+    monster_not_found: "Monster not found",
+    game_not_start: "The game hasn't started yet",
+  },
+})
+```
+
+```sui Move
+monster_not_found_error(condition);
+game_not_start_error(condition);
 ```

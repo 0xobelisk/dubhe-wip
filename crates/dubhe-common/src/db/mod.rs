@@ -104,6 +104,14 @@ impl Database {
             Database::Postgres(_) => "postgres",
         }
     }
+
+    /// Clear all tables and triggers from the database
+    pub async fn clear(&self) -> Result<()> {
+        match self {
+            Database::Sqlite(storage) => storage.clear().await,
+            Database::Postgres(storage) => storage.clear().await,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -307,18 +315,21 @@ mod tests {
         // Test insert
         let values = vec![
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "id".to_string(),
                 "u64".to_string(),
                 crate::primitives::ParsedMoveValue::U64(123),
                 true,
             ),
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "name".to_string(),
                 "String".to_string(),
                 crate::primitives::ParsedMoveValue::String("Alice".to_string()),
                 false,
             ),
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "age".to_string(),
                 "u32".to_string(),
                 crate::primitives::ParsedMoveValue::U32(25),
@@ -331,18 +342,21 @@ mod tests {
         // Test UPSERT - insert same key with different values
         let values2 = vec![
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "id".to_string(),
                 "u64".to_string(),
                 crate::primitives::ParsedMoveValue::U64(123), // Same key
                 true,
             ),
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "name".to_string(),
                 "String".to_string(),
                 crate::primitives::ParsedMoveValue::String("Alice Updated".to_string()),
                 false,
             ),
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "age".to_string(),
                 "u32".to_string(),
                 crate::primitives::ParsedMoveValue::U32(26),
@@ -355,18 +369,21 @@ mod tests {
         // Test insert new record
         let values3 = vec![
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "id".to_string(),
                 "u64".to_string(),
                 crate::primitives::ParsedMoveValue::U64(456),
                 true,
             ),
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "name".to_string(),
                 "String".to_string(),
                 crate::primitives::ParsedMoveValue::String("Bob".to_string()),
                 false,
             ),
             crate::sql::DBData::new(
+                "test_insert".to_string(),
                 "age".to_string(),
                 "u32".to_string(),
                 crate::primitives::ParsedMoveValue::U32(30),

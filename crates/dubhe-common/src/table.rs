@@ -301,6 +301,7 @@ impl TableMetadata {
         for (key_index, field) in self.fields.iter().filter(|field| field.is_key).enumerate() {
                 let parsed_value = field.field_type.into_parsed_move_value(&keys[key_index])?;
                 result.push(DBData::new(
+                    self.name.clone(),
                     field.field_name.clone(),
                     field.field_type.clone(),
                     parsed_value,
@@ -315,6 +316,7 @@ impl TableMetadata {
         for (value_index, field) in self.fields.iter().filter(|field| !field.is_key).enumerate() {
                 let parsed_value = field.field_type.into_parsed_move_value(&values[value_index])?;
                 result.push(DBData::new(
+                    self.name.clone(),
                     field.field_name.clone(),
                     field.field_type.clone(),
                     parsed_value,
