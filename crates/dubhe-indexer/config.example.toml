@@ -33,7 +33,7 @@ start_checkpoint = 10
 # Database connection URL
 # SQLite example: "sqlite:crates/dubhe-indexer/indexer.db"
 # PostgreSQL example: "postgres://user:password@localhost:5432/indexer"
-url = "postgresql://wangningbo:123456@localhost:5432/dubhe-indexer"
+url = "postgres://postgres:postgres@localhost:5432/postgres"
 # url = "sqlite::memory:"
 # url = "sqlite:crates/dubhe-indexer/indexer.db"
 # Maximum number of connections in the pool
