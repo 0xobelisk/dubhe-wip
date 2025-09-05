@@ -528,9 +528,15 @@ export function generateConfigJson(config: DubheConfig): string {
       fields.entity_id = 'address';
     }
 
+    // prepare fields with entity_id first
+    const fieldEntries = Object.entries(fields);
+    const entityIdField = fieldEntries.find(([key]) => key === 'entity_id');
+    const otherFields = fieldEntries.filter(([key]) => key !== 'entity_id');
+    const orderedFields = entityIdField ? [entityIdField, ...otherFields] : otherFields;
+
     return {
       [name]: {
-        fields: Object.entries(fields).map(([fieldName, fieldType]) => ({
+        fields: orderedFields.map(([fieldName, fieldType]) => ({
           [fieldName]: fieldType
         })),
         keys: keys,

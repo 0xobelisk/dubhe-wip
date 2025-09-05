@@ -75,10 +75,10 @@
       "component5": {
         "fields": [
           {
-            "value": "u32"
+            "entity_id": "address"
           },
           {
-            "entity_id": "address"
+            "value": "u32"
           }
         ],
         "keys": [
@@ -91,13 +91,13 @@
       "component6": {
         "fields": [
           {
+            "entity_id": "address"
+          },
+          {
             "attack": "u32"
           },
           {
             "hp": "u32"
-          },
-          {
-            "entity_id": "address"
           }
         ],
         "keys": [
@@ -145,10 +145,10 @@
       "component9": {
         "fields": [
           {
-            "direction": "Direction"
+            "entity_id": "address"
           },
           {
-            "entity_id": "address"
+            "direction": "Direction"
           }
         ],
         "keys": [
@@ -231,10 +231,10 @@
       "component14": {
         "fields": [
           {
-            "result": "Direction"
+            "entity_id": "address"
           },
           {
-            "entity_id": "address"
+            "result": "Direction"
           }
         ],
         "keys": [
@@ -551,13 +551,13 @@
       "component34": {
         "fields": [
           {
+            "entity_id": "address"
+          },
+          {
             "name": "vector<String>"
           },
           {
             "age": "u8"
-          },
-          {
-            "entity_id": "address"
           }
         ],
         "keys": [
@@ -757,6 +757,6 @@
       ]
     }
   ],
-  "package_id": "0x8119f24098e628a83db19109c55ff3837e911599fe21ba3e9219df6553a8b60c",
-  "start_checkpoint": "539"
+  "package_id": "0xb533d6abb7fc3abfdc8e865a0121c44a2c0782da31fe15ee6f4c1be9e1b3c00f",
+  "start_checkpoint": "184"
 }
