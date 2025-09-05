@@ -2477,7 +2477,7 @@ dependencies = [
 
 [[package]]
 name = "dubhe-indexer"
-version = "1.2.0-pre.62"
+version = "1.2.0-pre.63"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2525,6 +2525,7 @@ dependencies = [
  "tokio-postgres",
  "tokio-postgres-rustls",
  "tokio-stream",
+ "tokio-util 0.7.15",
  "toml 0.8.23",
  "tonic 0.10.2",
  "tonic-web 0.10.2",
