@@ -22,7 +22,7 @@ rpc_url = "http://localhost:9000"
 # testnet: https://checkpoints.testnet.sui.io
 # localnet: /tmp/checkpoints
 checkpoint_url = "e2e/.chk"
-origin_package_id = "0xbe634f08c319bf432e69d951750900e588ca37accf4432f4ba50da6cf3cb96c7"
+origin_package_id = "0x3f8d0aee733bfc56c3eee2136320a092272469406a9c18affcf7c3656ca65271"
 start_checkpoint = 10
 # Progress file path for storing indexer progress
 # If not specified, defaults to "./local_reader_progress"
@@ -33,7 +33,7 @@ start_checkpoint = 10
 # Database connection URL
 # SQLite example: "sqlite:crates/dubhe-indexer/indexer.db"
 # PostgreSQL example: "postgres://user:password@localhost:5432/indexer"
-url = "postgres://postgres:postgres@localhost:5432/postgres"
+url = "postgres://wangningbo@localhost:5432/postgres"
 # url = "sqlite::memory:"
 # url = "sqlite:crates/dubhe-indexer/indexer.db"
 # Maximum number of connections in the pool

@@ -4,21 +4,24 @@ use async_trait::async_trait;
 use bcs;
 use notify::event;
 use serde_json::Value;
-use sui_types::full_checkpoint_content::CheckpointData;
 use std::str::FromStr;
 use sui_types::base_types::ObjectID;
+use sui_types::full_checkpoint_content::CheckpointData;
 
-use dubhe_common::{Database, EventParser, StoreDeleteRecord, StoreSetField, StoreSetRecord, TableMetadata};
+use dubhe_common::{
+    Database, EventParser, StoreDeleteRecord, StoreSetField, StoreSetRecord, TableMetadata,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
-use dubhe_indexer_grpc::types::TableChange as GrpcTableChange;
 use dubhe_indexer_graphql::TableChange;
+use dubhe_indexer_grpc::types::TableChange as GrpcTableChange;
 
 use uuid::Uuid;
 
-pub type GrpcSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<GrpcTableChange>>>>>;
+pub type GrpcSubscribers =
+    Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<GrpcTableChange>>>>>;
 pub type GraphQLSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>;
 
 pub struct DubheIndexerWorker {
@@ -32,14 +35,14 @@ pub struct DubheIndexerWorker {
 
 impl DubheIndexerWorker {
     pub async fn new(
-        config: DubheConfig, 
-        tables: Vec<TableMetadata>, 
-        with_graphql: bool, 
+        config: DubheConfig,
+        tables: Vec<TableMetadata>,
+        with_graphql: bool,
         subscribers: GrpcSubscribers,
         graphql_subscribers: GraphQLSubscribers,
     ) -> Result<Self> {
         let database = Database::new(&config.database.url).await?;
-        
+
         Ok(Self {
             config,
             tables,
@@ -62,7 +65,7 @@ impl DubheIndexerWorker {
     //     }
 
     //     let tables: Vec<String> = diesel::sql_query(
-    //         "SELECT table_name FROM information_schema.tables 
+    //         "SELECT table_name FROM information_schema.tables
     //          WHERE table_schema = 'public' AND table_name LIKE 'store_%'",
     //     )
     //     .load::<TableName>(&mut conn)
@@ -207,9 +210,9 @@ impl DubheIndexerWorker {
     //     if !data_exists.exists {
     //         println!("reader_progress table has no data, insert it");
     //         diesel::sql_query(
-    //             "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint) 
+    //             "INSERT INTO reader_progress (progress_name, start_checkpoint, end_checkpoint, last_indexed_checkpoint)
     //              VALUES ($1, $2, $3, $4)
-    //              ON CONFLICT (progress_name) 
+    //              ON CONFLICT (progress_name)
     //              DO UPDATE SET start_checkpoint = $2, end_checkpoint = $3, last_indexed_checkpoint = $4"
     //         )
     //         .bind::<diesel::sql_types::Text, _>("latest_reader_progress")
