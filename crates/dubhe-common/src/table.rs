@@ -727,7 +727,11 @@ impl DubheConfig {
                             .field_names_and_db_types_by_table(&table.name)
                             .join(","),
                     );
-                    sql.push_str(", PRIMARY KEY (");
+                    sql.push_str(",");
+                    sql.push_str("created_at_checkpoint INTEGER DEFAULT 0,");
+                    sql.push_str("updated_at_checkpoint INTEGER DEFAULT 0,");
+                    sql.push_str("is_deleted BOOLEAN DEFAULT FALSE,");
+                    sql.push_str("PRIMARY KEY (");
                     sql.push_str(
                         &self
                             .field_names_by_table_and_primary_key(&table.name)
@@ -749,6 +753,10 @@ impl DubheConfig {
                             .field_names_and_db_types_by_table(&table.name)
                             .join(","),
                     );
+                    sql.push_str(",");
+                    sql.push_str("created_at_checkpoint INTEGER DEFAULT 0,");
+                    sql.push_str("updated_at_checkpoint INTEGER DEFAULT 0,");
+                    sql.push_str("is_deleted BOOLEAN DEFAULT FALSE");
                     sql.push_str(");");
                     sql
                 }
@@ -775,28 +783,29 @@ impl DubheConfig {
         Ok(())
     }
 
-    pub fn convert_event_to_sql(&self, event: Event) -> Result<String> {
+    pub fn convert_event_to_sql(&self, event: Event, current_checkpoint: u64) -> Result<String> {
         self.can_convert_event_to_sql(&event)?;
         match event {
             Event::StoreSetRecord(event) => {
                 let mut sql = String::new();
                 if self.is_exist_primary_key(&event.table_id) {
                     // insert or update the record
-                    // INSERT INTO config (id, database_url, port, log_level)
-                    //    VALUES (1, 'postgres://localhost:5432', 3000, 'debug')
+                    // INSERT INTO config (id, database_url, port, log_level, created_at_checkpoint, updated_at_checkpoint)
+                    //    VALUES (1, 'postgres://localhost:5432', 3000, 'debug', 0, 0)
                     //    ON CONFLICT (id)
                     //    DO UPDATE SET
                     //        database_url = EXCLUDED.database_url,
                     //        port = EXCLUDED.port,
-                    //        log_level = EXCLUDED.log_level
+                    //        log_level = EXCLUDED.log_level,
+                    //        created_at_checkpoint = EXCLUDED.created_at_checkpoint,
+                    //        updated_at_checkpoint = EXCLUDED.updated_at_checkpoint
                     sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
                     sql = format!(
-                        "{} {}",
+                        "{} {}, created_at_checkpoint, updated_at_checkpoint",
                         sql,
                         self.field_names_by_table(&event.table_id).join(",")
                     );
                     sql.push_str(") VALUES (");
-
                     sql.push_str(
                         &self
                             .field_values_by_table(
@@ -806,6 +815,10 @@ impl DubheConfig {
                             )
                             .join(","),
                     );
+                    sql.push_str(",");
+                    sql.push_str(current_checkpoint.to_string().as_str());
+                    sql.push_str(",");
+                    sql.push_str(current_checkpoint.to_string().as_str());
                     sql.push_str(") ON CONFLICT (");
 
                     // Add primary key field names for conflict detection
@@ -826,11 +839,15 @@ impl DubheConfig {
                             )
                             .join(","),
                     );
+                    sql.push_str(",");
+                    sql.push_str(format!("updated_at_checkpoint = {}", current_checkpoint).as_str());
                     sql.push_str(";");
                 } else {
                     sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
                     sql.push_str("unique_resource_id,");
                     sql.push_str(&self.field_names_by_table(&event.table_id).join(","));
+                    sql.push_str(",");
+                    sql.push_str("created_at_checkpoint, updated_at_checkpoint");
                     sql.push_str(") VALUES (1,");
                     sql.push_str(
                         &self
@@ -841,6 +858,10 @@ impl DubheConfig {
                             )
                             .join(","),
                     );
+                    sql.push_str(",");
+                    sql.push_str(current_checkpoint.to_string().as_str());
+                    sql.push_str(",");
+                    sql.push_str(current_checkpoint.to_string().as_str());
                     sql.push_str(") ON CONFLICT (unique_resource_id) DO UPDATE SET ");
                     sql.push_str(
                         &self
@@ -850,6 +871,8 @@ impl DubheConfig {
                             )
                             .join(","),
                     );
+                    sql.push_str(",");
+                    sql.push_str(format!("updated_at_checkpoint = {}", current_checkpoint).as_str());
                     sql.push_str(";");
                 };
                 Ok(sql)
@@ -862,6 +885,8 @@ impl DubheConfig {
                     event.field_index,
                     &event.value,
                 ));
+                sql.push_str(",");
+                sql.push_str(format!("updated_at_checkpoint = {}", current_checkpoint).as_str());
                 sql.push_str(" WHERE ");
                 sql.push_str(
                     &self
@@ -873,13 +898,17 @@ impl DubheConfig {
             }
             Event::StoreDeleteRecord(event) => {
                 let mut sql = String::new();
-                sql.push_str(&format!("DELETE FROM store_{} WHERE ", event.table_id));
-                sql.push_str(
-                    &self
-                        .field_values_by_table_and_primary_key(&event.table_id, &event.key_tuple)
-                        .join(" AND "),
-                );
-                sql.push_str(";");
+                if self.is_exist_primary_key(&event.table_id) {
+                    sql.push_str(&format!("UPDATE store_{} SET is_deleted = TRUE, updated_at_checkpoint = {} WHERE ", event.table_id, current_checkpoint));
+                    sql.push_str(
+                        &self
+                            .field_values_by_table_and_primary_key(&event.table_id, &event.key_tuple)
+                            .join(" AND "),
+                    );
+                    sql.push_str(";");
+              } else {
+                  sql.push_str(&format!("UPDATE store_{} SET is_deleted = TRUE, updated_at_checkpoint = {} WHERE unique_resource_id = 1;", event.table_id, current_checkpoint));
+              }
                 Ok(sql)
             }
         }

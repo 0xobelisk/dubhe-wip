@@ -100,7 +100,7 @@ impl Processor for DubheEventHandler {
                                     }
                                 });
 
-                                let sql = self.dubhe_config.convert_event_to_sql(parsed_event)?;
+                                let sql = self.dubhe_config.convert_event_to_sql(parsed_event, current_checkpoint)?;
                                 parsed_events.push(sql);
                             }
                         }
