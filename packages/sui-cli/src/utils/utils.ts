@@ -581,6 +581,57 @@ export function generateConfigJson(config: DubheConfig): string {
     };
   });
 
+  // {
+    //   "dapp_fee_state": {
+    //     "fields": [
+    //       {
+    //         "dapp_key": "String"
+    //       },
+    //       {
+    //         "base_fee": "u256"
+    //       },
+    //       {
+    //         "byte_fee": "u256"
+    //       },
+    //       {
+    //         "free_credit": "u256"
+    //       },
+    //       {
+    //         "total_bytes_size": "u256"
+    //       },
+    //       {
+    //         "total_recharged": "u256"
+    //       },
+    //       {
+    //         "total_paid": "u256"
+    //       }
+    //     ],
+    //     "keys": [
+    //       "dapp_key"
+    //     ],
+    //     "offchain": false
+    //   }
+    // },
+
+    // if resource not contain dapp_fee_state, add dapp_fee_state
+    if (!Object.keys(resources).includes('dapp_fee_state')) {
+      resources.push({
+        dapp_fee_state: {
+        fields: [
+          { dapp_key: 'String' },
+          { base_fee: 'u256' },
+          { byte_fee: 'u256' },
+          { free_credit: 'u256' },
+          { total_bytes_size: 'u256' },
+          { total_recharged: 'u256' },
+          { total_paid: 'u256' }
+        ],
+        keys: ['dapp_key'],
+        offchain: false
+      }
+    });
+    }
+
   // handle enums
   const enums = Object.entries(config.enums || {}).map(([name, enumFields]) => {
     // Sort enum values by first letter

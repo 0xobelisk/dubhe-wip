@@ -765,11 +765,11 @@ impl DubheConfig {
     }
 
     pub fn can_convert_event_to_sql(&self, event: &Event) -> Result<()> {
-        if event.origin_package_id() != Some(self.package_id.clone()) {
-            return Err(anyhow::anyhow!(
-                "Event origin package id does not match the package id"
-            ));
-        }
+        // if event.origin_package_id() != Some(self.package_id.clone()) {
+        //     return Err(anyhow::anyhow!(
+        //         "Event origin package id does not match the package id"
+        //     ));
+        // }
         if !self
             .fields
             .iter()
