@@ -55,16 +55,11 @@ impl Processor for DubheEventHandler {
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> Result<Vec<Self::Value>> {
         let current_checkpoint = checkpoint.checkpoint_summary.sequence_number;
         println!("current_checkpoint: {:?}", current_checkpoint);
-
         let mut parsed_events = Vec::new();
-
         for transaction in &checkpoint.transactions {
             let maybe_events = &transaction.events;
             if let Some(events) = maybe_events {
                 for event in &events.data {
-                    if event.package_id
-                        == ObjectID::from_str(&self.dubhe_config.package_id).unwrap()
-                    {
                         if event.type_.name.to_string() == "Dubhe_Store_SetRecord"
                             || event.type_.name.to_string() == "Dubhe_Store_SetField"
                             || event.type_.name.to_string() == "Dubhe_Store_DeleteRecord"
@@ -206,7 +201,6 @@ impl Processor for DubheEventHandler {
                         //         //     .await?;
                         //     }
                         // }
-                    }
                 }
             }
         }

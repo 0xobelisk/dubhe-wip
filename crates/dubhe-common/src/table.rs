@@ -765,11 +765,14 @@ impl DubheConfig {
     }
 
     pub fn can_convert_event_to_sql(&self, event: &Event) -> Result<()> {
-        // if event.origin_package_id() != Some(self.package_id.clone()) {
-        //     return Err(anyhow::anyhow!(
-        //         "Event origin package id does not match the package id"
-        //     ));
-        // }
+        if event.table_id() == "dapp_fee_state" {
+          return Ok(());
+        }
+        if event.origin_package_id() != Some(self.package_id.clone()) {
+            return Err(anyhow::anyhow!(
+                "Event origin package id does not match the package id"
+            ));
+        }
         if !self
             .fields
             .iter()
@@ -879,21 +882,33 @@ impl DubheConfig {
             }
             Event::StoreSetField(event) => {
                 let mut sql = String::new();
-                sql.push_str(&format!("UPDATE store_{} SET ", event.table_id));
-                sql.push_str(&self.field_value_by_table_and_index(
-                    &event.table_id,
-                    event.field_index,
-                    &event.value,
-                ));
-                sql.push_str(",");
-                sql.push_str(format!("updated_at_checkpoint = {}", current_checkpoint).as_str());
-                sql.push_str(" WHERE ");
-                sql.push_str(
-                    &self
-                        .field_values_by_table_and_primary_key(&event.table_id, &event.key_tuple)
-                        .join(" AND "),
-                );
-                sql.push_str(";");
+                if self.is_exist_primary_key(&event.table_id) { 
+                  sql.push_str(&format!("UPDATE store_{} SET ", event.table_id));
+                  sql.push_str(&self.field_value_by_table_and_index(
+                      &event.table_id,
+                      event.field_index,
+                      &event.value,
+                  ));
+                  sql.push_str(",");
+                  sql.push_str(format!("updated_at_checkpoint = {}", current_checkpoint).as_str());
+                  sql.push_str(" WHERE ");
+                  sql.push_str(
+                      &self
+                          .field_values_by_table_and_primary_key(&event.table_id, &event.key_tuple)
+                          .join(" AND "),
+                  );
+                  sql.push_str(";");
+                } else {
+                  sql.push_str(&format!("UPDATE store_{} SET ", event.table_id));
+                  sql.push_str(&self.field_value_by_table_and_index(
+                      &event.table_id,
+                      event.field_index,
+                      &event.value,
+                  ));
+                  sql.push_str(",");
+                  sql.push_str(format!("updated_at_checkpoint = {}", current_checkpoint).as_str());
+                  sql.push_str(" WHERE unique_resource_id = 1;");
+                }
                 Ok(sql)
             }
             Event::StoreDeleteRecord(event) => {
@@ -1318,7 +1333,7 @@ pub fn into_sql_string(type_: &str, value: &[u8]) -> Result<String> {
         }
         "u128" => {
             let v: u128 = bcs::from_bytes(value).unwrap();
-            Ok(v.to_string())
+            Ok(format!("'{}'", v.to_string()))
         }
         "u256" => {
             let v: U256 = bcs::from_bytes(value).unwrap();
@@ -1359,17 +1374,29 @@ pub fn into_sql_string(type_: &str, value: &[u8]) -> Result<String> {
         "vector<u128>" => {
             let v: Vec<u128> = bcs::from_bytes(value).unwrap();
             let values: Vec<String> = v.iter().map(|v| format!("'{}'", v.to_string())).collect();
-            Ok(format!("ARRAY[{}]", values.join(", ")))
+            if values.is_empty() {
+                Ok("ARRAY[]::TEXT[]".to_string())
+            } else {
+                Ok(format!("ARRAY[{}]::TEXT[]", values.join(", ")))
+            }
         }
         "vector<u256>" => {
             let v: Vec<U256> = bcs::from_bytes(value).unwrap();
             let values: Vec<String> = v.iter().map(|v| format!("'{}'", v.to_string())).collect();
-            Ok(format!("ARRAY[{}]", values.join(", ")))
+            if values.is_empty() {
+                Ok("ARRAY[]::TEXT[]".to_string())
+            } else {
+                Ok(format!("ARRAY[{}]::TEXT[]", values.join(", ")))
+            }
         }
         "vector<address>" => {
             let v: Vec<SuiAddress> = bcs::from_bytes(value).unwrap();
             let values: Vec<String> = v.iter().map(|v| format!("'{}'", v.to_string())).collect();
-            Ok(format!("ARRAY[{}]", values.join(", ")))
+            if values.is_empty() {
+                Ok("ARRAY[]::TEXT[]".to_string())
+            } else {
+                Ok(format!("ARRAY[{}]::TEXT[]", values.join(", ")))
+            }
         }
         "vector<bool>" => {
             let v: Vec<bool> = bcs::from_bytes(value).unwrap();
@@ -1379,7 +1406,11 @@ pub fn into_sql_string(type_: &str, value: &[u8]) -> Result<String> {
         "vector<String>" => {
             let v: Vec<String> = bcs::from_bytes(value).unwrap();
             let values: Vec<String> = v.iter().map(|v| format!("'{}'", v)).collect();
-            Ok(format!("ARRAY[{}]", values.join(", ")))
+            if values.is_empty() {
+                Ok("ARRAY[]::TEXT[]".to_string())
+            } else {
+                Ok(format!("ARRAY[{}]::TEXT[]", values.join(", ")))
+            }
         }
         "vector<vector<u8>>" => {
             let v: Vec<Vec<u8>> = bcs::from_bytes(value).unwrap();
@@ -1486,12 +1517,21 @@ pub fn get_sql_type(type_: &str) -> String {
         "u8" => "INTEGER",
         "u16" => "INTEGER",
         "u32" => "INTEGER",
-        "u64" => "INTEGER",
+        "u64" => "BIGINT",
         "u128" => "TEXT",
         "u256" => "TEXT",
         "address" => "TEXT",
         "String" => "TEXT",
         "bool" => "BOOLEAN",
+        "vector<u8>" => "INTEGER[]",
+        "vector<u16>" => "INTEGER[]",
+        "vector<u32>" => "INTEGER[]",
+        "vector<u64>" => "BIGINT[]",
+        "vector<u128>" => "TEXT[]",
+        "vector<u256>" => "TEXT[]",
+        "vector<address>" => "TEXT[]",
+        "vector<bool>" => "BOOLEAN[]",
+        "vector<String>" => "TEXT[]",
         _ => "TEXT",
     }
     .to_string()
