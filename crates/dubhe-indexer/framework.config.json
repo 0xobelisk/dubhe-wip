@@ -168,10 +168,10 @@
       "bridge_withdraw": {
         "fields": [
           {
-            "f": "address"
+            "from": "address"
           },
           {
-            "t": "address"
+            "to": "address"
           },
           {
             "to_chain": "String"
@@ -191,13 +191,13 @@
       "bridge_deposit": {
         "fields": [
           {
-            "f": "address"
+            "from": "address"
           },
           {
-            "t": "address"
+            "to": "address"
           },
           {
-            "fc": "String"
+            "from_chain": "String"
           },
           {
             "amount": "u256"
@@ -284,25 +284,6 @@
       }
     },
     {
-      "dapp_proxy": {
-        "fields": [
-          {
-            "dapp_key": "String"
-          },
-          {
-            "delegator": "address"
-          },
-          {
-            "enabled": "bool"
-          }
-        ],
-        "keys": [
-          "dapp_key"
-        ],
-        "offchain": false
-      }
-    },
-    {
       "dapp_fee_state": {
         "fields": [
           {
@@ -325,6 +306,25 @@
           },
           {
             "total_paid": "u256"
+          }
+        ],
+        "keys": [
+          "dapp_key"
+        ],
+        "offchain": false
+      }
+    },
+    {
+      "dapp_proxy": {
+        "fields": [
+          {
+            "dapp_key": "String"
+          },
+          {
+            "delegator": "address"
+          },
+          {
+            "enabled": "bool"
           }
         ],
         "keys": [
@@ -357,6 +357,6 @@
       ]
     }
   ],
-  "package_id": "0x8a64190bca96d6f01f927ef36866c382949b4963117721b4ff8be8ab5e5cb4f7",
-  "start_checkpoint": "5009"
+  "package_id": "0xa747823b7bf2c566f1d6ef13835cc3719ab6b259d89113d9419befc13b172dbc",
+  "start_checkpoint": "800"
 }

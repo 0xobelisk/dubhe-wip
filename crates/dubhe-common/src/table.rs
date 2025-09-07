@@ -13,6 +13,7 @@ use serde_json;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::str::FromStr;
 use sui_types::base_types::SuiAddress;
 
@@ -329,7 +330,7 @@ impl DubheConfig {
         self.fields
             .iter()
             .filter(|field| field.table == table_id && field.primary_key)
-            .map(|field| field.name.clone())
+            .map(|field| format!("\"{}\"", field.name))
             .collect()
     }
 
@@ -337,7 +338,7 @@ impl DubheConfig {
         self.fields
             .iter()
             .filter(|field| field.table == table_id)
-            .map(|field| field.name.clone())
+            .map(|field| format!("\"{}\"", field.name))
             .collect()
     }
 
@@ -345,7 +346,7 @@ impl DubheConfig {
         self.fields
             .iter()
             .filter(|field| field.table == table_id)
-            .map(|field| format!("{} {}", field.name, field.db_type))
+            .map(|field| format!("\"{}\" {}", field.name, field.db_type))
             .collect()
     }
 
@@ -467,13 +468,13 @@ impl DubheConfig {
                     if self.is_enum(&field.move_type) {
                         let enum_index = bcs::from_bytes(&key_tuple[field.index as usize]).unwrap();
                         format!(
-                            "{} = {}",
+                            "\"{}\" = {}",
                             field.name,
                             self.enum_value(&field.move_type, enum_index)
                         )
                     } else {
                         format!(
-                            "{} = {}",
+                            "\"{}\" = {}",
                             field.name,
                             into_sql_string(&field.move_type, &key_tuple[field.index as usize])
                                 .unwrap()
@@ -484,13 +485,13 @@ impl DubheConfig {
                         let enum_index =
                             bcs::from_bytes(&value_tuple[field.index as usize]).unwrap();
                         format!(
-                            "{} = {}",
+                            "\"{}\" = {}",
                             field.name,
                             self.enum_value(&field.move_type, enum_index)
                         )
                     } else {
                         format!(
-                            "{} = {}",
+                            "\"{}\" = {}",
                             field.name,
                             into_sql_string(&field.move_type, &value_tuple[field.index as usize])
                                 .unwrap()
@@ -513,13 +514,13 @@ impl DubheConfig {
                 if self.is_enum(&field.move_type) {
                     let enum_index = bcs::from_bytes(&value_tuple[field.index as usize]).unwrap();
                     format!(
-                        "{} = {}",
+                        "\"{}\" = {}",
                         field.name,
                         self.enum_value(&field.move_type, enum_index)
                     )
                 } else {
                     format!(
-                        "{} = {}",
+                        "\"{}\" = {}",
                         field.name,
                         into_sql_string(&field.move_type, &value_tuple[field.index as usize])
                             .unwrap()
@@ -541,13 +542,13 @@ impl DubheConfig {
                 if self.is_enum(&field.move_type) {
                     let enum_index = bcs::from_bytes(&key_tuple[field.index as usize]).unwrap();
                     format!(
-                        "{} = {}",
+                        "\"{}\" = {}",
                         field.name,
                         self.enum_value(&field.move_type, enum_index)
                     )
                 } else {
                     format!(
-                        "{} = {}",
+                        "\"{}\" = {}",
                         field.name,
                         into_sql_string(&field.move_type, &key_tuple[field.index as usize])
                             .unwrap()
@@ -570,13 +571,13 @@ impl DubheConfig {
                 if self.is_enum(&field.move_type) {
                     let enum_index = bcs::from_bytes(&value).unwrap();
                     format!(
-                        "{} = {}",
+                        "\"{}\" = {}",
                         field.name,
                         self.enum_value(&field.move_type, enum_index)
                     )
                 } else {
                     format!(
-                        "{} = {}",
+                        "\"{}\" = {}",
                         field.name,
                         into_sql_string(&field.move_type, &value).unwrap()
                     )
@@ -1535,6 +1536,19 @@ pub fn get_sql_type(type_: &str) -> String {
         _ => "TEXT",
     }
     .to_string()
+}
+
+pub fn is_sql_keyword(name: &str) -> bool {
+  let sql_keywords = [
+    "from", "to", "select", "insert", "update", "delete", "where", 
+    "order", "group", "having", "join", "union", "create", "drop",
+    "alter", "table", "index", "constraint", "primary", "foreign",
+    "key", "references", "check", "unique", "not", "null", "default",
+    "user", "role", "grant", "revoke", "view", "trigger", "function",
+    "procedure", "begin", "end", "if", "else", "while", "for", "case",
+    "when", "then", "return", "declare", "cursor", "fetch", "close"
+  ];
+  sql_keywords.contains(&name)
 }
 
 #[cfg(test)]
