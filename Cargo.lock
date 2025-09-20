@@ -216,7 +216,7 @@ dependencies = [
  "tap",
  "thiserror 1.0.69",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower 0.4.13",
  "tracing",
  "x509-parser",
@@ -1661,7 +1661,7 @@ dependencies = [
 [[package]]
 name = "consensus-config"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "fastcrypto",
  "mysten-network",
@@ -1673,7 +1673,7 @@ dependencies = [
 [[package]]
 name = "consensus-types"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "base64 0.21.7",
  "consensus-config",
@@ -2319,6 +2319,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
+name = "difflib"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6184e33543162437515c2e2b48714794e37845ec9851711914eec9d308f6ebe8"
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2406,6 +2412,12 @@ name = "dotenvy"
 version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
+
+[[package]]
+name = "downcast"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
 name = "downcast-rs"
@@ -2525,7 +2537,7 @@ dependencies = [
  "tokio-postgres",
  "tokio-postgres-rustls",
  "tokio-stream",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.8.23",
  "tonic 0.10.2",
  "tonic-web 0.10.2",
@@ -2808,7 +2820,7 @@ checksum = "c34f04666d835ff5d62e058c3995147c06f42fe86ff053337632bca83e42702d"
 [[package]]
 name = "enum-compat-util"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "serde_yaml 0.8.26",
 ]
@@ -3167,6 +3179,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "float-cmp"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "flume"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3212,6 +3233,12 @@ checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
  "percent-encoding",
 ]
+
+[[package]]
+name = "fragile"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28dd6caf6059519a65843af8fe2a3ae298b14b80179855aeb4adc2c1934ee619"
 
 [[package]]
 name = "fsevent-sys"
@@ -3483,7 +3510,7 @@ dependencies = [
  "indexmap 2.10.0",
  "slab",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tracing",
 ]
 
@@ -3502,7 +3529,7 @@ dependencies = [
  "indexmap 2.10.0",
  "slab",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tracing",
 ]
 
@@ -4325,6 +4352,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpc"
+version = "0.1.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "jsonrpsee"
 version = "0.24.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4358,7 +4397,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tokio-rustls",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tracing",
  "url",
 ]
@@ -4449,7 +4488,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tokio-stream",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower 0.4.13",
  "tracing",
 ]
@@ -4944,6 +4983,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "mockall"
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c84490118f2ee2d74570d114f3d0493cbf02790df303d2707606c3e14e07c96"
+dependencies = [
+ "cfg-if",
+ "downcast",
+ "fragile",
+ "lazy_static",
+ "mockall_derive",
+ "predicates",
+ "predicates-tree",
+]
+
+[[package]]
+name = "mockall_derive"
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22ce75669015c4f47b289fd4d4f56e894e4c96003ffdf3ac51313126f94c6cbb"
+dependencies = [
+ "cfg-if",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "moka"
 version = "0.12.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4965,17 +5031,17 @@ dependencies = [
 [[package]]
 name = "move-abstract-interpreter"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 
 [[package]]
 name = "move-abstract-stack"
 version = "0.0.1"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "enum-compat-util",
@@ -4991,12 +5057,12 @@ dependencies = [
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 
 [[package]]
 name = "move-bytecode-source-map"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -5012,7 +5078,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-utils"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "indexmap 2.10.0",
@@ -5025,7 +5091,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "move-abstract-interpreter",
  "move-abstract-stack",
@@ -5040,7 +5106,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-verifier-meter"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "move-binary-format",
  "move-core-types",
@@ -5050,7 +5116,7 @@ dependencies = [
 [[package]]
 name = "move-command-line-common"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -5071,7 +5137,7 @@ dependencies = [
 [[package]]
 name = "move-compiler"
 version = "0.0.1"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -5107,7 +5173,7 @@ dependencies = [
 [[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -5132,7 +5198,7 @@ dependencies = [
 [[package]]
 name = "move-coverage"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -5157,7 +5223,7 @@ dependencies = [
 [[package]]
 name = "move-disassembler"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -5178,7 +5244,7 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "codespan-reporting",
@@ -5196,7 +5262,7 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode-syntax"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "hex",
@@ -5209,7 +5275,7 @@ dependencies = [
 [[package]]
 name = "move-ir-types"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "hex",
  "move-command-line-common",
@@ -5222,7 +5288,7 @@ dependencies = [
 [[package]]
 name = "move-proc-macros"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "enum-compat-util",
  "quote",
@@ -5232,7 +5298,7 @@ dependencies = [
 [[package]]
 name = "move-symbol-pool"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "once_cell",
  "phf",
@@ -5242,7 +5308,7 @@ dependencies = [
 [[package]]
 name = "move-trace-format"
 version = "0.0.1"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "move-binary-format",
  "move-core-types",
@@ -5254,7 +5320,7 @@ dependencies = [
 [[package]]
 name = "move-vm-config"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "move-binary-format",
  "once_cell",
@@ -5263,7 +5329,7 @@ dependencies = [
 [[package]]
 name = "move-vm-profiler"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "move-vm-config",
  "once_cell",
@@ -5275,7 +5341,7 @@ dependencies = [
 [[package]]
 name = "move-vm-test-utils"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "move-binary-format",
@@ -5289,7 +5355,7 @@ dependencies = [
 [[package]]
 name = "move-vm-types"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "bcs",
  "move-binary-format",
@@ -5302,7 +5368,7 @@ dependencies = [
 [[package]]
 name = "msim"
 version = "0.1.0"
-source = "git+https://github.com/MystenLabs/mysten-sim.git?rev=192bd9590f8552d5a1c5debf66c4ff2672af037e#192bd9590f8552d5a1c5debf66c4ff2672af037e"
+source = "git+https://github.com/MystenLabs/mysten-sim.git?rev=45b88cffa3f50d6f2022d0b422ca4a077ac96a98#45b88cffa3f50d6f2022d0b422ca4a077ac96a98"
 dependencies = [
  "ahash 0.7.8",
  "async-task",
@@ -5322,7 +5388,7 @@ dependencies = [
  "serde",
  "socket2 0.4.10",
  "tap",
- "tokio-util 0.7.13",
+ "tokio-util 0.7.15 (git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=c59702c3177a31405d42ec12e01fa4a445728326)",
  "toml 0.5.11",
  "tracing",
  "tracing-subscriber",
@@ -5331,7 +5397,7 @@ dependencies = [
 [[package]]
 name = "msim-macros"
 version = "0.1.0"
-source = "git+https://github.com/MystenLabs/mysten-sim.git?rev=192bd9590f8552d5a1c5debf66c4ff2672af037e#192bd9590f8552d5a1c5debf66c4ff2672af037e"
+source = "git+https://github.com/MystenLabs/mysten-sim.git?rev=45b88cffa3f50d6f2022d0b422ca4a077ac96a98#45b88cffa3f50d6f2022d0b422ca4a077ac96a98"
 dependencies = [
  "darling 0.14.4",
  "proc-macro2",
@@ -5421,7 +5487,7 @@ checksum = "1d87ecb2933e8aeadb3e3a02b828fed80a7528047e68b4f424523a0981a3a084"
 [[package]]
 name = "mysten-common"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "antithesis_sdk",
  "anyhow",
@@ -5433,6 +5499,7 @@ dependencies = [
  "parking_lot",
  "rand 0.8.5",
  "reqwest 0.12.22",
+ "serde_json",
  "snap",
  "sui-macros",
  "tempfile",
@@ -5443,7 +5510,7 @@ dependencies = [
 [[package]]
 name = "mysten-metrics"
 version = "0.7.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "async-trait",
  "axum 0.8.4",
@@ -5464,7 +5531,7 @@ dependencies = [
 [[package]]
 name = "mysten-network"
 version = "0.2.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anemo",
  "anemo-tower",
@@ -5500,7 +5567,7 @@ dependencies = [
 [[package]]
 name = "mysten-service"
 version = "0.0.1"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "axum 0.8.4",
@@ -5609,6 +5676,12 @@ name = "nonzero_ext"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38bf9645c8b145698bb0b18a4637dcacbc421ea49bef2317e4fd8065a387cf21"
+
+[[package]]
+name = "normalize-line-endings"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61807f77802ff30975e01f4f071c8ba10c022052f98b3294119f3e615d13e5be"
 
 [[package]]
 name = "notify"
@@ -6465,6 +6538,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
+name = "predicates"
+version = "2.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59230a63c37f3e18569bdb90e4a89cbf5bf8b06fea0b84e65ea10cc4df47addd"
+dependencies = [
+ "difflib",
+ "float-cmp",
+ "itertools 0.10.5",
+ "normalize-line-endings",
+ "predicates-core",
+ "regex",
+]
+
+[[package]]
+name = "predicates-core"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "727e462b119fe9c93fd0eb1429a5f7647394014cf3c04ab2c0350eeb09095ffa"
+
+[[package]]
+name = "predicates-tree"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72dd2d6d381dfb73a193c7fca536518d7caee39fc8503f74e7dc0be0531b425c"
+dependencies = [
+ "predicates-core",
+ "termtree",
+]
+
+[[package]]
 name = "prettyplease"
 version = "0.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6565,7 +6668,7 @@ dependencies = [
 [[package]]
 name = "prometheus-closure-metric"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "prometheus",
@@ -6971,19 +7074,21 @@ dependencies = [
 
 [[package]]
 name = "real_tokio"
-version = "1.43.0"
-source = "git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=7329bff6ee996d8df6cf810a9c2e59631ad5a2fb#7329bff6ee996d8df6cf810a9c2e59631ad5a2fb"
+version = "1.47.1"
+source = "git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=c59702c3177a31405d42ec12e01fa4a445728326#c59702c3177a31405d42ec12e01fa4a445728326"
 dependencies = [
  "backtrace",
  "bytes",
+ "io-uring",
  "libc",
  "mio 1.0.4",
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
- "socket2 0.5.10",
- "tokio-macros 2.5.0 (git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=7329bff6ee996d8df6cf810a9c2e59631ad5a2fb)",
- "windows-sys 0.52.0",
+ "slab",
+ "socket2 0.6.0",
+ "tokio-macros 2.5.0 (git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=c59702c3177a31405d42ec12e01fa4a445728326)",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7148,7 +7253,7 @@ dependencies = [
  "sync_wrapper 1.0.2",
  "tokio",
  "tokio-rustls",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower 0.5.2",
  "tower-http 0.6.6",
  "tower-service",
@@ -7967,7 +8072,7 @@ dependencies = [
 [[package]]
 name = "shared-crypto"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "bcs",
  "eyre",
@@ -8126,6 +8231,16 @@ checksum = "e22376abed350d73dd1cd119b57ffccad95b4e585a7cda43e286245ce23c0678"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "socket2"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "233504af464074f9d066d7b5416c5f9b894a5862a6506e306f7b816cdd6f1807"
+dependencies = [
+ "libc",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -8602,7 +8717,7 @@ checksum = "734676eb262c623cec13c3155096e08d1f8f29adce39ba17948b18dad1e54142"
 [[package]]
 name = "sui-config"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anemo",
  "anyhow",
@@ -8634,8 +8749,8 @@ dependencies = [
 
 [[package]]
 name = "sui-crypto"
-version = "0.0.5"
-source = "git+https://github.com/MystenLabs/sui-rust-sdk.git?rev=d3334e5a8b1127f2e197d85750f1fb78c7084ae1#d3334e5a8b1127f2e197d85750f1fb78c7084ae1"
+version = "0.0.6"
+source = "git+https://github.com/MystenLabs/sui-rust-sdk.git?rev=8bc0ff524a3a60561f1ba6315399f6f09e2b85b3#8bc0ff524a3a60561f1ba6315399f6f09e2b85b3"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -8660,23 +8775,23 @@ dependencies = [
 [[package]]
 name = "sui-enum-compat-util"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "serde_yaml 0.8.26",
 ]
 
 [[package]]
 name = "sui-field-count"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "sui-field-count-derive",
 ]
 
 [[package]]
 name = "sui-field-count-derive"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -8685,7 +8800,7 @@ dependencies = [
 [[package]]
 name = "sui-http"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "bytes",
  "http 1.3.1",
@@ -8697,15 +8812,15 @@ dependencies = [
  "socket2 0.5.10",
  "tokio",
  "tokio-rustls",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower 0.5.2",
  "tracing",
 ]
 
 [[package]]
 name = "sui-indexer-alt-framework"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8734,7 +8849,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tokio-stream",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tonic 0.13.1",
  "tracing",
  "tracing-subscriber",
@@ -8743,8 +8858,8 @@ dependencies = [
 
 [[package]]
 name = "sui-indexer-alt-framework-store-traits"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8754,8 +8869,8 @@ dependencies = [
 
 [[package]]
 name = "sui-indexer-alt-metrics"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "axum 0.8.4",
@@ -8764,14 +8879,14 @@ dependencies = [
  "prometheus-closure-metric",
  "sui-pg-db",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tracing",
 ]
 
 [[package]]
 name = "sui-json"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -8788,7 +8903,7 @@ dependencies = [
 [[package]]
 name = "sui-json-rpc-api"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "fastcrypto",
@@ -8808,7 +8923,7 @@ dependencies = [
 [[package]]
 name = "sui-json-rpc-types"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "bcs",
@@ -8841,11 +8956,17 @@ dependencies = [
 [[package]]
 name = "sui-keys"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
+ "async-trait",
+ "base64 0.21.7",
+ "bcs",
  "bip32",
+ "colored",
  "fastcrypto",
+ "jsonrpc",
+ "mockall",
  "rand 0.8.5",
  "regex",
  "serde",
@@ -8855,12 +8976,13 @@ dependencies = [
  "slip10_ed25519",
  "sui-types",
  "tiny-bip39",
+ "tokio",
 ]
 
 [[package]]
 name = "sui-macros"
 version = "0.7.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "futures",
  "once_cell",
@@ -8870,8 +8992,8 @@ dependencies = [
 
 [[package]]
 name = "sui-open-rpc"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "bcs",
  "schemars 0.8.22",
@@ -8883,7 +9005,7 @@ dependencies = [
 [[package]]
 name = "sui-open-rpc-macros"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "derive-syn-parse",
  "itertools 0.13.0",
@@ -8896,7 +9018,7 @@ dependencies = [
 [[package]]
 name = "sui-package-resolver"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "async-trait",
  "bcs",
@@ -8913,8 +9035,8 @@ dependencies = [
 
 [[package]]
 name = "sui-pg-db"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8925,20 +9047,25 @@ dependencies = [
  "diesel-async",
  "diesel_migrations",
  "futures",
+ "rustls 0.23.28",
+ "rustls-pemfile 2.2.0",
  "scoped-futures",
  "sui-field-count",
  "sui-indexer-alt-framework-store-traits",
  "sui-sql-macro",
  "tempfile",
  "tokio",
+ "tokio-postgres",
+ "tokio-postgres-rustls",
  "tracing",
  "url",
+ "webpki-roots 0.26.11",
 ]
 
 [[package]]
 name = "sui-proc-macros"
 version = "0.7.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "msim-macros",
  "proc-macro2",
@@ -8950,7 +9077,7 @@ dependencies = [
 [[package]]
 name = "sui-protocol-config"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "clap",
  "fastcrypto",
@@ -8967,7 +9094,7 @@ dependencies = [
 [[package]]
 name = "sui-protocol-config-macros"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8976,8 +9103,8 @@ dependencies = [
 
 [[package]]
 name = "sui-rpc"
-version = "0.0.0"
-source = "git+https://github.com/MystenLabs/sui-rust-sdk.git?rev=d3334e5a8b1127f2e197d85750f1fb78c7084ae1#d3334e5a8b1127f2e197d85750f1fb78c7084ae1"
+version = "0.0.6"
+source = "git+https://github.com/MystenLabs/sui-rust-sdk.git?rev=8bc0ff524a3a60561f1ba6315399f6f09e2b85b3#8bc0ff524a3a60561f1ba6315399f6f09e2b85b3"
 dependencies = [
  "base64 0.22.1",
  "bcs",
@@ -8996,7 +9123,7 @@ dependencies = [
 [[package]]
 name = "sui-rpc-api"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -9042,8 +9169,8 @@ dependencies = [
 
 [[package]]
 name = "sui-sdk"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9075,8 +9202,8 @@ dependencies = [
 
 [[package]]
 name = "sui-sdk-types"
-version = "0.0.5"
-source = "git+https://github.com/MystenLabs/sui-rust-sdk.git?rev=d3334e5a8b1127f2e197d85750f1fb78c7084ae1#d3334e5a8b1127f2e197d85750f1fb78c7084ae1"
+version = "0.0.6"
+source = "git+https://github.com/MystenLabs/sui-rust-sdk.git?rev=8bc0ff524a3a60561f1ba6315399f6f09e2b85b3#8bc0ff524a3a60561f1ba6315399f6f09e2b85b3"
 dependencies = [
  "base64ct",
  "bcs",
@@ -9095,8 +9222,8 @@ dependencies = [
 
 [[package]]
 name = "sui-sql-macro"
-version = "1.53.2"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+version = "1.55.0"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -9106,7 +9233,7 @@ dependencies = [
 [[package]]
 name = "sui-storage"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9156,7 +9283,7 @@ dependencies = [
 [[package]]
 name = "sui-transaction-builder"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9173,7 +9300,7 @@ dependencies = [
 [[package]]
 name = "sui-types"
 version = "0.1.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "anemo",
  "anyhow",
@@ -9366,7 +9493,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 [[package]]
 name = "telemetry-subscribers"
 version = "0.2.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "atomic_float",
  "bytes",
@@ -9432,6 +9559,12 @@ dependencies = [
  "rustix",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "termtree"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f50febec83f5ee1df3015341d8bd429f2d1cc62bcba7ea2076759d315084683"
 
 [[package]]
 name = "textwrap"
@@ -9639,7 +9772,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.5.0"
-source = "git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=7329bff6ee996d8df6cf810a9c2e59631ad5a2fb#7329bff6ee996d8df6cf810a9c2e59631ad5a2fb"
+source = "git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=c59702c3177a31405d42ec12e01fa4a445728326#c59702c3177a31405d42ec12e01fa4a445728326"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -9678,7 +9811,7 @@ dependencies = [
  "rand 0.9.1",
  "socket2 0.5.10",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "whoami",
 ]
 
@@ -9715,7 +9848,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -9758,22 +9891,6 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.13"
-source = "git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=7329bff6ee996d8df6cf810a9c2e59631ad5a2fb#7329bff6ee996d8df6cf810a9c2e59631ad5a2fb"
-dependencies = [
- "bytes",
- "futures-core",
- "futures-io",
- "futures-sink",
- "futures-util",
- "hashbrown 0.14.5",
- "pin-project-lite",
- "real_tokio",
- "slab",
-]
-
-[[package]]
-name = "tokio-util"
 version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66a539a9ad6d5d281510d5bd368c973d636c02dbf8a67300bfb6b950696ad7df"
@@ -9784,6 +9901,22 @@ dependencies = [
  "futures-sink",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "tokio-util"
+version = "0.7.15"
+source = "git+https://github.com/MystenLabs/tokio-msim-fork.git?rev=c59702c3177a31405d42ec12e01fa4a445728326#c59702c3177a31405d42ec12e01fa4a445728326"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "futures-io",
+ "futures-sink",
+ "futures-util",
+ "hashbrown 0.15.4",
+ "pin-project-lite",
+ "real_tokio",
+ "slab",
 ]
 
 [[package]]
@@ -10016,7 +10149,7 @@ dependencies = [
  "rand 0.8.5",
  "slab",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -10036,7 +10169,7 @@ dependencies = [
  "slab",
  "sync_wrapper 1.0.2",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -10083,7 +10216,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "tokio",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower 0.4.13",
  "tower-layer",
  "tower-service",
@@ -10303,7 +10436,7 @@ dependencies = [
 [[package]]
 name = "typed-store"
 version = "0.4.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "async-trait",
  "backoff",
@@ -10336,7 +10469,7 @@ dependencies = [
 [[package]]
 name = "typed-store-derive"
 version = "0.3.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "itertools 0.13.0",
  "proc-macro2",
@@ -10347,7 +10480,7 @@ dependencies = [
 [[package]]
 name = "typed-store-error"
 version = "0.4.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "serde",
  "thiserror 1.0.69",
@@ -10356,7 +10489,7 @@ dependencies = [
 [[package]]
 name = "typed-store-workspace-hack"
 version = "0.0.0"
-source = "git+https://github.com/mystenlabs/sui?tag=testnet-v1.53.2#0cfc71d63baec89b4b380eb7c5a65590460afabc"
+source = "git+https://github.com/mystenlabs/sui?branch=indexer-framework%2Ffix-first-checkpoint#b9c70c838ce1893400d9d5a7950cf77e39c9a0bb"
 dependencies = [
  "cc",
  "lazy_static",
@@ -10672,7 +10805,7 @@ dependencies = [
  "serde_urlencoded",
  "tokio",
  "tokio-tungstenite 0.21.0",
- "tokio-util 0.7.15",
+ "tokio-util 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tower-service",
  "tracing",
 ]

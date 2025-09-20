@@ -77,13 +77,13 @@ async fn main() -> Result<()> {
 
     let mut cluster = if !database.is_empty().await? {
         database.create_tables(&dubhe_config).await?;
-        // let indexer_args = IndexerArgs {
-        //     first_checkpoint: Some(dubhe_config.start_checkpoint.parse::<u64>().unwrap()),
-        //     ..Default::default()
-        // };
+        let indexer_args = IndexerArgs {
+            first_checkpoint: Some(dubhe_config.start_checkpoint.parse::<u64>().unwrap()),
+            ..Default::default()
+        };
         println!("🔄 Indexer args: {:?}", args.indexer_args);
         IndexerCluster::builder()
-            .with_indexer_args(args.indexer_args)
+            .with_indexer_args(indexer_args)
             .with_database_url(Url::parse(&args.database_url).unwrap())
             .with_client_args(client_args)
             .build()

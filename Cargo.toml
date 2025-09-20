@@ -68,13 +68,13 @@ rusqlite = "0.30.0"
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "sqlite", "json", "chrono"] }
 
 
-sui-storage = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-sui-sdk = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-sui-protocol-config ={ git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-sui-rpc-api = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-sui_types = { git = "https://github.com/mystenlabs/sui", package = "sui-types", tag = "testnet-v1.53.2"}
-move-core-types = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-mysten-service = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-mysten-metrics = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-sui-indexer-alt-framework = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
-sui-indexer-alt-framework-store-traits = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.53.2"}
+sui-storage = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+sui-sdk = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+sui-protocol-config ={ git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+sui-rpc-api = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+sui_types = { git = "https://github.com/mystenlabs/sui", package = "sui-types", branch = "indexer-framework/fix-first-checkpoint"}
+move-core-types = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+mysten-service = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+mysten-metrics = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+sui-indexer-alt-framework = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
+sui-indexer-alt-framework-store-traits = { git = "https://github.com/mystenlabs/sui", branch = "indexer-framework/fix-first-checkpoint"}
