@@ -86,7 +86,7 @@ async function checkIndexerHealth(): Promise<boolean> {
   try {
     await withoutProxy(() =>
       waitOn({
-        resources: ['http://localhost:8080/health'],
+        resources: ['http://127.0.0.1:8080/health'],
         timeout: 2000,
         interval: 500,
         validateStatus: (status: number) => status === 200
@@ -251,7 +251,7 @@ const commandModule: CommandModule = {
       })
       .option('local-indexer', {
         type: 'boolean',
-        description: 'Wait for local indexer (health check at http://localhost:8080/health)',
+        description: 'Wait for local indexer (health check at http://127.0.0.1:8080/health)',
         default: false
       })
       .option('timeout', {
@@ -271,10 +271,18 @@ const commandModule: CommandModule = {
         const hasLocalNode = !!argv['local-node'];
         const hasLocalIndexer = !!argv['local-indexer'];
 
-        const optionCount = [hasUrl, hasLocalnet, hasLocalDatabase, hasLocalNode, hasLocalIndexer].filter(Boolean).length;
+        const optionCount = [
+          hasUrl,
+          hasLocalnet,
+          hasLocalDatabase,
+          hasLocalNode,
+          hasLocalIndexer
+        ].filter(Boolean).length;
 
         if (optionCount === 0) {
-          throw new Error('Please provide at least one option: --url, --localnet, --local-database, --local-node, or --local-indexer');
+          throw new Error(
+            'Please provide at least one option: --url, --localnet, --local-database, --local-node, or --local-indexer'
+          );
         }
 
         if (hasUrl && optionCount > 1) {
@@ -330,7 +338,8 @@ const commandModule: CommandModule = {
 
       if (options.localnet) {
         errorMessage = 'Timeout waiting for dubhe localnet services';
-        helpMessage = 'Please make sure all required services are running:\n' +
+        helpMessage =
+          'Please make sure all required services are running:\n' +
           '- Sui localnode on port 9000\n' +
           '- Sui faucet on port 9123\n' +
           '- PostgreSQL database on port 5432\n' +
@@ -343,7 +352,8 @@ const commandModule: CommandModule = {
         helpMessage = 'Please make sure Sui localnode is running on port 9123';
       } else if (options['local-indexer']) {
         errorMessage = 'Timeout waiting for local indexer';
-        helpMessage = 'Please make sure indexer is running and health endpoint is available at http://localhost:8080/health';
+        helpMessage =
+          'Please make sure indexer is running and health endpoint is available at http://127.0.0.1:8080/health';
       }
 
       spinner.fail(chalk.red(errorMessage));
