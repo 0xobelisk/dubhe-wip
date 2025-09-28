@@ -10,6 +10,7 @@ export const dubheConfig = {
     },
     resources: {
         dubhe_asset_id: 'address',
+        sui_asset_id: 'address',
         dubhe_config: {
             fields: {
                 next_asset_id: 'u256',

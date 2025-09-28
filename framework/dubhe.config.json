@@ -13,6 +13,17 @@
       }
     },
     {
+      "sui_asset_id": {
+        "fields": [
+          {
+            "value": "address"
+          }
+        ],
+        "keys": [],
+        "offchain": false
+      }
+    },
+    {
       "dubhe_config": {
         "fields": [
           {
@@ -356,5 +367,7 @@
         "Wrapped"
       ]
     }
-  ]
+  ],
+  "package_id": "0xa337791835d15223727ace33cce17ea0901c094c8cfbe34d089c1a18c2df7a15",
+  "start_checkpoint": "246371797"
 }
