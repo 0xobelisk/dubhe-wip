@@ -13,6 +13,17 @@
       }
     },
     {
+      "sui_asset_id": {
+        "fields": [
+          {
+            "value": "address"
+          }
+        ],
+        "keys": [],
+        "offchain": false
+      }
+    },
+    {
       "dubhe_config": {
         "fields": [
           {
@@ -42,19 +53,19 @@
             "asset_id": "address"
           },
           {
-            "name": "vector<u8>"
+            "name": "String"
           },
           {
-            "symbol": "vector<u8>"
+            "symbol": "String"
           },
           {
-            "description": "vector<u8>"
+            "description": "String"
           },
           {
             "decimals": "u8"
           },
           {
-            "icon_url": "vector<u8>"
+            "icon_url": "String"
           },
           {
             "owner": "address"
@@ -146,7 +157,7 @@
       "bridge_config": {
         "fields": [
           {
-            "chain": "vector<u8>"
+            "chain": "String"
           },
           {
             "min_amount": "u256"
@@ -174,7 +185,7 @@
             "to": "address"
           },
           {
-            "to_chain": "vector<u8>"
+            "to_chain": "String"
           },
           {
             "amount": "u256"
@@ -197,7 +208,7 @@
             "to": "address"
           },
           {
-            "from_chain": "vector<u8>"
+            "from_chain": "String"
           },
           {
             "amount": "u256"
@@ -211,7 +222,7 @@
       "wrapper_assets": {
         "fields": [
           {
-            "coin_type": "vector<u8>"
+            "coin_type": "String"
           },
           {
             "asset_id": "address"
@@ -227,22 +238,22 @@
       "dapp_metadata": {
         "fields": [
           {
-            "dapp_key": "vector<u8>"
+            "dapp_key": "String"
           },
           {
-            "name": "vector<u8>"
+            "name": "String"
           },
           {
-            "description": "vector<u8>"
+            "description": "String"
           },
           {
-            "website_url": "vector<u8>"
+            "website_url": "String"
           },
           {
-            "cover_url": "vector<vector<u8>>"
+            "cover_url": "vector<String>"
           },
           {
-            "partners": "vector<vector<u8>>"
+            "partners": "vector<String>"
           },
           {
             "package_ids": "vector<address>"
@@ -287,7 +298,7 @@
       "dapp_fee_state": {
         "fields": [
           {
-            "dapp_key": "vector<u8>"
+            "dapp_key": "String"
           },
           {
             "base_fee": "u256"
@@ -318,7 +329,7 @@
       "dapp_proxy": {
         "fields": [
           {
-            "dapp_key": "vector<u8>"
+            "dapp_key": "String"
           },
           {
             "delegator": "address"
@@ -357,6 +368,6 @@
       ]
     }
   ],
-  "package_id": "0x4805b1fee654164754e222a617e8ee0eefcc858bf194305a9832582c23c7bc0d",
-  "start_checkpoint": "220211001"
+  "package_id": "0xa337791835d15223727ace33cce17ea0901c094c8cfbe34d089c1a18c2df7a15",
+  "start_checkpoint": "246371797"
 }
