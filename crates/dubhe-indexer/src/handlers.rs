@@ -54,8 +54,8 @@ impl Processor for DubheEventHandler {
 
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> Result<Vec<Self::Value>> {
         let current_checkpoint = checkpoint.checkpoint_summary.sequence_number;
-        let current_checkpoint = checkpoint.checkpoint_summary.timestamp_ms;
         println!("current_checkpoint: {:?}", current_checkpoint);
+        let current_checkpoint = checkpoint.checkpoint_summary.timestamp_ms;
         let mut parsed_events = Vec::new();
         for transaction in &checkpoint.transactions {
             let maybe_events = &transaction.events;
