@@ -126,12 +126,19 @@ jobs:
             # macOS
             brew install protobuf
           elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            # Windows
-            choco install protoc
+            # Windows - Use direct download instead of Chocolatey
+            echo "Installing protoc for Windows..."
+            curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-win64.zip
+            unzip protoc-25.1-win64.zip -d protoc
+            echo "$PWD/protoc/bin" >> $GITHUB_PATH
+            # Verify installation
+            protoc --version
           fi
 
-          # Verify installation
-          protoc --version
+          # Verify installation (skip for Windows as it's done above)
+          if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
+            protoc --version
+          fi
           echo "✅ Protocol Buffer Compiler installed successfully"
 
       - name: Install Linux cross-compilation dependencies
