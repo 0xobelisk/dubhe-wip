@@ -72,7 +72,7 @@ public fun set_record<DappKey: copy + drop>(
   );
   let dapp_key = type_info::get_type_name_string<DappKey>();
   let (_, enabled) = dapp_proxy::get(dh, dapp_key);
-  dapp_already_delegated_error(!enabled);
+  // dapp_already_delegated_error(!enabled);
   charge_fee(dh, dapp_key, key_tuple, value_tuple, 1);
 }
 
@@ -97,7 +97,7 @@ public fun set_field<DappKey: copy + drop>(
   );
   let dapp_key = type_info::get_type_name_string<DappKey>();
   let (_, enabled) = dapp_proxy::get(dh, dapp_key);
-  dapp_already_delegated_error(!enabled);
+  // dapp_already_delegated_error(!enabled);
   charge_fee(dh, dapp_key, key_tuple, vector[value], 1);
 }
 
@@ -117,7 +117,7 @@ public fun delete_record<DappKey: copy + drop>(
   );
   let dapp_key = type_info::get_type_name_string<DappKey>();
   let (_, enabled) = dapp_proxy::get(dh, dapp_key);
-  dapp_already_delegated_error(!enabled);
+  // dapp_already_delegated_error(!enabled);
 }
 
 /// Get a record
