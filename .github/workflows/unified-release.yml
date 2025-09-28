@@ -131,8 +131,10 @@ jobs:
             curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-win64.zip
             unzip protoc-25.1-win64.zip -d protoc
             echo "$PWD/protoc/bin" >> $GITHUB_PATH
+            # Add to PATH for current session
+            export PATH="$PWD/protoc/bin:$PATH"
             # Verify installation
-            protoc --version
+            ./protoc/bin/protoc.exe --version
           fi
 
           # Verify installation (skip for Windows as it's done above)
