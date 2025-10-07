@@ -89,53 +89,6 @@ export function createPostGraphileConfig(options: PostGraphileConfigOptions) {
 
     // Advanced configuration options for Connection Filter plugin
     graphileBuildOptions: {
-      // Enable all supported operators
-      connectionFilterAllowedOperators: [
-        'isNull',
-        'equalTo',
-        'notEqualTo',
-        'distinctFrom',
-        'notDistinctFrom',
-        'lessThan',
-        'lessThanOrEqualTo',
-        'greaterThan',
-        'greaterThanOrEqualTo',
-        'in',
-        'notIn',
-        'like',
-        'notLike',
-        'ilike',
-        'notIlike',
-        'similarTo',
-        'notSimilarTo',
-        'includes',
-        'notIncludes',
-        'includesInsensitive',
-        'notIncludesInsensitive',
-        'startsWith',
-        'notStartsWith',
-        'startsWithInsensitive',
-        'notStartsWithInsensitive',
-        'endsWith',
-        'notEndsWith',
-        'endsWithInsensitive',
-        'notEndsWithInsensitive'
-      ],
-
-      // Support filtering for all field types - explicitly allow all types
-      connectionFilterAllowedFieldTypes: [
-        'String',
-        'Int',
-        'Float',
-        'Boolean',
-        'ID',
-        'Date',
-        'Time',
-        'Datetime',
-        'JSON',
-        'BigInt'
-      ],
-
       // Enable logical operators (and, or, not)
       connectionFilterLogicalOperators: true,
 

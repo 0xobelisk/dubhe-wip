@@ -17,8 +17,8 @@ type Query implements Node {
     nodeId: ID!
   ): Node
 
-  """Reads and enables pagination through a set of `StoreCounter0`."""
-  counter0s(
+  """Reads and enables pagination through a set of `StoreAssetAccount`."""
+  assetAccounts(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -37,22 +37,22 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreCounter0`."""
-    orderBy: [StoreCounter0sOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreAssetAccount`."""
+    orderBy: [StoreAssetAccountsOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreCounter0Condition
+    condition: StoreAssetAccountCondition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreCounter0Filter
-  ): StoreCounter0sConnection
+    filter: StoreAssetAccountFilter
+  ): StoreAssetAccountsConnection
 
-  """Reads and enables pagination through a set of `StoreCounter1`."""
-  counter1s(
+  """Reads and enables pagination through a set of `StoreAssetMetadatum`."""
+  assetMetadata(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -71,22 +71,22 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreCounter1`."""
-    orderBy: [StoreCounter1sOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreAssetMetadatum`."""
+    orderBy: [StoreAssetMetadataOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreCounter1Condition
+    condition: StoreAssetMetadatumCondition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreCounter1Filter
-  ): StoreCounter1sConnection
+    filter: StoreAssetMetadatumFilter
+  ): StoreAssetMetadataConnection
 
-  """Reads and enables pagination through a set of `StoreCounter2`."""
-  counter2s(
+  """Reads and enables pagination through a set of `StoreAssetPool`."""
+  assetPools(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -105,19 +105,155 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreCounter2`."""
-    orderBy: [StoreCounter2sOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreAssetPool`."""
+    orderBy: [StoreAssetPoolsOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreCounter2Condition
+    condition: StoreAssetPoolCondition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreCounter2Filter
-  ): StoreCounter2sConnection
+    filter: StoreAssetPoolFilter
+  ): StoreAssetPoolsConnection
+
+  """Reads and enables pagination through a set of `StoreBridgeConfig`."""
+  bridgeConfigs(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreBridgeConfig`."""
+    orderBy: [StoreBridgeConfigsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreBridgeConfigCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreBridgeConfigFilter
+  ): StoreBridgeConfigsConnection
+
+  """Reads and enables pagination through a set of `StoreBridgeDeposit`."""
+  bridgeDeposits(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreBridgeDeposit`."""
+    orderBy: [StoreBridgeDepositsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreBridgeDepositCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreBridgeDepositFilter
+  ): StoreBridgeDepositsConnection
+
+  """Reads and enables pagination through a set of `StoreBridgeWithdraw`."""
+  bridgeWithdraws(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreBridgeWithdraw`."""
+    orderBy: [StoreBridgeWithdrawsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreBridgeWithdrawCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreBridgeWithdrawFilter
+  ): StoreBridgeWithdrawsConnection
+
+  """Reads and enables pagination through a set of `StoreDappFeeConfig`."""
+  dappFeeConfigs(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreDappFeeConfig`."""
+    orderBy: [StoreDappFeeConfigsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreDappFeeConfigCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreDappFeeConfigFilter
+  ): StoreDappFeeConfigsConnection
 
   """Reads and enables pagination through a set of `StoreDappFeeState`."""
   dappFeeStates(
@@ -153,6 +289,210 @@ type Query implements Node {
     filter: StoreDappFeeStateFilter
   ): StoreDappFeeStatesConnection
 
+  """Reads and enables pagination through a set of `StoreDappMetadatum`."""
+  dappMetadata(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreDappMetadatum`."""
+    orderBy: [StoreDappMetadataOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreDappMetadatumCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreDappMetadatumFilter
+  ): StoreDappMetadataConnection
+
+  """Reads and enables pagination through a set of `StoreDappProxy`."""
+  dappProxies(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreDappProxy`."""
+    orderBy: [StoreDappProxiesOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreDappProxyCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreDappProxyFilter
+  ): StoreDappProxiesConnection
+
+  """Reads and enables pagination through a set of `StoreDubheAssetId`."""
+  dubheAssetIds(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreDubheAssetId`."""
+    orderBy: [StoreDubheAssetIdsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreDubheAssetIdCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreDubheAssetIdFilter
+  ): StoreDubheAssetIdsConnection
+
+  """Reads and enables pagination through a set of `StoreDubheConfig`."""
+  dubheConfigs(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreDubheConfig`."""
+    orderBy: [StoreDubheConfigsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreDubheConfigCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreDubheConfigFilter
+  ): StoreDubheConfigsConnection
+
+  """Reads and enables pagination through a set of `StoreSuiAssetId`."""
+  suiAssetIds(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreSuiAssetId`."""
+    orderBy: [StoreSuiAssetIdsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreSuiAssetIdCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreSuiAssetIdFilter
+  ): StoreSuiAssetIdsConnection
+
+  """Reads and enables pagination through a set of `StoreWrapperAsset`."""
+  wrapperAssets(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreWrapperAsset`."""
+    orderBy: [StoreWrapperAssetsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreWrapperAssetCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreWrapperAssetFilter
+  ): StoreWrapperAssetsConnection
+
   """Reads and enables pagination through a set of `TableField`."""
   tableFields(
     """Only read the first `n` values of the set."""
@@ -186,35 +526,77 @@ type Query implements Node {
     """
     filter: TableFieldFilter
   ): TableFieldsConnection
-  counter0(entityId: String!): StoreCounter0
-  counter1(entityId: String!): StoreCounter1
-  counter2(uniqueResourceId: Int!): StoreCounter2
+  assetAccount(assetId: String!, account: String!): StoreAssetAccount
+  assetMetadatum(assetId: String!): StoreAssetMetadatum
+  assetPool(asset0: String!, asset1: String!): StoreAssetPool
+  bridgeConfig(chain: String!): StoreBridgeConfig
+  bridgeDeposit(uniqueResourceId: Int!): StoreBridgeDeposit
+  bridgeWithdraw(uniqueResourceId: Int!): StoreBridgeWithdraw
+  dappFeeConfig(uniqueResourceId: Int!): StoreDappFeeConfig
   dappFeeState(dappKey: String!): StoreDappFeeState
+  dappMetadatum(dappKey: String!): StoreDappMetadatum
+  dappProxy(dappKey: String!): StoreDappProxy
+  dubheAssetId(uniqueResourceId: Int!): StoreDubheAssetId
+  dubheConfig(uniqueResourceId: Int!): StoreDubheConfig
+  suiAssetId(uniqueResourceId: Int!): StoreSuiAssetId
+  wrapperAsset(coinType: String!): StoreWrapperAsset
   tableField(tableName: String!, fieldName: String!): TableField
 
-  """Reads a single `StoreCounter0` using its globally unique `ID`."""
-  counter0ByNodeId(
+  """Reads a single `StoreAssetAccount` using its globally unique `ID`."""
+  assetAccountByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreCounter0`.
+    The globally unique `ID` to be used in selecting a single `StoreAssetAccount`.
     """
     nodeId: ID!
-  ): StoreCounter0
+  ): StoreAssetAccount
 
-  """Reads a single `StoreCounter1` using its globally unique `ID`."""
-  counter1ByNodeId(
+  """Reads a single `StoreAssetMetadatum` using its globally unique `ID`."""
+  assetMetadatumByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreCounter1`.
+    The globally unique `ID` to be used in selecting a single `StoreAssetMetadatum`.
     """
     nodeId: ID!
-  ): StoreCounter1
+  ): StoreAssetMetadatum
 
-  """Reads a single `StoreCounter2` using its globally unique `ID`."""
-  counter2ByNodeId(
+  """Reads a single `StoreAssetPool` using its globally unique `ID`."""
+  assetPoolByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreCounter2`.
+    The globally unique `ID` to be used in selecting a single `StoreAssetPool`.
     """
     nodeId: ID!
-  ): StoreCounter2
+  ): StoreAssetPool
+
+  """Reads a single `StoreBridgeConfig` using its globally unique `ID`."""
+  bridgeConfigByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreBridgeConfig`.
+    """
+    nodeId: ID!
+  ): StoreBridgeConfig
+
+  """Reads a single `StoreBridgeDeposit` using its globally unique `ID`."""
+  bridgeDepositByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreBridgeDeposit`.
+    """
+    nodeId: ID!
+  ): StoreBridgeDeposit
+
+  """Reads a single `StoreBridgeWithdraw` using its globally unique `ID`."""
+  bridgeWithdrawByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreBridgeWithdraw`.
+    """
+    nodeId: ID!
+  ): StoreBridgeWithdraw
+
+  """Reads a single `StoreDappFeeConfig` using its globally unique `ID`."""
+  dappFeeConfigByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreDappFeeConfig`.
+    """
+    nodeId: ID!
+  ): StoreDappFeeConfig
 
   """Reads a single `StoreDappFeeState` using its globally unique `ID`."""
   dappFeeStateByNodeId(
@@ -223,6 +605,54 @@ type Query implements Node {
     """
     nodeId: ID!
   ): StoreDappFeeState
+
+  """Reads a single `StoreDappMetadatum` using its globally unique `ID`."""
+  dappMetadatumByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreDappMetadatum`.
+    """
+    nodeId: ID!
+  ): StoreDappMetadatum
+
+  """Reads a single `StoreDappProxy` using its globally unique `ID`."""
+  dappProxyByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreDappProxy`.
+    """
+    nodeId: ID!
+  ): StoreDappProxy
+
+  """Reads a single `StoreDubheAssetId` using its globally unique `ID`."""
+  dubheAssetIdByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreDubheAssetId`.
+    """
+    nodeId: ID!
+  ): StoreDubheAssetId
+
+  """Reads a single `StoreDubheConfig` using its globally unique `ID`."""
+  dubheConfigByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreDubheConfig`.
+    """
+    nodeId: ID!
+  ): StoreDubheConfig
+
+  """Reads a single `StoreSuiAssetId` using its globally unique `ID`."""
+  suiAssetIdByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreSuiAssetId`.
+    """
+    nodeId: ID!
+  ): StoreSuiAssetId
+
+  """Reads a single `StoreWrapperAsset` using its globally unique `ID`."""
+  wrapperAssetByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreWrapperAsset`.
+    """
+    nodeId: ID!
+  ): StoreWrapperAsset
 
   """Reads a single `TableField` using its globally unique `ID`."""
   tableFieldByNodeId(
@@ -250,29 +680,34 @@ interface Node {
   nodeId: ID!
 }
 
-"""A connection to a list of `StoreCounter0` values."""
-type StoreCounter0sConnection {
-  """A list of `StoreCounter0` objects."""
-  nodes: [StoreCounter0!]!
+"""A connection to a list of `StoreAssetAccount` values."""
+type StoreAssetAccountsConnection {
+  """A list of `StoreAssetAccount` objects."""
+  nodes: [StoreAssetAccount!]!
 
   """
-  A list of edges which contains the `StoreCounter0` and cursor to aid in pagination.
+  A list of edges which contains the `StoreAssetAccount` and cursor to aid in pagination.
   """
-  edges: [StoreCounter0sEdge!]!
+  edges: [StoreAssetAccountsEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreCounter0` you could get from the connection."""
+  """
+  The count of *all* `StoreAssetAccount` you could get from the connection.
+  """
   totalCount: Int!
 }
 
-type StoreCounter0 implements Node {
+type StoreAssetAccount implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
-  entityId: String!
+  assetId: String!
+  account: String!
+  balance: String
+  status: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
   isDeleted: Boolean
@@ -285,13 +720,13 @@ strings and not numbers.
 """
 scalar BigInt
 
-"""A `StoreCounter0` edge in the connection."""
-type StoreCounter0sEdge {
+"""A `StoreAssetAccount` edge in the connection."""
+type StoreAssetAccountsEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreCounter0` at the end of the edge."""
-  node: StoreCounter0!
+  """The `StoreAssetAccount` at the end of the edge."""
+  node: StoreAssetAccount!
 }
 
 """A location in a connection that can be used for resuming pagination."""
@@ -312,11 +747,17 @@ type PageInfo {
   endCursor: Cursor
 }
 
-"""Methods to use when ordering `StoreCounter0`."""
-enum StoreCounter0sOrderBy {
+"""Methods to use when ordering `StoreAssetAccount`."""
+enum StoreAssetAccountsOrderBy {
   NATURAL
-  ENTITY_ID_ASC
-  ENTITY_ID_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  ACCOUNT_ASC
+  ACCOUNT_DESC
+  BALANCE_ASC
+  BALANCE_DESC
+  STATUS_ASC
+  STATUS_DESC
   CREATED_AT_TIMESTAMP_MS_ASC
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
@@ -328,12 +769,21 @@ enum StoreCounter0sOrderBy {
 }
 
 """
-A condition to be used against `StoreCounter0` object types. All fields are
+A condition to be used against `StoreAssetAccount` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StoreCounter0Condition {
-  """Checks for equality with the object’s `entityId` field."""
-  entityId: String
+input StoreAssetAccountCondition {
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
+
+  """Checks for equality with the object’s `account` field."""
+  account: String
+
+  """Checks for equality with the object’s `balance` field."""
+  balance: String
+
+  """Checks for equality with the object’s `status` field."""
+  status: String
 
   """Checks for equality with the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigInt
@@ -346,11 +796,20 @@ input StoreCounter0Condition {
 }
 
 """
-A filter to be used against `StoreCounter0` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreAssetAccount` object types. All fields are combined with a logical ‘and.’
 """
-input StoreCounter0Filter {
-  """Filter by the object’s `entityId` field."""
-  entityId: StringFilter
+input StoreAssetAccountFilter {
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
+
+  """Filter by the object’s `account` field."""
+  account: StringFilter
+
+  """Filter by the object’s `balance` field."""
+  balance: StringFilter
+
+  """Filter by the object’s `status` field."""
+  status: StringFilter
 
   """Filter by the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigIntFilter
@@ -362,13 +821,13 @@ input StoreCounter0Filter {
   isDeleted: BooleanFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreCounter0Filter!]
+  and: [StoreAssetAccountFilter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreCounter0Filter!]
+  or: [StoreAssetAccountFilter!]
 
   """Negates the expression."""
-  not: StoreCounter0Filter
+  not: StoreAssetAccountFilter
 }
 
 """
@@ -457,6 +916,50 @@ input StringFilter {
   Does not match the specified pattern (case-sensitive). An underscore (_) matches any single character; a percent sign (%) matches any sequence of zero or more characters.
   """
   notLike: String
+
+  """
+  Matches the specified pattern (case-insensitive). An underscore (_) matches any single character; a percent sign (%) matches any sequence of zero or more characters.
+  """
+  likeInsensitive: String
+
+  """
+  Does not match the specified pattern (case-insensitive). An underscore (_) matches any single character; a percent sign (%) matches any sequence of zero or more characters.
+  """
+  notLikeInsensitive: String
+
+  """Equal to the specified value (case-insensitive)."""
+  equalToInsensitive: String
+
+  """Not equal to the specified value (case-insensitive)."""
+  notEqualToInsensitive: String
+
+  """
+  Not equal to the specified value, treating null like an ordinary value (case-insensitive).
+  """
+  distinctFromInsensitive: String
+
+  """
+  Equal to the specified value, treating null like an ordinary value (case-insensitive).
+  """
+  notDistinctFromInsensitive: String
+
+  """Included in the specified list (case-insensitive)."""
+  inInsensitive: [String!]
+
+  """Not included in the specified list (case-insensitive)."""
+  notInInsensitive: [String!]
+
+  """Less than the specified value (case-insensitive)."""
+  lessThanInsensitive: String
+
+  """Less than or equal to the specified value (case-insensitive)."""
+  lessThanOrEqualToInsensitive: String
+
+  """Greater than the specified value (case-insensitive)."""
+  greaterThanInsensitive: String
+
+  """Greater than or equal to the specified value (case-insensitive)."""
+  greaterThanOrEqualToInsensitive: String
 }
 
 """
@@ -543,51 +1046,89 @@ input BooleanFilter {
   greaterThanOrEqualTo: Boolean
 }
 
-"""A connection to a list of `StoreCounter1` values."""
-type StoreCounter1sConnection {
-  """A list of `StoreCounter1` objects."""
-  nodes: [StoreCounter1!]!
+"""A connection to a list of `StoreAssetMetadatum` values."""
+type StoreAssetMetadataConnection {
+  """A list of `StoreAssetMetadatum` objects."""
+  nodes: [StoreAssetMetadatum!]!
 
   """
-  A list of edges which contains the `StoreCounter1` and cursor to aid in pagination.
+  A list of edges which contains the `StoreAssetMetadatum` and cursor to aid in pagination.
   """
-  edges: [StoreCounter1sEdge!]!
+  edges: [StoreAssetMetadataEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreCounter1` you could get from the connection."""
+  """
+  The count of *all* `StoreAssetMetadatum` you could get from the connection.
+  """
   totalCount: Int!
 }
 
-type StoreCounter1 implements Node {
+type StoreAssetMetadatum implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
-  entityId: String!
-  value: Int
+  assetId: String!
+  name: String
+  symbol: String
+  description: String
+  decimals: Int
+  iconUrl: String
+  owner: String
+  supply: String
+  accounts: String
+  status: String
+  isMintable: Boolean
+  isBurnable: Boolean
+  isFreezable: Boolean
+  assetType: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
   isDeleted: Boolean
 }
 
-"""A `StoreCounter1` edge in the connection."""
-type StoreCounter1sEdge {
+"""A `StoreAssetMetadatum` edge in the connection."""
+type StoreAssetMetadataEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreCounter1` at the end of the edge."""
-  node: StoreCounter1!
+  """The `StoreAssetMetadatum` at the end of the edge."""
+  node: StoreAssetMetadatum!
 }
 
-"""Methods to use when ordering `StoreCounter1`."""
-enum StoreCounter1sOrderBy {
+"""Methods to use when ordering `StoreAssetMetadatum`."""
+enum StoreAssetMetadataOrderBy {
   NATURAL
-  ENTITY_ID_ASC
-  ENTITY_ID_DESC
-  VALUE_ASC
-  VALUE_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  NAME_ASC
+  NAME_DESC
+  SYMBOL_ASC
+  SYMBOL_DESC
+  DESCRIPTION_ASC
+  DESCRIPTION_DESC
+  DECIMALS_ASC
+  DECIMALS_DESC
+  ICON_URL_ASC
+  ICON_URL_DESC
+  OWNER_ASC
+  OWNER_DESC
+  SUPPLY_ASC
+  SUPPLY_DESC
+  ACCOUNTS_ASC
+  ACCOUNTS_DESC
+  STATUS_ASC
+  STATUS_DESC
+  IS_MINTABLE_ASC
+  IS_MINTABLE_DESC
+  IS_BURNABLE_ASC
+  IS_BURNABLE_DESC
+  IS_FREEZABLE_ASC
+  IS_FREEZABLE_DESC
+  ASSET_TYPE_ASC
+  ASSET_TYPE_DESC
   CREATED_AT_TIMESTAMP_MS_ASC
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
@@ -599,15 +1140,51 @@ enum StoreCounter1sOrderBy {
 }
 
 """
-A condition to be used against `StoreCounter1` object types. All fields are
-tested for equality and combined with a logical ‘and.’
+A condition to be used against `StoreAssetMetadatum` object types. All fields
+are tested for equality and combined with a logical ‘and.’
 """
-input StoreCounter1Condition {
-  """Checks for equality with the object’s `entityId` field."""
-  entityId: String
+input StoreAssetMetadatumCondition {
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
 
-  """Checks for equality with the object’s `value` field."""
-  value: Int
+  """Checks for equality with the object’s `name` field."""
+  name: String
+
+  """Checks for equality with the object’s `symbol` field."""
+  symbol: String
+
+  """Checks for equality with the object’s `description` field."""
+  description: String
+
+  """Checks for equality with the object’s `decimals` field."""
+  decimals: Int
+
+  """Checks for equality with the object’s `iconUrl` field."""
+  iconUrl: String
+
+  """Checks for equality with the object’s `owner` field."""
+  owner: String
+
+  """Checks for equality with the object’s `supply` field."""
+  supply: String
+
+  """Checks for equality with the object’s `accounts` field."""
+  accounts: String
+
+  """Checks for equality with the object’s `status` field."""
+  status: String
+
+  """Checks for equality with the object’s `isMintable` field."""
+  isMintable: Boolean
+
+  """Checks for equality with the object’s `isBurnable` field."""
+  isBurnable: Boolean
+
+  """Checks for equality with the object’s `isFreezable` field."""
+  isFreezable: Boolean
+
+  """Checks for equality with the object’s `assetType` field."""
+  assetType: String
 
   """Checks for equality with the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigInt
@@ -620,14 +1197,50 @@ input StoreCounter1Condition {
 }
 
 """
-A filter to be used against `StoreCounter1` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreAssetMetadatum` object types. All fields are combined with a logical ‘and.’
 """
-input StoreCounter1Filter {
-  """Filter by the object’s `entityId` field."""
-  entityId: StringFilter
+input StoreAssetMetadatumFilter {
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
 
-  """Filter by the object’s `value` field."""
-  value: IntFilter
+  """Filter by the object’s `name` field."""
+  name: StringFilter
+
+  """Filter by the object’s `symbol` field."""
+  symbol: StringFilter
+
+  """Filter by the object’s `description` field."""
+  description: StringFilter
+
+  """Filter by the object’s `decimals` field."""
+  decimals: IntFilter
+
+  """Filter by the object’s `iconUrl` field."""
+  iconUrl: StringFilter
+
+  """Filter by the object’s `owner` field."""
+  owner: StringFilter
+
+  """Filter by the object’s `supply` field."""
+  supply: StringFilter
+
+  """Filter by the object’s `accounts` field."""
+  accounts: StringFilter
+
+  """Filter by the object’s `status` field."""
+  status: StringFilter
+
+  """Filter by the object’s `isMintable` field."""
+  isMintable: BooleanFilter
+
+  """Filter by the object’s `isBurnable` field."""
+  isBurnable: BooleanFilter
+
+  """Filter by the object’s `isFreezable` field."""
+  isFreezable: BooleanFilter
+
+  """Filter by the object’s `assetType` field."""
+  assetType: StringFilter
 
   """Filter by the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigIntFilter
@@ -639,13 +1252,13 @@ input StoreCounter1Filter {
   isDeleted: BooleanFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreCounter1Filter!]
+  and: [StoreAssetMetadatumFilter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreCounter1Filter!]
+  or: [StoreAssetMetadatumFilter!]
 
   """Negates the expression."""
-  not: StoreCounter1Filter
+  not: StoreAssetMetadatumFilter
 }
 
 """
@@ -690,51 +1303,66 @@ input IntFilter {
   greaterThanOrEqualTo: Int
 }
 
-"""A connection to a list of `StoreCounter2` values."""
-type StoreCounter2sConnection {
-  """A list of `StoreCounter2` objects."""
-  nodes: [StoreCounter2!]!
+"""A connection to a list of `StoreAssetPool` values."""
+type StoreAssetPoolsConnection {
+  """A list of `StoreAssetPool` objects."""
+  nodes: [StoreAssetPool!]!
 
   """
-  A list of edges which contains the `StoreCounter2` and cursor to aid in pagination.
+  A list of edges which contains the `StoreAssetPool` and cursor to aid in pagination.
   """
-  edges: [StoreCounter2sEdge!]!
+  edges: [StoreAssetPoolsEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
-  """The count of *all* `StoreCounter2` you could get from the connection."""
+  """The count of *all* `StoreAssetPool` you could get from the connection."""
   totalCount: Int!
 }
 
-type StoreCounter2 implements Node {
+type StoreAssetPool implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
-  uniqueResourceId: Int!
-  value: Int
+  asset0: String!
+  asset1: String!
+  poolAddress: String
+  lpAsset: String
+  reserve0: String
+  reserve1: String
+  kLast: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
   isDeleted: Boolean
 }
 
-"""A `StoreCounter2` edge in the connection."""
-type StoreCounter2sEdge {
+"""A `StoreAssetPool` edge in the connection."""
+type StoreAssetPoolsEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreCounter2` at the end of the edge."""
-  node: StoreCounter2!
+  """The `StoreAssetPool` at the end of the edge."""
+  node: StoreAssetPool!
 }
 
-"""Methods to use when ordering `StoreCounter2`."""
-enum StoreCounter2sOrderBy {
+"""Methods to use when ordering `StoreAssetPool`."""
+enum StoreAssetPoolsOrderBy {
   NATURAL
-  UNIQUE_RESOURCE_ID_ASC
-  UNIQUE_RESOURCE_ID_DESC
-  VALUE_ASC
-  VALUE_DESC
+  ASSET0_ASC
+  ASSET0_DESC
+  ASSET1_ASC
+  ASSET1_DESC
+  POOL_ADDRESS_ASC
+  POOL_ADDRESS_DESC
+  LP_ASSET_ASC
+  LP_ASSET_DESC
+  RESERVE0_ASC
+  RESERVE0_DESC
+  RESERVE1_ASC
+  RESERVE1_DESC
+  K_LAST_ASC
+  K_LAST_DESC
   CREATED_AT_TIMESTAMP_MS_ASC
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
@@ -746,15 +1374,30 @@ enum StoreCounter2sOrderBy {
 }
 
 """
-A condition to be used against `StoreCounter2` object types. All fields are
+A condition to be used against `StoreAssetPool` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StoreCounter2Condition {
-  """Checks for equality with the object’s `uniqueResourceId` field."""
-  uniqueResourceId: Int
+input StoreAssetPoolCondition {
+  """Checks for equality with the object’s `asset0` field."""
+  asset0: String
 
-  """Checks for equality with the object’s `value` field."""
-  value: Int
+  """Checks for equality with the object’s `asset1` field."""
+  asset1: String
+
+  """Checks for equality with the object’s `poolAddress` field."""
+  poolAddress: String
+
+  """Checks for equality with the object’s `lpAsset` field."""
+  lpAsset: String
+
+  """Checks for equality with the object’s `reserve0` field."""
+  reserve0: String
+
+  """Checks for equality with the object’s `reserve1` field."""
+  reserve1: String
+
+  """Checks for equality with the object’s `kLast` field."""
+  kLast: String
 
   """Checks for equality with the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigInt
@@ -767,14 +1410,29 @@ input StoreCounter2Condition {
 }
 
 """
-A filter to be used against `StoreCounter2` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreAssetPool` object types. All fields are combined with a logical ‘and.’
 """
-input StoreCounter2Filter {
-  """Filter by the object’s `uniqueResourceId` field."""
-  uniqueResourceId: IntFilter
+input StoreAssetPoolFilter {
+  """Filter by the object’s `asset0` field."""
+  asset0: StringFilter
 
-  """Filter by the object’s `value` field."""
-  value: IntFilter
+  """Filter by the object’s `asset1` field."""
+  asset1: StringFilter
+
+  """Filter by the object’s `poolAddress` field."""
+  poolAddress: StringFilter
+
+  """Filter by the object’s `lpAsset` field."""
+  lpAsset: StringFilter
+
+  """Filter by the object’s `reserve0` field."""
+  reserve0: StringFilter
+
+  """Filter by the object’s `reserve1` field."""
+  reserve1: StringFilter
+
+  """Filter by the object’s `kLast` field."""
+  kLast: StringFilter
 
   """Filter by the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigIntFilter
@@ -786,13 +1444,540 @@ input StoreCounter2Filter {
   isDeleted: BooleanFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreCounter2Filter!]
+  and: [StoreAssetPoolFilter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreCounter2Filter!]
+  or: [StoreAssetPoolFilter!]
 
   """Negates the expression."""
-  not: StoreCounter2Filter
+  not: StoreAssetPoolFilter
+}
+
+"""A connection to a list of `StoreBridgeConfig` values."""
+type StoreBridgeConfigsConnection {
+  """A list of `StoreBridgeConfig` objects."""
+  nodes: [StoreBridgeConfig!]!
+
+  """
+  A list of edges which contains the `StoreBridgeConfig` and cursor to aid in pagination.
+  """
+  edges: [StoreBridgeConfigsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreBridgeConfig` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreBridgeConfig implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  chain: String!
+  minAmount: String
+  fee: String
+  opened: Boolean
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreBridgeConfig` edge in the connection."""
+type StoreBridgeConfigsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreBridgeConfig` at the end of the edge."""
+  node: StoreBridgeConfig!
+}
+
+"""Methods to use when ordering `StoreBridgeConfig`."""
+enum StoreBridgeConfigsOrderBy {
+  NATURAL
+  CHAIN_ASC
+  CHAIN_DESC
+  MIN_AMOUNT_ASC
+  MIN_AMOUNT_DESC
+  FEE_ASC
+  FEE_DESC
+  OPENED_ASC
+  OPENED_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreBridgeConfig` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreBridgeConfigCondition {
+  """Checks for equality with the object’s `chain` field."""
+  chain: String
+
+  """Checks for equality with the object’s `minAmount` field."""
+  minAmount: String
+
+  """Checks for equality with the object’s `fee` field."""
+  fee: String
+
+  """Checks for equality with the object’s `opened` field."""
+  opened: Boolean
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreBridgeConfig` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreBridgeConfigFilter {
+  """Filter by the object’s `chain` field."""
+  chain: StringFilter
+
+  """Filter by the object’s `minAmount` field."""
+  minAmount: StringFilter
+
+  """Filter by the object’s `fee` field."""
+  fee: StringFilter
+
+  """Filter by the object’s `opened` field."""
+  opened: BooleanFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreBridgeConfigFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreBridgeConfigFilter!]
+
+  """Negates the expression."""
+  not: StoreBridgeConfigFilter
+}
+
+"""A connection to a list of `StoreBridgeDeposit` values."""
+type StoreBridgeDepositsConnection {
+  """A list of `StoreBridgeDeposit` objects."""
+  nodes: [StoreBridgeDeposit!]!
+
+  """
+  A list of edges which contains the `StoreBridgeDeposit` and cursor to aid in pagination.
+  """
+  edges: [StoreBridgeDepositsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreBridgeDeposit` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreBridgeDeposit implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  uniqueResourceId: Int!
+  from: String
+  to: String
+  fromChain: String
+  amount: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreBridgeDeposit` edge in the connection."""
+type StoreBridgeDepositsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreBridgeDeposit` at the end of the edge."""
+  node: StoreBridgeDeposit!
+}
+
+"""Methods to use when ordering `StoreBridgeDeposit`."""
+enum StoreBridgeDepositsOrderBy {
+  NATURAL
+  UNIQUE_RESOURCE_ID_ASC
+  UNIQUE_RESOURCE_ID_DESC
+  FROM_ASC
+  FROM_DESC
+  TO_ASC
+  TO_DESC
+  FROM_CHAIN_ASC
+  FROM_CHAIN_DESC
+  AMOUNT_ASC
+  AMOUNT_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreBridgeDeposit` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreBridgeDepositCondition {
+  """Checks for equality with the object’s `uniqueResourceId` field."""
+  uniqueResourceId: Int
+
+  """Checks for equality with the object’s `from` field."""
+  from: String
+
+  """Checks for equality with the object’s `to` field."""
+  to: String
+
+  """Checks for equality with the object’s `fromChain` field."""
+  fromChain: String
+
+  """Checks for equality with the object’s `amount` field."""
+  amount: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreBridgeDeposit` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreBridgeDepositFilter {
+  """Filter by the object’s `uniqueResourceId` field."""
+  uniqueResourceId: IntFilter
+
+  """Filter by the object’s `from` field."""
+  from: StringFilter
+
+  """Filter by the object’s `to` field."""
+  to: StringFilter
+
+  """Filter by the object’s `fromChain` field."""
+  fromChain: StringFilter
+
+  """Filter by the object’s `amount` field."""
+  amount: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreBridgeDepositFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreBridgeDepositFilter!]
+
+  """Negates the expression."""
+  not: StoreBridgeDepositFilter
+}
+
+"""A connection to a list of `StoreBridgeWithdraw` values."""
+type StoreBridgeWithdrawsConnection {
+  """A list of `StoreBridgeWithdraw` objects."""
+  nodes: [StoreBridgeWithdraw!]!
+
+  """
+  A list of edges which contains the `StoreBridgeWithdraw` and cursor to aid in pagination.
+  """
+  edges: [StoreBridgeWithdrawsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreBridgeWithdraw` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreBridgeWithdraw implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  uniqueResourceId: Int!
+  from: String
+  to: String
+  toChain: String
+  amount: String
+  fee: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreBridgeWithdraw` edge in the connection."""
+type StoreBridgeWithdrawsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreBridgeWithdraw` at the end of the edge."""
+  node: StoreBridgeWithdraw!
+}
+
+"""Methods to use when ordering `StoreBridgeWithdraw`."""
+enum StoreBridgeWithdrawsOrderBy {
+  NATURAL
+  UNIQUE_RESOURCE_ID_ASC
+  UNIQUE_RESOURCE_ID_DESC
+  FROM_ASC
+  FROM_DESC
+  TO_ASC
+  TO_DESC
+  TO_CHAIN_ASC
+  TO_CHAIN_DESC
+  AMOUNT_ASC
+  AMOUNT_DESC
+  FEE_ASC
+  FEE_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreBridgeWithdraw` object types. All fields
+are tested for equality and combined with a logical ‘and.’
+"""
+input StoreBridgeWithdrawCondition {
+  """Checks for equality with the object’s `uniqueResourceId` field."""
+  uniqueResourceId: Int
+
+  """Checks for equality with the object’s `from` field."""
+  from: String
+
+  """Checks for equality with the object’s `to` field."""
+  to: String
+
+  """Checks for equality with the object’s `toChain` field."""
+  toChain: String
+
+  """Checks for equality with the object’s `amount` field."""
+  amount: String
+
+  """Checks for equality with the object’s `fee` field."""
+  fee: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreBridgeWithdraw` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreBridgeWithdrawFilter {
+  """Filter by the object’s `uniqueResourceId` field."""
+  uniqueResourceId: IntFilter
+
+  """Filter by the object’s `from` field."""
+  from: StringFilter
+
+  """Filter by the object’s `to` field."""
+  to: StringFilter
+
+  """Filter by the object’s `toChain` field."""
+  toChain: StringFilter
+
+  """Filter by the object’s `amount` field."""
+  amount: StringFilter
+
+  """Filter by the object’s `fee` field."""
+  fee: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreBridgeWithdrawFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreBridgeWithdrawFilter!]
+
+  """Negates the expression."""
+  not: StoreBridgeWithdrawFilter
+}
+
+"""A connection to a list of `StoreDappFeeConfig` values."""
+type StoreDappFeeConfigsConnection {
+  """A list of `StoreDappFeeConfig` objects."""
+  nodes: [StoreDappFeeConfig!]!
+
+  """
+  A list of edges which contains the `StoreDappFeeConfig` and cursor to aid in pagination.
+  """
+  edges: [StoreDappFeeConfigsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreDappFeeConfig` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreDappFeeConfig implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  uniqueResourceId: Int!
+  freeCredit: String
+  baseFee: String
+  byteFee: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreDappFeeConfig` edge in the connection."""
+type StoreDappFeeConfigsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreDappFeeConfig` at the end of the edge."""
+  node: StoreDappFeeConfig!
+}
+
+"""Methods to use when ordering `StoreDappFeeConfig`."""
+enum StoreDappFeeConfigsOrderBy {
+  NATURAL
+  UNIQUE_RESOURCE_ID_ASC
+  UNIQUE_RESOURCE_ID_DESC
+  FREE_CREDIT_ASC
+  FREE_CREDIT_DESC
+  BASE_FEE_ASC
+  BASE_FEE_DESC
+  BYTE_FEE_ASC
+  BYTE_FEE_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreDappFeeConfig` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreDappFeeConfigCondition {
+  """Checks for equality with the object’s `uniqueResourceId` field."""
+  uniqueResourceId: Int
+
+  """Checks for equality with the object’s `freeCredit` field."""
+  freeCredit: String
+
+  """Checks for equality with the object’s `baseFee` field."""
+  baseFee: String
+
+  """Checks for equality with the object’s `byteFee` field."""
+  byteFee: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreDappFeeConfig` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreDappFeeConfigFilter {
+  """Filter by the object’s `uniqueResourceId` field."""
+  uniqueResourceId: IntFilter
+
+  """Filter by the object’s `freeCredit` field."""
+  freeCredit: StringFilter
+
+  """Filter by the object’s `baseFee` field."""
+  baseFee: StringFilter
+
+  """Filter by the object’s `byteFee` field."""
+  byteFee: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreDappFeeConfigFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreDappFeeConfigFilter!]
+
+  """Negates the expression."""
+  not: StoreDappFeeConfigFilter
 }
 
 """A connection to a list of `StoreDappFeeState` values."""
@@ -945,6 +2130,835 @@ input StoreDappFeeStateFilter {
 
   """Negates the expression."""
   not: StoreDappFeeStateFilter
+}
+
+"""A connection to a list of `StoreDappMetadatum` values."""
+type StoreDappMetadataConnection {
+  """A list of `StoreDappMetadatum` objects."""
+  nodes: [StoreDappMetadatum!]!
+
+  """
+  A list of edges which contains the `StoreDappMetadatum` and cursor to aid in pagination.
+  """
+  edges: [StoreDappMetadataEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreDappMetadatum` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreDappMetadatum implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  dappKey: String!
+  name: String
+  description: String
+  websiteUrl: String
+  coverUrl: [String]
+  partners: [String]
+  packageIds: [String]
+  createdAt: BigInt
+  admin: String
+  version: Int
+  pausable: Boolean
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreDappMetadatum` edge in the connection."""
+type StoreDappMetadataEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreDappMetadatum` at the end of the edge."""
+  node: StoreDappMetadatum!
+}
+
+"""Methods to use when ordering `StoreDappMetadatum`."""
+enum StoreDappMetadataOrderBy {
+  NATURAL
+  DAPP_KEY_ASC
+  DAPP_KEY_DESC
+  NAME_ASC
+  NAME_DESC
+  DESCRIPTION_ASC
+  DESCRIPTION_DESC
+  WEBSITE_URL_ASC
+  WEBSITE_URL_DESC
+  COVER_URL_ASC
+  COVER_URL_DESC
+  PARTNERS_ASC
+  PARTNERS_DESC
+  PACKAGE_IDS_ASC
+  PACKAGE_IDS_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  ADMIN_ASC
+  ADMIN_DESC
+  VERSION_ASC
+  VERSION_DESC
+  PAUSABLE_ASC
+  PAUSABLE_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreDappMetadatum` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreDappMetadatumCondition {
+  """Checks for equality with the object’s `dappKey` field."""
+  dappKey: String
+
+  """Checks for equality with the object’s `name` field."""
+  name: String
+
+  """Checks for equality with the object’s `description` field."""
+  description: String
+
+  """Checks for equality with the object’s `websiteUrl` field."""
+  websiteUrl: String
+
+  """Checks for equality with the object’s `coverUrl` field."""
+  coverUrl: [String]
+
+  """Checks for equality with the object’s `partners` field."""
+  partners: [String]
+
+  """Checks for equality with the object’s `packageIds` field."""
+  packageIds: [String]
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: BigInt
+
+  """Checks for equality with the object’s `admin` field."""
+  admin: String
+
+  """Checks for equality with the object’s `version` field."""
+  version: Int
+
+  """Checks for equality with the object’s `pausable` field."""
+  pausable: Boolean
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreDappMetadatum` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreDappMetadatumFilter {
+  """Filter by the object’s `dappKey` field."""
+  dappKey: StringFilter
+
+  """Filter by the object’s `name` field."""
+  name: StringFilter
+
+  """Filter by the object’s `description` field."""
+  description: StringFilter
+
+  """Filter by the object’s `websiteUrl` field."""
+  websiteUrl: StringFilter
+
+  """Filter by the object’s `coverUrl` field."""
+  coverUrl: StringListFilter
+
+  """Filter by the object’s `partners` field."""
+  partners: StringListFilter
+
+  """Filter by the object’s `packageIds` field."""
+  packageIds: StringListFilter
+
+  """Filter by the object’s `createdAt` field."""
+  createdAt: BigIntFilter
+
+  """Filter by the object’s `admin` field."""
+  admin: StringFilter
+
+  """Filter by the object’s `version` field."""
+  version: IntFilter
+
+  """Filter by the object’s `pausable` field."""
+  pausable: BooleanFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreDappMetadatumFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreDappMetadatumFilter!]
+
+  """Negates the expression."""
+  not: StoreDappMetadatumFilter
+}
+
+"""
+A filter to be used against String List fields. All fields are combined with a logical ‘and.’
+"""
+input StringListFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: [String]
+
+  """Not equal to the specified value."""
+  notEqualTo: [String]
+
+  """
+  Not equal to the specified value, treating null like an ordinary value.
+  """
+  distinctFrom: [String]
+
+  """Equal to the specified value, treating null like an ordinary value."""
+  notDistinctFrom: [String]
+
+  """Less than the specified value."""
+  lessThan: [String]
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: [String]
+
+  """Greater than the specified value."""
+  greaterThan: [String]
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: [String]
+
+  """Contains the specified list of values."""
+  contains: [String]
+
+  """Contained by the specified list of values."""
+  containedBy: [String]
+
+  """Overlaps the specified list of values."""
+  overlaps: [String]
+
+  """Any array item is equal to the specified value."""
+  anyEqualTo: String
+
+  """Any array item is not equal to the specified value."""
+  anyNotEqualTo: String
+
+  """Any array item is less than the specified value."""
+  anyLessThan: String
+
+  """Any array item is less than or equal to the specified value."""
+  anyLessThanOrEqualTo: String
+
+  """Any array item is greater than the specified value."""
+  anyGreaterThan: String
+
+  """Any array item is greater than or equal to the specified value."""
+  anyGreaterThanOrEqualTo: String
+}
+
+"""A connection to a list of `StoreDappProxy` values."""
+type StoreDappProxiesConnection {
+  """A list of `StoreDappProxy` objects."""
+  nodes: [StoreDappProxy!]!
+
+  """
+  A list of edges which contains the `StoreDappProxy` and cursor to aid in pagination.
+  """
+  edges: [StoreDappProxiesEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `StoreDappProxy` you could get from the connection."""
+  totalCount: Int!
+}
+
+type StoreDappProxy implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  dappKey: String!
+  delegator: String
+  enabled: Boolean
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreDappProxy` edge in the connection."""
+type StoreDappProxiesEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreDappProxy` at the end of the edge."""
+  node: StoreDappProxy!
+}
+
+"""Methods to use when ordering `StoreDappProxy`."""
+enum StoreDappProxiesOrderBy {
+  NATURAL
+  DAPP_KEY_ASC
+  DAPP_KEY_DESC
+  DELEGATOR_ASC
+  DELEGATOR_DESC
+  ENABLED_ASC
+  ENABLED_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreDappProxy` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreDappProxyCondition {
+  """Checks for equality with the object’s `dappKey` field."""
+  dappKey: String
+
+  """Checks for equality with the object’s `delegator` field."""
+  delegator: String
+
+  """Checks for equality with the object’s `enabled` field."""
+  enabled: Boolean
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreDappProxy` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreDappProxyFilter {
+  """Filter by the object’s `dappKey` field."""
+  dappKey: StringFilter
+
+  """Filter by the object’s `delegator` field."""
+  delegator: StringFilter
+
+  """Filter by the object’s `enabled` field."""
+  enabled: BooleanFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreDappProxyFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreDappProxyFilter!]
+
+  """Negates the expression."""
+  not: StoreDappProxyFilter
+}
+
+"""A connection to a list of `StoreDubheAssetId` values."""
+type StoreDubheAssetIdsConnection {
+  """A list of `StoreDubheAssetId` objects."""
+  nodes: [StoreDubheAssetId!]!
+
+  """
+  A list of edges which contains the `StoreDubheAssetId` and cursor to aid in pagination.
+  """
+  edges: [StoreDubheAssetIdsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreDubheAssetId` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreDubheAssetId implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  uniqueResourceId: Int!
+  value: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreDubheAssetId` edge in the connection."""
+type StoreDubheAssetIdsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreDubheAssetId` at the end of the edge."""
+  node: StoreDubheAssetId!
+}
+
+"""Methods to use when ordering `StoreDubheAssetId`."""
+enum StoreDubheAssetIdsOrderBy {
+  NATURAL
+  UNIQUE_RESOURCE_ID_ASC
+  UNIQUE_RESOURCE_ID_DESC
+  VALUE_ASC
+  VALUE_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreDubheAssetId` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreDubheAssetIdCondition {
+  """Checks for equality with the object’s `uniqueResourceId` field."""
+  uniqueResourceId: Int
+
+  """Checks for equality with the object’s `value` field."""
+  value: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreDubheAssetId` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreDubheAssetIdFilter {
+  """Filter by the object’s `uniqueResourceId` field."""
+  uniqueResourceId: IntFilter
+
+  """Filter by the object’s `value` field."""
+  value: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreDubheAssetIdFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreDubheAssetIdFilter!]
+
+  """Negates the expression."""
+  not: StoreDubheAssetIdFilter
+}
+
+"""A connection to a list of `StoreDubheConfig` values."""
+type StoreDubheConfigsConnection {
+  """A list of `StoreDubheConfig` objects."""
+  nodes: [StoreDubheConfig!]!
+
+  """
+  A list of edges which contains the `StoreDubheConfig` and cursor to aid in pagination.
+  """
+  edges: [StoreDubheConfigsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreDubheConfig` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreDubheConfig implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  uniqueResourceId: Int!
+  nextAssetId: String
+  swapFee: String
+  feeTo: String
+  maxSwapPathLen: BigInt
+  admin: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreDubheConfig` edge in the connection."""
+type StoreDubheConfigsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreDubheConfig` at the end of the edge."""
+  node: StoreDubheConfig!
+}
+
+"""Methods to use when ordering `StoreDubheConfig`."""
+enum StoreDubheConfigsOrderBy {
+  NATURAL
+  UNIQUE_RESOURCE_ID_ASC
+  UNIQUE_RESOURCE_ID_DESC
+  NEXT_ASSET_ID_ASC
+  NEXT_ASSET_ID_DESC
+  SWAP_FEE_ASC
+  SWAP_FEE_DESC
+  FEE_TO_ASC
+  FEE_TO_DESC
+  MAX_SWAP_PATH_LEN_ASC
+  MAX_SWAP_PATH_LEN_DESC
+  ADMIN_ASC
+  ADMIN_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreDubheConfig` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreDubheConfigCondition {
+  """Checks for equality with the object’s `uniqueResourceId` field."""
+  uniqueResourceId: Int
+
+  """Checks for equality with the object’s `nextAssetId` field."""
+  nextAssetId: String
+
+  """Checks for equality with the object’s `swapFee` field."""
+  swapFee: String
+
+  """Checks for equality with the object’s `feeTo` field."""
+  feeTo: String
+
+  """Checks for equality with the object’s `maxSwapPathLen` field."""
+  maxSwapPathLen: BigInt
+
+  """Checks for equality with the object’s `admin` field."""
+  admin: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreDubheConfig` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreDubheConfigFilter {
+  """Filter by the object’s `uniqueResourceId` field."""
+  uniqueResourceId: IntFilter
+
+  """Filter by the object’s `nextAssetId` field."""
+  nextAssetId: StringFilter
+
+  """Filter by the object’s `swapFee` field."""
+  swapFee: StringFilter
+
+  """Filter by the object’s `feeTo` field."""
+  feeTo: StringFilter
+
+  """Filter by the object’s `maxSwapPathLen` field."""
+  maxSwapPathLen: BigIntFilter
+
+  """Filter by the object’s `admin` field."""
+  admin: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreDubheConfigFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreDubheConfigFilter!]
+
+  """Negates the expression."""
+  not: StoreDubheConfigFilter
+}
+
+"""A connection to a list of `StoreSuiAssetId` values."""
+type StoreSuiAssetIdsConnection {
+  """A list of `StoreSuiAssetId` objects."""
+  nodes: [StoreSuiAssetId!]!
+
+  """
+  A list of edges which contains the `StoreSuiAssetId` and cursor to aid in pagination.
+  """
+  edges: [StoreSuiAssetIdsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreSuiAssetId` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreSuiAssetId implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  uniqueResourceId: Int!
+  value: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreSuiAssetId` edge in the connection."""
+type StoreSuiAssetIdsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreSuiAssetId` at the end of the edge."""
+  node: StoreSuiAssetId!
+}
+
+"""Methods to use when ordering `StoreSuiAssetId`."""
+enum StoreSuiAssetIdsOrderBy {
+  NATURAL
+  UNIQUE_RESOURCE_ID_ASC
+  UNIQUE_RESOURCE_ID_DESC
+  VALUE_ASC
+  VALUE_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreSuiAssetId` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreSuiAssetIdCondition {
+  """Checks for equality with the object’s `uniqueResourceId` field."""
+  uniqueResourceId: Int
+
+  """Checks for equality with the object’s `value` field."""
+  value: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreSuiAssetId` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreSuiAssetIdFilter {
+  """Filter by the object’s `uniqueResourceId` field."""
+  uniqueResourceId: IntFilter
+
+  """Filter by the object’s `value` field."""
+  value: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreSuiAssetIdFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreSuiAssetIdFilter!]
+
+  """Negates the expression."""
+  not: StoreSuiAssetIdFilter
+}
+
+"""A connection to a list of `StoreWrapperAsset` values."""
+type StoreWrapperAssetsConnection {
+  """A list of `StoreWrapperAsset` objects."""
+  nodes: [StoreWrapperAsset!]!
+
+  """
+  A list of edges which contains the `StoreWrapperAsset` and cursor to aid in pagination.
+  """
+  edges: [StoreWrapperAssetsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreWrapperAsset` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreWrapperAsset implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  coinType: String!
+  assetId: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  isDeleted: Boolean
+}
+
+"""A `StoreWrapperAsset` edge in the connection."""
+type StoreWrapperAssetsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreWrapperAsset` at the end of the edge."""
+  node: StoreWrapperAsset!
+}
+
+"""Methods to use when ordering `StoreWrapperAsset`."""
+enum StoreWrapperAssetsOrderBy {
+  NATURAL
+  COIN_TYPE_ASC
+  COIN_TYPE_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreWrapperAsset` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreWrapperAssetCondition {
+  """Checks for equality with the object’s `coinType` field."""
+  coinType: String
+
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreWrapperAsset` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreWrapperAssetFilter {
+  """Filter by the object’s `coinType` field."""
+  coinType: StringFilter
+
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreWrapperAssetFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreWrapperAssetFilter!]
+
+  """Negates the expression."""
+  not: StoreWrapperAssetFilter
 }
 
 """A connection to a list of `TableField` values."""
