@@ -122,6 +122,7 @@ export const dubheConfig = {
                 total_bytes_size: 'u256',
                 total_recharged: 'u256',
                 total_paid: 'u256',
+                total_set_count: 'u256',
             },
             keys: ['dapp_key']
         },
