@@ -740,7 +740,7 @@ impl DubheConfig {
                     );
                     sql.push_str("));");
                     sql
-                } else {
+                } else if !table.offchain {
                     let mut sql = String::new();
                     sql.push_str(&format!(
                         "CREATE TABLE IF NOT EXISTS {} (",
@@ -760,6 +760,23 @@ impl DubheConfig {
                     sql.push_str("is_deleted BOOLEAN DEFAULT FALSE");
                     sql.push_str(");");
                     sql
+                } else {
+                  let mut sql = String::new();
+                  sql.push_str(&format!(
+                      "CREATE TABLE IF NOT EXISTS {} (",
+                      format!("store_{}", table.name)
+                  ));
+                  sql.push_str(
+                      &self
+                          .field_names_and_db_types_by_table(&table.name)
+                          .join(","),
+                  );
+                  sql.push_str(",");
+                  sql.push_str("created_at_timestamp_ms BIGINT DEFAULT 0,");
+                  sql.push_str("updated_at_timestamp_ms BIGINT DEFAULT 0,");
+                  sql.push_str("is_deleted BOOLEAN DEFAULT FALSE");
+                  sql.push_str(");");
+                  sql
                 }
             })
             .collect()
@@ -846,7 +863,7 @@ impl DubheConfig {
                     sql.push_str(",");
                     sql.push_str(format!("updated_at_timestamp_ms = {}", current_checkpoint_timestamp_ms).as_str());
                     sql.push_str(";");
-                } else {
+                } else if !self.tables.iter().any(|table| table.name == event.table_id && table.offchain) {
                     sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
                     sql.push_str("unique_resource_id,");
                     sql.push_str(&self.field_names_by_table(&event.table_id).join(","));
@@ -878,6 +895,27 @@ impl DubheConfig {
                     sql.push_str(",");
                     sql.push_str(format!("updated_at_timestamp_ms = {}", current_checkpoint_timestamp_ms).as_str());
                     sql.push_str(";");
+                } else {
+                  sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
+                  sql.push_str(&self.field_names_by_table(&event.table_id).join(","));
+                  sql.push_str(",");
+                  sql.push_str("created_at_timestamp_ms, updated_at_timestamp_ms");
+                  sql.push_str(") VALUES (");
+                  sql.push_str(
+                      &self
+                          .field_values_by_table(
+                              &event.table_id,
+                              &event.key_tuple,
+                              &event.value_tuple,
+                            )
+                            .join(","),
+                    );
+                  sql.push_str(",");
+                  sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
+                  sql.push_str(",");
+                  sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
+                  sql.push_str(");");
+
                 };
                 Ok(sql)
             }
