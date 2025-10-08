@@ -1,5 +1,5 @@
 module dubhe::dex_system {
-    use dubhe::asset_pools;
+    use dubhe::asset_pool;
     use dubhe::dex_functions::{sort_assets};
     use dubhe::assets_functions;
     use dubhe::dex_functions;
@@ -28,7 +28,7 @@ module dubhe::dex_system {
 
         asset_metadata::ensure_has(dapp_hub, asset_0);
         asset_metadata::ensure_has(dapp_hub, asset_1);
-        asset_pools::ensure_not_has(dapp_hub, asset_0, asset_1);
+        asset_pool::ensure_not_has(dapp_hub, asset_0, asset_1);
 
         let asset_0_metadata = asset_metadata::get_struct(dapp_hub, asset_0);
         let asset_1_metadata = asset_metadata::get_struct(dapp_hub, asset_1);
@@ -49,7 +49,7 @@ module dubhe::dex_system {
             false,
         );
 
-        asset_pools::set(
+        asset_pool::set(
             dapp_hub,
             asset_0, 
             asset_1, 

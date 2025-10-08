@@ -35,10 +35,6 @@ export const dubheConfig = {
                 icon_url: 'String',
                 // Can change `owner`, `issuer`, `freezer` and `admin` accounts.
                 owner: 'address',
-                // The total supply across all accounts.
-                supply: 'u256',
-                // The total number of accounts.
-                accounts: 'u256',
                 // The status of the asset
                 status: 'AssetStatus',
                 // Whether the asset is mintable.
@@ -52,6 +48,20 @@ export const dubheConfig = {
             },
             keys: ['asset_id']
         }, 
+        asset_supply: {
+            fields: {
+                asset_id: 'address',
+                supply: 'u256'
+            },
+            keys: ['asset_id']
+        },
+        asset_holder: {
+            fields: {
+                asset_id: 'address',
+                holder: 'u256'
+            },
+            keys: ['asset_id']
+        },
         asset_account: {
             fields: {
                 asset_id: 'address',
@@ -61,7 +71,7 @@ export const dubheConfig = {
             },
             keys: ['asset_id', 'account']
         },
-        asset_pools: {
+        asset_pool: {
             fields: {
                 asset0: 'address',
                 asset1: 'address',
@@ -73,35 +83,7 @@ export const dubheConfig = {
             },
             keys: ['asset0', 'asset1']
         },
-        bridge_config: {
-            fields: {
-                chain: 'String',
-                min_amount: 'u256',
-                fee: 'u256',
-                opened: 'bool'
-            },
-            keys: ['chain']
-        },
-        bridge_withdraw: {
-            offchain: true,
-            fields: {
-                from: 'address',
-                to: 'address',
-                to_chain: 'String',
-                amount: 'u256',
-                fee: 'u256'
-            }
-        },
-        bridge_deposit: { 
-            offchain: true,
-            fields: {
-                from: 'address',
-                to: 'address',
-                from_chain: 'String',
-                amount: 'u256'
-            }
-        },
-        wrapper_assets: {
+        asset_wrapper: {
             fields: {
                 coin_type: 'String',
                 asset_id: 'address',
@@ -150,7 +132,47 @@ export const dubheConfig = {
                 enabled: 'bool',
             },
             keys: ['dapp_key']
-        }
+        },
+        asset_transfer: {
+            fields: {
+                from: 'address',
+                to: 'address',
+                amount: 'u256',
+                asset_id: 'address' 
+            },
+            offchain: true,
+        },
+        asset_wrap: {
+            fields: {
+                from: 'address',
+                to: 'address',
+                amount: 'u256',
+                coin_type: 'String',
+                asset_id: 'address',  
+            },
+            offchain: true,    
+        },
+        asset_unwrap: {
+            fields: {
+                from: 'address',
+                to: 'address',
+                amount: 'u256',
+                coin_type: 'String',
+                asset_id: 'address', 
+            },
+            offchain: true,
+        },
+        asset_swap: {
+            fields: {
+                from: 'address',
+                asset0: 'address',
+                asset1: 'address',
+                amount0: 'u256',
+                amount1: 'u256',
+                to: 'address'
+            },
+            offchain: true,
+        },
     },
     components: { },
      errors: {

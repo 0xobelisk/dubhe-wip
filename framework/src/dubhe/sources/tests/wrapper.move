@@ -35,7 +35,7 @@ module dubhe::wrapper_tests {
 
         let sui = coin::mint_for_testing<SUI>(amount as u64, ctx);
         let beneficiary = ctx.sender();
-        wrapper_system::wrap(&mut dapp_hub, sui, beneficiary);
+        wrapper_system::wrap(&mut dapp_hub, sui, beneficiary, ctx);
         assert!(assets_system::balance_of(&dapp_hub, SUI_ASSET_ID, beneficiary) == amount);
         assert!(assets_system::supply_of(&dapp_hub, SUI_ASSET_ID) == amount);
 
@@ -43,17 +43,17 @@ module dubhe::wrapper_tests {
         assert!(assets_system::balance_of(&dapp_hub, SUI_ASSET_ID, beneficiary) == 0);
 
         let sui = coin::mint_for_testing<SUI>(amount as u64, ctx);
-        wrapper_system::wrap(&mut dapp_hub, sui, beneficiary);
+        wrapper_system::wrap(&mut dapp_hub, sui, beneficiary, ctx);
         assert!(assets_system::balance_of(&dapp_hub, SUI_ASSET_ID, beneficiary) == amount);
         assert!(assets_system::supply_of(&dapp_hub, SUI_ASSET_ID) == amount);
 
         let dubhe = coin::mint_for_testing<DUBHE>(amount as u64, ctx);
-        wrapper_system::wrap(&mut dapp_hub, dubhe, beneficiary);
+        wrapper_system::wrap(&mut dapp_hub, dubhe, beneficiary, ctx);
         assert!(assets_system::balance_of(&dapp_hub, DUBHE_ASSET_ID, beneficiary) == amount);
         assert!(assets_system::supply_of(&dapp_hub, DUBHE_ASSET_ID) == amount);
 
         let dubhe = coin::mint_for_testing<DUBHE>(amount as u64, ctx);
-        wrapper_system::wrap(&mut dapp_hub, dubhe, beneficiary);
+        wrapper_system::wrap(&mut dapp_hub, dubhe, beneficiary, ctx);
         assert!(assets_system::balance_of(&dapp_hub, DUBHE_ASSET_ID, beneficiary) == amount * 2);
         assert!(assets_system::supply_of(&dapp_hub, DUBHE_ASSET_ID) == amount * 2);
 

@@ -4,7 +4,7 @@ module dubhe::dex_tests {
     use std::u128;
     use dubhe::dex_functions;
     use dubhe::init_test::deploy_dapp_for_testing;
-    use dubhe::asset_pools;
+    use dubhe::asset_pool;
     use dubhe::dex_system;
     use dubhe::assets_tests;
     use dubhe::assets_system;
@@ -67,13 +67,13 @@ module dubhe::dex_tests {
 
         let pool_address = dex_functions::pair_for(asset_0, asset_1);
         dex_system::create_pool(&mut dapp_hub, asset_0, asset_1);
-        std::debug::print(&asset_pools::get_struct(&dapp_hub, asset_0, asset_1));
-        assert!(pool_address == asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1));
+        std::debug::print(&asset_pool::get_struct(&dapp_hub, asset_0, asset_1));
+        assert!(pool_address == asset_pool::get_pool_address(&dapp_hub, asset_0, asset_1));
 
         let pool_address = dex_functions::pair_for(asset_2, asset_1);
         dex_system::create_pool(&mut dapp_hub, asset_1, asset_2);
-        std::debug::print(&asset_pools::get_struct(&dapp_hub, asset_2, asset_1));
-        assert!(asset_pools::get_pool_address(&dapp_hub, asset_2, asset_1) == pool_address);
+        std::debug::print(&asset_pool::get_struct(&dapp_hub, asset_2, asset_1));
+        assert!(asset_pool::get_pool_address(&dapp_hub, asset_2, asset_1) == pool_address);
 
         dapp_hub.destroy();
     
@@ -279,7 +279,7 @@ module dubhe::dex_tests {
 
         let liquidity1 = liquidity1 + input_amount;
         let liquidity2 = liquidity2 - expect_receive[expect_receive.length() - 1];
-        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
+        let pool_address = asset_pool::get_pool_address(&dapp_hub, asset_0, asset_1);
         assert!(assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
 
@@ -347,7 +347,7 @@ module dubhe::dex_tests {
 
         let liquidity1 = liquidity1 + input_amount;
         let liquidity2 = liquidity2 - amounts[1];
-        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
+        let pool_address = asset_pool::get_pool_address(&dapp_hub, asset_0, asset_1);
         assert!(assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
         std::debug::print(&assets_system::balance_of(&dapp_hub, asset_0, pool_address));
@@ -355,7 +355,7 @@ module dubhe::dex_tests {
 
         let liquidity3 = liquidity3 + amounts[1];
         let liquidity4 = liquidity4 - amounts[2];
-        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_2, asset_1);
+        let pool_address = asset_pool::get_pool_address(&dapp_hub, asset_2, asset_1);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity3, 0);
         assert!(assets_system::balance_of(&dapp_hub, asset_2, pool_address) == liquidity4, 0);
         std::debug::print(&assets_system::balance_of(&dapp_hub, asset_1, pool_address));
@@ -378,13 +378,13 @@ module dubhe::dex_tests {
 
         let liquidity1 = liquidity1 + amounts[0];
         let liquidity2 = liquidity2 - amounts[1];
-        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_0, asset_1);
+        let pool_address = asset_pool::get_pool_address(&dapp_hub, asset_0, asset_1);
         assert!(assets_system::balance_of(&dapp_hub, asset_0, pool_address) == liquidity1, 0);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity2, 0);
 
         let liquidity3 = liquidity3 + amounts[1];
         let liquidity4 = liquidity4 - amounts[2];
-        let pool_address = asset_pools::get_pool_address(&dapp_hub, asset_2, asset_1);
+        let pool_address = asset_pool::get_pool_address(&dapp_hub, asset_2, asset_1);
         assert!(assets_system::balance_of(&dapp_hub, asset_1, pool_address) == liquidity3, 0);
         assert!(assets_system::balance_of(&dapp_hub, asset_2, pool_address) == liquidity4, 0);
 

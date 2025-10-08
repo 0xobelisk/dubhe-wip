@@ -6,6 +6,7 @@ use dubhe::table_metadata;
 use dubhe::table_metadata::TableMetadata;
 use dubhe::type_info;
 use sui::bag::Bag;
+use dubhe::dubhe_events::emit_store_set_record;
 
 /// Error codes
 const EInvalidTableId: u64 = 1;
@@ -71,12 +72,18 @@ public(package) fun set_record(
     self: &mut DappStore,
     table_id: String,
     key_tuple: vector<vector<u8>>,
-    value_tuple: vector<vector<u8>>
+    value_tuple: vector<vector<u8>>,
+    offchain: bool
 ) {
     assert!(self.tables.contains(table_id), EInvalidTableId);
     
     // Get table data
     let table = self.tables.borrow_mut(table_id);
+
+    if (offchain) {
+        emit_store_set_record(self.dapp_key, table_id, key_tuple, value_tuple);
+        return
+    };
     
     // Store data
     if (table.contains(key_tuple)) {
@@ -85,6 +92,9 @@ public(package) fun set_record(
     } else {
         table.add(key_tuple, value_tuple);
     };
+
+    // Emit event
+    emit_store_set_record(self.dapp_key, table_id, key_tuple, value_tuple);
 }
 
 /// Set a field
@@ -107,6 +117,9 @@ public(package) fun set_field(
 
     // Update field
     *value_tuple.borrow_mut(field_index as u64) = value;
+
+    // Emit event
+    emit_store_set_record(self.dapp_key, table_id, key_tuple, *value_tuple);
 }
 
 /// Get a record
