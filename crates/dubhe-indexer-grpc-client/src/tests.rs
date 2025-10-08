@@ -1,9 +1,9 @@
 use crate::DubheIndexerGrpcClient;
 use anyhow::Result;
-use dubhe_indexer_grpc::PaginationRequest;
-use futures_util::StreamExt;
 use dubhe_indexer_grpc::types::dubhe_grpc_client::DubheGrpcClient;
 use dubhe_indexer_grpc::types::QueryRequest;
+use dubhe_indexer_grpc::PaginationRequest;
+use futures_util::StreamExt;
 
 // #[tokio::test]
 
@@ -15,9 +15,9 @@ use dubhe_indexer_grpc::types::QueryRequest;
 //     let mut receiver = match client
 //         .subscribe_table(vec![
 //             // // vector<u32>
-//             // "component25".to_string(), 
+//             // "component25".to_string(),
 //             // // vector<address>
-//             // "component29".to_string(), 
+//             // "component29".to_string(),
 //             // // vector<bool>
 //             // "component30".to_string(),
 //             // // vector<String>

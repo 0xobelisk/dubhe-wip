@@ -402,16 +402,17 @@ impl DubheConfig {
                                     self.enum_value_string(&field.move_type, enum_index),
                                 )),
                             },
-                            );
-                        } else {
-                            fields.insert(
-                                field.name.clone(),
-                                field.proto_value(&key_tuple[field.index as usize]),
-                            );
-                        }
+                        );
                     } else {
+                        fields.insert(
+                            field.name.clone(),
+                            field.proto_value(&key_tuple[field.index as usize]),
+                        );
+                    }
+                } else {
                     if self.is_enum(&field.move_type) {
-                        let enum_index = bcs::from_bytes(&value_tuple[field.index as usize]).unwrap();
+                        let enum_index =
+                            bcs::from_bytes(&value_tuple[field.index as usize]).unwrap();
                         fields.insert(
                             field.name.clone(),
                             ProtoValue {
@@ -425,10 +426,10 @@ impl DubheConfig {
                             field.name.clone(),
                             field.proto_value(&value_tuple[field.index as usize]),
                         );
-                    }           
                     }
+                }
             });
-            fields  
+        fields
     }
 
     pub fn field_proto_value_by_table_and_index(
@@ -444,9 +445,14 @@ impl DubheConfig {
             .for_each(|field| {
                 if self.is_enum(&field.move_type) {
                     let enum_index = bcs::from_bytes(&value).unwrap();
-                    fields.insert(field.name.clone(), ProtoValue {
-                        kind: Some(prost_types::value::Kind::StringValue(self.enum_value_string(&field.move_type, enum_index))),
-                    });
+                    fields.insert(
+                        field.name.clone(),
+                        ProtoValue {
+                            kind: Some(prost_types::value::Kind::StringValue(
+                                self.enum_value_string(&field.move_type, enum_index),
+                            )),
+                        },
+                    );
                 } else {
                     fields.insert(field.name.clone(), field.proto_value(value));
                 }
@@ -731,6 +737,7 @@ impl DubheConfig {
                     sql.push_str(",");
                     sql.push_str("created_at_timestamp_ms BIGINT DEFAULT 0,");
                     sql.push_str("updated_at_timestamp_ms BIGINT DEFAULT 0,");
+                    sql.push_str("last_update_digest VARCHAR(255) DEFAULT '',");
                     sql.push_str("is_deleted BOOLEAN DEFAULT FALSE,");
                     sql.push_str("PRIMARY KEY (");
                     sql.push_str(
@@ -757,26 +764,28 @@ impl DubheConfig {
                     sql.push_str(",");
                     sql.push_str("created_at_timestamp_ms BIGINT DEFAULT 0,");
                     sql.push_str("updated_at_timestamp_ms BIGINT DEFAULT 0,");
+                    sql.push_str("last_update_digest VARCHAR(255) DEFAULT '',");
                     sql.push_str("is_deleted BOOLEAN DEFAULT FALSE");
                     sql.push_str(");");
                     sql
                 } else {
-                  let mut sql = String::new();
-                  sql.push_str(&format!(
-                      "CREATE TABLE IF NOT EXISTS {} (",
-                      format!("store_{}", table.name)
-                  ));
-                  sql.push_str(
-                      &self
-                          .field_names_and_db_types_by_table(&table.name)
-                          .join(","),
-                  );
-                  sql.push_str(",");
-                  sql.push_str("created_at_timestamp_ms BIGINT DEFAULT 0,");
-                  sql.push_str("updated_at_timestamp_ms BIGINT DEFAULT 0,");
-                  sql.push_str("is_deleted BOOLEAN DEFAULT FALSE");
-                  sql.push_str(");");
-                  sql
+                    let mut sql = String::new();
+                    sql.push_str(&format!(
+                        "CREATE TABLE IF NOT EXISTS {} (",
+                        format!("store_{}", table.name)
+                    ));
+                    sql.push_str(
+                        &self
+                            .field_names_and_db_types_by_table(&table.name)
+                            .join(","),
+                    );
+                    sql.push_str(",");
+                    sql.push_str("created_at_timestamp_ms BIGINT DEFAULT 0,");
+                    sql.push_str("updated_at_timestamp_ms BIGINT DEFAULT 0,");
+                    sql.push_str("last_update_digest VARCHAR(255) DEFAULT '',");
+                    sql.push_str("is_deleted BOOLEAN DEFAULT FALSE");
+                    sql.push_str(");");
+                    sql
                 }
             })
             .collect()
@@ -784,7 +793,7 @@ impl DubheConfig {
 
     pub fn can_convert_event_to_sql(&self, event: &Event) -> Result<()> {
         if event.table_id() == "dapp_fee_state" {
-          return Ok(());
+            return Ok(());
         }
         if event.origin_package_id() != Some(self.package_id.clone()) {
             return Err(anyhow::anyhow!(
@@ -804,7 +813,12 @@ impl DubheConfig {
         Ok(())
     }
 
-    pub fn convert_event_to_sql(&self, event: Event, current_checkpoint_timestamp_ms: u64) -> Result<String> {
+    pub fn convert_event_to_sql(
+        &self,
+        event: Event,
+        current_checkpoint_timestamp_ms: u64,
+        current_digest: String,
+    ) -> Result<String> {
         self.can_convert_event_to_sql(&event)?;
         match event {
             Event::StoreSetRecord(event) => {
@@ -822,7 +836,7 @@ impl DubheConfig {
                     //        updated_at_timestamp_ms = EXCLUDED.updated_at_timestamp_ms
                     sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
                     sql = format!(
-                        "{} {}, created_at_timestamp_ms, updated_at_timestamp_ms",
+                        "{} {}, created_at_timestamp_ms, updated_at_timestamp_ms, last_update_digest",
                         sql,
                         self.field_names_by_table(&event.table_id).join(",")
                     );
@@ -840,6 +854,8 @@ impl DubheConfig {
                     sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
                     sql.push_str(",");
                     sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
+                    sql.push_str(",");
+                    sql.push_str(format!("'{}'", current_digest).as_str());
                     sql.push_str(") ON CONFLICT (");
 
                     // Add primary key field names for conflict detection
@@ -861,14 +877,28 @@ impl DubheConfig {
                             .join(","),
                     );
                     sql.push_str(",");
-                    sql.push_str(format!("updated_at_timestamp_ms = {}", current_checkpoint_timestamp_ms).as_str());
+                    sql.push_str(
+                        format!(
+                            "updated_at_timestamp_ms = {}",
+                            current_checkpoint_timestamp_ms
+                        )
+                        .as_str(),
+                    );
+                    sql.push_str(",");
+                    sql.push_str(format!("last_update_digest = '{}'", current_digest).as_str());
                     sql.push_str(";");
-                } else if !self.tables.iter().any(|table| table.name == event.table_id && table.offchain) {
+                } else if !self
+                    .tables
+                    .iter()
+                    .any(|table| table.name == event.table_id && table.offchain)
+                {
                     sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
                     sql.push_str("unique_resource_id,");
                     sql.push_str(&self.field_names_by_table(&event.table_id).join(","));
                     sql.push_str(",");
-                    sql.push_str("created_at_timestamp_ms, updated_at_timestamp_ms");
+                    sql.push_str(
+                        "created_at_timestamp_ms, updated_at_timestamp_ms, last_update_digest",
+                    );
                     sql.push_str(") VALUES (1,");
                     sql.push_str(
                         &self
@@ -883,6 +913,8 @@ impl DubheConfig {
                     sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
                     sql.push_str(",");
                     sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
+                    sql.push_str(",");
+                    sql.push_str(format!("'{}'", current_digest).as_str());
                     sql.push_str(") ON CONFLICT (unique_resource_id) DO UPDATE SET ");
                     sql.push_str(
                         &self
@@ -893,76 +925,105 @@ impl DubheConfig {
                             .join(","),
                     );
                     sql.push_str(",");
-                    sql.push_str(format!("updated_at_timestamp_ms = {}", current_checkpoint_timestamp_ms).as_str());
+                    sql.push_str(
+                        format!(
+                            "updated_at_timestamp_ms = {}",
+                            current_checkpoint_timestamp_ms
+                        )
+                        .as_str(),
+                    );
+                    sql.push_str(",");
+                    sql.push_str(format!("last_update_digest = '{}'", current_digest).as_str());
                     sql.push_str(";");
                 } else {
-                  sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
-                  sql.push_str(&self.field_names_by_table(&event.table_id).join(","));
-                  sql.push_str(",");
-                  sql.push_str("created_at_timestamp_ms, updated_at_timestamp_ms");
-                  sql.push_str(") VALUES (");
-                  sql.push_str(
-                      &self
-                          .field_values_by_table(
-                              &event.table_id,
-                              &event.key_tuple,
-                              &event.value_tuple,
+                    sql.push_str(&format!("INSERT INTO store_{} (", event.table_id));
+                    sql.push_str(&self.field_names_by_table(&event.table_id).join(","));
+                    sql.push_str(",");
+                    sql.push_str(
+                        "created_at_timestamp_ms, updated_at_timestamp_ms, last_update_digest",
+                    );
+                    sql.push_str(") VALUES (");
+                    sql.push_str(
+                        &self
+                            .field_values_by_table(
+                                &event.table_id,
+                                &event.key_tuple,
+                                &event.value_tuple,
                             )
                             .join(","),
                     );
-                  sql.push_str(",");
-                  sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
-                  sql.push_str(",");
-                  sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
-                  sql.push_str(");");
-
+                    sql.push_str(",");
+                    sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
+                    sql.push_str(",");
+                    sql.push_str(current_checkpoint_timestamp_ms.to_string().as_str());
+                    sql.push_str(",");
+                    sql.push_str(format!("'{}'", current_digest).as_str());
+                    sql.push_str(");");
                 };
                 Ok(sql)
             }
             Event::StoreSetField(event) => {
                 let mut sql = String::new();
-                if self.is_exist_primary_key(&event.table_id) { 
-                  sql.push_str(&format!("UPDATE store_{} SET ", event.table_id));
-                  sql.push_str(&self.field_value_by_table_and_index(
-                      &event.table_id,
-                      event.field_index,
-                      &event.value,
-                  ));
-                  sql.push_str(",");
-                  sql.push_str(format!("updated_at_timestamp_ms = {}", current_checkpoint_timestamp_ms).as_str());
-                  sql.push_str(" WHERE ");
-                  sql.push_str(
-                      &self
-                          .field_values_by_table_and_primary_key(&event.table_id, &event.key_tuple)
-                          .join(" AND "),
-                  );
-                  sql.push_str(";");
+                if self.is_exist_primary_key(&event.table_id) {
+                    sql.push_str(&format!("UPDATE store_{} SET ", event.table_id));
+                    sql.push_str(&self.field_value_by_table_and_index(
+                        &event.table_id,
+                        event.field_index,
+                        &event.value,
+                    ));
+                    sql.push_str(",");
+                    sql.push_str(
+                        format!(
+                            "updated_at_timestamp_ms = {}",
+                            current_checkpoint_timestamp_ms
+                        )
+                        .as_str(),
+                    );
+                    sql.push_str(" WHERE ");
+                    sql.push_str(
+                        &self
+                            .field_values_by_table_and_primary_key(
+                                &event.table_id,
+                                &event.key_tuple,
+                            )
+                            .join(" AND "),
+                    );
+                    sql.push_str(";");
                 } else {
-                  sql.push_str(&format!("UPDATE store_{} SET ", event.table_id));
-                  sql.push_str(&self.field_value_by_table_and_index(
-                      &event.table_id,
-                      event.field_index,
-                      &event.value,
-                  ));
-                  sql.push_str(",");
-                  sql.push_str(format!("updated_at_timestamp_ms = {}", current_checkpoint_timestamp_ms).as_str());
-                  sql.push_str(" WHERE unique_resource_id = 1;");
+                    sql.push_str(&format!("UPDATE store_{} SET ", event.table_id));
+                    sql.push_str(&self.field_value_by_table_and_index(
+                        &event.table_id,
+                        event.field_index,
+                        &event.value,
+                    ));
+                    sql.push_str(",");
+                    sql.push_str(
+                        format!(
+                            "updated_at_timestamp_ms = {}",
+                            current_checkpoint_timestamp_ms
+                        )
+                        .as_str(),
+                    );
+                    sql.push_str(" WHERE unique_resource_id = 1;");
                 }
                 Ok(sql)
             }
             Event::StoreDeleteRecord(event) => {
                 let mut sql = String::new();
                 if self.is_exist_primary_key(&event.table_id) {
-                    sql.push_str(&format!("UPDATE store_{} SET is_deleted = TRUE, updated_at_timestamp_ms = {} WHERE ", event.table_id, current_checkpoint_timestamp_ms));
+                    sql.push_str(&format!("UPDATE store_{} SET is_deleted = TRUE, updated_at_timestamp_ms = {}, last_update_digest = '{}' WHERE ", event.table_id, current_checkpoint_timestamp_ms, current_digest));
                     sql.push_str(
                         &self
-                            .field_values_by_table_and_primary_key(&event.table_id, &event.key_tuple)
+                            .field_values_by_table_and_primary_key(
+                                &event.table_id,
+                                &event.key_tuple,
+                            )
                             .join(" AND "),
                     );
                     sql.push_str(";");
-              } else {
-                  sql.push_str(&format!("UPDATE store_{} SET is_deleted = TRUE, updated_at_timestamp_ms = {} WHERE unique_resource_id = 1;", event.table_id, current_checkpoint_timestamp_ms));
-              }
+                } else {
+                    sql.push_str(&format!("UPDATE store_{} SET is_deleted = TRUE, updated_at_timestamp_ms = {}, last_update_digest = '{}' WHERE unique_resource_id = 1;", event.table_id, current_checkpoint_timestamp_ms, current_digest));
+                }
                 Ok(sql)
             }
         }
@@ -1577,16 +1638,58 @@ pub fn get_sql_type(type_: &str) -> String {
 }
 
 pub fn is_sql_keyword(name: &str) -> bool {
-  let sql_keywords = [
-    "from", "to", "select", "insert", "update", "delete", "where", 
-    "order", "group", "having", "join", "union", "create", "drop",
-    "alter", "table", "index", "constraint", "primary", "foreign",
-    "key", "references", "check", "unique", "not", "null", "default",
-    "user", "role", "grant", "revoke", "view", "trigger", "function",
-    "procedure", "begin", "end", "if", "else", "while", "for", "case",
-    "when", "then", "return", "declare", "cursor", "fetch", "close"
-  ];
-  sql_keywords.contains(&name)
+    let sql_keywords = [
+        "from",
+        "to",
+        "select",
+        "insert",
+        "update",
+        "delete",
+        "where",
+        "order",
+        "group",
+        "having",
+        "join",
+        "union",
+        "create",
+        "drop",
+        "alter",
+        "table",
+        "index",
+        "constraint",
+        "primary",
+        "foreign",
+        "key",
+        "references",
+        "check",
+        "unique",
+        "not",
+        "null",
+        "default",
+        "user",
+        "role",
+        "grant",
+        "revoke",
+        "view",
+        "trigger",
+        "function",
+        "procedure",
+        "begin",
+        "end",
+        "if",
+        "else",
+        "while",
+        "for",
+        "case",
+        "when",
+        "then",
+        "return",
+        "declare",
+        "cursor",
+        "fetch",
+        "close",
+    ];
+    sql_keywords.contains(&name)
 }
 
 #[cfg(test)]
@@ -1696,7 +1799,6 @@ mod tests {
           "start_checkpoint": "1"
         })
     }
-
 
     fn get_full_test_json() -> Value {
         json!({
@@ -2456,7 +2558,6 @@ mod tests {
         assert_eq!(result, "INSERT INTO store_counter5 (unique_resource_id,player,value) VALUES (1,'0xd8f042479dcb0028d868051bd53f0d3a41c600db7b14241674db1c2e60124975',10) ON CONFLICT (unique_resource_id) DO UPDATE SET player = '0xd8f042479dcb0028d868051bd53f0d3a41c600db7b14241674db1c2e60124975',value = 10;");
     }
 
-
     #[test]
     fn test_convert_event_to_proto_struct() {
         let test_json = get_full_test_json();
@@ -2464,15 +2565,13 @@ mod tests {
         let event = Event::StoreSetRecord(StoreSetRecord {
             dapp_key: "1::dapp_key::DappKey".to_string(),
             table_id: "component6".to_string(),
-            key_tuple: vec![
-                bcs::to_bytes(
-                    &SuiAddress::from_str(
-                        "0xd8f042479dcb0028d868051bd53f0d3a41c600db7b14241674db1c2e60124975",
-                    )
-                    .unwrap(),
+            key_tuple: vec![bcs::to_bytes(
+                &SuiAddress::from_str(
+                    "0xd8f042479dcb0028d868051bd53f0d3a41c600db7b14241674db1c2e60124975",
                 )
                 .unwrap(),
-            ],
+            )
+            .unwrap()],
             value_tuple: vec![
                 bcs::to_bytes(&100u32).unwrap(),
                 bcs::to_bytes(&10u32).unwrap(),
@@ -2484,15 +2583,13 @@ mod tests {
         let event = Event::StoreSetRecord(StoreSetRecord {
             dapp_key: "1::dapp_key::DappKey".to_string(),
             table_id: "component11".to_string(),
-            key_tuple: vec![
-                bcs::to_bytes(
-                    &SuiAddress::from_str(
-                        "0xd8f042479dcb0028d868051bd53f0d3a41c600db7b14241674db1c2e60124975",
-                    )
-                    .unwrap(),
+            key_tuple: vec![bcs::to_bytes(
+                &SuiAddress::from_str(
+                    "0xd8f042479dcb0028d868051bd53f0d3a41c600db7b14241674db1c2e60124975",
                 )
                 .unwrap(),
-            ],
+            )
+            .unwrap()],
             value_tuple: vec![
                 bcs::to_bytes(&100u32).unwrap(),
                 bcs::to_bytes(&1u8).unwrap(),

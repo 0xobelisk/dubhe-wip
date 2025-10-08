@@ -410,9 +410,8 @@ impl DubheGrpc for DubheGrpcService {
                         // Handle pagination
                         let pagination_info = if let Some(pagination) = &req.pagination {
                             // Always get the actual total count for accurate pagination
-                            let total_items = self.get_total_count(database, &req)
-                                .await
-                                .unwrap_or(0);
+                            let total_items =
+                                self.get_total_count(database, &req).await.unwrap_or(0);
 
                             let page_size = pagination.page_size.max(1);
                             let current_page = pagination.page.max(1);
