@@ -146,6 +146,13 @@ export class ComponentDiscoverer {
               nullable: false,
               isPrimaryKey: false,
               isEnum: false,
+            },
+            {
+              name: 'lastUpdateDigest',
+              type: 'String',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
             }
           );
 
@@ -341,6 +348,13 @@ export class ResourceDiscoverer {
             {
               name: 'isDeleted',
               type: 'Boolean',
+              nullable: false,
+              isPrimaryKey: false,
+              isEnum: false,
+            },
+            {
+              name: 'lastUpdateDigest',
+              type: 'String',
               nullable: false,
               isPrimaryKey: false,
               isEnum: false,

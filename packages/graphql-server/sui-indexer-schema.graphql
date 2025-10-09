@@ -51,6 +51,40 @@ type Query implements Node {
     filter: StoreAssetAccountFilter
   ): StoreAssetAccountsConnection
 
+  """Reads and enables pagination through a set of `StoreAssetHolder`."""
+  assetHolders(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreAssetHolder`."""
+    orderBy: [StoreAssetHoldersOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreAssetHolderCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreAssetHolderFilter
+  ): StoreAssetHoldersConnection
+
   """Reads and enables pagination through a set of `StoreAssetMetadatum`."""
   assetMetadata(
     """Only read the first `n` values of the set."""
@@ -119,8 +153,8 @@ type Query implements Node {
     filter: StoreAssetPoolFilter
   ): StoreAssetPoolsConnection
 
-  """Reads and enables pagination through a set of `StoreBridgeConfig`."""
-  bridgeConfigs(
+  """Reads and enables pagination through a set of `StoreAssetSupply`."""
+  assetSupplies(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -139,22 +173,22 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreBridgeConfig`."""
-    orderBy: [StoreBridgeConfigsOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreAssetSupply`."""
+    orderBy: [StoreAssetSuppliesOrderBy!] = [PRIMARY_KEY_ASC]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreBridgeConfigCondition
+    condition: StoreAssetSupplyCondition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreBridgeConfigFilter
-  ): StoreBridgeConfigsConnection
+    filter: StoreAssetSupplyFilter
+  ): StoreAssetSuppliesConnection
 
-  """Reads and enables pagination through a set of `StoreBridgeDeposit`."""
-  bridgeDeposits(
+  """Reads and enables pagination through a set of `StoreAssetSwap`."""
+  assetSwaps(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -173,22 +207,22 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreBridgeDeposit`."""
-    orderBy: [StoreBridgeDepositsOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreAssetSwap`."""
+    orderBy: [StoreAssetSwapsOrderBy!] = [NATURAL]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreBridgeDepositCondition
+    condition: StoreAssetSwapCondition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreBridgeDepositFilter
-  ): StoreBridgeDepositsConnection
+    filter: StoreAssetSwapFilter
+  ): StoreAssetSwapsConnection
 
-  """Reads and enables pagination through a set of `StoreBridgeWithdraw`."""
-  bridgeWithdraws(
+  """Reads and enables pagination through a set of `StoreAssetTransfer`."""
+  assetTransfers(
     """Only read the first `n` values of the set."""
     first: Int
 
@@ -207,19 +241,121 @@ type Query implements Node {
     """Read all values in the set after (below) this cursor."""
     after: Cursor
 
-    """The method to use when ordering `StoreBridgeWithdraw`."""
-    orderBy: [StoreBridgeWithdrawsOrderBy!] = [PRIMARY_KEY_ASC]
+    """The method to use when ordering `StoreAssetTransfer`."""
+    orderBy: [StoreAssetTransfersOrderBy!] = [NATURAL]
 
     """
     A condition to be used in determining which values should be returned by the collection.
     """
-    condition: StoreBridgeWithdrawCondition
+    condition: StoreAssetTransferCondition
 
     """
     A filter to be used in determining which values should be returned by the collection.
     """
-    filter: StoreBridgeWithdrawFilter
-  ): StoreBridgeWithdrawsConnection
+    filter: StoreAssetTransferFilter
+  ): StoreAssetTransfersConnection
+
+  """Reads and enables pagination through a set of `StoreAssetUnwrap`."""
+  assetUnwraps(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreAssetUnwrap`."""
+    orderBy: [StoreAssetUnwrapsOrderBy!] = [NATURAL]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreAssetUnwrapCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreAssetUnwrapFilter
+  ): StoreAssetUnwrapsConnection
+
+  """Reads and enables pagination through a set of `StoreAssetWrap`."""
+  assetWraps(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreAssetWrap`."""
+    orderBy: [StoreAssetWrapsOrderBy!] = [NATURAL]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreAssetWrapCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreAssetWrapFilter
+  ): StoreAssetWrapsConnection
+
+  """Reads and enables pagination through a set of `StoreAssetWrapper`."""
+  assetWrappers(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `StoreAssetWrapper`."""
+    orderBy: [StoreAssetWrappersOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StoreAssetWrapperCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StoreAssetWrapperFilter
+  ): StoreAssetWrappersConnection
 
   """Reads and enables pagination through a set of `StoreDappFeeConfig`."""
   dappFeeConfigs(
@@ -459,40 +595,6 @@ type Query implements Node {
     filter: StoreSuiAssetIdFilter
   ): StoreSuiAssetIdsConnection
 
-  """Reads and enables pagination through a set of `StoreWrapperAsset`."""
-  wrapperAssets(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-
-    """The method to use when ordering `StoreWrapperAsset`."""
-    orderBy: [StoreWrapperAssetsOrderBy!] = [PRIMARY_KEY_ASC]
-
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: StoreWrapperAssetCondition
-
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: StoreWrapperAssetFilter
-  ): StoreWrapperAssetsConnection
-
   """Reads and enables pagination through a set of `TableField`."""
   tableFields(
     """Only read the first `n` values of the set."""
@@ -527,11 +629,11 @@ type Query implements Node {
     filter: TableFieldFilter
   ): TableFieldsConnection
   assetAccount(assetId: String!, account: String!): StoreAssetAccount
+  assetHolder(assetId: String!): StoreAssetHolder
   assetMetadatum(assetId: String!): StoreAssetMetadatum
   assetPool(asset0: String!, asset1: String!): StoreAssetPool
-  bridgeConfig(chain: String!): StoreBridgeConfig
-  bridgeDeposit(uniqueResourceId: Int!): StoreBridgeDeposit
-  bridgeWithdraw(uniqueResourceId: Int!): StoreBridgeWithdraw
+  assetSupply(assetId: String!): StoreAssetSupply
+  assetWrapper(coinType: String!): StoreAssetWrapper
   dappFeeConfig(uniqueResourceId: Int!): StoreDappFeeConfig
   dappFeeState(dappKey: String!): StoreDappFeeState
   dappMetadatum(dappKey: String!): StoreDappMetadatum
@@ -539,7 +641,6 @@ type Query implements Node {
   dubheAssetId(uniqueResourceId: Int!): StoreDubheAssetId
   dubheConfig(uniqueResourceId: Int!): StoreDubheConfig
   suiAssetId(uniqueResourceId: Int!): StoreSuiAssetId
-  wrapperAsset(coinType: String!): StoreWrapperAsset
   tableField(tableName: String!, fieldName: String!): TableField
 
   """Reads a single `StoreAssetAccount` using its globally unique `ID`."""
@@ -549,6 +650,14 @@ type Query implements Node {
     """
     nodeId: ID!
   ): StoreAssetAccount
+
+  """Reads a single `StoreAssetHolder` using its globally unique `ID`."""
+  assetHolderByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `StoreAssetHolder`.
+    """
+    nodeId: ID!
+  ): StoreAssetHolder
 
   """Reads a single `StoreAssetMetadatum` using its globally unique `ID`."""
   assetMetadatumByNodeId(
@@ -566,29 +675,21 @@ type Query implements Node {
     nodeId: ID!
   ): StoreAssetPool
 
-  """Reads a single `StoreBridgeConfig` using its globally unique `ID`."""
-  bridgeConfigByNodeId(
+  """Reads a single `StoreAssetSupply` using its globally unique `ID`."""
+  assetSupplyByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreBridgeConfig`.
+    The globally unique `ID` to be used in selecting a single `StoreAssetSupply`.
     """
     nodeId: ID!
-  ): StoreBridgeConfig
+  ): StoreAssetSupply
 
-  """Reads a single `StoreBridgeDeposit` using its globally unique `ID`."""
-  bridgeDepositByNodeId(
+  """Reads a single `StoreAssetWrapper` using its globally unique `ID`."""
+  assetWrapperByNodeId(
     """
-    The globally unique `ID` to be used in selecting a single `StoreBridgeDeposit`.
-    """
-    nodeId: ID!
-  ): StoreBridgeDeposit
-
-  """Reads a single `StoreBridgeWithdraw` using its globally unique `ID`."""
-  bridgeWithdrawByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreBridgeWithdraw`.
+    The globally unique `ID` to be used in selecting a single `StoreAssetWrapper`.
     """
     nodeId: ID!
-  ): StoreBridgeWithdraw
+  ): StoreAssetWrapper
 
   """Reads a single `StoreDappFeeConfig` using its globally unique `ID`."""
   dappFeeConfigByNodeId(
@@ -646,14 +747,6 @@ type Query implements Node {
     nodeId: ID!
   ): StoreSuiAssetId
 
-  """Reads a single `StoreWrapperAsset` using its globally unique `ID`."""
-  wrapperAssetByNodeId(
-    """
-    The globally unique `ID` to be used in selecting a single `StoreWrapperAsset`.
-    """
-    nodeId: ID!
-  ): StoreWrapperAsset
-
   """Reads a single `TableField` using its globally unique `ID`."""
   tableFieldByNodeId(
     """
@@ -710,6 +803,7 @@ type StoreAssetAccount implements Node {
   status: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -762,6 +856,8 @@ enum StoreAssetAccountsOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -791,6 +887,9 @@ input StoreAssetAccountCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -816,6 +915,9 @@ input StoreAssetAccountFilter {
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -1046,6 +1148,122 @@ input BooleanFilter {
   greaterThanOrEqualTo: Boolean
 }
 
+"""A connection to a list of `StoreAssetHolder` values."""
+type StoreAssetHoldersConnection {
+  """A list of `StoreAssetHolder` objects."""
+  nodes: [StoreAssetHolder!]!
+
+  """
+  A list of edges which contains the `StoreAssetHolder` and cursor to aid in pagination.
+  """
+  edges: [StoreAssetHoldersEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreAssetHolder` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreAssetHolder implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  assetId: String!
+  holder: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
+  isDeleted: Boolean
+}
+
+"""A `StoreAssetHolder` edge in the connection."""
+type StoreAssetHoldersEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreAssetHolder` at the end of the edge."""
+  node: StoreAssetHolder!
+}
+
+"""Methods to use when ordering `StoreAssetHolder`."""
+enum StoreAssetHoldersOrderBy {
+  NATURAL
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  HOLDER_ASC
+  HOLDER_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `StoreAssetHolder` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreAssetHolderCondition {
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
+
+  """Checks for equality with the object’s `holder` field."""
+  holder: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreAssetHolder` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreAssetHolderFilter {
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
+
+  """Filter by the object’s `holder` field."""
+  holder: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreAssetHolderFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreAssetHolderFilter!]
+
+  """Negates the expression."""
+  not: StoreAssetHolderFilter
+}
+
 """A connection to a list of `StoreAssetMetadatum` values."""
 type StoreAssetMetadataConnection {
   """A list of `StoreAssetMetadatum` objects."""
@@ -1077,8 +1295,6 @@ type StoreAssetMetadatum implements Node {
   decimals: Int
   iconUrl: String
   owner: String
-  supply: String
-  accounts: String
   status: String
   isMintable: Boolean
   isBurnable: Boolean
@@ -1086,6 +1302,7 @@ type StoreAssetMetadatum implements Node {
   assetType: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -1115,10 +1332,6 @@ enum StoreAssetMetadataOrderBy {
   ICON_URL_DESC
   OWNER_ASC
   OWNER_DESC
-  SUPPLY_ASC
-  SUPPLY_DESC
-  ACCOUNTS_ASC
-  ACCOUNTS_DESC
   STATUS_ASC
   STATUS_DESC
   IS_MINTABLE_ASC
@@ -1133,6 +1346,8 @@ enum StoreAssetMetadataOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -1165,12 +1380,6 @@ input StoreAssetMetadatumCondition {
   """Checks for equality with the object’s `owner` field."""
   owner: String
 
-  """Checks for equality with the object’s `supply` field."""
-  supply: String
-
-  """Checks for equality with the object’s `accounts` field."""
-  accounts: String
-
   """Checks for equality with the object’s `status` field."""
   status: String
 
@@ -1191,6 +1400,9 @@ input StoreAssetMetadatumCondition {
 
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
 
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
@@ -1221,12 +1433,6 @@ input StoreAssetMetadatumFilter {
   """Filter by the object’s `owner` field."""
   owner: StringFilter
 
-  """Filter by the object’s `supply` field."""
-  supply: StringFilter
-
-  """Filter by the object’s `accounts` field."""
-  accounts: StringFilter
-
   """Filter by the object’s `status` field."""
   status: StringFilter
 
@@ -1247,6 +1453,9 @@ input StoreAssetMetadatumFilter {
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -1334,6 +1543,7 @@ type StoreAssetPool implements Node {
   kLast: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -1367,6 +1577,8 @@ enum StoreAssetPoolsOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -1405,6 +1617,9 @@ input StoreAssetPoolCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -1440,6 +1655,9 @@ input StoreAssetPoolFilter {
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
 
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
 
@@ -1453,63 +1671,60 @@ input StoreAssetPoolFilter {
   not: StoreAssetPoolFilter
 }
 
-"""A connection to a list of `StoreBridgeConfig` values."""
-type StoreBridgeConfigsConnection {
-  """A list of `StoreBridgeConfig` objects."""
-  nodes: [StoreBridgeConfig!]!
+"""A connection to a list of `StoreAssetSupply` values."""
+type StoreAssetSuppliesConnection {
+  """A list of `StoreAssetSupply` objects."""
+  nodes: [StoreAssetSupply!]!
 
   """
-  A list of edges which contains the `StoreBridgeConfig` and cursor to aid in pagination.
+  A list of edges which contains the `StoreAssetSupply` and cursor to aid in pagination.
   """
-  edges: [StoreBridgeConfigsEdge!]!
+  edges: [StoreAssetSuppliesEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
   """
-  The count of *all* `StoreBridgeConfig` you could get from the connection.
+  The count of *all* `StoreAssetSupply` you could get from the connection.
   """
   totalCount: Int!
 }
 
-type StoreBridgeConfig implements Node {
+type StoreAssetSupply implements Node {
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
-  chain: String!
-  minAmount: String
-  fee: String
-  opened: Boolean
+  assetId: String!
+  supply: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
-"""A `StoreBridgeConfig` edge in the connection."""
-type StoreBridgeConfigsEdge {
+"""A `StoreAssetSupply` edge in the connection."""
+type StoreAssetSuppliesEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreBridgeConfig` at the end of the edge."""
-  node: StoreBridgeConfig!
+  """The `StoreAssetSupply` at the end of the edge."""
+  node: StoreAssetSupply!
 }
 
-"""Methods to use when ordering `StoreBridgeConfig`."""
-enum StoreBridgeConfigsOrderBy {
+"""Methods to use when ordering `StoreAssetSupply`."""
+enum StoreAssetSuppliesOrderBy {
   NATURAL
-  CHAIN_ASC
-  CHAIN_DESC
-  MIN_AMOUNT_ASC
-  MIN_AMOUNT_DESC
-  FEE_ASC
-  FEE_DESC
-  OPENED_ASC
-  OPENED_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  SUPPLY_ASC
+  SUPPLY_DESC
   CREATED_AT_TIMESTAMP_MS_ASC
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -1517,21 +1732,15 @@ enum StoreBridgeConfigsOrderBy {
 }
 
 """
-A condition to be used against `StoreBridgeConfig` object types. All fields are
+A condition to be used against `StoreAssetSupply` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StoreBridgeConfigCondition {
-  """Checks for equality with the object’s `chain` field."""
-  chain: String
+input StoreAssetSupplyCondition {
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
 
-  """Checks for equality with the object’s `minAmount` field."""
-  minAmount: String
-
-  """Checks for equality with the object’s `fee` field."""
-  fee: String
-
-  """Checks for equality with the object’s `opened` field."""
-  opened: Boolean
+  """Checks for equality with the object’s `supply` field."""
+  supply: String
 
   """Checks for equality with the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigInt
@@ -1539,25 +1748,22 @@ input StoreBridgeConfigCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
 
 """
-A filter to be used against `StoreBridgeConfig` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreAssetSupply` object types. All fields are combined with a logical ‘and.’
 """
-input StoreBridgeConfigFilter {
-  """Filter by the object’s `chain` field."""
-  chain: StringFilter
+input StoreAssetSupplyFilter {
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
 
-  """Filter by the object’s `minAmount` field."""
-  minAmount: StringFilter
-
-  """Filter by the object’s `fee` field."""
-  fee: StringFilter
-
-  """Filter by the object’s `opened` field."""
-  opened: BooleanFilter
+  """Filter by the object’s `supply` field."""
+  supply: StringFilter
 
   """Filter by the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigIntFilter
@@ -1565,104 +1771,242 @@ input StoreBridgeConfigFilter {
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
 
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreBridgeConfigFilter!]
+  and: [StoreAssetSupplyFilter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreBridgeConfigFilter!]
+  or: [StoreAssetSupplyFilter!]
 
   """Negates the expression."""
-  not: StoreBridgeConfigFilter
+  not: StoreAssetSupplyFilter
 }
 
-"""A connection to a list of `StoreBridgeDeposit` values."""
-type StoreBridgeDepositsConnection {
-  """A list of `StoreBridgeDeposit` objects."""
-  nodes: [StoreBridgeDeposit!]!
+"""A connection to a list of `StoreAssetSwap` values."""
+type StoreAssetSwapsConnection {
+  """A list of `StoreAssetSwap` objects."""
+  nodes: [StoreAssetSwap!]!
 
   """
-  A list of edges which contains the `StoreBridgeDeposit` and cursor to aid in pagination.
+  A list of edges which contains the `StoreAssetSwap` and cursor to aid in pagination.
   """
-  edges: [StoreBridgeDepositsEdge!]!
+  edges: [StoreAssetSwapsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `StoreAssetSwap` you could get from the connection."""
+  totalCount: Int!
+}
+
+type StoreAssetSwap {
+  from: String
+  asset0: String
+  asset1: String
+  amount0: String
+  amount1: String
+  to: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
+  isDeleted: Boolean
+}
+
+"""A `StoreAssetSwap` edge in the connection."""
+type StoreAssetSwapsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreAssetSwap` at the end of the edge."""
+  node: StoreAssetSwap!
+}
+
+"""Methods to use when ordering `StoreAssetSwap`."""
+enum StoreAssetSwapsOrderBy {
+  NATURAL
+  FROM_ASC
+  FROM_DESC
+  ASSET0_ASC
+  ASSET0_DESC
+  ASSET1_ASC
+  ASSET1_DESC
+  AMOUNT0_ASC
+  AMOUNT0_DESC
+  AMOUNT1_ASC
+  AMOUNT1_DESC
+  TO_ASC
+  TO_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+}
+
+"""
+A condition to be used against `StoreAssetSwap` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreAssetSwapCondition {
+  """Checks for equality with the object’s `from` field."""
+  from: String
+
+  """Checks for equality with the object’s `asset0` field."""
+  asset0: String
+
+  """Checks for equality with the object’s `asset1` field."""
+  asset1: String
+
+  """Checks for equality with the object’s `amount0` field."""
+  amount0: String
+
+  """Checks for equality with the object’s `amount1` field."""
+  amount1: String
+
+  """Checks for equality with the object’s `to` field."""
+  to: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreAssetSwap` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreAssetSwapFilter {
+  """Filter by the object’s `from` field."""
+  from: StringFilter
+
+  """Filter by the object’s `asset0` field."""
+  asset0: StringFilter
+
+  """Filter by the object’s `asset1` field."""
+  asset1: StringFilter
+
+  """Filter by the object’s `amount0` field."""
+  amount0: StringFilter
+
+  """Filter by the object’s `amount1` field."""
+  amount1: StringFilter
+
+  """Filter by the object’s `to` field."""
+  to: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreAssetSwapFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreAssetSwapFilter!]
+
+  """Negates the expression."""
+  not: StoreAssetSwapFilter
+}
+
+"""A connection to a list of `StoreAssetTransfer` values."""
+type StoreAssetTransfersConnection {
+  """A list of `StoreAssetTransfer` objects."""
+  nodes: [StoreAssetTransfer!]!
+
+  """
+  A list of edges which contains the `StoreAssetTransfer` and cursor to aid in pagination.
+  """
+  edges: [StoreAssetTransfersEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
   """
-  The count of *all* `StoreBridgeDeposit` you could get from the connection.
+  The count of *all* `StoreAssetTransfer` you could get from the connection.
   """
   totalCount: Int!
 }
 
-type StoreBridgeDeposit implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  uniqueResourceId: Int!
+type StoreAssetTransfer {
   from: String
   to: String
-  fromChain: String
   amount: String
+  assetId: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
-"""A `StoreBridgeDeposit` edge in the connection."""
-type StoreBridgeDepositsEdge {
+"""A `StoreAssetTransfer` edge in the connection."""
+type StoreAssetTransfersEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreBridgeDeposit` at the end of the edge."""
-  node: StoreBridgeDeposit!
+  """The `StoreAssetTransfer` at the end of the edge."""
+  node: StoreAssetTransfer!
 }
 
-"""Methods to use when ordering `StoreBridgeDeposit`."""
-enum StoreBridgeDepositsOrderBy {
+"""Methods to use when ordering `StoreAssetTransfer`."""
+enum StoreAssetTransfersOrderBy {
   NATURAL
-  UNIQUE_RESOURCE_ID_ASC
-  UNIQUE_RESOURCE_ID_DESC
   FROM_ASC
   FROM_DESC
   TO_ASC
   TO_DESC
-  FROM_CHAIN_ASC
-  FROM_CHAIN_DESC
   AMOUNT_ASC
   AMOUNT_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
   CREATED_AT_TIMESTAMP_MS_ASC
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
 }
 
 """
-A condition to be used against `StoreBridgeDeposit` object types. All fields are
+A condition to be used against `StoreAssetTransfer` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
-input StoreBridgeDepositCondition {
-  """Checks for equality with the object’s `uniqueResourceId` field."""
-  uniqueResourceId: Int
-
+input StoreAssetTransferCondition {
   """Checks for equality with the object’s `from` field."""
   from: String
 
   """Checks for equality with the object’s `to` field."""
   to: String
 
-  """Checks for equality with the object’s `fromChain` field."""
-  fromChain: String
-
   """Checks for equality with the object’s `amount` field."""
   amount: String
+
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
 
   """Checks for equality with the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigInt
@@ -1670,28 +2014,28 @@ input StoreBridgeDepositCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
 
 """
-A filter to be used against `StoreBridgeDeposit` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreAssetTransfer` object types. All fields are combined with a logical ‘and.’
 """
-input StoreBridgeDepositFilter {
-  """Filter by the object’s `uniqueResourceId` field."""
-  uniqueResourceId: IntFilter
-
+input StoreAssetTransferFilter {
   """Filter by the object’s `from` field."""
   from: StringFilter
 
   """Filter by the object’s `to` field."""
   to: StringFilter
 
-  """Filter by the object’s `fromChain` field."""
-  fromChain: StringFilter
-
   """Filter by the object’s `amount` field."""
   amount: StringFilter
+
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
 
   """Filter by the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigIntFilter
@@ -1699,82 +2043,348 @@ input StoreBridgeDepositFilter {
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
 
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreBridgeDepositFilter!]
+  and: [StoreAssetTransferFilter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreBridgeDepositFilter!]
+  or: [StoreAssetTransferFilter!]
 
   """Negates the expression."""
-  not: StoreBridgeDepositFilter
+  not: StoreAssetTransferFilter
 }
 
-"""A connection to a list of `StoreBridgeWithdraw` values."""
-type StoreBridgeWithdrawsConnection {
-  """A list of `StoreBridgeWithdraw` objects."""
-  nodes: [StoreBridgeWithdraw!]!
+"""A connection to a list of `StoreAssetUnwrap` values."""
+type StoreAssetUnwrapsConnection {
+  """A list of `StoreAssetUnwrap` objects."""
+  nodes: [StoreAssetUnwrap!]!
 
   """
-  A list of edges which contains the `StoreBridgeWithdraw` and cursor to aid in pagination.
+  A list of edges which contains the `StoreAssetUnwrap` and cursor to aid in pagination.
   """
-  edges: [StoreBridgeWithdrawsEdge!]!
+  edges: [StoreAssetUnwrapsEdge!]!
 
   """Information to aid in pagination."""
   pageInfo: PageInfo!
 
   """
-  The count of *all* `StoreBridgeWithdraw` you could get from the connection.
+  The count of *all* `StoreAssetUnwrap` you could get from the connection.
   """
   totalCount: Int!
 }
 
-type StoreBridgeWithdraw implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  uniqueResourceId: Int!
+type StoreAssetUnwrap {
   from: String
   to: String
-  toChain: String
   amount: String
-  fee: String
+  coinType: String
+  assetId: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
-"""A `StoreBridgeWithdraw` edge in the connection."""
-type StoreBridgeWithdrawsEdge {
+"""A `StoreAssetUnwrap` edge in the connection."""
+type StoreAssetUnwrapsEdge {
   """A cursor for use in pagination."""
   cursor: Cursor
 
-  """The `StoreBridgeWithdraw` at the end of the edge."""
-  node: StoreBridgeWithdraw!
+  """The `StoreAssetUnwrap` at the end of the edge."""
+  node: StoreAssetUnwrap!
 }
 
-"""Methods to use when ordering `StoreBridgeWithdraw`."""
-enum StoreBridgeWithdrawsOrderBy {
+"""Methods to use when ordering `StoreAssetUnwrap`."""
+enum StoreAssetUnwrapsOrderBy {
   NATURAL
-  UNIQUE_RESOURCE_ID_ASC
-  UNIQUE_RESOURCE_ID_DESC
   FROM_ASC
   FROM_DESC
   TO_ASC
   TO_DESC
-  TO_CHAIN_ASC
-  TO_CHAIN_DESC
   AMOUNT_ASC
   AMOUNT_DESC
-  FEE_ASC
-  FEE_DESC
+  COIN_TYPE_ASC
+  COIN_TYPE_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
   CREATED_AT_TIMESTAMP_MS_ASC
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+}
+
+"""
+A condition to be used against `StoreAssetUnwrap` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreAssetUnwrapCondition {
+  """Checks for equality with the object’s `from` field."""
+  from: String
+
+  """Checks for equality with the object’s `to` field."""
+  to: String
+
+  """Checks for equality with the object’s `amount` field."""
+  amount: String
+
+  """Checks for equality with the object’s `coinType` field."""
+  coinType: String
+
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreAssetUnwrap` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreAssetUnwrapFilter {
+  """Filter by the object’s `from` field."""
+  from: StringFilter
+
+  """Filter by the object’s `to` field."""
+  to: StringFilter
+
+  """Filter by the object’s `amount` field."""
+  amount: StringFilter
+
+  """Filter by the object’s `coinType` field."""
+  coinType: StringFilter
+
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreAssetUnwrapFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreAssetUnwrapFilter!]
+
+  """Negates the expression."""
+  not: StoreAssetUnwrapFilter
+}
+
+"""A connection to a list of `StoreAssetWrap` values."""
+type StoreAssetWrapsConnection {
+  """A list of `StoreAssetWrap` objects."""
+  nodes: [StoreAssetWrap!]!
+
+  """
+  A list of edges which contains the `StoreAssetWrap` and cursor to aid in pagination.
+  """
+  edges: [StoreAssetWrapsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `StoreAssetWrap` you could get from the connection."""
+  totalCount: Int!
+}
+
+type StoreAssetWrap {
+  from: String
+  to: String
+  amount: String
+  coinType: String
+  assetId: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
+  isDeleted: Boolean
+}
+
+"""A `StoreAssetWrap` edge in the connection."""
+type StoreAssetWrapsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreAssetWrap` at the end of the edge."""
+  node: StoreAssetWrap!
+}
+
+"""Methods to use when ordering `StoreAssetWrap`."""
+enum StoreAssetWrapsOrderBy {
+  NATURAL
+  FROM_ASC
+  FROM_DESC
+  TO_ASC
+  TO_DESC
+  AMOUNT_ASC
+  AMOUNT_DESC
+  COIN_TYPE_ASC
+  COIN_TYPE_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
+  IS_DELETED_ASC
+  IS_DELETED_DESC
+}
+
+"""
+A condition to be used against `StoreAssetWrap` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input StoreAssetWrapCondition {
+  """Checks for equality with the object’s `from` field."""
+  from: String
+
+  """Checks for equality with the object’s `to` field."""
+  to: String
+
+  """Checks for equality with the object’s `amount` field."""
+  amount: String
+
+  """Checks for equality with the object’s `coinType` field."""
+  coinType: String
+
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
+
+  """Checks for equality with the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
+  """Checks for equality with the object’s `isDeleted` field."""
+  isDeleted: Boolean
+}
+
+"""
+A filter to be used against `StoreAssetWrap` object types. All fields are combined with a logical ‘and.’
+"""
+input StoreAssetWrapFilter {
+  """Filter by the object’s `from` field."""
+  from: StringFilter
+
+  """Filter by the object’s `to` field."""
+  to: StringFilter
+
+  """Filter by the object’s `amount` field."""
+  amount: StringFilter
+
+  """Filter by the object’s `coinType` field."""
+  coinType: StringFilter
+
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
+
+  """Filter by the object’s `createdAtTimestampMs` field."""
+  createdAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `updatedAtTimestampMs` field."""
+  updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
+  """Filter by the object’s `isDeleted` field."""
+  isDeleted: BooleanFilter
+
+  """Checks for all expressions in this list."""
+  and: [StoreAssetWrapFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [StoreAssetWrapFilter!]
+
+  """Negates the expression."""
+  not: StoreAssetWrapFilter
+}
+
+"""A connection to a list of `StoreAssetWrapper` values."""
+type StoreAssetWrappersConnection {
+  """A list of `StoreAssetWrapper` objects."""
+  nodes: [StoreAssetWrapper!]!
+
+  """
+  A list of edges which contains the `StoreAssetWrapper` and cursor to aid in pagination.
+  """
+  edges: [StoreAssetWrappersEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `StoreAssetWrapper` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type StoreAssetWrapper implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  coinType: String!
+  assetId: String
+  createdAtTimestampMs: BigInt
+  updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
+  isDeleted: Boolean
+}
+
+"""A `StoreAssetWrapper` edge in the connection."""
+type StoreAssetWrappersEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `StoreAssetWrapper` at the end of the edge."""
+  node: StoreAssetWrapper!
+}
+
+"""Methods to use when ordering `StoreAssetWrapper`."""
+enum StoreAssetWrappersOrderBy {
+  NATURAL
+  COIN_TYPE_ASC
+  COIN_TYPE_DESC
+  ASSET_ID_ASC
+  ASSET_ID_DESC
+  CREATED_AT_TIMESTAMP_MS_ASC
+  CREATED_AT_TIMESTAMP_MS_DESC
+  UPDATED_AT_TIMESTAMP_MS_ASC
+  UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -1782,27 +2392,15 @@ enum StoreBridgeWithdrawsOrderBy {
 }
 
 """
-A condition to be used against `StoreBridgeWithdraw` object types. All fields
-are tested for equality and combined with a logical ‘and.’
+A condition to be used against `StoreAssetWrapper` object types. All fields are
+tested for equality and combined with a logical ‘and.’
 """
-input StoreBridgeWithdrawCondition {
-  """Checks for equality with the object’s `uniqueResourceId` field."""
-  uniqueResourceId: Int
+input StoreAssetWrapperCondition {
+  """Checks for equality with the object’s `coinType` field."""
+  coinType: String
 
-  """Checks for equality with the object’s `from` field."""
-  from: String
-
-  """Checks for equality with the object’s `to` field."""
-  to: String
-
-  """Checks for equality with the object’s `toChain` field."""
-  toChain: String
-
-  """Checks for equality with the object’s `amount` field."""
-  amount: String
-
-  """Checks for equality with the object’s `fee` field."""
-  fee: String
+  """Checks for equality with the object’s `assetId` field."""
+  assetId: String
 
   """Checks for equality with the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigInt
@@ -1810,31 +2408,22 @@ input StoreBridgeWithdrawCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
 
 """
-A filter to be used against `StoreBridgeWithdraw` object types. All fields are combined with a logical ‘and.’
+A filter to be used against `StoreAssetWrapper` object types. All fields are combined with a logical ‘and.’
 """
-input StoreBridgeWithdrawFilter {
-  """Filter by the object’s `uniqueResourceId` field."""
-  uniqueResourceId: IntFilter
+input StoreAssetWrapperFilter {
+  """Filter by the object’s `coinType` field."""
+  coinType: StringFilter
 
-  """Filter by the object’s `from` field."""
-  from: StringFilter
-
-  """Filter by the object’s `to` field."""
-  to: StringFilter
-
-  """Filter by the object’s `toChain` field."""
-  toChain: StringFilter
-
-  """Filter by the object’s `amount` field."""
-  amount: StringFilter
-
-  """Filter by the object’s `fee` field."""
-  fee: StringFilter
+  """Filter by the object’s `assetId` field."""
+  assetId: StringFilter
 
   """Filter by the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigIntFilter
@@ -1842,17 +2431,20 @@ input StoreBridgeWithdrawFilter {
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
 
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
 
   """Checks for all expressions in this list."""
-  and: [StoreBridgeWithdrawFilter!]
+  and: [StoreAssetWrapperFilter!]
 
   """Checks for any expressions in this list."""
-  or: [StoreBridgeWithdrawFilter!]
+  or: [StoreAssetWrapperFilter!]
 
   """Negates the expression."""
-  not: StoreBridgeWithdrawFilter
+  not: StoreAssetWrapperFilter
 }
 
 """A connection to a list of `StoreDappFeeConfig` values."""
@@ -1885,6 +2477,7 @@ type StoreDappFeeConfig implements Node {
   byteFee: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -1912,6 +2505,8 @@ enum StoreDappFeeConfigsOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -1941,6 +2536,9 @@ input StoreDappFeeConfigCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -1966,6 +2564,9 @@ input StoreDappFeeConfigFilter {
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -2011,8 +2612,10 @@ type StoreDappFeeState implements Node {
   totalBytesSize: String
   totalRecharged: String
   totalPaid: String
+  totalSetCount: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -2042,10 +2645,14 @@ enum StoreDappFeeStatesOrderBy {
   TOTAL_RECHARGED_DESC
   TOTAL_PAID_ASC
   TOTAL_PAID_DESC
+  TOTAL_SET_COUNT_ASC
+  TOTAL_SET_COUNT_DESC
   CREATED_AT_TIMESTAMP_MS_ASC
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -2078,11 +2685,17 @@ input StoreDappFeeStateCondition {
   """Checks for equality with the object’s `totalPaid` field."""
   totalPaid: String
 
+  """Checks for equality with the object’s `totalSetCount` field."""
+  totalSetCount: String
+
   """Checks for equality with the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigInt
 
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
+
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
 
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
@@ -2113,11 +2726,17 @@ input StoreDappFeeStateFilter {
   """Filter by the object’s `totalPaid` field."""
   totalPaid: StringFilter
 
+  """Filter by the object’s `totalSetCount` field."""
+  totalSetCount: StringFilter
+
   """Filter by the object’s `createdAtTimestampMs` field."""
   createdAtTimestampMs: BigIntFilter
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -2169,6 +2788,7 @@ type StoreDappMetadatum implements Node {
   pausable: Boolean
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -2210,6 +2830,8 @@ enum StoreDappMetadataOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -2260,6 +2882,9 @@ input StoreDappMetadatumCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -2306,6 +2931,9 @@ input StoreDappMetadatumFilter {
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -2410,6 +3038,7 @@ type StoreDappProxy implements Node {
   enabled: Boolean
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -2435,6 +3064,8 @@ enum StoreDappProxiesOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -2461,6 +3092,9 @@ input StoreDappProxyCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -2483,6 +3117,9 @@ input StoreDappProxyFilter {
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -2525,6 +3162,7 @@ type StoreDubheAssetId implements Node {
   value: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -2548,6 +3186,8 @@ enum StoreDubheAssetIdsOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -2571,6 +3211,9 @@ input StoreDubheAssetIdCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -2590,6 +3233,9 @@ input StoreDubheAssetIdFilter {
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -2636,6 +3282,7 @@ type StoreDubheConfig implements Node {
   admin: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -2667,6 +3314,8 @@ enum StoreDubheConfigsOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -2702,6 +3351,9 @@ input StoreDubheConfigCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -2733,6 +3385,9 @@ input StoreDubheConfigFilter {
 
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
+
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
 
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
@@ -2775,6 +3430,7 @@ type StoreSuiAssetId implements Node {
   value: String
   createdAtTimestampMs: BigInt
   updatedAtTimestampMs: BigInt
+  lastUpdateDigest: String
   isDeleted: Boolean
 }
 
@@ -2798,6 +3454,8 @@ enum StoreSuiAssetIdsOrderBy {
   CREATED_AT_TIMESTAMP_MS_DESC
   UPDATED_AT_TIMESTAMP_MS_ASC
   UPDATED_AT_TIMESTAMP_MS_DESC
+  LAST_UPDATE_DIGEST_ASC
+  LAST_UPDATE_DIGEST_DESC
   IS_DELETED_ASC
   IS_DELETED_DESC
   PRIMARY_KEY_ASC
@@ -2821,6 +3479,9 @@ input StoreSuiAssetIdCondition {
   """Checks for equality with the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigInt
 
+  """Checks for equality with the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: String
+
   """Checks for equality with the object’s `isDeleted` field."""
   isDeleted: Boolean
 }
@@ -2841,6 +3502,9 @@ input StoreSuiAssetIdFilter {
   """Filter by the object’s `updatedAtTimestampMs` field."""
   updatedAtTimestampMs: BigIntFilter
 
+  """Filter by the object’s `lastUpdateDigest` field."""
+  lastUpdateDigest: StringFilter
+
   """Filter by the object’s `isDeleted` field."""
   isDeleted: BooleanFilter
 
@@ -2852,113 +3516,6 @@ input StoreSuiAssetIdFilter {
 
   """Negates the expression."""
   not: StoreSuiAssetIdFilter
-}
-
-"""A connection to a list of `StoreWrapperAsset` values."""
-type StoreWrapperAssetsConnection {
-  """A list of `StoreWrapperAsset` objects."""
-  nodes: [StoreWrapperAsset!]!
-
-  """
-  A list of edges which contains the `StoreWrapperAsset` and cursor to aid in pagination.
-  """
-  edges: [StoreWrapperAssetsEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """
-  The count of *all* `StoreWrapperAsset` you could get from the connection.
-  """
-  totalCount: Int!
-}
-
-type StoreWrapperAsset implements Node {
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-  coinType: String!
-  assetId: String
-  createdAtTimestampMs: BigInt
-  updatedAtTimestampMs: BigInt
-  isDeleted: Boolean
-}
-
-"""A `StoreWrapperAsset` edge in the connection."""
-type StoreWrapperAssetsEdge {
-  """A cursor for use in pagination."""
-  cursor: Cursor
-
-  """The `StoreWrapperAsset` at the end of the edge."""
-  node: StoreWrapperAsset!
-}
-
-"""Methods to use when ordering `StoreWrapperAsset`."""
-enum StoreWrapperAssetsOrderBy {
-  NATURAL
-  COIN_TYPE_ASC
-  COIN_TYPE_DESC
-  ASSET_ID_ASC
-  ASSET_ID_DESC
-  CREATED_AT_TIMESTAMP_MS_ASC
-  CREATED_AT_TIMESTAMP_MS_DESC
-  UPDATED_AT_TIMESTAMP_MS_ASC
-  UPDATED_AT_TIMESTAMP_MS_DESC
-  IS_DELETED_ASC
-  IS_DELETED_DESC
-  PRIMARY_KEY_ASC
-  PRIMARY_KEY_DESC
-}
-
-"""
-A condition to be used against `StoreWrapperAsset` object types. All fields are
-tested for equality and combined with a logical ‘and.’
-"""
-input StoreWrapperAssetCondition {
-  """Checks for equality with the object’s `coinType` field."""
-  coinType: String
-
-  """Checks for equality with the object’s `assetId` field."""
-  assetId: String
-
-  """Checks for equality with the object’s `createdAtTimestampMs` field."""
-  createdAtTimestampMs: BigInt
-
-  """Checks for equality with the object’s `updatedAtTimestampMs` field."""
-  updatedAtTimestampMs: BigInt
-
-  """Checks for equality with the object’s `isDeleted` field."""
-  isDeleted: Boolean
-}
-
-"""
-A filter to be used against `StoreWrapperAsset` object types. All fields are combined with a logical ‘and.’
-"""
-input StoreWrapperAssetFilter {
-  """Filter by the object’s `coinType` field."""
-  coinType: StringFilter
-
-  """Filter by the object’s `assetId` field."""
-  assetId: StringFilter
-
-  """Filter by the object’s `createdAtTimestampMs` field."""
-  createdAtTimestampMs: BigIntFilter
-
-  """Filter by the object’s `updatedAtTimestampMs` field."""
-  updatedAtTimestampMs: BigIntFilter
-
-  """Filter by the object’s `isDeleted` field."""
-  isDeleted: BooleanFilter
-
-  """Checks for all expressions in this list."""
-  and: [StoreWrapperAssetFilter!]
-
-  """Checks for any expressions in this list."""
-  or: [StoreWrapperAssetFilter!]
-
-  """Negates the expression."""
-  not: StoreWrapperAssetFilter
 }
 
 """A connection to a list of `TableField` values."""

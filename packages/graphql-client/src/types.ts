@@ -110,6 +110,7 @@ export interface StoreTableRow {
   createdAtTimestampMs: string;
   updatedAtTimestampMs: string;
   isDeleted: boolean;
+  lastUpdateDigest: string;
   [key: string]: any;
 }
 
