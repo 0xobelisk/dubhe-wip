@@ -1,11 +1,11 @@
 {
   "projectName": "dubhe",
-  "network": "testnet",
-  "startCheckpoint": "250107990",
-  "packageId": "0xf98fe9c454a40f7d7fa37e19cf3ca5ea8351e24bb6d9fdd2d4da471c694a1796",
-  "dappHub": "0xb65df6ea777f1ed0fb9a0d9173eec6b43f2ae1da4346af1b48f678d8af796379",
-  "upgradeCap": "0xa40bee2d35c47f61459f5372ee11e9b33cf16591801e2861b3f67b8f5feb4e37",
-  "version": 2,
+  "network": "localnet",
+  "startCheckpoint": "547",
+  "packageId": "0x2327c19e6c3175044332342e674989cc1848eeb7a9ec803e4ea148ea63022dd5",
+  "dappHub": "0xe8ffda503a954ddd498ac6e5622af99cb68f76f93a916d341c840ace6664e6f6",
+  "upgradeCap": "0x8725612d675e81433840c7f01aeaf98b380d83f2bbef0055b6e6f68f65272826",
+  "version": 1,
   "components": {},
   "resources": {
     "dubhe_asset_id": "address",
@@ -168,28 +168,6 @@
         "amount": "u256",
         "coin_type": "String",
         "asset_id": "address"
-      },
-      "offchain": true
-    },
-    "asset_add_liquidity": {
-      "fields": {
-        "from": "address",
-        "asset0": "address",
-        "asset1": "address",
-        "amount0": "u256",
-        "amount1": "u256",
-        "to": "address"
-      },
-      "offchain": true
-    },
-    "asset_remove_liquidity": {
-      "fields": {
-        "from": "address",
-        "asset0": "address",
-        "asset1": "address",
-        "amount0": "u256",
-        "amount1": "u256",
-        "to": "address"
       },
       "offchain": true
     },

@@ -163,6 +163,28 @@ export const dubheConfig = {
       },
       offchain: true
     },
+    asset_add_liquidity: {
+      fields: {
+        from: 'address',
+        asset0: 'address',
+        asset1: 'address',
+        amount0: 'u256',
+        amount1: 'u256',
+        to: 'address'
+      },
+      offchain: true
+    },
+    asset_remove_liquidity: {
+      fields: {
+        from: 'address',
+        asset0: 'address',
+        asset1: 'address',
+        amount0: 'u256',
+        amount1: 'u256',
+        to: 'address'
+      },
+      offchain: true
+    },
     asset_swap: {
       fields: {
         from: 'address',

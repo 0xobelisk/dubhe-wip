@@ -678,7 +678,7 @@ export function updateGenesisUpgradeFunction(path: string, tables: string[]) {
 
   // Generate new table registration code
   const registerTablesCode = tables
-    .map((table) => `    ${table}::register_table(dapp_hub, _ctx);`)
+    .map((table) => `    ${table}::register_table(dapp_hub, ctx);`)
     .join('\n');
 
   // Build new content, preserve separators, replace middle content

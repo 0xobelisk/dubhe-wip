@@ -11,6 +11,8 @@ module dubhe::dex_system {
         more_than_max_swap_path_len_error,swap_path_too_small_error, below_min_amount_error, less_than_amount_out_min_error, more_than_amount_in_max_error
     };
     use std::ascii::{string};
+    use dubhe::asset_add_liquidity;
+    use dubhe::asset_remove_liquidity;
 
     const LP_ASSET_DESCRIPTION: vector<u8> = b"Merak LP Asset";
     const LP_ASSET_NAME: vector<u8> = b"Merak LP Asset";
@@ -92,6 +94,7 @@ module dubhe::dex_system {
         assets_functions::do_transfer(dapp_hub, asset_a, sender, pool.pool_address(), amount_a);
         assets_functions::do_transfer(dapp_hub, asset_b, sender, pool.pool_address(), amount_b);
         let liquidity = dex_functions::mint(dapp_hub, asset_a, asset_b, to);
+        asset_add_liquidity::set(dapp_hub, sender, asset_a, asset_b, amount_a, amount_b, to);
         liquidity
     }
 
@@ -127,6 +130,7 @@ module dubhe::dex_system {
         };
         below_min_amount_error(amount_a >= amount_a_min);
         below_min_amount_error(amount_b >= amount_b_min);
+        asset_remove_liquidity::set(dapp_hub, sender, asset_a, asset_b, amount_a, amount_b, to);
         (amount_a, amount_b)
     }
 
