@@ -560,7 +560,12 @@ export class Dubhe {
                     innerType = innerType.Vector;
                   }
 
-                  if ('Struct' in innerType) {
+                  // Check if innerType is an object before using 'in' operator
+                  if (
+                    typeof innerType === 'object' &&
+                    innerType !== null &&
+                    'Struct' in innerType
+                  ) {
                     const structType = innerType.Struct;
                     const structId = `${structType.address}::${structType.module}::${structType.name}`;
 
@@ -570,6 +575,50 @@ export class Dubhe {
                       return;
                     }
                     let baseType = bcsType;
+                    for (let i = 0; i <= vectorDepth; i++) {
+                      baseType = bcs.vector(baseType);
+                    }
+
+                    bcsJson[objName] = baseType;
+                    return;
+                  }
+
+                  // Handle primitive types in nested vectors
+                  if (typeof innerType === 'string') {
+                    let baseType: BcsType<any, any>;
+                    switch (innerType) {
+                      case 'U8':
+                        baseType = bcs.u8();
+                        break;
+                      case 'U16':
+                        baseType = bcs.u16();
+                        break;
+                      case 'U32':
+                        baseType = bcs.u32();
+                        break;
+                      case 'U64':
+                        baseType = bcs.u64();
+                        break;
+                      case 'U128':
+                        baseType = bcs.u128();
+                        break;
+                      case 'U256':
+                        baseType = bcs.u256();
+                        break;
+                      case 'Bool':
+                        baseType = bcs.bool();
+                        break;
+                      case 'Address':
+                        baseType = bcs.bytes(32).transform({
+                          input: (val: string) => fromHEX(val),
+                          output: (val) => toHEX(val)
+                        });
+                        break;
+                      default:
+                        return; // Unsupported primitive type
+                    }
+
+                    // Apply vector wrapping based on depth
                     for (let i = 0; i <= vectorDepth; i++) {
                       baseType = bcs.vector(baseType);
                     }
