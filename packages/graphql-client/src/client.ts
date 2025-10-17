@@ -375,6 +375,18 @@ export class DubheGraphqlClient {
   }
 
   /**
+   * TODO: Get GraphQL type for a field name
+   */
+  private getGraphQLType(fieldName: string): string {
+    // uniqueResourceId is an Int type for resources without keys
+    if (fieldName === 'uniqueResourceId') {
+      return 'Int!';
+    }
+    // Default to String type
+    return 'String!';
+  }
+
+  /**
    * Get single table record by condition - Adapted to API without store prefix
    */
   async getTableByCondition<T extends StoreTableRow>(
@@ -390,7 +402,7 @@ export class DubheGraphqlClient {
 
     const query = gql`
       query GetTableByCondition(${conditionKeys
-        .map((key, _index) => `$${key}: String!`)
+        .map((key) => `$${key}: ${this.getGraphQLType(key)}`)
         .join(', ')}) {
         ${singularTableName}(${conditionKeys.map((key) => `${key}: $${key}`).join(', ')}) {
           ${this.convertTableFields(tableName, fields)}
