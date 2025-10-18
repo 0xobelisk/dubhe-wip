@@ -792,7 +792,13 @@ impl DubheConfig {
     }
 
     pub fn can_convert_event_to_sql(&self, event: &Event) -> Result<()> {
-        if event.table_id() == "dapp_fee_state" {
+        if event.table_id() == "dapp_fee_state"
+            && event.origin_package_id()
+                != Some(
+                    "0xa337791835d15223727ace33cce17ea0901c094c8cfbe34d089c1a18c2df7a15"
+                        .to_string(),
+                )
+        {
             return Ok(());
         }
         if event.origin_package_id() != Some(self.package_id.clone()) {
