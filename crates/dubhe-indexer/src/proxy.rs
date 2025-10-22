@@ -24,6 +24,7 @@ pub struct ProxyServer {
     graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
     shutdown_tx: broadcast::Sender<()>,
     version: String,
+    config_json: Arc<serde_json::Value>,
 }
 
 impl ProxyServer {
@@ -34,6 +35,7 @@ impl ProxyServer {
         graphql_addr: Option<SocketAddr>,
         grpc_subscribers: GrpcSubscribers,
         graphql_subscribers: Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>,
+        config_json: Arc<serde_json::Value>,
     ) -> Self {
         let (shutdown_tx, _) = broadcast::channel(1);
 
@@ -45,6 +47,7 @@ impl ProxyServer {
             graphql_subscribers,
             shutdown_tx,
             version: "1.2.0".to_string(),
+            config_json,
         }
     }
 
@@ -56,10 +59,11 @@ impl ProxyServer {
         if let Some(grpc_addr) = self.grpc_addr {
             let grpc_subscribers = self.grpc_subscribers.clone();
             let shutdown_rx = self.shutdown_tx.subscribe();
+            let config_json = self.config_json.clone();
 
             tokio::spawn(async move {
                 if let Err(e) =
-                    start_grpc_service(grpc_addr, grpc_subscribers, database, shutdown_rx).await
+                    start_grpc_service(grpc_addr, grpc_subscribers, database, config_json, shutdown_rx).await
                 {
                     log::error!("❌ gRPC service failed: {}", e);
                 }
@@ -88,20 +92,23 @@ impl ProxyServer {
         let grpc_addr = self.grpc_addr;
         let graphql_addr = self.graphql_addr;
         let version = self.version.clone();
+        let config_json = self.config_json.clone();
 
         let make_svc = make_service_fn(move |conn: &AddrStream| {
             let remote_addr = conn.remote_addr().ip();
             let grpc_addr = grpc_addr;
             let graphql_addr = graphql_addr;
             let version = version.clone();
+            let config_json = config_json.clone();
 
             async move {
                 Ok::<_, Infallible>(service_fn(move |req| {
                     let grpc_addr = grpc_addr;
                     let graphql_addr = graphql_addr;
                     let version = version.clone();
+                    let config_json = config_json.clone();
                     async move {
-                        handle_request(remote_addr, req, grpc_addr, graphql_addr, version).await
+                        handle_request(remote_addr, req, grpc_addr, graphql_addr, version, config_json).await
                     }
                 }))
             }
@@ -128,17 +135,24 @@ async fn handle_request(
     grpc_addr: Option<SocketAddr>,
     graphql_addr: Option<SocketAddr>,
     version: String,
+    config_json: Arc<serde_json::Value>,
 ) -> Result<Response<Body>, Infallible> {
     let path = req.uri().path();
     let method = req.method();
     let headers = req.headers();
 
     println!("📨 Request from {}: {} {}", client_addr, method, path);
-
-    // Check if it's a gRPC request based on content type and other indicators
-    // Root path "/" is also considered for gRPC requests
     println!("🔍 Request path: {}", path);
-    if path.starts_with("/dubhe_grpc") {
+    println!("🔍 Request headers: {:?}", headers);
+
+    // Check if it's a gRPC request
+    // gRPC requests typically have paths like "/dubhe_grpc.DubheGrpc/MethodName"
+    let is_grpc = path.starts_with("/dubhe_grpc") 
+        || headers.get(CONTENT_TYPE).and_then(|v| v.to_str().ok())
+            .map(|ct| ct.starts_with("application/grpc"))
+            .unwrap_or(false);
+    
+    if is_grpc {
         log::info!("🔌 Routing gRPC request: {}", path);
         return handle_grpc_request(req, grpc_addr).await;
     }
@@ -164,6 +178,11 @@ async fn handle_request(
         return Ok(serve_welcome_page());
     }
 
+    // Handle metadata endpoint
+    if path.starts_with("/metadata") {
+        return Ok(serve_metadata(config_json));
+    }
+
     // Default 404 response
     log::warn!("❌ No handler found for: {} {}", method, path);
     Ok(Response::builder()
@@ -173,7 +192,7 @@ async fn handle_request(
             json!({
                 "error": "Not Found",
                 "message": format!("No handler for {} {}", method, path),
-                "available_endpoints": ["/", "/health", "/graphql", "/playground"]
+                "available_endpoints": ["/", "/health", "/graphql", "/playground", "/metadata"]
             })
             .to_string(),
         ))
@@ -479,6 +498,15 @@ fn serve_service_info(version: String) -> Response<Body> {
         .unwrap()
 }
 
+/// Serve metadata endpoint
+fn serve_metadata(config_json: Arc<serde_json::Value>) -> Response<Body> {
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, "application/json")
+        .body(Body::from(config_json.to_string()))
+        .unwrap()
+}
+
 /// Serve welcome page
 fn serve_welcome_page() -> Response<Body> {
     // Generate a simplified welcome page without database connection
@@ -681,13 +709,18 @@ async fn start_grpc_service(
     addr: SocketAddr,
     subscribers: GrpcSubscribers,
     database: Arc<Database>,
+    config_json: Arc<serde_json::Value>,
     mut shutdown_rx: broadcast::Receiver<()>,
 ) -> Result<()> {
     use dubhe_indexer_grpc::grpc::DubheGrpcService;
     use dubhe_indexer_grpc::types::dubhe_grpc_server::DubheGrpcServer;
     use tonic::transport::Server;
+    use dubhe_common::DubheConfig;
 
-    let grpc_service = DubheGrpcService::new(subscribers, database);
+    // Parse DubheConfig from JSON
+    let dubhe_config = Arc::new(DubheConfig::from_json(config_json.as_ref().clone())?);
+
+    let grpc_service = DubheGrpcService::new(subscribers, database, dubhe_config);
     let grpc_server = DubheGrpcServer::new(grpc_service);
 
     log::info!(

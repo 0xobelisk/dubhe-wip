@@ -153,7 +153,7 @@ message PaginationResponse {
 
 // Subscribe request
 message SubscribeRequest {
-  repeated string table_ids = 1;  // Multiple table IDs to subscribe to
+  repeated string table_ids = 1;  // Multiple table IDs to subscribe to. Empty array means subscribe to all tables.
 }
 
 // Table update stream

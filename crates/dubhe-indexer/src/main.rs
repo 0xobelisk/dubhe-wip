@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
         .await?;
 
     let config_json = args.get_config_json()?;
-    let dubhe_config = DubheConfigCommon::from_json(config_json)?;
+    let dubhe_config = DubheConfigCommon::from_json(config_json.clone())?;
 
     let database = Database::new(&args.database_url).await?;
 
@@ -120,18 +120,6 @@ async fn main() -> Result<()> {
     // Start the indexer and wait for completion
     let handle = cluster.run().await?;
 
-    // Print startup banner
-    println!("\n🚀 Dubhe Indexer Starting...");
-    println!("================================");
-    println!("🔌 gRPC Endpoint:    http://0.0.0.0:{}/", args.port);
-    println!("📊 GraphQL Endpoint: http://0.0.0.0:{}/graphql", args.port);
-    println!("🏠 Welcome Page:     http://0.0.0.0:{}/welcome", args.port);
-    println!(
-        "🎮 Playground:       http://0.0.0.0:{}/playground",
-        args.port
-    );
-    println!("💚 Health Check:     http://0.0.0.0:{}/health", args.port);
-
     // Start unified proxy server with independent GraphQL and gRPC backends (torii-style architecture)
     // If the port is occupied, generate a new port
     let grpc_backend_addr: SocketAddr = loop {
@@ -150,6 +138,22 @@ async fn main() -> Result<()> {
         }
     };
 
+    // Print startup banner
+    println!("\n🚀 Dubhe Indexer Starting...");
+    println!("================================");
+    println!("🌐 Proxy Server:     http://0.0.0.0:{}", args.port);
+    println!("🔌 gRPC Service:     http://0.0.0.0:{} (direct)", grpc_backend_addr.port());
+    println!("   Via Proxy:        http://0.0.0.0:{}/dubhe_grpc.*", args.port);
+    println!("📊 GraphQL Endpoint: http://0.0.0.0:{}/graphql", args.port);
+    println!("🏠 Welcome Page:     http://0.0.0.0:{}/welcome", args.port);
+    println!(
+        "🎮 Playground:       http://0.0.0.0:{}/playground",
+        args.port
+    );
+    println!("💚 Health Check:     http://0.0.0.0:{}/health", args.port);
+    println!("📋 Metadata:         http://0.0.0.0:{}/metadata", args.port);
+    println!("\n💡 For gRPC clients, use: http://localhost:{}", grpc_backend_addr.port());
+
     let server_addr = format!("0.0.0.0:{}", args.port)
         .parse::<SocketAddr>()
         .map_err(|e| anyhow::anyhow!("Invalid server address {}: {}", args.port, e))?;
@@ -159,6 +163,7 @@ async fn main() -> Result<()> {
         Some(graphql_backend_addr), // Independent GraphQL service
         subscribers.clone(),
         graphql_subscribers.clone(),
+        Arc::new(config_json.clone()),
     );
 
     // Start proxy server in the main task (it will spawn backend services internally)

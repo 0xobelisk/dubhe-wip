@@ -9,20 +9,22 @@ use crate::types::{
     filter_value, value_range, FilterCondition, FilterOperator, FilterValue, PaginationResponse,
     QueryRequest, QueryResponse, SortDirection, SubscribeRequest, TableChange,
 };
-use dubhe_common::Database;
+use dubhe_common::{Database, DubheConfig};
 
 pub type GrpcSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>;
 
 pub struct DubheGrpcService {
     subscribers: GrpcSubscribers,
     database: Arc<Database>,
+    dubhe_config: Arc<DubheConfig>,
 }
 
 impl DubheGrpcService {
-    pub fn new(subscribers: GrpcSubscribers, database: Arc<Database>) -> Self {
+    pub fn new(subscribers: GrpcSubscribers, database: Arc<Database>, dubhe_config: Arc<DubheConfig>) -> Self {
         Self {
             subscribers,
             database,
+            dubhe_config,
         }
     }
 
@@ -481,8 +483,21 @@ impl DubheGrpc for DubheGrpcService {
 
         println!("🔔 gRPC subscribe_table: table_ids={:?}", req.table_ids);
 
+        // Determine which tables to subscribe to
+        let table_ids = if req.table_ids.is_empty() {
+            // If empty, subscribe to all tables
+            let all_tables: Vec<String> = self.dubhe_config.tables
+                .iter()
+                .map(|table| table.name.clone())
+                .collect();
+            println!("📋 Subscribing to all tables: {:?}", all_tables);
+            all_tables
+        } else {
+            req.table_ids
+        };
+
         // Add subscriber for each table
-        for table_id in req.table_ids.clone() {
+        for table_id in table_ids.clone() {
             let mut subscribers = self.subscribers.write().await;
             let senders = subscribers.entry(table_id.clone()).or_insert_with(Vec::new);
             senders.push(tx.clone());
@@ -509,9 +524,10 @@ pub async fn start_grpc_server(
     addr: String,
     subscribers: GrpcSubscribers,
     database: Arc<Database>,
+    dubhe_config: Arc<DubheConfig>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = addr.parse()?;
-    let service = DubheGrpcService::new(subscribers, database);
+    let service = DubheGrpcService::new(subscribers, database, dubhe_config);
 
     println!("GRPC server listening on {}", addr);
 

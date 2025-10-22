@@ -22,6 +22,7 @@ use sui_types::base_types::ObjectID;
 use sui_types::message_envelope::Message;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
+use prost_types::Value;
 
 pub type GrpcSubscribers =
     Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<GrpcTableChange>>>>>;
@@ -62,7 +63,6 @@ impl Processor for DubheEventHandler {
             let current_digest = transaction.transaction.digest().base58_encode().clone();
             let maybe_events = &transaction.events;
             if let Some(events) = maybe_events {
-                println!("current_digest: {:?}", current_digest);
                 for event in &events.data {
                     if event.type_.name.to_string() == "Dubhe_Store_SetRecord"
                         || event.type_.name.to_string() == "Dubhe_Store_SetField"
@@ -78,9 +78,33 @@ impl Processor for DubheEventHandler {
                             .is_ok()
                         {
                             let table_name = parsed_event.table_id().to_string();
-                            let proto_struct = self
+                            let mut proto_struct = self
                                 .dubhe_config
                                 .convert_event_to_proto_struct(&parsed_event)?;
+
+                            // proto_struct append updated_at_timestamp_ms, last_update_digest and is_deleted
+                            proto_struct.fields.insert(
+                                "updated_at_timestamp_ms".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::StringValue(
+                                        current_checkpoint.to_string(),
+                                    )),
+                                },
+                            );
+                            proto_struct.fields.insert(
+                                "last_update_digest".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::StringValue(
+                                        current_digest.clone(),
+                                    )),
+                                },
+                            );
+                            proto_struct.fields.insert(
+                                "is_deleted".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::BoolValue(false)),
+                                },
+                            );
 
                             // Spawn async task to send update without blocking
                             let subscribers = self.grpc_subscribers.clone();
@@ -235,7 +259,6 @@ impl Handler for DubheEventHandler {
     type Batch = Vec<Self::Value>;
 
     fn batch(batch: &mut Self::Batch, values: Vec<Self::Value>) {
-        println!("🔄 Batching values: {:?}", values);
         batch.extend(values);
     }
 
