@@ -344,7 +344,7 @@ export interface SubscribeRequest {
   /**
    * @generated from protobuf field: repeated string table_ids = 1
    */
-  tableIds: string[]; // Multiple table IDs to subscribe to
+  tableIds: string[]; // Multiple table IDs to subscribe to. Empty array means subscribe to all tables.
 }
 /**
  * Table update stream

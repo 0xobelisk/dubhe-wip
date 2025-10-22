@@ -38,7 +38,7 @@
     "build:tsup": "tsup ./src/index.ts --format esm,cjs --sourcemap",
     "build:types": "tsc --build",
     "clean": "rm -rf tsconfig.tsbuildinfo ./dist",
-    "generate": "rm -rf src/proto && mkdir src/proto && pnpm generate:proto && pnpm lint:fix",
+    "generate": "rm -rf src/proto && mkdir src/proto && pnpm generate:proto && pnpm lint && pnpm prettier:fix",
     "generate:proto": "protoc --ts_out=./src/proto --ts_opt server_none -I ../../crates/dubhe-indexer-grpc/proto ../../crates/dubhe-indexer-grpc/proto/dubhe_grpc.proto",
     "lint": "eslint . --ext .ts",
     "prettier:check": "prettier -c --ignore-unknown .",
