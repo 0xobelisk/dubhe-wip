@@ -20,5 +20,11 @@ export type {
   PaginationResponse
 } from './proto/dubhe_grpc';
 
+// Re-export protobuf types
+export { Struct } from './proto/google/protobuf/struct';
+
+// Utils
+export * from './utils';
+
 // Index
 export { DubheGrpcClient } from './client';
