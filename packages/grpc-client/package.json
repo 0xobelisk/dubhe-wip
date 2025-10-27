@@ -1,6 +1,6 @@
 {
   "name": "@0xobelisk/grpc-client",
-  "version": "1.2.0-pre.77",
+  "version": "1.2.0-pre.78",
   "description": "Toolkit for interacting with dubhe gRPC indexer",
   "keywords": [
     "sui",
