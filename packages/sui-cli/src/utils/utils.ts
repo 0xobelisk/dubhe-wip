@@ -10,6 +10,7 @@ import { Dubhe, NetworkType, SuiMoveNormalizedModules, loadMetadata } from '@0xo
 import { DubheCliError } from './errors';
 import packageJson from '../../package.json';
 import { Component, MoveType, EmptyComponent, DubheConfig } from '@0xobelisk/sui-common';
+import { TESTNET_DUBHE_HUB_OBJECT_ID } from './constants';
 
 export type DeploymentJsonType = {
   projectName: string;
@@ -99,11 +100,11 @@ export async function getDubheDappHub(network: string) {
 
   switch (network) {
     case 'mainnet':
-      return await getDeploymentDappHub(contractPath, 'mainnet');
+      return TESTNET_DUBHE_HUB_OBJECT_ID;
     case 'testnet':
-      return await getDeploymentDappHub(contractPath, 'testnet');
+      return TESTNET_DUBHE_HUB_OBJECT_ID;
     case 'devnet':
-      return await getDeploymentDappHub(contractPath, 'devnet');
+      return TESTNET_DUBHE_HUB_OBJECT_ID;
     case 'localnet':
       return await getDeploymentDappHub(contractPath, 'localnet');
     default:
@@ -648,18 +649,46 @@ export function generateConfigJson(config: DubheConfig): string {
 }
 
 /**
- * Updates the dubhe address in Move.toml file
+ * Updates the dubhe address and published-at in Move.toml file
  * @param path - Directory path containing Move.toml file
  * @param packageAddress - New dubhe package address to set
+ *
+ * Logic:
+ * - If packageAddress is "0x0": only set dubhe = "0x0", remove published-at line
+ * - Otherwise: set both dubhe and published-at to packageAddress
  */
 export function updateMoveTomlAddress(path: string, packageAddress: string) {
   const moveTomlPath = `${path}/Move.toml`;
   const moveTomlContent = fs.readFileSync(moveTomlPath, 'utf-8');
-  // Use regex to match any dubhe address, not just "0x0"
-  const updatedContent = moveTomlContent.replace(
-    /dubhe\s*=\s*"[^"]*"/,
-    `dubhe = "${packageAddress}"`
-  );
+
+  let updatedContent = moveTomlContent;
+
+  if (packageAddress === '0x0') {
+    // Case 1: Address is "0x0" - set dubhe to "0x0" and remove published-at line
+    updatedContent = updatedContent.replace(/dubhe\s*=\s*"[^"]*"/, `dubhe = "0x0"`);
+
+    // Remove published-at line (including the line break)
+    updatedContent = updatedContent.replace(/published-at\s*=\s*"[^"]*"\r?\n?/, '');
+  } else {
+    // Case 2: Address is not "0x0" - set both dubhe and published-at
+    updatedContent = updatedContent.replace(/dubhe\s*=\s*"[^"]*"/, `dubhe = "${packageAddress}"`);
+
+    // Check if published-at already exists
+    if (/published-at\s*=\s*"[^"]*"/.test(updatedContent)) {
+      // Replace existing published-at
+      updatedContent = updatedContent.replace(
+        /published-at\s*=\s*"[^"]*"/,
+        `published-at = "${packageAddress}"`
+      );
+    } else {
+      // Add published-at after [package] line if it doesn't exist
+      updatedContent = updatedContent.replace(
+        /(\[package\][^\n]*\n)/,
+        `$1published-at = "${packageAddress}"\n`
+      );
+    }
+  }
+
   fs.writeFileSync(moveTomlPath, updatedContent, 'utf-8');
 }
 

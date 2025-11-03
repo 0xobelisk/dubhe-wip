@@ -362,6 +362,9 @@ export async function publishDubheFramework(
   await removeEnvContent(`${projectPath}/Move.lock`, network);
   await updateMoveTomlAddress(projectPath, '0x0');
 
+  const startCheckpoint =
+    await dubhe.suiInteractor.currentClient.getLatestCheckpointSequenceNumber();
+
   const [modules, dependencies] = buildContract(projectPath);
   const tx = new Transaction();
   const [upgradeCap] = tx.publish({ modules, dependencies });
@@ -430,8 +433,8 @@ export async function publishDubheFramework(
   await saveContractData(
     'dubhe',
     network,
+    startCheckpoint,
     packageId,
-    '0',
     dappHub,
     upgradeCapId,
     version,

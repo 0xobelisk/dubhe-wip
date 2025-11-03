@@ -1,0 +1,2 @@
+export const TESTNET_DUBHE_HUB_OBJECT_ID =
+  '0xb65df6ea777f1ed0fb9a0d9173eec6b43f2ae1da4346af1b48f678d8af796379';
