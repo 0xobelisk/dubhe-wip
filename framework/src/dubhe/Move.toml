@@ -4,7 +4,7 @@ edition = "2024"
 version = "1.0.0"
 license = "apache2.0"
 authors = ["Obelisk Labs"]
-published-at = "0xf98fe9c454a40f7d7fa37e19cf3ca5ea8351e24bb6d9fdd2d4da471c694a1796"
+published-at = "0x4613b8a390298cc450fe11360fddf41ba1bde38060163c5ca9f192a25b4f9f2e"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.46.3" }
