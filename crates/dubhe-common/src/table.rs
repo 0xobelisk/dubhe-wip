@@ -296,17 +296,21 @@ pub struct DubheConfig {
     pub fields: Vec<Field>,
     pub enums: Vec<Enum>,
     pub tables: Vec<Table>,
-    pub package_id: String,
+    pub original_package_id: String,
+    pub dubhe_object_id: String,
+    pub original_dubhe_package_id: String,
     pub start_checkpoint: String,
 }
 
 impl DubheConfig {
-    pub fn new(package_id: String, start_checkpoint: String) -> Self {
+    pub fn new(original_package_id: String, dubhe_object_id: String, original_dubhe_package_id: String, start_checkpoint: String) -> Self {
         Self {
             fields: Vec::new(),
             enums: Vec::new(),
             tables: Vec::new(),
-            package_id,
+            original_package_id,
+            dubhe_object_id,
+            original_dubhe_package_id,
             start_checkpoint,
         }
     }
@@ -622,14 +626,20 @@ impl DubheConfig {
     pub fn from_json(json: Value) -> Result<Self> {
         let dubhe_config_json: DubheConfigJson = serde_json::from_value(json)?;
 
-        let package_id = dubhe_config_json
-            .package_id
+        let original_package_id = dubhe_config_json
+            .original_package_id
             .ok_or(anyhow::anyhow!("No package id found in config file"))?;
+        let dubhe_object_id = dubhe_config_json
+            .dubhe_object_id
+            .ok_or(anyhow::anyhow!("No dubhe object id found in config file"))?;
+        let original_dubhe_package_id = dubhe_config_json
+            .original_dubhe_package_id
+            .ok_or(anyhow::anyhow!("No original dubhe package id found in config file"))?;
         let start_checkpoint = dubhe_config_json
             .start_checkpoint
             .ok_or(anyhow::anyhow!("No start checkpoint found in config file"))?;
 
-        let mut dubhe_config = Self::new(package_id, start_checkpoint);
+        let mut dubhe_config = Self::new(original_package_id, dubhe_object_id, original_dubhe_package_id, start_checkpoint);
 
         /// handle enums
         for enum_ in dubhe_config_json.enums {
@@ -803,8 +813,8 @@ impl DubheConfig {
         }
 
         println!("event.origin_package_id(): {:?}", event.origin_package_id());
-        println!("self.package_id: {:?}", self.package_id);
-        if event.origin_package_id() != Some(self.package_id.clone()) {
+        println!("self.original_package_id: {:?}", self.original_package_id);
+        if event.origin_package_id() != Some(self.original_package_id.clone()) {
             return Err(anyhow::anyhow!(
                 "Event origin package id does not match the package id"
             ));
@@ -1075,7 +1085,9 @@ pub struct DubheConfigJson {
     pub components: Vec<HashMap<String, TableJsonInfo>>,
     pub resources: Vec<HashMap<String, TableJsonInfo>>,
     pub enums: Vec<HashMap<String, Vec<String>>>,
-    pub package_id: Option<String>,
+    pub original_package_id: Option<String>,
+    pub dubhe_object_id: Option<String>,
+    pub original_dubhe_package_id: Option<String>,
     pub start_checkpoint: Option<String>,
 }
 
@@ -1098,7 +1110,7 @@ pub struct TableMetadata {
 }
 
 impl TableMetadata {
-    pub fn from_json(json: Value) -> Result<(String, u64, Vec<TableMetadata>)> {
+    pub fn from_json(json: Value) -> Result<(String, String, String, u64, Vec<TableMetadata>)> {
         let dubhe_config_json: DubheConfigJson = serde_json::from_value(json)?;
         let mut final_tables = Vec::new();
 
@@ -1207,22 +1219,32 @@ impl TableMetadata {
             }
         }
 
-        if dubhe_config_json.package_id.is_none() {
+        if dubhe_config_json.original_package_id.is_none() {
             return Err(anyhow::anyhow!("No package id found in config file"));
+        }
+
+        if dubhe_config_json.dubhe_object_id.is_none() {
+            return Err(anyhow::anyhow!("No dubhe object id found in config file"));
+        }
+
+        if dubhe_config_json.original_dubhe_package_id.is_none() {
+            return Err(anyhow::anyhow!("No original dubhe package id found in config file"));
         }
 
         if dubhe_config_json.start_checkpoint.is_none() {
             return Err(anyhow::anyhow!("No start checkpoint found in config file"));
         }
 
-        let package_id = dubhe_config_json.package_id.unwrap();
+        let original_package_id = dubhe_config_json.original_package_id.unwrap();
+        let dubhe_object_id = dubhe_config_json.dubhe_object_id.unwrap();
+        let original_dubhe_package_id = dubhe_config_json.original_dubhe_package_id.unwrap();
         let start_checkpoint = dubhe_config_json
             .start_checkpoint
             .unwrap()
             .parse::<u64>()
             .unwrap_or(0);
 
-        Ok((package_id, start_checkpoint, final_tables))
+        Ok((original_package_id, dubhe_object_id, original_dubhe_package_id, start_checkpoint, final_tables))
     }
 
     pub fn is_enum(field_type: &str) -> bool {
@@ -1804,7 +1826,7 @@ mod tests {
               ]
             }
           ],
-          "package_id": "0x1",
+          "original_package_id": "0x1",
           "start_checkpoint": "1"
         })
     }
@@ -2424,7 +2446,7 @@ mod tests {
               ]
             }
           ],
-          "package_id": "0x1",
+          "original_package_id": "0x1",
           "start_checkpoint": "1"
         })
     }
@@ -2616,7 +2638,7 @@ mod tests {
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 
 //         assert_eq!(tables.len(), 4);
 
@@ -2626,7 +2648,7 @@ mod tests {
 //         assert_eq!(table.fields.len(), 1);
 //         assert_eq!(table.fields[0].is_key, true);
 //         assert_eq!(table.offchain, false);
-//         assert_eq!(package_id, "0x1234567890123456789012345678901234567890");
+//         assert_eq!(original_package_id, "0x1234567890123456789012345678901234567890");
 //         assert_eq!(start_checkpoint, 1);
 
 //         let table2 = &tables[2];
@@ -2657,7 +2679,7 @@ mod tests {
 //     #[test]
 //     fn test_generate_create_table_sql() {
 //         let test_json = get_test_json();
-//         let (package_id, start_checkpoint, tables) = TableMetadata::from_json(test_json).unwrap();
+//         let (original_package_id, start_checkpoint, tables) = TableMetadata::from_json(test_json).unwrap();
 //         assert_eq!(tables.len(), 4);
 //         let table = &tables[0];
 //         assert_eq!(
@@ -2706,14 +2728,14 @@ mod tests {
 //             }
 //           ],
 //           "enums": [],
-//           "package_id": "0x1234567890123456789012345678901234567890",
+//           "original_package_id": "0x1234567890123456789012345678901234567890",
 //           "start_checkpoint": "1"
 //         });
 
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 //         assert_eq!(tables.len(), 1);
 
 //         let table = &tables[0];
@@ -2747,14 +2769,14 @@ mod tests {
 //           ],
 //           "resources": [],
 //           "enums": [],
-//           "package_id": "0x1234567890123456789012345678901234567890",
+//           "original_package_id": "0x1234567890123456789012345678901234567890",
 //           "start_checkpoint": "1"
 //         });
 
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 //         assert_eq!(tables.len(), 1);
 
 //         let table = &tables[0];
@@ -2788,14 +2810,14 @@ mod tests {
 //             }
 //           ],
 //           "enums": [],
-//           "package_id": "0x1234567890123456789012345678901234567890",
+//           "original_package_id": "0x1234567890123456789012345678901234567890",
 //           "start_checkpoint": "1"
 //         });
 
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 //         assert_eq!(tables.len(), 1);
 
 //         let table = &tables[0];
@@ -2828,14 +2850,14 @@ mod tests {
 //           ],
 //           "resources": [],
 //           "enums": [],
-//           "package_id": "0x1234567890123456789012345678901234567890",
+//           "original_package_id": "0x1234567890123456789012345678901234567890",
 //           "start_checkpoint": "1"
 //         });
 
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 //         assert_eq!(tables.len(), 1);
 
 //         let table = &tables[0];
@@ -2869,14 +2891,14 @@ mod tests {
 //             }
 //           ],
 //           "enums": [],
-//           "package_id": "0x1234567890123456789012345678901234567890",
+//           "original_package_id": "0x1234567890123456789012345678901234567890",
 //           "start_checkpoint": "1"
 //         });
 
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 //         assert_eq!(tables.len(), 1);
 
 //         let table = &tables[0];
@@ -2911,14 +2933,14 @@ mod tests {
 //           ],
 //           "resources": [],
 //           "enums": [],
-//           "package_id": "0x1234567890123456789012345678901234567890",
+//           "original_package_id": "0x1234567890123456789012345678901234567890",
 //           "start_checkpoint": "1"
 //         });
 
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 //         assert_eq!(tables.len(), 1);
 
 //         let table = &tables[0];
@@ -2949,14 +2971,14 @@ mod tests {
 //             }
 //           ],
 //           "enums": [],
-//           "package_id": "0x1234567890123456789012345678901234567890",
+//           "original_package_id": "0x1234567890123456789012345678901234567890",
 //           "start_checkpoint": "1"
 //         });
 
 //         let result = TableMetadata::from_json(test_json);
 //         assert!(result.is_ok());
 
-//         let (package_id, start_checkpoint, tables) = result.unwrap();
+//         let (original_package_id, start_checkpoint, tables) = result.unwrap();
 //         assert_eq!(tables.len(), 1);
 
 //         let table = &tables[0];

@@ -44,31 +44,15 @@ use bs58;
 use base64::{Engine as _, engine::general_purpose};
 
 
-// 配置结构体
+// Configuration struct
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct DubheChannelConfig {
-    #[arg(long, default_value = "http://localhost:9000")]
-    sui_rpc_url: String,
-    #[arg(long, default_value = "0x1")]
-    package_id: String,
-    #[arg(long, default_value = "0x2")]
-    dubhe_package_id: String,
-    #[arg(long, default_value = "0x3")]
-    dubhe_object_id: String,
-    #[arg(long, default_value = "0x4b8e9e6510fb69201b63d9466c5e382dde2073a6eaf9e3b70f4b82d000a8bc25")]
-    signer: String,
     #[command(flatten)]
     indexer_args: DubheIndexerArgs,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SetStorageResponse {
-    pub counter: u32,
-    pub digest: String,
-}
-
-// Submit Request 结构体
+// Submit Request struct
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SubmitRequest {
     pub chain: String,  // "sui" | "evm" | "solana"
@@ -87,7 +71,7 @@ pub struct SubmitResponse {
     pub data: Option<serde_json::Value>,
 }
 
-// PTB JSON 结构体
+// PTB JSON struct
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PtbJson {
     pub version: u32,
@@ -173,7 +157,7 @@ pub enum ArgumentJson {
     },
 }
 
-// 全局应用状态
+// Global application state
 #[derive(Clone)]
 struct AppState<DB> {
     config: Arc<DubheChannelConfig>,
@@ -182,129 +166,57 @@ struct AppState<DB> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // 初始化日志
+    // Initialize logger
     env_logger::init();
     
     println!("🌟 Dubhe Channel Starting (with Indexer Integration) 🌟");
 
-    // 加载配置
+    // Load configuration
     let config: DubheChannelConfig = DubheChannelConfig::parse();
+
+    // Build Indexer using IndexerBuilder
+    let mut builder = IndexerBuilder::new(config.indexer_args.clone());
+    builder.initialize().await?;
+
+    // Get config for channel handlers
+    let dubhe_config = builder.dubhe_config()
+        .ok_or_else(|| anyhow::anyhow!("DubheConfig not initialized"))?;
     
-    // 创建 CacheDB
+    // Create CacheDB
     println!("🔄 Initializing CacheDB...");
-    let client = SuiClientBuilder::default().build(&config.sui_rpc_url).await?;
+    let client = SuiClientBuilder::default().build(&config.indexer_args.rpc_url).await?;
     let dubhedb = DubheDB::new(client.clone());
     let wrapped_dubhedb = WrapDatabaseAsync::new(dubhedb)
         .ok_or_else(|| anyhow::anyhow!("Failed to create WrapDatabaseAsync"))?;
     let mut cache_db = CacheDB::new(wrapped_dubhedb);
     
-    // 使用 initialize_cache 预加载所有需要的对象
+    // Preload all required objects using initialize_cache
     println!("🔄 Initializing cache with objects from chain...");
     initialize_cache(
         &mut cache_db,
         &client,
-        &config.dubhe_object_id,  // dubhe_hub_id
-        &config.dubhe_package_id,  // dubhe_package_id
-        &config.package_id         // origin_package_id
+        &dubhe_config.dubhe_object_id,  // dubhe_hub_id
+        &dubhe_config.original_dubhe_package_id,  // dubhe_package_id
+        &dubhe_config.original_package_id         // origin_package_id
     ).await;
     
     let cache_db = Arc::new(RwLock::new(cache_db));
     println!("✅ CacheDB initialization complete");
 
-    // 使用 IndexerBuilder 构建 Indexer
-    let mut builder = IndexerBuilder::new(config.indexer_args.clone());
-    builder.initialize().await?;
-
-    // 获取配置用于 channel handlers
-    let dubhe_config = builder.dubhe_config()
-        .ok_or_else(|| anyhow::anyhow!("DubheConfig not initialized"))?;
-
-    // 构建 Cluster
+    // Build Cluster
     let cluster = builder.build_cluster().await?;
     let handle = cluster.run().await?;
 
-    // 构建 ProxyServer
+    // Build ProxyServer
     let proxy_server = builder.build_proxy_server().await?;
 
-    // 注册 Channel 特殊路由
+    // Register channel special routes
     let app_state = AppState {
         config: Arc::new(config.clone()),
         cache_db: cache_db.clone(),
     };
 
-    // /get_objects 路由
-    let state_clone = app_state.clone();
-    let get_objects_handler: ChannelHandler = Arc::new(move |_req| {
-        let state_clone = state_clone.clone();
-        Box::pin(async move {
-            println!("🔍 Processing /get_objects request");
-            match get_objects(&state_clone.config, &state_clone.cache_db).await {
-                Ok(_) => {
-                    println!("✅ Objects retrieved successfully");
-                    Ok(Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "text/plain")
-                        .body(Body::from("✅ Objects retrieved successfully"))
-                        .unwrap())
-                },
-                Err(e) => {
-                    println!("❌ Failed to retrieve objects: {}", e);
-                    Ok(Response::builder()
-                        .status(StatusCode::INTERNAL_SERVER_ERROR)
-                        .header(CONTENT_TYPE, "text/plain")
-                        .body(Body::from(format!("❌ Failed to retrieve objects: {}", e)))
-                        .unwrap())
-                }
-            }
-        })
-    });
-    proxy_server.register_channel_handler("/get_objects".to_string(), get_objects_handler).await;
-
-    // /set_storage/:counter 路由
-    let state_clone = app_state.clone();
-    let set_storage_handler: ChannelHandler = Arc::new(move |req| {
-        let state_clone = state_clone.clone();
-        Box::pin(async move {
-            // 从路径中提取 counter 参数
-            let path = req.uri().path();
-            let parts: Vec<&str> = path.split('/').collect();
-            let counter = if parts.len() >= 3 {
-                parts[2].parse::<u32>().unwrap_or(0)
-            } else {
-                0
-            };
-
-            println!("🔍 Processing /set_storage/{} request", counter);
-            match set_storage(state_clone.config.clone(), counter).await {
-                Ok(response) => {
-                    println!("✅ Storage set successfully");
-                    Ok(Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "application/json")
-                        .body(Body::from(json!({
-                            "success": true,
-                            "counter": response.counter,
-                            "digest": response.digest
-                        }).to_string()))
-                        .unwrap())
-                },
-                Err(e) => {
-                    println!("❌ Failed to set storage: {}", e);
-                    Ok(Response::builder()
-                        .status(StatusCode::INTERNAL_SERVER_ERROR)
-                        .header(CONTENT_TYPE, "application/json")
-                        .body(Body::from(json!({
-                            "success": false,
-                            "error": e.to_string()
-                        }).to_string()))
-                        .unwrap())
-                }
-            }
-        })
-    });
-    proxy_server.register_channel_handler("/set_storage".to_string(), set_storage_handler).await;
-
-    // /submit 路由 (仅支持 POST JSON)
+    // /submit route (only supports POST JSON)
     let state_clone = app_state.clone();
     let dubhe_config_clone = dubhe_config.clone();
     let database_url_clone = config.indexer_args.database_url.clone();
@@ -317,7 +229,7 @@ async fn main() -> Result<()> {
         Box::pin(async move {
             println!("🔍 Processing /submit request");
             
-            // 处理 OPTIONS 预检请求 (CORS)
+            // Handle OPTIONS preflight request (CORS)
             if req.method() == hyper::Method::OPTIONS {
                 return Ok(Response::builder()
                     .status(StatusCode::OK)
@@ -329,7 +241,7 @@ async fn main() -> Result<()> {
                     .unwrap());
             }
             
-            // 检查请求方法
+            // Check request method
             if req.method() != hyper::Method::POST {
                 return Ok(Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
@@ -343,7 +255,7 @@ async fn main() -> Result<()> {
                     .unwrap());
             }
             
-            // 读取 body
+            // Read body
             let whole_body = match body::aggregate(req.into_body()).await {
                 Ok(body) => body,
                 Err(e) => {
@@ -360,7 +272,7 @@ async fn main() -> Result<()> {
                 }
             };
             
-            // 解析 JSON
+            // Parse JSON
             let submit_request: Result<SubmitRequest, _> = serde_json::from_reader(whole_body.reader());
             
             match submit_request {
@@ -372,8 +284,8 @@ async fn main() -> Result<()> {
                     println!("  PTB inputs: {}, commands: {}", req_data.ptb.inputs.len(), req_data.ptb.commands.len());
                     println!("  Signature: {:?}", req_data.signature);
                     
-                    // TODO: 这里可以添加实际的处理逻辑
-                    // 目前只返回成功响应
+                    // TODO: Actual processing logic can be added here
+                    // Currently only returns success response
                     let sender = match req_data.chain.as_str() {
                         "sui" => SuiAddress::from_str(&req_data.sender).unwrap(),
                         "evm" => evm_to_sui(&req_data.sender).unwrap(),
@@ -383,7 +295,7 @@ async fn main() -> Result<()> {
 
                     let tx_digest = get_tx_digest_by_chain(req_data.chain.clone());
 
-                    // 构建 PTB
+                    // Build PTB
                     let ptb = match convert_ptb_json_to_transaction(&req_data.ptb, &state_clone.cache_db).await {
                         Ok(ptb) => ptb,
                         Err(e) => {
@@ -401,7 +313,7 @@ async fn main() -> Result<()> {
                         }
                     };
                     
-                    // 执行 PTB
+                    // Execute PTB
                     println!("🔄 Executing PTB transaction...");
                     let value = {
                         let mut cache_db_guard = state_clone.cache_db.write().await;
@@ -475,93 +387,8 @@ async fn main() -> Result<()> {
     });
     proxy_server.register_channel_handler("/submit".to_string(), submit_handler).await;
 
-    // /ptb_shared 路由
-    let state_clone = app_state.clone();
-    let dubhe_config_clone = dubhe_config.clone();
-    let database_url = config.indexer_args.database_url.clone();
-    let grpc_subscribers = builder.grpc_subscribers();
-    let ptb_handler: ChannelHandler = Arc::new(move |req| {
-        let state_clone = state_clone.clone();
-        let dubhe_config_clone = dubhe_config_clone.clone();
-        let database_url = database_url.clone();
-        let grpc_subscribers = grpc_subscribers.clone();
-        Box::pin(async move {
-            // 从查询参数中提取 chain 参数
-            let uri = req.uri();
-            let query = uri.query().unwrap_or("");
-            let chain_id = query
-                .split('&')
-                .find_map(|param| {
-                    let mut parts = param.split('=');
-                    if parts.next() == Some("chain") {
-                        parts.next().and_then(|v| v.parse::<u64>().ok())
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(1); // 默认值为 1
-            
-            println!("🔍 Processing /ptb_shared request with chain_id: {}", chain_id);
-            
-            let object_id = ObjectID::from_hex_literal(&state_clone.config.dubhe_object_id).unwrap();
-            
-            let object = {
-                let mut cache_db_guard = state_clone.cache_db.write().await;
-                DBTrait::object(&mut *cache_db_guard, object_id).unwrap().unwrap()
-            };
-            
-            let ptb = ProgrammableTransaction {
-                inputs: vec![
-                    CallArg::Object(ObjectArg::SharedObject {
-                        id: object.id(),
-                        initial_shared_version: object.owner.start_version().unwrap(),
-                        mutable: true,
-                    }),
-                    CallArg::Pure(
-                        bcs::to_bytes(&1u8).unwrap()
-                    ),
-                ],
-                commands: vec![Command::MoveCall(Box::new(ProgrammableMoveCall {
-                    package: ObjectID::from_hex_literal(&state_clone.config.package_id).unwrap(),
-                    // package: ObjectID::from_hex_literal("0x76ae48d32307ff431edb92e4b89479828b59830e862848863ec6c58e121ed297").unwrap(),
-                    module: "map_system".to_string(),
-                    function: "move_position".to_string(),
-                    type_arguments: vec![],
-                    arguments: vec![sui_types::transaction::Argument::Input(0), sui_types::transaction::Argument::Input(1)],
-                }))],
-            };
-            
-            // let sender = SuiAddress::from_str("0x4b8e9e6510fb69201b63d9466c5e382dde2073a6eaf9e3b70f4b82d000a8bc25").unwrap();
-            let sender = get_sender(chain_id);
-            let tx_digest = get_tx_digest(chain_id);
-            let value = {
-                let mut cache_db_guard = state_clone.cache_db.write().await;
-                mock_ptb_shared_sync(&state_clone.config, &ptb, &mut *cache_db_guard, dubhe_config_clone, sender, tx_digest, grpc_subscribers.clone())
-            };
-            
-            match value {
-                Ok(sqls) => {
-                    let database_channel = Database::new(&database_url).await.unwrap();
-                    for sql in sqls {
-                        println!("execute sql: {:?}", sql);
-                        database_channel.execute(&sql).await.unwrap();
-                    }
-                },
-                Err(e) => {
-                    println!("Error executing PTB: {:?}", e);
-                }
-            }
-            Ok(Response::builder()
-                .status(StatusCode::OK)
-                .header(CONTENT_TYPE, "text/plain")
-                .body(Body::from("✅ PTB execution successful"))
-                .unwrap())
-        })
-    });
-    proxy_server.register_channel_handler("/ptb_shared".to_string(), ptb_handler).await;
-
-    // 打印启动信息
-    println!("\n🚀 Dubhe Channel + Indexer Starting...");
+    // Print startup information
+    println!("\n🚀 Dubhe Channel Starting...");
     println!("================================");
     println!("🔌 gRPC Endpoint:     http://0.0.0.0:{}", config.indexer_args.port);
     println!("📊 GraphQL Endpoint: http://0.0.0.0:{}/graphql", config.indexer_args.port);
@@ -572,13 +399,9 @@ async fn main() -> Result<()> {
     );
     println!("💚 Health Check:     http://0.0.0.0:{}/health", config.indexer_args.port);
     println!("📋 Metadata:         http://0.0.0.0:{}/metadata", config.indexer_args.port);
-    println!("\n🎯 Channel Special Routes:");
-    println!("  http://0.0.0.0:8080/get_objects           - 获取对象列表");
-    println!("  http://0.0.0.0:8080/set_storage/:counter  - 设置存储值");
-    println!("  http://0.0.0.0:8080/ptb_shared?chain=<id> - 执行 PTB 交易 (支持多链, chain: 1/2/其他)");
-    println!("  http://0.0.0.0:8080/submit                - 提交交易 (POST JSON, 参数: chain, sender, ptb)");
+    println!("🔍 Submit:           http://0.0.0.0:{}/submit", config.indexer_args.port);
 
-    // 启动 Proxy Server
+    // Start Proxy Server
     let database = builder.database()
         .ok_or_else(|| anyhow::anyhow!("Database not initialized"))?;
     
@@ -608,16 +431,6 @@ async fn main() -> Result<()> {
 }
 
 
-fn get_tx_digest(chain_id: u64) -> TransactionDigest {
-    if chain_id == 1 {
-        TransactionDigest::new([0xDB, 0xDB, 0x01, 0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-    } else if chain_id == 2 {
-        TransactionDigest::new([0xDB, 0xDB, 0x01, 0xE2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-    } else {
-        TransactionDigest::new([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-    }
-}
-
 fn get_tx_digest_by_chain(chain: String) -> TransactionDigest {
     if chain == "evm" {
         let mut tx_digest = TransactionDigest::random();
@@ -641,16 +454,6 @@ fn get_tx_digest_by_chain(chain: String) -> TransactionDigest {
     }
 }
 
-fn get_sender(chain_id: u64) -> SuiAddress {
-    if chain_id == 1 {
-        SuiAddress::from_str("0x000000000000000000000000cdd077770ceb5271e42289ee1a9b3a19442f445d").unwrap()
-    } else if chain_id == 2 {
-        SuiAddress::from_str("0x2b8aa086ad26a5d1fa8c7e7fc76b975a0c5b2d22a63e48802a37add7e2f914f3").unwrap()
-    } else {
-        SuiAddress::from_str("0xc84ba871346dc957269d05b389df50e56ab0f57b466d1084edf734a323993b47").unwrap()
-    }
-}
-
 // ========== PTB Conversion Functions ==========
 
 /// Convert PtbJson to ProgrammableTransaction
@@ -664,20 +467,20 @@ where
 {
     let mut inputs = Vec::new();
     
-    // 处理 inputs
+    // Process inputs
     for input in &ptb_json.inputs {
         match input {
             PtbInput::UnresolvedObject { data } => {
                 let object_id = ObjectID::from_hex_literal(&data.unresolved_object.object_id)?;
                 
-                // 从 cache_db 获取对象
+                // Get object from cache_db
                 let object = {
                     let mut cache_db_guard = cache_db.write().await;
                     DBTrait::object(&mut *cache_db_guard, object_id)?
                         .ok_or_else(|| anyhow!("Object not found: {}", object_id))?
                 };
                 
-                // 判断对象类型并创建相应的 CallArg
+                // Determine object type and create corresponding CallArg
                 let call_arg = if let Some(initial_shared_version) = object.owner.start_version() {
                     // SharedObject
                     CallArg::Object(ObjectArg::SharedObject {
@@ -693,7 +496,7 @@ where
                 inputs.push(call_arg);
             },
             PtbInput::Pure { data } => {
-                // 解码 base64 字节
+                // Decode base64 bytes
                 let bytes = general_purpose::STANDARD.decode(&data.pure.bytes)
                     .map_err(|e| anyhow!("Failed to decode base64: {}", e))?;
                 inputs.push(CallArg::Pure(bytes));
@@ -701,24 +504,24 @@ where
         }
     }
     
-    // 处理 commands
+    // Process commands
     let mut commands = Vec::new();
     for command in &ptb_json.commands {
         match command {
             PtbCommand::MoveCall { data } => {
                 let move_call = &data.move_call;
                 
-                // 解析 package ID
+                // Parse package ID
                 let package = ObjectID::from_hex_literal(&move_call.package)?;
                 
-                // 解析 module 和 function (直接使用 String)
+                // Parse module and function (directly use String)
                 let module = move_call.module.clone();
                 let function = move_call.function.clone();
                 
-                // 解析 type_arguments - 暂时留空（如需支持，后续可以扩展）
+                // Parse type_arguments - leave empty for now (can be extended later if needed)
                 let type_arguments = vec![];
                 
-                // 解析 arguments
+                // Parse arguments
                 let arguments: Vec<Argument> = move_call.arguments
                     .iter()
                     .map(|arg| match arg {
@@ -793,216 +596,6 @@ pub fn solana_to_sui(solana_address_str: &str) -> Result<SuiAddress> {
     SuiAddress::from_bytes(&solana_bytes).map_err(|e| anyhow!("Failed to create SuiAddress: {}", e))
 }
 
-// Helper functions
-async fn get_objects<DB>(
-    config: &Arc<DubheChannelConfig>,
-    cache_db: &Arc<RwLock<CacheDB<DB>>>
-) -> Result<(), anyhow::Error> 
-where
-    DB: dubhe_db::interface::DatabaseRef
-{
-    let object_ids = vec![
-        ObjectID::from_hex_literal(&config.dubhe_package_id).unwrap(),
-        ObjectID::from_hex_literal("0xa337791835d15223727ace33cce17ea0901c094c8cfbe34d089c1a18c2df7a15").unwrap(),
-        ObjectID::from_hex_literal(&config.package_id).unwrap(),
-        ObjectID::from_hex_literal("0x0000000000000000000000000000000000000000000000000000000000000005").unwrap(),
-        ObjectID::from_hex_literal(&config.dubhe_object_id).unwrap(),
-        // Dubhe Hub Object ===> ObjectTable ===> Two Dubhe Store value
-        // Dubhe Store value ==> tables field id 
-        ObjectID::from_hex_literal("0x4cf281212223050413e22e0e0e93ccfabdd82d63e9902595087a9b146c925809").unwrap(),
-        // DappHub Store value
-        ObjectID::from_hex_literal("0xf42fef1e797d6debeb4d2cdb6c466fc5158961eaa4e2972facbd998bad18cb14").unwrap(),
-        // Counter Store value Object
-        ObjectID::from_hex_literal("0x3018106a4afef8d6a91373fa9ac93a0ed46dd0153b34d67a9f0a638e790d8130").unwrap(),
-        ObjectID::from_hex_literal("0xbbcb61717ff71335de46b2ec09191e6745cffa3ea899d8ebc99479e8a8401ef7").unwrap(),
-        ObjectID::from_hex_literal("0x4b26d5480bdf911939c2a0308b0c43a24624e8287c691769d4e2ef7965c58f77").unwrap(),
-        ObjectID::from_hex_literal("0xcd2ab483a1c0b9084f9a7aabf2583b6306123ec151186d94a4e20b4285be2c00").unwrap(),
-        // 0xd5 Owner key
-        ObjectID::from_hex_literal("0x9d710dbbfd0ee0b00778783539c501ce6a8b852d91357246a60cb73a27cbf2d7").unwrap(),
-        // 0xff Owner key
-        ObjectID::from_hex_literal("0xef0c3edcc0fc0bd15684282ceb6631b481b4b79f8aedcf2838c614e2bdc04540").unwrap(),
-        ObjectID::from_hex_literal("0x8a6c6a1897b8519fd2be4bbf04ce0f3e953b7483e90c024213e74f7c94f62af2").unwrap(),
-        ObjectID::from_hex_literal("0x9c5093a35ab3155b303233f7e9310a76bb6996ab776d49e4ee0ff3da4b2113ee").unwrap(),
-    ];
-    let sui_client = SuiClientBuilder::default().build(&config.sui_rpc_url).await?;
-    println!("🔗 Connecting to Sui client...");
-    
-    let obj = sui_client
-        .read_api()
-        .multi_get_object_with_options(
-            object_ids,
-            sui_json_rpc_types::SuiObjectDataOptions {
-                show_type: true,
-                show_owner: true,
-                show_previous_transaction: true,
-                show_display: true,
-                show_content: false,
-                show_bcs: true,
-                show_storage_rebate: true,
-            },
-        )
-        .await?;
-
-    println!("📦 Processing {} objects...", obj.len());
-    for object_data in obj {
-        let sui_object_data = object_data.into_object()?;
-        let object_id = sui_object_data.object_id;
-        println!("object: {:?}", object_id);
-        
-        // 将 Object 插入到 cache_db
-        let object: Object = sui_object_data.try_into()?;
-        let mut cache_db_guard = cache_db.write().await;
-        let mut cache = cache_db_guard.cache.write().unwrap();
-        cache.objects.insert(object_id, object.clone());
-        
-        // 如果是 package，还需要特殊处理
-        if object.is_package() {
-            println!("packageObject: {:?}", object_id);
-        }
-    }
-
-    // All dubhe stores
-    let dubhe_store = ObjectID::from_hex_literal("0xbff7fd170a230d40828e68511a1507cc82052d42d056d02c2370430899bb9864")?;
-    println!("🔍 Getting dynamic fields...");
-    let dynamic_fields = sui_client
-        .read_api()
-        .get_dynamic_fields(dubhe_store, None, Some(10))
-        .await?;
-    
-    for dynamic_field_info in &dynamic_fields.data {
-        println!(" *** Dynamic Field ***");
-        let dynamic_field = sui_client
-            .read_api()
-            .get_dynamic_field_object(dubhe_store, dynamic_field_info.name.clone())
-            .await?;
-        println!("DynamicFieldName========================: {:?}", dynamic_field_info.name);
-        println!("DynamicField========================: {:?}", dynamic_field);
-        println!(" *** Dynamic Field ***\n");
-    }
-
-    Ok(())
-}
-
-async fn set_storage(
-    config: Arc<DubheChannelConfig>, 
-    counter: u32,
-) -> Result<SetStorageResponse, anyhow::Error> { 
-    let sui_client = SuiClientBuilder::default().build(&config.sui_rpc_url).await?;
-    let keypair = SuiKeyPair::decode(&config.signer).map_err(|e| anyhow!(e))?;
-
-    let mut keystore = FileBasedKeystore::load_or_create(&PathBuf::new()).unwrap();
-    FileBasedKeystore::import(&mut keystore, Some("hello".to_string()), keypair);
-    let sender = *keystore.addresses().first().ok_or(anyhow!("No sender found"))?;
-    println!("sender: {:?}", sender);
-    println!("counter: {:?}", counter);
-    
-    // we need to find the coin we will use as gas
-    let coins = sui_client
-        .coin_read_api()
-        .get_coins(sender, None, None, None)
-        .await?;
-    let coin = coins.data.into_iter().next().ok_or(anyhow!("No coins found"))?;
-
-    let object_id = ObjectID::from_hex_literal(&config.dubhe_object_id).map_err(|e| anyhow!(e))?;
-    let obj = sui_client
-        .read_api()
-        .get_object_with_options(
-            object_id,
-            SuiObjectDataOptions::bcs_lossless(),
-        )
-        .await?;
-    let object: Object = obj.into_object()?.try_into()?;
-
-    let object_inner = object.clone().into_inner();
-
-    println!("object: {:?}", object);
-    let input_object = CallArg::Object(ObjectArg::SharedObject {
-        id: object.id(),
-        initial_shared_version: object_inner.owner.start_version().ok_or(anyhow!("Failed to get start version"))?,
-        mutable: true,
-    });
-
-    let keys: Vec<Vec<u8>> = vec![];
-    
-    let input_keys = CallArg::Pure(
-        bcs::to_bytes(
-           &keys
-        ).unwrap());
-    
-    let input_values = CallArg::Pure(
-        bcs::to_bytes(
-            &vec![bcs::to_bytes(&counter).unwrap()]
-        ).unwrap());
-
-    let input_count = CallArg::Pure(
-        bcs::to_bytes(&3u64).unwrap()
-    );
-
-    let input_table_id = CallArg::Pure(
-        bcs::to_bytes(&"value".to_string()).unwrap()
-    );
-    
-    let mut ptb = ProgrammableTransactionBuilder::new();
-    ptb.input(input_object)?;
-    ptb.input(input_table_id)?;
-    ptb.input(input_keys)?;
-    ptb.input(input_values)?;
-    ptb.input(input_count)?;
-
-    let package = ObjectID::from_hex_literal(&config.dubhe_package_id).map_err(|e| anyhow!(e))?;
-    let module = Identifier::new("dapp_system").map_err(|e| anyhow!(e))?;
-    let function = Identifier::new("set_storage").map_err(|e| anyhow!(e))?;
-    let move_call = Command::move_call(
-        package,
-        module,
-        function,
-        vec![TypeTag::from_str(&format!("{}::dapp_key::DappKey", config.package_id))?],
-        vec![
-            Argument::Input(0),
-            Argument::Input(1),
-            Argument::Input(2),
-            Argument::Input(3),
-            Argument::Input(4),
-        ],
-    );
-    ptb.command(move_call);
-
-    // build the transaction block by calling finish on the ptb
-    let builder = ptb.finish();
-
-    let gas_budget = 1_000_000_000;
-    let gas_price = sui_client.read_api().get_reference_gas_price().await?;
-    // create the transaction data that will be sent to the network
-    let tx_data = TransactionData::new_programmable(
-        sender,
-        vec![coin.object_ref()],
-        builder,
-        gas_budget,
-        gas_price,
-    );
-
-    let signature = keystore.sign_secure(&sender, &tx_data, Intent::sui_transaction()).await?;
-
-    println!("signature: {:?}", signature);
-
-    // execute the transaction
-    print!("Executing the transaction...");
-    let transaction_response = sui_client
-        .quorum_driver_api()
-        .execute_transaction_block(
-            Transaction::from_data(tx_data, vec![signature]),
-            SuiTransactionBlockResponseOptions::full_content(),
-            Some(ExecuteTransactionRequestType::WaitForEffectsCert),
-        )
-        .await?;
-    println!("Successfully executed transaction: {}", transaction_response.digest);
-
-    Ok(SetStorageResponse {
-        counter,
-        digest: transaction_response.digest.to_string(),
-    })
-}
-
 fn mock_ptb_shared_sync<DB>(
     _config: &Arc<DubheChannelConfig>, 
     ptb: &ProgrammableTransaction, 
@@ -1024,13 +617,13 @@ where
         if dubhe_config
                             .can_convert_event_to_sql(&store_set_record)
                             .is_ok() {
-            // 获取表名
+            // Get table name
             let table_name = store_set_record.table_id().to_string();
             
-            // 转换为 proto_struct
+            // Convert to proto_struct
             let mut proto_struct = dubhe_config.convert_event_to_proto_struct(&store_set_record)?;
             
-            // 添加额外字段
+            // Add extra fields
             proto_struct.fields.insert(
                 "updated_at_timestamp_ms".to_string(),
                 prost_types::Value {
@@ -1056,7 +649,7 @@ where
 
             println!("proto_struct: {:?}", proto_struct);
 
-            // 发送到 gRPC subscribers
+            // Send to gRPC subscribers
             let subscribers = grpc_subscribers.clone();
             tokio::spawn(async move {
                 let table_change = dubhe_indexer_grpc::types::TableChange {
