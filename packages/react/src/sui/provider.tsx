@@ -19,8 +19,8 @@ import {
   useEffect
 } from 'react';
 import { Dubhe } from '@0xobelisk/sui-client';
-import { createDubheGraphqlClient } from '@0xobelisk/graphql-client';
-import { createECSWorld } from '@0xobelisk/ecs';
+import { createDubheGraphqlClient, DubheGraphqlClient } from '@0xobelisk/graphql-client';
+import { createECSWorld, DubheECSWorld } from '@0xobelisk/ecs';
 import { DubheGrpcClient } from '@0xobelisk/grpc-client';
 import { useDubheConfig } from './config';
 import type { DubheConfig, DubheReturn } from './types';
@@ -31,9 +31,9 @@ import type { DubheConfig, DubheReturn } from './types';
  */
 interface DubheContextValue {
   getContract: () => Dubhe;
-  getGraphqlClient: () => any | null;
-  getGrpcClient: () => DubheGrpcClient | null;
-  getEcsWorld: () => any | null;
+  getGraphqlClient: () => DubheGraphqlClient;
+  getGrpcClient: () => DubheGrpcClient;
+  getEcsWorld: () => DubheECSWorld;
   getAddress: () => string;
   getMetrics: () => {
     initTime: number;
@@ -151,10 +151,10 @@ export function DubheProvider({ config, children }: DubheProviderProps) {
   };
 
   // useRef for GraphQL client instance - single initialization guaranteed
-  const graphqlClientRef = useRef<any | null>(null);
+  const graphqlClientRef = useRef<DubheGraphqlClient | null>(null);
   const hasInitializedGraphql = useRef(false);
-  const getGraphqlClient = (): any | null => {
-    if (!hasInitializedGraphql.current && finalConfig.dubheMetadata) {
+  const getGraphqlClient = (): DubheGraphqlClient => {
+    if (!hasInitializedGraphql.current) {
       try {
         console.log('Initializing GraphQL client instance (one-time)');
         graphqlClientRef.current = createDubheGraphqlClient({
@@ -168,18 +168,18 @@ export function DubheProvider({ config, children }: DubheProviderProps) {
         throw error;
       }
     }
-    return graphqlClientRef.current;
+    return graphqlClientRef.current!;
   };
 
   // useRef for gRPC client instance - single initialization guaranteed
   const grpcClientRef = useRef<DubheGrpcClient | null>(null);
   const hasInitializedGrpc = useRef(false);
-  const getGrpcClient = (): DubheGrpcClient | null => {
-    if (!hasInitializedGrpc.current && finalConfig.endpoints?.grpc) {
+  const getGrpcClient = (): DubheGrpcClient => {
+    if (!hasInitializedGrpc.current) {
       try {
         console.log('Initializing gRPC client instance (one-time)');
         grpcClientRef.current = new DubheGrpcClient({
-          baseUrl: finalConfig.endpoints.grpc
+          baseUrl: finalConfig.endpoints?.grpc || 'http://localhost:50051'
         });
         hasInitializedGrpc.current = true;
       } catch (error) {
@@ -187,18 +187,19 @@ export function DubheProvider({ config, children }: DubheProviderProps) {
         throw error;
       }
     }
-    return grpcClientRef.current;
+    return grpcClientRef.current!;
   };
 
   // useRef for ECS World instance - depends on GraphQL client
-  const ecsWorldRef = useRef<any | null>(null);
+  const ecsWorldRef = useRef<DubheECSWorld | null>(null);
   const hasInitializedEcs = useRef(false);
-  const getEcsWorld = (): any | null => {
+  const getEcsWorld = (): DubheECSWorld => {
     const graphqlClient = getGraphqlClient();
-    if (!hasInitializedEcs.current && graphqlClient) {
+    if (!hasInitializedEcs.current) {
       try {
         console.log('Initializing ECS World instance (one-time)');
         ecsWorldRef.current = createECSWorld(graphqlClient, {
+          dubheMetadata: finalConfig.dubheMetadata,
           queryConfig: {
             enableBatchOptimization: finalConfig.options?.enableBatchOptimization ?? true,
             defaultCacheTimeout: finalConfig.options?.cacheTimeout ?? 5000
@@ -214,7 +215,7 @@ export function DubheProvider({ config, children }: DubheProviderProps) {
         throw error;
       }
     }
-    return ecsWorldRef.current;
+    return ecsWorldRef.current!;
   };
 
   // Address getter - calculated from contract
@@ -446,53 +447,8 @@ export function useDubheFromProvider(): DubheReturn {
   const address = context.getAddress();
   const metrics = context.getMetrics();
 
-  // Enhanced contract with additional methods (similar to original implementation)
-  const enhancedContract = contract as any;
-
-  // Add transaction methods with error handling (if not already added)
-  if (!enhancedContract.txWithOptions) {
-    enhancedContract.txWithOptions = (system: string, method: string, options: any = {}) => {
-      return async (params: any) => {
-        try {
-          const startTime = performance.now();
-          const result = await contract.tx[system][method](params);
-          const executionTime = performance.now() - startTime;
-
-          if (process.env.NODE_ENV === 'development') {
-            console.log(
-              `Transaction ${system}.${method} completed in ${executionTime.toFixed(2)}ms`
-            );
-          }
-
-          options.onSuccess?.(result);
-          return result;
-        } catch (error) {
-          options.onError?.(error);
-          throw error;
-        }
-      };
-    };
-  }
-
-  // Add query methods with performance tracking (if not already added)
-  if (!enhancedContract.queryWithOptions) {
-    enhancedContract.queryWithOptions = (system: string, method: string, _options: any = {}) => {
-      return async (params: any) => {
-        const startTime = performance.now();
-        const result = await contract.query[system][method](params);
-        const executionTime = performance.now() - startTime;
-
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Query ${system}.${method} completed in ${executionTime.toFixed(2)}ms`);
-        }
-
-        return result;
-      };
-    };
-  }
-
   return {
-    contract: enhancedContract,
+    contract,
     graphqlClient,
     grpcClient,
     ecsWorld,
@@ -522,7 +478,7 @@ export function useDubheContractFromProvider(): Dubhe {
 /**
  * Hook for accessing only the GraphQL client instance
  */
-export function useDubheGraphQLFromProvider(): any | null {
+export function useDubheGraphQLFromProvider(): DubheGraphqlClient {
   const { getGraphqlClient } = useDubheContext();
   return getGraphqlClient();
 }
@@ -530,7 +486,7 @@ export function useDubheGraphQLFromProvider(): any | null {
 /**
  * Hook for accessing only the ECS World instance
  */
-export function useDubheECSFromProvider(): any | null {
+export function useDubheECSFromProvider(): DubheECSWorld {
   const { getEcsWorld } = useDubheContext();
   return getEcsWorld();
 }
@@ -538,7 +494,7 @@ export function useDubheECSFromProvider(): any | null {
 /**
  * Hook for accessing only the gRPC client instance
  */
-export function useDubheGrpcFromProvider(): DubheGrpcClient | null {
+export function useDubheGrpcFromProvider(): DubheGrpcClient {
   const { getGrpcClient } = useDubheContext();
   return getGrpcClient();
 }
