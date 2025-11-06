@@ -9,7 +9,8 @@ import {
   delay,
   getDubheDappHub,
   initializeDubhe,
-  saveMetadata
+  saveMetadata,
+  getOriginalDubhePackageId
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
@@ -299,7 +300,7 @@ async function publishContract(
       network,
       startCheckpoint,
       packageId,
-      dappHub,
+      dubheDappHub,
       upgradeCapId,
       version,
       components,
@@ -311,8 +312,11 @@ async function publishContract(
 
     // Insert package id to dubhe config
     let config = JSON.parse(fs.readFileSync(`${process.cwd()}/dubhe.config.json`, 'utf-8'));
-    config.package_id = packageId;
+    config.original_package_id = packageId;
+    config.dubhe_object_id = dubheDappHub;
+    config.original_dubhe_package_id = await getOriginalDubhePackageId(network);
     config.start_checkpoint = startCheckpoint;
+
     fs.writeFileSync(`${process.cwd()}/dubhe.config.json`, JSON.stringify(config, null, 2));
 
     console.log('\n✅ Contract Publication Complete\n');
