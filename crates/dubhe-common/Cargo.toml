@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 async-trait = { workspace = true }
 tokio = { workspace = true }
-sui_types = { workspace = true }
+sui-types = { workspace = true }
 # sui_data_ingestion_core = { git = "https://github.com/mystenlabs/sui", package = "sui-data-ingestion-core", tag = "mainnet-v1.48.2"}
 prometheus = { workspace = true }
 anyhow = { workspace = true }

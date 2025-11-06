@@ -3,6 +3,14 @@ name = "dubhe-indexer"
 version = "1.2.0-pre.76"
 edition = "2021"
 
+[lib]
+name = "dubhe_indexer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dubhe-indexer"
+path = "src/main.rs"
+
 [dependencies]
 tokio-util = "0.7.13"
 serde_yaml = { workspace = true }
@@ -12,7 +20,7 @@ dubhe-common = { workspace = true }
 dubhe-indexer-grpc = { path = "../dubhe-indexer-grpc" }
 dubhe-indexer-graphql = { path = "../dubhe-indexer-graphql" }
 tokio = { workspace = true }
-sui_types = { workspace = true }
+sui-types = { workspace = true }
 prometheus = { workspace = true }
 anyhow = { workspace = true }
 move-core-types = { workspace = true }

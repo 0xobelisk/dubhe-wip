@@ -1,0 +1,13 @@
+{
+  "projectName": "counter",
+  "network": "localnet",
+  "startCheckpoint": "179",
+  "packageId": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+  "dappHub": "",
+  "upgradeCap": "0xab547675c40124a4f5c9ec0eceade6e47028a7b221af8cc9bb275a2da6a677fc",
+  "version": 1,
+  "components": {},
+  "resources": {
+    "value": "u32"
+  }
+}

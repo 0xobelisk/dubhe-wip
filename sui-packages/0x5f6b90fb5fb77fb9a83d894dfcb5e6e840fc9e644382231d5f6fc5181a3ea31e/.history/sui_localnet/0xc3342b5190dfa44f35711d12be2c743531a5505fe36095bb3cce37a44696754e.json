@@ -1,0 +1,446 @@
+{
+  "counter_system": {
+    "fileFormatVersion": 6,
+    "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+    "name": "counter_system",
+    "friends": [],
+    "structs": {},
+    "exposedFunctions": {
+      "inc": {
+        "visibility": "Public",
+        "isEntry": true,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": []
+      }
+    }
+  },
+  "dapp_key": {
+    "fileFormatVersion": 6,
+    "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+    "name": "dapp_key",
+    "friends": [
+      {
+        "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+        "name": "genesis"
+      },
+      {
+        "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+        "name": "value"
+      }
+    ],
+    "structs": {
+      "DappKey": {
+        "abilities": {
+          "abilities": [
+            "Copy",
+            "Drop"
+          ]
+        },
+        "typeParameters": [],
+        "fields": [
+          {
+            "name": "dummy_field",
+            "type": "Bool"
+          }
+        ]
+      }
+    },
+    "exposedFunctions": {
+      "new": {
+        "visibility": "Friend",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          {
+            "Struct": {
+              "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+              "module": "dapp_key",
+              "name": "DappKey",
+              "typeArguments": []
+            }
+          }
+        ]
+      },
+      "package_id": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          "Address"
+        ]
+      },
+      "to_string": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          {
+            "Struct": {
+              "address": "0x1",
+              "module": "ascii",
+              "name": "String",
+              "typeArguments": []
+            }
+          }
+        ]
+      }
+    }
+  },
+  "deploy_hook": {
+    "fileFormatVersion": 6,
+    "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+    "name": "deploy_hook",
+    "friends": [
+      {
+        "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+        "name": "genesis"
+      }
+    ],
+    "structs": {},
+    "exposedFunctions": {
+      "run": {
+        "visibility": "Friend",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          },
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x2",
+                "module": "tx_context",
+                "name": "TxContext",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": []
+      }
+    }
+  },
+  "genesis": {
+    "fileFormatVersion": 6,
+    "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+    "name": "genesis",
+    "friends": [],
+    "structs": {},
+    "exposedFunctions": {
+      "run": {
+        "visibility": "Public",
+        "isEntry": true,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          },
+          {
+            "Reference": {
+              "Struct": {
+                "address": "0x2",
+                "module": "clock",
+                "name": "Clock",
+                "typeArguments": []
+              }
+            }
+          },
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x2",
+                "module": "tx_context",
+                "name": "TxContext",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": []
+      },
+      "upgrade": {
+        "visibility": "Friend",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          },
+          "Address",
+          "U32",
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x2",
+                "module": "tx_context",
+                "name": "TxContext",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": []
+      }
+    }
+  },
+  "migrate": {
+    "fileFormatVersion": 6,
+    "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+    "name": "migrate",
+    "friends": [],
+    "structs": {},
+    "exposedFunctions": {
+      "on_chain_version": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          "U32"
+        ]
+      }
+    }
+  },
+  "value": {
+    "fileFormatVersion": 6,
+    "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+    "name": "value",
+    "friends": [
+      {
+        "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+        "name": "counter_system"
+      },
+      {
+        "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+        "name": "deploy_hook"
+      },
+      {
+        "address": "0xc3342b5190dfa44f35711d12be2c743531a5505fe36095bb3cce37a44696754e",
+        "name": "genesis"
+      }
+    ],
+    "structs": {},
+    "exposedFunctions": {
+      "delete": {
+        "visibility": "Friend",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": []
+      },
+      "encode": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          "U32"
+        ],
+        "return": [
+          {
+            "Vector": {
+              "Vector": "U8"
+            }
+          }
+        ]
+      },
+      "get": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "Reference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": [
+          "U32"
+        ]
+      },
+      "get_key_names": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          {
+            "Vector": {
+              "Vector": "U8"
+            }
+          }
+        ]
+      },
+      "get_key_schemas": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          {
+            "Vector": {
+              "Vector": "U8"
+            }
+          }
+        ]
+      },
+      "get_table_id": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          {
+            "Vector": "U8"
+          }
+        ]
+      },
+      "get_value_names": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          {
+            "Vector": {
+              "Vector": "U8"
+            }
+          }
+        ]
+      },
+      "get_value_schemas": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [],
+        "return": [
+          {
+            "Vector": {
+              "Vector": "U8"
+            }
+          }
+        ]
+      },
+      "has": {
+        "visibility": "Public",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "Reference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": [
+          "Bool"
+        ]
+      },
+      "register_table": {
+        "visibility": "Friend",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          },
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x2",
+                "module": "tx_context",
+                "name": "TxContext",
+                "typeArguments": []
+              }
+            }
+          }
+        ],
+        "return": []
+      },
+      "set": {
+        "visibility": "Friend",
+        "isEntry": false,
+        "typeParameters": [],
+        "parameters": [
+          {
+            "MutableReference": {
+              "Struct": {
+                "address": "0x488aed0eeb5398df59d69cfe18b1c3a1b26df164b55613d046d8423becdffb2a",
+                "module": "dapp_service",
+                "name": "DappHub",
+                "typeArguments": []
+              }
+            }
+          },
+          "U32"
+        ],
+        "return": []
+      }
+    }
+  }
+}

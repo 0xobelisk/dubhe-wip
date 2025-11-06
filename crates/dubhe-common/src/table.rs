@@ -20,7 +20,7 @@ use sui_types::base_types::SuiAddress;
 pub const ONCHAIN_TABLE: &str = "ont";
 pub const OFFCHAIN_TABLE: &str = "oft";
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Field {
     pub table: String,
     pub name: String,
@@ -277,21 +277,21 @@ impl Field {
     }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Enum {
     pub name: String,
     pub index: u8,
     pub value: String,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Table {
     pub name: String,
     pub offchain: bool,
     pub component: bool,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct DubheConfig {
     pub fields: Vec<Field>,
     pub enums: Vec<Enum>,
@@ -801,6 +801,9 @@ impl DubheConfig {
         {
             return Ok(());
         }
+
+        println!("event.origin_package_id(): {:?}", event.origin_package_id());
+        println!("self.package_id: {:?}", self.package_id);
         if event.origin_package_id() != Some(self.package_id.clone()) {
             return Err(anyhow::anyhow!(
                 "Event origin package id does not match the package id"

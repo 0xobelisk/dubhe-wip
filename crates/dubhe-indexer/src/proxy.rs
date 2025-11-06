@@ -13,9 +13,11 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
 
+// Channel 路由处理函数类型
+pub type ChannelHandler = Arc<dyn Fn(Request<Body>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response<Body>, Infallible>> + Send>> + Send + Sync>;
+
 /// Main Proxy Server following Torii architecture pattern
 /// Routes requests to independent GraphQL and gRPC services based on content type and path
-#[derive(Debug)]
 pub struct ProxyServer {
     addr: SocketAddr,
     grpc_addr: Option<SocketAddr>,
@@ -25,6 +27,8 @@ pub struct ProxyServer {
     shutdown_tx: broadcast::Sender<()>,
     version: String,
     config_json: Arc<serde_json::Value>,
+    // Channel 特殊路由处理器
+    channel_handlers: Arc<RwLock<HashMap<String, ChannelHandler>>>,
 }
 
 impl ProxyServer {
@@ -48,7 +52,15 @@ impl ProxyServer {
             shutdown_tx,
             version: "1.2.0".to_string(),
             config_json,
+            channel_handlers: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    /// 注册 Channel 特殊路由处理器
+    pub async fn register_channel_handler(&self, path: String, handler: ChannelHandler) {
+        let mut handlers = self.channel_handlers.write().await;
+        log::info!("✅ Registered channel handler for path: {}", path);
+        handlers.insert(path, handler);
     }
 
     /// Start independent backend services and the proxy server
@@ -93,6 +105,7 @@ impl ProxyServer {
         let graphql_addr = self.graphql_addr;
         let version = self.version.clone();
         let config_json = self.config_json.clone();
+        let channel_handlers = self.channel_handlers.clone();
 
         let make_svc = make_service_fn(move |conn: &AddrStream| {
             let remote_addr = conn.remote_addr().ip();
@@ -100,6 +113,7 @@ impl ProxyServer {
             let graphql_addr = graphql_addr;
             let version = version.clone();
             let config_json = config_json.clone();
+            let channel_handlers = channel_handlers.clone();
 
             async move {
                 Ok::<_, Infallible>(service_fn(move |req| {
@@ -107,8 +121,9 @@ impl ProxyServer {
                     let graphql_addr = graphql_addr;
                     let version = version.clone();
                     let config_json = config_json.clone();
+                    let channel_handlers = channel_handlers.clone();
                     async move {
-                        handle_request(remote_addr, req, grpc_addr, graphql_addr, version, config_json).await
+                        handle_request(remote_addr, req, grpc_addr, graphql_addr, version, config_json, channel_handlers).await
                     }
                 }))
             }
@@ -134,8 +149,9 @@ async fn handle_request(
     req: Request<Body>,
     grpc_addr: Option<SocketAddr>,
     graphql_addr: Option<SocketAddr>,
-    version: String,
+    _version: String,
     config_json: Arc<serde_json::Value>,
+    channel_handlers: Arc<RwLock<HashMap<String, ChannelHandler>>>,
 ) -> Result<Response<Body>, Infallible> {
     let path = req.uri().path();
     let method = req.method();
@@ -145,15 +161,31 @@ async fn handle_request(
     println!("🔍 Request path: {}", path);
     println!("🔍 Request headers: {:?}", headers);
 
+    // Check for channel special routes first
+    let handler_opt = {
+        let handlers = channel_handlers.read().await;
+        handlers.iter()
+            .find(|(route_path, _)| path.starts_with(route_path.as_str()))
+            .map(|(route_path, handler)| {
+                log::info!("🎯 Routing to channel handler: {}", route_path);
+                handler.clone()
+            })
+    };
+    
+    if let Some(handler) = handler_opt {
+        return handler(req).await;
+    }
+
     // Check if it's a gRPC request
     // gRPC requests typically have paths like "/dubhe_grpc.DubheGrpc/MethodName"
+    // Support both standard gRPC and gRPC-Web (application/grpc-web, application/grpc-web-text)
     let is_grpc = path.starts_with("/dubhe_grpc") 
         || headers.get(CONTENT_TYPE).and_then(|v| v.to_str().ok())
-            .map(|ct| ct.starts_with("application/grpc"))
+            .map(|ct| ct.starts_with("application/grpc-web") || ct.starts_with("application/grpc"))
             .unwrap_or(false);
     
     if is_grpc {
-        log::info!("🔌 Routing gRPC request: {}", path);
+        log::info!("🔌 Routing gRPC request: {} (content-type: {:?})", path, headers.get(CONTENT_TYPE));
         return handle_grpc_request(req, grpc_addr).await;
     }
 
@@ -281,8 +313,8 @@ async fn handle_grpc_request(
             .unwrap());
     };
 
-    // Create HTTP/2 client for gRPC forwarding
-    let client = hyper::Client::builder().http2_only(true).build_http();
+    // Create HTTP client that supports both HTTP/1.1 (for gRPC-Web) and HTTP/2 (for native gRPC)
+    let client = hyper::Client::builder().build_http();
 
     let grpc_url = format!("http://{}", grpc_addr);
     let target_uri = format!(

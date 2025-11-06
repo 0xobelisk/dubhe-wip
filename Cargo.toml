@@ -8,6 +8,10 @@ members = [
   "crates/dubhe-indexer-grpc-client",
   "crates/dubhe-indexer-graphql",
   "crates/dubhe-indexer-graphql-client",
+  "crates/dubhe-state",
+  "crates/dubhe-vm",
+  "crates/dubhe-db",
+  "crates/dubhe-channel",
 ]
 
 [workspace.dependencies]
@@ -71,10 +75,17 @@ sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "sqlit
 sui-storage = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 sui-sdk = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 sui-protocol-config ={ git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
+sui-keys = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 sui-rpc-api = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
-sui_types = { git = "https://github.com/mystenlabs/sui", package = "sui-types", tag = "testnet-v1.58.1"}
+sui-types = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 move-core-types = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 mysten-service = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 mysten-metrics = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 sui-indexer-alt-framework = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
 sui-indexer-alt-framework-store-traits = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
+move-vm-runtime = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
+sui-adapter-latest = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}
+sui-move-build = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }
+sui-move-natives-latest = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }
+shared-crypto = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }
+sui-json-rpc-types = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }

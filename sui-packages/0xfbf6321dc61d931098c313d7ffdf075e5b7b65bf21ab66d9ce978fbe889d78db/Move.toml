@@ -1,0 +1,13 @@
+[package]
+name = "dubhe"
+edition = "2024"
+version = "1.0.0"
+license = "apache2.0"
+authors = ["Obelisk Labs"]
+
+[dependencies]
+Sui = { local = "../0x2" }
+
+[addresses]
+sui = "0x2"
+dubhe = "0xcad85ef415c8d569a3058413ce997a9ca9619405821cdf45eed2881185c2964a"

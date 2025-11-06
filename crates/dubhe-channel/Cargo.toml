@@ -1,0 +1,55 @@
+[package]
+name = "dubhe-channel"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "dubhe-channel"
+path = "src/main.rs"
+
+[dependencies]
+url = { workspace = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+clap = "4.0"
+colored = "2.0"
+toml = "0.8"
+chrono = { workspace = true }
+hex = "0.4"
+bcs = { workspace = true }
+rand = { workspace = true }
+
+# Sui相关依赖
+sui-types = { workspace = true }
+sui-keys = { workspace = true }
+sui-move-build = { workspace = true }
+sui-protocol-config = { workspace = true }
+move-vm-runtime = { workspace = true }
+sui-move-natives-latest = { workspace = true }
+sui-sdk = { workspace = true }
+sui-json-rpc-types = { workspace = true }
+move-core-types = { workspace = true }
+shared-crypto = { workspace = true }
+sui-indexer-alt-framework = { workspace = true }
+
+dubhe-state = { path = "../dubhe-state" }
+dubhe-db = { path = "../dubhe-db" }
+dubhe-vm = { path = "../dubhe-vm" }
+dubhe-indexer = { path = "../dubhe-indexer" }
+dubhe-indexer-grpc = { path = "../dubhe-indexer-grpc" }
+dubhe-common = { workspace = true }
+prost-types = "0.12"
+
+# Sui move build
+env_logger = { workspace = true }
+
+# 外部依赖
+parking_lot = "0.12" # 添加 parking_lot
+prometheus = "0.13"  # 添加 prometheus
+hyper = { version = "0.14", features = ["full"] }
+http = "0.2"
+bytes = "1.0"
+bs58 = "0.5"
+base64 = "0.21"

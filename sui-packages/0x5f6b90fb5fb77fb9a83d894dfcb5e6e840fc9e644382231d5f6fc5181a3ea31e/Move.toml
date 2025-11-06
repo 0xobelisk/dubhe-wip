@@ -1,0 +1,15 @@
+[package]
+name = "counter"
+edition = "2024"
+version = "1.0.0"
+license = "apache2.0"
+authors = ["Obelisk Labs"]
+
+[dependencies]
+Sui = { local = "../0x2" }
+dubhe = { local = "../0xfbf6321dc61d931098c313d7ffdf075e5b7b65bf21ab66d9ce978fbe889d78db" }
+
+[addresses]
+sui = "0x2"
+counter = "0xef902175b7a8cedc31c40f55343b5b6f2d712df6ea503a586e65bf819cf29ac1"
+dubhe = "0xcad85ef415c8d569a3058413ce997a9ca9619405821cdf45eed2881185c2964a"

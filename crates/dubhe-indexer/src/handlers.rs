@@ -19,7 +19,6 @@ use sui_indexer_alt_framework::{
     pipeline::Processor, types::full_checkpoint_content::CheckpointData,
 };
 use sui_types::base_types::ObjectID;
-use sui_types::message_envelope::Message;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 use prost_types::Value;

@@ -1,0 +1,11 @@
+[package]
+name = "dubhe-state"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+sui-types = { workspace = true }
+bcs = { workspace = true }
+move-core-types = { workspace = true }
+sui-json-rpc-types = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}     

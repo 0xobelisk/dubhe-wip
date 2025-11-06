@@ -1,0 +1,15 @@
+[package]
+name = "dubhe-db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+auto_impl = "1.3.0"
+tokio = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+sui-types = { workspace = true }
+sui-sdk = { workspace = true }
+bcs = { workspace = true }
+move-core-types = { workspace = true }
+sui-json-rpc-types = { git = "https://github.com/mystenlabs/sui", tag = "testnet-v1.58.1"}     

@@ -14,7 +14,7 @@ use url::Url;
 
 use sui_indexer_alt_framework::postgres::DbArgs;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 pub struct DubheIndexerArgs {
     /// Configuration file path
