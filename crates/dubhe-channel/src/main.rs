@@ -317,11 +317,24 @@ async fn main() -> Result<()> {
         Box::pin(async move {
             println!("🔍 Processing /submit request");
             
+            // 处理 OPTIONS 预检请求 (CORS)
+            if req.method() == hyper::Method::OPTIONS {
+                return Ok(Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "POST, OPTIONS")
+                    .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                    .header("Access-Control-Max-Age", "3600")
+                    .body(Body::empty())
+                    .unwrap());
+            }
+            
             // 检查请求方法
             if req.method() != hyper::Method::POST {
                 return Ok(Response::builder()
                     .status(StatusCode::METHOD_NOT_ALLOWED)
                     .header(CONTENT_TYPE, "application/json")
+                    .header("Access-Control-Allow-Origin", "*")
                     .body(Body::from(json!({
                         "success": false,
                         "message": "Method not allowed. Only POST is supported",
@@ -337,6 +350,7 @@ async fn main() -> Result<()> {
                     return Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)
                         .header(CONTENT_TYPE, "application/json")
+                        .header("Access-Control-Allow-Origin", "*")
                         .body(Body::from(json!({
                             "success": false,
                             "message": format!("Failed to read body: {}", e),
@@ -377,6 +391,7 @@ async fn main() -> Result<()> {
                             return Ok(Response::builder()
                                 .status(StatusCode::BAD_REQUEST)
                                 .header(CONTENT_TYPE, "application/json")
+                                .header("Access-Control-Allow-Origin", "*")
                                 .body(Body::from(json!({
                                     "success": false,
                                     "message": format!("Failed to convert PTB: {}", e),
@@ -413,6 +428,7 @@ async fn main() -> Result<()> {
                             Ok(Response::builder()
                                 .status(StatusCode::OK)
                                 .header(CONTENT_TYPE, "application/json")
+                                .header("Access-Control-Allow-Origin", "*")
                                 .body(Body::from(json!({
                                     "success": true,
                                     "message": "Submit request processed successfully",
@@ -431,6 +447,7 @@ async fn main() -> Result<()> {
                             Ok(Response::builder()
                                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                                 .header(CONTENT_TYPE, "application/json")
+                                .header("Access-Control-Allow-Origin", "*")
                                 .body(Body::from(json!({
                                     "success": false,
                                     "message": format!("Failed to execute PTB: {}", e),
@@ -445,6 +462,7 @@ async fn main() -> Result<()> {
                     Ok(Response::builder()
                         .status(StatusCode::BAD_REQUEST)
                         .header(CONTENT_TYPE, "application/json")
+                        .header("Access-Control-Allow-Origin", "*")
                         .body(Body::from(json!({
                             "success": false,
                             "message": format!("Invalid JSON body: {}", e),
