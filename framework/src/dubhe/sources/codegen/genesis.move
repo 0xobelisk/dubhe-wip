@@ -82,8 +82,7 @@
     dapp_system::upgrade_dapp(dapp_hub, dapp_key, new_package_id, new_version, ctx);
     // Register new tables
     // ==========================================
-    asset_add_liquidity::register_table(dapp_hub, ctx);
-    asset_remove_liquidity::register_table(dapp_hub, ctx);
+
 // ==========================================
   }
 }

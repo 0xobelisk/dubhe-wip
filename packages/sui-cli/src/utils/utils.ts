@@ -10,7 +10,7 @@ import { Dubhe, NetworkType, SuiMoveNormalizedModules, loadMetadata } from '@0xo
 import { DubheCliError } from './errors';
 import packageJson from '../../package.json';
 import { Component, MoveType, EmptyComponent, DubheConfig } from '@0xobelisk/sui-common';
-import { TESTNET_DUBHE_HUB_OBJECT_ID } from './constants';
+import { TESTNET_DUBHE_HUB_OBJECT_ID, TESTNET_ORIGINAL_DUBHE_PACKAGE_ID } from './constants';
 
 export type DeploymentJsonType = {
   projectName: string;
@@ -112,6 +112,23 @@ export async function getDubheDappHub(network: string) {
   }
 }
 
+export async function getOriginalDubhePackageId(network: string) {
+  const path = process.cwd();
+  const contractPath = `${path}/src/dubhe`;
+
+  switch (network) {
+    case 'mainnet':
+      return TESTNET_ORIGINAL_DUBHE_PACKAGE_ID;
+    case 'testnet':
+      return TESTNET_ORIGINAL_DUBHE_PACKAGE_ID;
+    case 'devnet':
+      return TESTNET_ORIGINAL_DUBHE_PACKAGE_ID;
+    case 'localnet':
+      return await getOldPackageId(contractPath, network);
+    default:
+      throw new Error(`Invalid network: ${network}`);
+  }
+}
 export async function getOnchainComponents(
   projectPath: string,
   network: string
