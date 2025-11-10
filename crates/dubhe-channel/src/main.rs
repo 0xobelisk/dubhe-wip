@@ -17,12 +17,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::path::PathBuf;
 use sui_types::base_types::{ObjectID, SuiAddress};
-use sui_types::storage::{PackageObject, ObjectStore};
 use sui_types::transaction::{CallArg, Command, ObjectArg, ProgrammableTransaction, ProgrammableMoveCall, Argument, Transaction, TransactionData};
-use sui_types::move_package::MovePackage;
 use sui_types::object::Object;
-use sui_protocol_config::ProtocolConfig;
 use tokio::sync::RwLock;
+use tokio::time::{interval, Duration};
 use bcs;
 use sui_sdk::SuiClientBuilder;
 use sui_sdk::rpc_types::SuiTransactionBlockResponseOptions;
@@ -34,8 +32,7 @@ use sui_sdk::types::{
 use sui_json_rpc_types::SuiObjectDataOptions;
 use shared_crypto::intent::Intent;
 use sui_types::crypto::SuiKeyPair;
-use sui_keys::keystore::{AccountKeystore, FileBasedKeystore};
-use sui_move_build;
+use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, InMemKeystore};
 use clap::Parser;
 use sui_types::base_types::TransactionDigest;
 use hyper::body;
@@ -50,6 +47,8 @@ use base64::{Engine as _, engine::general_purpose};
 struct DubheChannelConfig {
     #[command(flatten)]
     indexer_args: DubheIndexerArgs,
+    #[arg(long, default_value = "5")]
+    pub sync_time: u64
 }
 
 // Submit Request struct
@@ -157,6 +156,35 @@ pub enum ArgumentJson {
     },
 }
 
+// Storage state with counter
+#[derive(Debug)]
+struct StorageState {
+    map: std::collections::HashMap<Vec<Vec<u8>>, Vec<Vec<u8>>>,
+    counter: u64,
+}
+
+impl StorageState {
+    fn new() -> Self {
+        Self {
+            map: std::collections::HashMap::new(),
+            counter: 0,
+        }
+    }
+
+    fn insert(&mut self, key: Vec<Vec<u8>>, value: Vec<Vec<u8>>) {
+        self.map.insert(key, value);
+        self.counter += 1;
+    }
+
+    fn clear(&mut self) -> (usize, u64) {
+        let map_len = self.map.len();
+        let counter = self.counter;
+        self.map.clear();
+        self.counter = 0;
+        (map_len, counter)
+    }
+}
+
 // Global application state
 #[derive(Clone)]
 struct AppState<DB> {
@@ -168,8 +196,11 @@ struct AppState<DB> {
 async fn main() -> Result<()> {
     // Initialize logger
     env_logger::init();
-    
+
+    dotenvy::dotenv().ok();
     println!("🌟 Dubhe Channel Starting (with Indexer Integration) 🌟");
+
+    let temp_storage_state = Arc::new(RwLock::new(StorageState::new()));
 
     // Load configuration
     let config: DubheChannelConfig = DubheChannelConfig::parse();
@@ -191,7 +222,6 @@ async fn main() -> Result<()> {
     let mut cache_db = CacheDB::new(wrapped_dubhedb);
     
     // Preload all required objects using initialize_cache
-    println!("🔄 Initializing cache with objects from chain...");
     initialize_cache(
         &mut cache_db,
         &client,
@@ -205,10 +235,12 @@ async fn main() -> Result<()> {
 
     // Build Cluster
     let cluster = builder.build_cluster().await?;
-    let handle = cluster.run().await?;
-
+    
     // Build ProxyServer
     let proxy_server = builder.build_proxy_server().await?;
+    
+    // Start Cluster (indexer) - this returns a JoinHandle
+    let indexer_handle = cluster.run().await?;
 
     // Register channel special routes
     let app_state = AppState {
@@ -221,11 +253,13 @@ async fn main() -> Result<()> {
     let dubhe_config_clone = dubhe_config.clone();
     let database_url_clone = config.indexer_args.database_url.clone();
     let grpc_subscribers_clone = builder.grpc_subscribers();
+    let temp_storage_state_clone = temp_storage_state.clone();
     let submit_handler: ChannelHandler = Arc::new(move |req| {
         let state_clone = state_clone.clone();
         let dubhe_config_clone = dubhe_config_clone.clone();
         let database_url = database_url_clone.clone();
         let grpc_subscribers = grpc_subscribers_clone.clone();
+        let temp_storage_state = temp_storage_state_clone.clone();
         Box::pin(async move {
             println!("🔍 Processing /submit request");
             
@@ -324,8 +358,9 @@ async fn main() -> Result<()> {
                             dubhe_config_clone, 
                             sender, 
                             tx_digest, 
-                            grpc_subscribers.clone()
-                        )
+                            grpc_subscribers.clone(),
+                            &temp_storage_state
+                        ).await
                     };
                     
                     match value {
@@ -387,19 +422,75 @@ async fn main() -> Result<()> {
     });
     proxy_server.register_channel_handler("/submit".to_string(), submit_handler).await;
 
+    // Start periodic storage map monitoring task
+    let temp_storage_state_monitor = temp_storage_state.clone();
+    let sync_time = config.sync_time;
+    let config_monitor = Arc::new(config.clone());
+    let dubhe_config_monitor = dubhe_config.clone();
+    let monitor_handle = tokio::spawn(async move {
+        let mut interval = interval(Duration::from_secs(sync_time));
+        loop {
+            interval.tick().await;
+            let mut storage_state = temp_storage_state_monitor.write().await;
+            
+            println!("\n📦 ========== Storage State Monitor ==========");
+            println!("⏰ Time: {:?}", std::time::SystemTime::now());
+            println!("📊 Total entries in map: {}", storage_state.map.len());
+            println!("🔢 Insert counter: {}", storage_state.counter);
+            
+            if storage_state.map.is_empty() {
+                println!("✨ Storage map is empty");
+            } else {
+                println!("📝 Storage map contents and executing set_storage:");
+                
+                let counter = storage_state.counter as u64;
+                let total_entries = storage_state.map.len();
+                
+                for (idx, (key, value)) in storage_state.map.iter().enumerate() {
+                    println!("  [{}/{}] 🔑 Key: {:?}", idx + 1, total_entries, key);
+                    println!("  [{}/{}] 📄 Value: {:?}", idx + 1, total_entries, value);
+                    
+                    // Execute set_storage for this key-value pair
+                    match set_storage(&config_monitor, key.clone(), value.clone(), &dubhe_config_monitor, counter).await {
+                        Ok(_) => {
+                            println!("  ✅ Successfully executed set_storage for key: {:?}", key);
+                        },
+                        Err(e) => {
+                            println!("  ❌ Failed to execute set_storage: {}", e);
+                        }
+                    }
+                    
+                    // Wait 1 second before next execution (except for the last one)
+                    if idx < total_entries - 1 {
+                        println!("  ⏱️  Waiting 1 second before next set_storage...");
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                    
+                    println!("  ---");
+                }
+                
+                println!("✅ All set_storage operations completed");
+            }
+            
+            // Clear storage state after all set_storage operations complete
+            let (cleared_entries, cleared_counter) = storage_state.clear();
+            println!("🧹 Cleared {} entries and reset counter from {}", cleared_entries, cleared_counter);
+            println!("📦 ============================================\n");
+        }
+    });
+
     // Print startup information
     println!("\n🚀 Dubhe Channel Starting...");
     println!("================================");
-    println!("🔌 gRPC Endpoint:     http://0.0.0.0:{}", config.indexer_args.port);
+    println!("🌐 Proxy Server:     http://0.0.0.0:{}", config.indexer_args.port);
     println!("📊 GraphQL Endpoint: http://0.0.0.0:{}/graphql", config.indexer_args.port);
     println!("🏠 Welcome Page:     http://0.0.0.0:{}/welcome", config.indexer_args.port);
-    println!(
-        "🎮 Playground:       http://0.0.0.0:{}/playground",
-        config.indexer_args.port
-    );
+    println!("🎮 Playground:       http://0.0.0.0:{}/playground", config.indexer_args.port);
     println!("💚 Health Check:     http://0.0.0.0:{}/health", config.indexer_args.port);
     println!("📋 Metadata:         http://0.0.0.0:{}/metadata", config.indexer_args.port);
     println!("🔍 Submit:           http://0.0.0.0:{}/submit", config.indexer_args.port);
+    println!("⏱️  Monitor Interval: {} seconds", sync_time);
+    println!("================================\n");
 
     // Start Proxy Server
     let database = builder.database()
@@ -419,10 +510,16 @@ async fn main() -> Result<()> {
                 Err(e) => println!("❌ Proxy server task failed: {}", e),
             }
         }
-        result = handle => {
+        result = indexer_handle => {
             match result {
                 Ok(_) => println!("✅ Indexer executor completed successfully"),
                 Err(e) => println!("❌ Indexer executor task failed: {}", e),
+            }
+        }
+        result = monitor_handle => {
+            match result {
+                Ok(_) => println!("✅ Storage monitor completed successfully"),
+                Err(e) => println!("❌ Storage monitor task failed: {}", e),
             }
         }
     }
@@ -433,7 +530,7 @@ async fn main() -> Result<()> {
 
 fn get_tx_digest_by_chain(chain: String) -> TransactionDigest {
     if chain == "evm" {
-        let mut tx_digest = TransactionDigest::random();
+        let tx_digest = TransactionDigest::random();
         let mut tx_digest_inner = tx_digest.into_inner();
         tx_digest_inner[0] = 0xDB;
         tx_digest_inner[1] = 0xDB;
@@ -441,7 +538,7 @@ fn get_tx_digest_by_chain(chain: String) -> TransactionDigest {
         tx_digest_inner[3] = 0xE1;
         TransactionDigest::new(tx_digest_inner)
     } else if chain == "solana" {
-        let mut tx_digest = TransactionDigest::random();
+        let tx_digest = TransactionDigest::random();
         let mut tx_digest_inner = tx_digest.into_inner();
         tx_digest_inner[0] = 0xDB;
         tx_digest_inner[1] = 0xDB;
@@ -596,14 +693,15 @@ pub fn solana_to_sui(solana_address_str: &str) -> Result<SuiAddress> {
     SuiAddress::from_bytes(&solana_bytes).map_err(|e| anyhow!("Failed to create SuiAddress: {}", e))
 }
 
-fn mock_ptb_shared_sync<DB>(
+async fn mock_ptb_shared_sync<DB>(
     _config: &Arc<DubheChannelConfig>, 
     ptb: &ProgrammableTransaction, 
     cache_db: &mut CacheDB<DB>,
     dubhe_config: DubheConfig,
     sender: SuiAddress,
     tx_digest: TransactionDigest,
-    grpc_subscribers: Arc<RwLock<std::collections::HashMap<String, Vec<tokio::sync::mpsc::UnboundedSender<dubhe_indexer_grpc::types::TableChange>>>>>
+    grpc_subscribers: Arc<RwLock<std::collections::HashMap<String, Vec<tokio::sync::mpsc::UnboundedSender<dubhe_indexer_grpc::types::TableChange>>>>>,
+    temp_storage_state: &Arc<RwLock<StorageState>>
 ) -> Result<Vec<String>, anyhow::Error>
 where
     DB: dubhe_db::interface::DatabaseRef
@@ -619,6 +717,13 @@ where
                             .is_ok() {
             // Get table name
             let table_name = store_set_record.table_id().to_string();
+
+            if table_name != "dapp_fee_state" {
+                temp_storage_state.write().await.insert(
+                    store_set_record.key_tuple().clone(), 
+                    store_set_record.value_tuple().clone()
+                );
+            }
             
             // Convert to proto_struct
             let mut proto_struct = dubhe_config.convert_event_to_proto_struct(&store_set_record)?;
@@ -677,6 +782,130 @@ where
         }
     }
     Ok(sql_list)
+}
+
+
+async fn set_storage(
+    config: &Arc<DubheChannelConfig>, 
+    key_tuple: Vec<Vec<u8>>,
+    value_tuple: Vec<Vec<u8>>,
+    dubhe_config: &DubheConfig,
+    count: u64,
+) -> Result<(), anyhow::Error> { 
+    let sui_client = SuiClientBuilder::default().build(&config.indexer_args.rpc_url).await?;
+
+    let private_key = dotenvy::var("PRIVATE_KEY").unwrap();
+    let keypair = SuiKeyPair::decode(&private_key).map_err(|e| anyhow!(e))?;
+
+    println!("private_key: {:?}", private_key);
+
+    let mut keystore = InMemKeystore::default();
+    InMemKeystore::import(&mut keystore, Some("hello".to_string()), keypair).await?;
+    let sender = *keystore.addresses().first().ok_or(anyhow!("No sender found"))?;
+    println!("sender: {:?}", sender);
+    println!("count: {:?}", count);
+    // we need to find the coin we will use as gas
+    let coins = sui_client
+    .coin_read_api()
+    .get_coins(sender, None, None, None)
+    .await?;
+    let coin = coins.data.into_iter().next().ok_or(anyhow!("No coins found"))?;
+
+    let object_id = ObjectID::from_hex_literal(&dubhe_config.dubhe_object_id).map_err(|e| anyhow!(e))?;
+    let obj = sui_client
+                .read_api()
+                .get_object_with_options(
+                    object_id,
+                    SuiObjectDataOptions::bcs_lossless(),
+                )
+                .await?;
+    let object: Object = obj.into_object()?.try_into()?;
+
+    let object_inner = object.clone().into_inner();
+
+    let input_object = CallArg::Object(ObjectArg::SharedObject {
+        id: object.id(),
+        initial_shared_version: object_inner.owner.start_version().ok_or(anyhow!("Failed to get start version"))?,
+        mutable: true,
+    });
+        
+        let input_keys = CallArg::Pure(
+            bcs::to_bytes(
+            &key_tuple
+            ).unwrap());
+        
+        let input_values = CallArg::Pure(
+            bcs::to_bytes(
+                &value_tuple
+        ).unwrap());
+
+        let input_count = CallArg::Pure(
+            bcs::to_bytes(&count).unwrap()
+        );
+
+    let input_table_id = if key_tuple.len() == 0 {CallArg::Pure(
+        bcs::to_bytes(&"item_dropped".to_string()).unwrap()
+    )} else {
+        CallArg::Pure(
+            bcs::to_bytes(&"position".to_string()).unwrap()
+        )
+    };
+    let mut ptb = ProgrammableTransactionBuilder::new();
+    ptb.input(input_object)?;
+    ptb.input(input_table_id)?;
+    ptb.input(input_keys)?;
+    ptb.input(input_values)?;
+    ptb.input(input_count)?;
+
+        let package = ObjectID::from_hex_literal(&dubhe_config.original_dubhe_package_id).map_err(|e| anyhow!(e))?;
+        let module = Identifier::new("dapp_system").map_err(|e| anyhow!(e))?;
+        let function = Identifier::new("set_storage").map_err(|e| anyhow!(e))?;
+        let move_call = Command::move_call(
+            package,
+            module,
+            function,
+            vec![TypeTag::from_str(&format!("{}::dapp_key::DappKey", dubhe_config.original_package_id))?],
+            vec![
+                Argument::Input(0),
+                Argument::Input(1),
+                Argument::Input(2),
+                Argument::Input(3),
+                Argument::Input(4),
+            ],
+        );
+        ptb.command(move_call);
+
+        // build the transaction block by calling finish on the ptb
+        let builder = ptb.finish();
+
+        let gas_budget = 1_000_000_000;
+        let gas_price = sui_client.read_api().get_reference_gas_price().await?;
+        // create the transaction data that will be sent to the network
+        let tx_data = TransactionData::new_programmable(
+            sender,
+            vec![coin.object_ref()],
+            builder,
+            gas_budget,
+            gas_price,
+        );
+
+        let signature = keystore.sign_secure(&sender, &tx_data, Intent::sui_transaction()).await?;
+
+        println!("signature: {:?}", signature);
+
+        // 5) execute the transaction
+        print!("Executing the transaction...");
+        let transaction_response = sui_client
+            .quorum_driver_api()
+            .execute_transaction_block(
+                Transaction::from_data(tx_data, vec![signature]),
+                SuiTransactionBlockResponseOptions::full_content(),
+                Some(ExecuteTransactionRequestType::WaitForEffectsCert),
+            )
+            .await?;
+        println!("Successfully executed transaction: {}", transaction_response.digest);
+
+    Ok(())
 }
 
 // ========== Tests ==========

@@ -802,6 +802,10 @@ impl DubheConfig {
     }
 
     pub fn can_convert_event_to_sql(&self, event: &Event) -> Result<()> {
+      if event.table_id() == "storage_submit" {
+            return Ok(());
+        }
+
         if event.table_id() == "dapp_fee_state"
             && event.origin_package_id()
                 != Some(

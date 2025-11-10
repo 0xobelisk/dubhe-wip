@@ -12,7 +12,9 @@ use dubhe_common::{
 };
 use dubhe_indexer_graphql::TableChange;
 use dubhe_indexer_grpc::types::TableChange as GrpcTableChange;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+use std::collections::HashMap;  
+
 use std::str::FromStr;
 use std::sync::Arc;
 use sui_indexer_alt_framework::{
@@ -77,6 +79,8 @@ impl Processor for DubheEventHandler {
                             .is_ok()
                         {
                             let table_name = parsed_event.table_id().to_string();
+
+                            if table_name != "storage_submit" {
                             let mut proto_struct = self
                                 .dubhe_config
                                 .convert_event_to_proto_struct(&parsed_event)?;
@@ -120,7 +124,7 @@ impl Processor for DubheEventHandler {
                                     for sender in senders {
                                         println!(
                                             "📤 Sending table change to GRPC subscriber: {:?}",
-                                            table_name
+                                            table_name.clone()
                                         );
                                         let _ = sender.send(table_change.clone());
                                     }
@@ -133,6 +137,110 @@ impl Processor for DubheEventHandler {
                                 current_digest.clone(),
                             )?;
                             parsed_events.push(sql);
+                        }
+                        } else {
+                            let table_name = parsed_event.table_id().to_string();
+                            let mut proto_struct = prost_types::Struct { fields: BTreeMap::new() };
+
+                            proto_struct.fields.insert(
+                                "dapp_key".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::StringValue(
+                                        parsed_event.dapp_key().to_string(),
+                                    )),
+                                },
+                            );
+
+                            proto_struct.fields.insert(
+                                "key_tuple".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::ListValue(prost_types::ListValue {
+                                        values: parsed_event.key_tuple().clone()
+                                            .iter()
+                                            .map(|v| prost_types::Value {
+                                                kind: Some(prost_types::value::Kind::ListValue(prost_types::ListValue {
+                                                    values: v
+                                                        .iter()
+                                                        .map(|v| prost_types::Value {
+                                                            kind: Some(prost_types::value::Kind::NumberValue(
+                                                                *v as f64,
+                                                            )),
+                                                        })
+                                                        .collect(),
+                                                })),
+                                            })
+                                            .collect(),
+                                    })),
+                                },
+                            );
+
+                            proto_struct.fields.insert(
+                                "value_tuple".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::ListValue(prost_types::ListValue { 
+                                        values: parsed_event.value_tuple().clone()
+                                            .iter()
+                                            .map(|v| prost_types::Value {
+                                                kind: Some(prost_types::value::Kind::ListValue(prost_types::ListValue {
+                                                    values: v
+                                                        .iter()
+                                                        .map(|v| prost_types::Value {
+                                                            kind: Some(prost_types::value::Kind::NumberValue(
+                                                                *v as f64,
+                                                            )),
+                                                        })
+                                                        .collect(),
+                                                })),
+                                            })
+                                            .collect() })),
+                                },
+                            );
+                            proto_struct.fields.insert(
+                                "last_update_digest".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::StringValue(
+                                        current_digest.clone(),
+                                    )),
+                                },
+                            );
+                            proto_struct.fields.insert(
+                                "is_deleted".to_string(),
+                                Value {
+                                    kind: Some(prost_types::value::Kind::BoolValue(false)),
+                                },
+                            );
+
+                            // Spawn async task to send update without blocking
+                            let subscribers = self.grpc_subscribers.clone();
+                            tokio::spawn(async move {
+                                let table_change = dubhe_indexer_grpc::types::TableChange {
+                                    table_id: table_name.clone(),
+                                    data: Some(proto_struct),
+                                };
+
+                                // Send to GRPC subscribers
+                                let subscribers: tokio::sync::RwLockReadGuard<'_, HashMap<String, Vec<mpsc::UnboundedSender<GrpcTableChange>>>> = subscribers.read().await;
+                                println!("📤 Subscribers: {:?}", subscribers);
+                                // sender all
+                                for (table_name, senders) in subscribers.iter() {
+                                    for sender in senders {
+                                        println!(
+                                            "📤 Sending table change to GRPC subscriber: {:?}",
+                                            table_name
+                                        );
+                                        let _ = sender.send(table_change.clone());
+                                    }
+                                }
+                                // if let Some(senders) = subscribers.get(&table_name) {
+                                //     for sender in senders {
+                                //         println!(
+                                //             "📤 Sending table change to GRPC subscriber: {:?}",
+                                //             table_name
+                                //         );
+                                //         let _ = sender.send(table_change.clone());
+                                //     }
+                                // }
+                            });
                         }
                     }
                     // if event.type_.name.to_string() == "Dubhe_Store_SetRecord" {

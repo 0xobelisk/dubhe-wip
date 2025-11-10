@@ -87,6 +87,29 @@ impl Event {
         }
     }
 
+    pub fn key_tuple(&self) -> &Vec<Vec<u8>> {
+        match self {
+            Event::StoreSetRecord(event) => &event.key_tuple,
+            Event::StoreSetField(event) => &event.key_tuple,
+            Event::StoreDeleteRecord(event) => &event.key_tuple,
+        }
+    }
+
+    pub fn value_tuple(&self) -> &Vec<Vec<u8>> {
+        match self {
+            Event::StoreSetRecord(event) => &event.value_tuple,
+           _ => unreachable!(),
+        }
+    }
+
+    pub fn dapp_key(&self) -> &str {
+        match self {
+            Event::StoreSetRecord(event) => &event.dapp_key,
+            Event::StoreSetField(event) => &event.dapp_key,
+            Event::StoreDeleteRecord(event) => &event.dapp_key,
+        }
+    }
+
     pub fn from_bytes(name: &str, bytes: &[u8]) -> Result<Self> {
         // Parse the event from bytes, maybe it's a StoreSetRecord, StoreSetField, or StoreDeleteRecord
         // if it's a StoreSetRecord, return Event::StoreSetRecord

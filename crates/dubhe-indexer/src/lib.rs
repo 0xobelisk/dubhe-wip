@@ -145,6 +145,7 @@ impl IndexerBuilder {
                 first_checkpoint: Some(dubhe_config.start_checkpoint.parse::<u64>().unwrap()),
                 ..Default::default()
             };
+            println!("🔄 Starting from first checkpoint: {}", dubhe_config.start_checkpoint);
             sui_indexer_alt_framework::cluster::IndexerCluster::builder()
                 .with_indexer_args(indexer_args)
                 .with_database_url(Url::parse(&self.args.database_url).unwrap())
@@ -152,6 +153,7 @@ impl IndexerBuilder {
                 .build()
                 .await?
         } else {
+            println!("📖 Continuing from last checkpoint...");
             sui_indexer_alt_framework::cluster::IndexerCluster::builder()
                 .with_database_url(Url::parse(&self.args.database_url).unwrap())
                 .with_client_args(client_args)
