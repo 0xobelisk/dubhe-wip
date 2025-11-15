@@ -1068,6 +1068,12 @@ importers:
       '@0xobelisk/graphql-client':
         specifier: workspace:*
         version: link:../graphql-client
+      '@0xobelisk/grpc-client':
+        specifier: workspace:*
+        version: link:../grpc-client
+      '@0xobelisk/sui-client':
+        specifier: workspace:*
+        version: link:../sui-client
       '@nanostores/react':
         specifier: ^0.8.0
         version: 0.8.4(nanostores@0.11.4)(react@18.3.1)
@@ -1075,9 +1081,6 @@ importers:
         specifier: ^0.11.4
         version: 0.11.4
     devDependencies:
-      '@0xobelisk/sui-client':
-        specifier: workspace:*
-        version: link:../sui-client
       '@types/node':
         specifier: ^20.8.7
         version: 20.19.13
@@ -1309,11 +1312,8 @@ importers:
         specifier: workspace:*
         version: link:../sui-common
       '@mysten/sui':
-        specifier: ^1.35.0
-        version: 1.38.0(typescript@5.9.2)
-      '@types/sqlite3':
-        specifier: ^3.1.11
-        version: 3.1.11
+        specifier: 1.35.0
+        version: 1.35.0(typescript@5.9.2)
       '@types/wait-on':
         specifier: ^5.3.4
         version: 5.3.4
@@ -1421,11 +1421,11 @@ importers:
   packages/sui-client:
     dependencies:
       '@mysten/bcs':
-        specifier: ^1.6.3
-        version: 1.8.0
+        specifier: 1.6.3
+        version: 1.6.3
       '@mysten/sui':
-        specifier: ^1.35.0
-        version: 1.38.0(typescript@5.9.2)
+        specifier: 1.35.0
+        version: 1.35.0(typescript@5.9.2)
       '@noble/curves':
         specifier: ^1.4.2
         version: 1.9.7
@@ -1872,6 +1872,9 @@ packages:
 
   '@bitcoinerlab/secp256k1@1.2.0':
     resolution: {integrity: sha512-jeujZSzb3JOZfmJYI0ph1PVpCRV5oaexCgy+RvCXV8XlY+XFB/2n3WOcvBsKLsOw78KYgnQrQWb2HrKE4be88Q==}
+
+  '@bufbuild/protobuf@2.10.0':
+    resolution: {integrity: sha512-fdRs9PSrBF7QUntpZpq6BTw58fhgGJojgg39m9oFOJGZT+nip9b0so5cYY1oWl5pvemDLr0cPPsH46vwThEbpQ==}
 
   '@bufbuild/protobuf@2.7.0':
     resolution: {integrity: sha512-qn6tAIZEw5i/wiESBF4nQxZkl86aY4KoO0IkUa2Lh+rya64oTOdJQFlZuMwI1Qz9VBJQrQC4QlSA2DNek5gCOA==}
@@ -3080,12 +3083,22 @@ packages:
   '@mysten/bcs@1.0.4':
     resolution: {integrity: sha512-6JoQi59GN/dVEBCNq8Rj4uOR0niDrJqDx/2gNQWXANwJakHIGH0AMniHrXP41B2dF+mZ3HVmh9Hi3otiEVQTrQ==}
 
+  '@mysten/bcs@1.6.3':
+    resolution: {integrity: sha512-QQ6u0U7a4+/o6rZ9tALTeGYMdf6V5z/HkRI/mhD5/fSr80DJoGzOWpFszcN/fhJpKb36vBaSQUMpS7yNQ10xBQ==}
+
   '@mysten/bcs@1.8.0':
     resolution: {integrity: sha512-bDoLN1nN+XPONsvpNyNyqYHndM3PKWS419GLeRnbLoWyNm4bnyD1X4luEpJLLDq400hBuXiCan4RWjofvyTUIQ==}
+
+  '@mysten/sui@1.35.0':
+    resolution: {integrity: sha512-za0+SiEFtjAjk0sJ8P9Q/X/m2E/YrXQ/UNsotEwb/eCqPyGS8A9Mrxkhm/iIgR1+AAl1OWUWCrqgJVe7u2i61A==}
+    engines: {node: '>=18'}
 
   '@mysten/sui@1.38.0':
     resolution: {integrity: sha512-tH6V4BJsYi5d97MOiLoOhyldrYxkm/cu8dYV52asqh1i88HrSVMbPAJ9sVoeWN2Ju+QsJ/Go4ldSjdCkaBCyJQ==}
     engines: {node: '>=18'}
+
+  '@mysten/utils@0.1.0':
+    resolution: {integrity: sha512-nFxqArh4cr629elLsIk7UZmx5dFVshblwrfwaG7Dm2L/ii2C65bhK5tdTs6UiC3K0tCr8q8svrgzXyF9L0CN/A==}
 
   '@mysten/utils@0.2.0':
     resolution: {integrity: sha512-CM6kJcJHX365cK6aXfFRLBiuyXc5WSBHQ43t94jqlCAIRw8umgNcTb5EnEA9n31wPAQgLDGgbG/rCUISCTJ66w==}
@@ -3506,9 +3519,6 @@ packages:
 
   '@types/serve-static@1.15.8':
     resolution: {integrity: sha512-roei0UY3LhpOJvjbIP6ZZFngyLKl5dskOtDhxY5THRSpO+ZI+nzJ+m5yUMzGrp89YRa7lvknKkMYjqQFGwA7Sg==}
-
-  '@types/sqlite3@3.1.11':
-    resolution: {integrity: sha512-KYF+QgxAnnAh7DWPdNDroxkDI3/MspH1NMx6m/N/6fT1G6+jvsw4/ZePt8R8cr7ta58aboeTfYFBDxTJ5yv15w==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -9044,6 +9054,8 @@ snapshots:
     dependencies:
       '@noble/curves': 1.9.7
 
+  '@bufbuild/protobuf@2.10.0': {}
+
   '@bufbuild/protobuf@2.7.0': {}
 
   '@bufbuild/protoplugin@2.7.0':
@@ -10337,10 +10349,34 @@ snapshots:
     dependencies:
       bs58: 6.0.0
 
+  '@mysten/bcs@1.6.3':
+    dependencies:
+      '@mysten/utils': 0.1.0
+      '@scure/base': 1.2.6
+
   '@mysten/bcs@1.8.0':
     dependencies:
       '@mysten/utils': 0.2.0
       '@scure/base': 1.2.6
+
+  '@mysten/sui@1.35.0(typescript@5.9.2)':
+    dependencies:
+      '@graphql-typed-document-node/core': 3.2.0(graphql@15.10.1)
+      '@mysten/bcs': 1.6.3
+      '@mysten/utils': 0.1.0
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/base': 1.2.6
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      gql.tada: 1.8.13(graphql@15.10.1)(typescript@5.9.2)
+      graphql: 15.10.1
+      poseidon-lite: 0.2.1
+      valibot: 0.36.0
+    transitivePeerDependencies:
+      - '@gql.tada/svelte-support'
+      - '@gql.tada/vue-support'
+      - typescript
 
   '@mysten/sui@1.38.0(typescript@5.1.6)':
     dependencies:
@@ -10361,24 +10397,9 @@ snapshots:
       - '@gql.tada/vue-support'
       - typescript
 
-  '@mysten/sui@1.38.0(typescript@5.9.2)':
+  '@mysten/utils@0.1.0':
     dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@15.10.1)
-      '@mysten/bcs': 1.8.0
-      '@mysten/utils': 0.2.0
-      '@noble/curves': 1.9.7
-      '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      gql.tada: 1.8.13(graphql@15.10.1)(typescript@5.9.2)
-      graphql: 15.10.1
-      poseidon-lite: 0.2.1
-      valibot: 0.36.0
-    transitivePeerDependencies:
-      - '@gql.tada/svelte-support'
-      - '@gql.tada/vue-support'
-      - typescript
 
   '@mysten/utils@0.2.0':
     dependencies:
@@ -10425,7 +10446,7 @@ snapshots:
 
   '@protobuf-ts/plugin@2.11.1':
     dependencies:
-      '@bufbuild/protobuf': 2.7.0
+      '@bufbuild/protobuf': 2.10.0
       '@bufbuild/protoplugin': 2.7.0
       '@protobuf-ts/protoc': 2.11.1
       '@protobuf-ts/runtime': 2.11.1
@@ -10793,10 +10814,6 @@ snapshots:
       '@types/http-errors': 2.0.5
       '@types/node': 20.19.13
       '@types/send': 0.17.5
-
-  '@types/sqlite3@3.1.11':
-    dependencies:
-      '@types/node': 20.19.13
 
   '@types/stack-utils@2.0.3': {}
 

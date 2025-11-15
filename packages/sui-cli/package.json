@@ -1,6 +1,6 @@
 {
   "name": "@0xobelisk/sui-cli",
-  "version": "1.2.0-pre.76",
+  "version": "1.2.0-pre.86",
   "description": "Tookit for interacting with move eps framework",
   "keywords": [
     "sui",
@@ -39,8 +39,7 @@
   "dependencies": {
     "@0xobelisk/sui-client": "workspace:*",
     "@0xobelisk/sui-common": "workspace:*",
-    "@mysten/sui": "^1.35.0",
-    "@types/sqlite3": "^3.1.11",
+    "@mysten/sui": "1.35.0",
     "@types/wait-on": "^5.3.4",
     "axios": "^1.10.0",
     "chalk": "^5.0.1",
