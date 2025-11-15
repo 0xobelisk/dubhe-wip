@@ -156,10 +156,13 @@ pub enum ArgumentJson {
     },
 }
 
-// Storage state with counter
+// Storage state with FIFO queue and deduplication by key
 #[derive(Debug)]
 struct StorageState {
+    // HashMap for quick lookup and update
     map: std::collections::HashMap<Vec<Vec<u8>>, Vec<Vec<u8>>>,
+    // VecDeque to maintain insertion order
+    order: std::collections::VecDeque<Vec<Vec<u8>>>,
     counter: u64,
 }
 
@@ -167,21 +170,46 @@ impl StorageState {
     fn new() -> Self {
         Self {
             map: std::collections::HashMap::new(),
-            counter: 0,
+            order: std::collections::VecDeque::new(),
+            counter: 1,
         }
     }
 
-    fn insert(&mut self, key: Vec<Vec<u8>>, value: Vec<Vec<u8>>) {
-        self.map.insert(key, value);
+    fn push(&mut self, key: Vec<Vec<u8>>, value: Vec<Vec<u8>>) {
+        if self.map.contains_key(&key) {
+            // Key already exists, just update the value
+            self.map.insert(key, value);
+            println!("🔄 Updated existing key in queue");
+        } else {
+            // New key, add to both map and order queue
+            self.map.insert(key.clone(), value);
+            self.order.push_back(key);
+            println!("➕ Added new key to queue");
+        }
         self.counter += 1;
     }
 
-    fn clear(&mut self) -> (usize, u64) {
-        let map_len = self.map.len();
-        let counter = self.counter;
-        self.map.clear();
-        self.counter = 0;
-        (map_len, counter)
+    fn pop_front(&mut self) -> Option<(Vec<Vec<u8>>, Vec<Vec<u8>>)> {
+        // Get the oldest key from order queue
+        if let Some(key) = self.order.pop_front() {
+            // Get and remove the corresponding value from map
+            if let Some(value) = self.map.remove(&key) {
+                return Some((key, value));
+            }
+        }
+        None
+    }
+
+    fn reset_counter(&mut self) {
+        self.counter = 1;
+    }
+
+    fn len(&self) -> usize {
+        self.order.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.order.is_empty()
     }
 }
 
@@ -422,7 +450,7 @@ async fn main() -> Result<()> {
     });
     proxy_server.register_channel_handler("/submit".to_string(), submit_handler).await;
 
-    // Start periodic storage map monitoring task
+    // Start periodic storage queue monitoring task (FIFO - one at a time)
     let temp_storage_state_monitor = temp_storage_state.clone();
     let sync_time = config.sync_time;
     let config_monitor = Arc::new(config.clone());
@@ -433,49 +461,48 @@ async fn main() -> Result<()> {
             interval.tick().await;
             let mut storage_state = temp_storage_state_monitor.write().await;
             
-            println!("\n📦 ========== Storage State Monitor ==========");
+            println!("\n📦 ========== Storage Queue Monitor ==========");
             println!("⏰ Time: {:?}", std::time::SystemTime::now());
-            println!("📊 Total entries in map: {}", storage_state.map.len());
-            println!("🔢 Insert counter: {}", storage_state.counter);
+            println!("📊 Queue length: {}", storage_state.len());
+            println!("🔢 Total processed counter: {}", storage_state.counter);
             
-            if storage_state.map.is_empty() {
-                println!("✨ Storage map is empty");
+            if storage_state.is_empty() {
+                println!("✨ Queue is empty, waiting for next cycle...");
             } else {
-                println!("📝 Storage map contents and executing set_storage:");
-                
-                let counter = storage_state.counter as u64;
-                let total_entries = storage_state.map.len();
-                
-                for (idx, (key, value)) in storage_state.map.iter().enumerate() {
-                    println!("  [{}/{}] 🔑 Key: {:?}", idx + 1, total_entries, key);
-                    println!("  [{}/{}] 📄 Value: {:?}", idx + 1, total_entries, value);
+                // Pop only the first (oldest) element from the queue
+                if let Some((key, value)) = storage_state.pop_front() {
+                    let counter = storage_state.counter;
+                    let remaining = storage_state.len();
+                    
+                    println!("📝 Processing oldest entry from queue:");
+                    println!("  🔑 Key: {:?}", key);
+                    println!("  📄 Value: {:?}", value);
+                    println!("  🔢 Current counter: {}", counter);
+                    println!("  📊 Remaining in queue: {}", remaining);
+                    
+                    // Release the lock before executing set_storage
+                    drop(storage_state);
                     
                     // Execute set_storage for this key-value pair
                     match set_storage(&config_monitor, key.clone(), value.clone(), &dubhe_config_monitor, counter).await {
                         Ok(_) => {
-                            println!("  ✅ Successfully executed set_storage for key: {:?}", key);
+                            println!("  ✅ Successfully executed set_storage");
+                            
+                            // Reset counter after successful transaction
+                            let mut storage_state = temp_storage_state_monitor.write().await;
+                            storage_state.reset_counter();
+                            println!("  🔄 Counter reset to 1");
                         },
                         Err(e) => {
                             println!("  ❌ Failed to execute set_storage: {}", e);
                         }
                     }
-                    
-                    // Wait 1 second before next execution (except for the last one)
-                    if idx < total_entries - 1 {
-                        println!("  ⏱️  Waiting 1 second before next set_storage...");
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                    }
-                    
-                    println!("  ---");
+                } else {
+                    println!("⚠️  Queue was empty when trying to pop");
                 }
-                
-                println!("✅ All set_storage operations completed");
             }
             
-            // Clear storage state after all set_storage operations complete
-            let (cleared_entries, cleared_counter) = storage_state.clear();
-            println!("🧹 Cleared {} entries and reset counter from {}", cleared_entries, cleared_counter);
-            println!("📦 ============================================\n");
+            println!("📦 ==========================================\n");
         }
     });
 
@@ -719,7 +746,7 @@ where
             let table_name = store_set_record.table_id().to_string();
 
             if table_name != "dapp_fee_state" {
-                temp_storage_state.write().await.insert(
+                temp_storage_state.write().await.push(
                     store_set_record.key_tuple().clone(), 
                     store_set_record.value_tuple().clone()
                 );

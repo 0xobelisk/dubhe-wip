@@ -501,17 +501,39 @@ impl DubheGrpc for DubheGrpcService {
             let mut subscribers = self.subscribers.write().await;
             let senders = subscribers.entry(table_id.clone()).or_insert_with(Vec::new);
             senders.push(tx.clone());
-            println!("✅ Added subscriber for table: {}", table_id);
+            println!("✅ Added subscriber for table: {} (total: {})", table_id, senders.len());
         }
 
         // Convert UnboundedReceiver<TableChange> to UnboundedReceiver<Result<TableChange, Status>>
         let (result_tx, result_rx) = mpsc::unbounded_channel::<Result<TableChange, Status>>();
 
-        // Start a background task to convert the stream
+        // Start a background task to convert the stream and clean up on disconnect
+        let subscribers_clone = self.subscribers.clone();
+        let table_ids_clone = table_ids.clone();
         let mut rx_clone = rx;
         tokio::spawn(async move {
             while let Some(item) = rx_clone.recv().await {
-                let _ = result_tx.send(Ok(item));
+                if result_tx.send(Ok(item)).is_err() {
+                    // Client disconnected, break the loop
+                    break;
+                }
+            }
+            
+            // Client disconnected - clean up subscribers
+            println!("🧹 Client disconnected, cleaning up subscriptions for tables: {:?}", table_ids_clone);
+            let mut subscribers = subscribers_clone.write().await;
+            for table_id in &table_ids_clone {
+                if let Some(senders) = subscribers.get_mut(table_id) {
+                    // Remove all closed senders
+                    senders.retain(|sender| !sender.is_closed());
+                    println!("🧹 Cleaned up table '{}', remaining subscribers: {}", table_id, senders.len());
+                    
+                    // Remove empty entries
+                    if senders.is_empty() {
+                        subscribers.remove(table_id);
+                        println!("🗑️  Removed empty entry for table '{}'", table_id);
+                    }
+                }
             }
         });
 
