@@ -9,7 +9,8 @@ import {
   delay,
   getDubheDappHub,
   initializeDubhe,
-  saveMetadata
+  saveMetadata,
+  getOriginalDubhePackageId
 } from './utils';
 import { DubheConfig } from '@0xobelisk/sui-common';
 import * as fs from 'fs';
@@ -299,7 +300,7 @@ async function publishContract(
       network,
       startCheckpoint,
       packageId,
-      dappHub,
+      dubheDappHub,
       upgradeCapId,
       version,
       components,
@@ -311,8 +312,11 @@ async function publishContract(
 
     // Insert package id to dubhe config
     let config = JSON.parse(fs.readFileSync(`${process.cwd()}/dubhe.config.json`, 'utf-8'));
-    config.package_id = packageId;
+    config.original_package_id = packageId;
+    config.dubhe_object_id = dubheDappHub;
+    config.original_dubhe_package_id = await getOriginalDubhePackageId(network);
     config.start_checkpoint = startCheckpoint;
+
     fs.writeFileSync(`${process.cwd()}/dubhe.config.json`, JSON.stringify(config, null, 2));
 
     console.log('\n✅ Contract Publication Complete\n');
@@ -361,6 +365,9 @@ export async function publishDubheFramework(
 
   await removeEnvContent(`${projectPath}/Move.lock`, network);
   await updateMoveTomlAddress(projectPath, '0x0');
+
+  const startCheckpoint =
+    await dubhe.suiInteractor.currentClient.getLatestCheckpointSequenceNumber();
 
   const [modules, dependencies] = buildContract(projectPath);
   const tx = new Transaction();
@@ -430,8 +437,8 @@ export async function publishDubheFramework(
   await saveContractData(
     'dubhe',
     network,
+    startCheckpoint,
     packageId,
-    '0',
     dappHub,
     upgradeCapId,
     version,
@@ -462,7 +469,6 @@ export async function publishHandler(
     await publishDubheFramework(dubhe, network);
   }
 
-  console.log(force);
   if (dubheConfig.name !== 'dubhe' && force) {
     await updateDubheDependency(`${projectPath}/Move.toml`, network);
   }

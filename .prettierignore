@@ -8,6 +8,18 @@ coverage/
 *.d.ts
 .next/
 
+# Lock files
+*.lock
+Cargo.lock
+Move.lock
+
 # claude files
 .claude/
 CLAUDE.md
+
+# Large directories
+docs/node_modules/
+e2e/node_modules/
+framework/node_modules/
+packages/*/node_modules/
+templates/*/node_modules/

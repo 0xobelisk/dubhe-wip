@@ -9,12 +9,15 @@
  * - 📦 Context-based client sharing across components
  */
 import { Dubhe } from '@0xobelisk/sui-client';
+import type { DubheGraphqlClient } from '@0xobelisk/graphql-client';
+import type { DubheECSWorld } from '@0xobelisk/ecs';
 
 import {
   useDubheFromProvider,
   useDubheContractFromProvider,
   useDubheGraphQLFromProvider,
-  useDubheECSFromProvider
+  useDubheECSFromProvider,
+  useDubheConfigUpdate as useDubheConfigUpdateFromProvider
 } from './provider';
 import type { DubheReturn } from './types';
 
@@ -89,7 +92,7 @@ export function useDubheContract(): Dubhe {
  * Returns only the GraphQL client from Provider context.
  * More efficient than useDubhe() when only GraphQL access is needed.
  *
- * @returns GraphQL client instance (null if dubheMetadata not provided)
+ * @returns GraphQL client instance (always available with default localhost endpoint)
  *
  * @example
  * ```typescript
@@ -97,16 +100,14 @@ export function useDubheContract(): Dubhe {
  *   const graphqlClient = useDubheGraphQL();
  *
  *   useEffect(() => {
- *     if (graphqlClient) {
- *       graphqlClient.query({ ... }).then(setData);
- *     }
+ *     graphqlClient.query({ ... }).then(setData);
  *   }, [graphqlClient]);
  *
  *   return <div>{data && JSON.stringify(data)}</div>;
  * }
  * ```
  */
-export function useDubheGraphQL(): any | null {
+export function useDubheGraphQL(): DubheGraphqlClient {
   return useDubheGraphQLFromProvider();
 }
 
@@ -116,7 +117,7 @@ export function useDubheGraphQL(): any | null {
  * Returns only the ECS World instance from Provider context.
  * More efficient than useDubhe() when only ECS access is needed.
  *
- * @returns ECS World instance (null if GraphQL client not available)
+ * @returns ECS World instance (always available, depends on GraphQL client)
  *
  * @example
  * ```typescript
@@ -124,17 +125,47 @@ export function useDubheGraphQL(): any | null {
  *   const ecsWorld = useDubheECS();
  *
  *   useEffect(() => {
- *     if (ecsWorld) {
- *       ecsWorld.getComponent('MyComponent').then(setComponent);
- *     }
+ *     ecsWorld.getComponent('MyComponent').then(setComponent);
  *   }, [ecsWorld]);
  *
  *   return <div>ECS Component Data</div>;
  * }
  * ```
  */
-export function useDubheECS(): any | null {
+export function useDubheECS(): DubheECSWorld {
   return useDubheECSFromProvider();
+}
+
+/**
+ * Hook for dynamic configuration updates
+ *
+ * Provides methods to update provider configuration at runtime
+ *
+ * @returns Object with updateConfig, resetClients methods and current config
+ *
+ * @example
+ * ```typescript
+ * function NetworkSwitcher() {
+ *   const { updateConfig, config } = useDubheConfigUpdate();
+ *
+ *   const switchToTestnet = () => {
+ *     updateConfig({
+ *       network: 'testnet',
+ *       packageId: '0xTestnetPackageId...'
+ *     });
+ *   };
+ *
+ *   return (
+ *     <div>
+ *       <p>Network: {config.network}</p>
+ *       <button onClick={switchToTestnet}>Switch to Testnet</button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useDubheConfigUpdate() {
+  return useDubheConfigUpdateFromProvider();
 }
 
 /**

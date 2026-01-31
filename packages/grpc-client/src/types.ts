@@ -6,6 +6,7 @@ export type DubheMetadata = {
       {
         fields: Array<Record<string, any>>;
         keys: string[];
+        offchain?: boolean;
       }
     >
   >;
@@ -15,6 +16,7 @@ export type DubheMetadata = {
       {
         fields: Array<Record<string, any>>;
         keys: string[];
+        offchain?: boolean;
       }
     >
   >;

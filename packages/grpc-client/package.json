@@ -1,6 +1,6 @@
 {
   "name": "@0xobelisk/grpc-client",
-  "version": "1.2.0-pre.76",
+  "version": "1.2.0-pre.86",
   "description": "Toolkit for interacting with dubhe gRPC indexer",
   "keywords": [
     "sui",
@@ -39,7 +39,7 @@
     "build:types": "tsc --build",
     "clean": "rm -rf tsconfig.tsbuildinfo ./dist",
     "generate": "rm -rf src/proto && mkdir src/proto && pnpm generate:proto && pnpm lint && pnpm prettier:fix",
-    "generate:proto": "protoc --ts_out=./src/proto --ts_opt server_none -I ../../crates/dubhe-indexer-grpc/proto ../../crates/dubhe-indexer-grpc/proto/dubhe_grpc.proto",
+    "generate:proto": "protoc --ts_out=./src/proto --ts_opt force_server_none --ts_opt optimize_code_size --ts_opt ts_nocheck  -I ../../crates/dubhe-indexer-grpc/proto ../../crates/dubhe-indexer-grpc/proto/dubhe_grpc.proto",
     "lint": "eslint . --ext .ts",
     "prettier:check": "prettier -c --ignore-unknown .",
     "prettier:fix": "prettier -w --ignore-unknown .",

@@ -1,6 +1,7 @@
 import { SuiMoveNormalizedModules, Dubhe } from '@0xobelisk/sui-client';
 import type { DubheGraphqlClient } from '@0xobelisk/graphql-client';
 import type { DubheECSWorld } from '@0xobelisk/ecs';
+import type { DubheGrpcClient } from '@0xobelisk/grpc-client';
 
 /**
  * Network type
@@ -18,9 +19,9 @@ export interface DubheConfig {
   /** Dubhe Schema ID (optional, for enhanced features) */
   dubheSchemaId: string;
   /** Contract metadata (required for contract instantiation) */
-  metadata: SuiMoveNormalizedModules;
+  metadata: any;
   /** Dubhe metadata (enables GraphQL/ECS features) */
-  dubheMetadata?: any;
+  dubheMetadata: any;
   /** Authentication credentials */
   credentials?: {
     secretKey?: string;
@@ -30,6 +31,7 @@ export interface DubheConfig {
   endpoints?: {
     graphql?: string;
     websocket?: string;
+    grpc?: string;
   };
   /** Performance and behavior options */
   options?: {
@@ -48,25 +50,14 @@ export interface DubheConfig {
  * Return type for the main useDubhe hook
  */
 export interface DubheReturn {
-  /** Dubhe contract instance with enhanced methods */
-  contract: Dubhe & {
-    /** Enhanced transaction methods with options */
-    txWithOptions?: (
-      system: string,
-      method: string,
-      options?: any
-    ) => (params: any) => Promise<any>;
-    /** Enhanced query methods with options */
-    queryWithOptions?: (
-      system: string,
-      method: string,
-      options?: any
-    ) => (params: any) => Promise<any>;
-  };
-  /** GraphQL client (null if dubheMetadata not provided) */
-  graphqlClient: DubheGraphqlClient | null;
-  /** ECS World instance (null if GraphQL not available) */
-  ecsWorld: DubheECSWorld | null;
+  /** Dubhe contract instance */
+  contract: Dubhe;
+  /** GraphQL client (always available, uses default localhost endpoint if not configured) */
+  graphqlClient: DubheGraphqlClient;
+  /** gRPC client (always available, uses default localhost endpoint if not configured) */
+  grpcClient: DubheGrpcClient;
+  /** ECS World instance (always available, depends on GraphQL client) */
+  ecsWorld: DubheECSWorld;
   /** Contract metadata */
   metadata: SuiMoveNormalizedModules;
   /** Network type */
