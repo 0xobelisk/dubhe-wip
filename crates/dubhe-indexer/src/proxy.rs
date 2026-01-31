@@ -161,6 +161,19 @@ async fn handle_request(
     println!("🔍 Request path: {}", path);
     println!("🔍 Request headers: {:?}", headers);
 
+    // Handle OPTIONS preflight request (CORS)
+    if method == Method::OPTIONS {
+        return Ok(Response::builder()
+            .status(StatusCode::OK)
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            .header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-grpc-web, x-user-agent, grpc-timeout, grpc-encoding, grpc-accept-encoding")
+            .header("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin")
+            .header("Access-Control-Max-Age", "3600")
+            .body(Body::empty())
+            .unwrap());
+    }
+
     // Check for channel special routes first
     let handler_opt = {
         let handlers = channel_handlers.read().await;
@@ -220,6 +233,7 @@ async fn handle_request(
     Ok(Response::builder()
         .status(StatusCode::NOT_FOUND)
         .header(CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
         .body(Body::from(
             json!({
                 "error": "Not Found",
@@ -309,6 +323,8 @@ async fn handle_grpc_request(
             .header(CONTENT_TYPE, "application/grpc")
             .header("grpc-status", "14") // UNAVAILABLE
             .header("grpc-message", "gRPC service not configured")
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin")
             .body(Body::empty())
             .unwrap());
     };
@@ -332,7 +348,11 @@ async fn handle_grpc_request(
             match client.request(forwarded_req).await {
                 Ok(response) => {
                     log::debug!("✅ gRPC request forwarded successfully");
-                    Ok(response)
+                    // Add CORS headers to the gRPC response
+                    let (mut parts, body) = response.into_parts();
+                    parts.headers.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+                    parts.headers.insert("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin".parse().unwrap());
+                    Ok(Response::from_parts(parts, body))
                 }
                 Err(e) => {
                     log::error!("❌ gRPC forward error: {}", e);
@@ -341,6 +361,8 @@ async fn handle_grpc_request(
                         .header(CONTENT_TYPE, "application/grpc")
                         .header("grpc-status", "14") // UNAVAILABLE
                         .header("grpc-message", "Backend gRPC service unavailable")
+                        .header("Access-Control-Allow-Origin", "*")
+                        .header("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin")
                         .body(Body::empty())
                         .unwrap())
                 }
@@ -353,6 +375,8 @@ async fn handle_grpc_request(
                 .header(CONTENT_TYPE, "application/grpc")
                 .header("grpc-status", "3") // INVALID_ARGUMENT
                 .header("grpc-message", "Invalid request URI")
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin")
                 .body(Body::empty())
                 .unwrap())
         }
@@ -369,6 +393,7 @@ async fn handle_graphql_request(
         return Ok(Response::builder()
             .status(StatusCode::SERVICE_UNAVAILABLE)
             .header(CONTENT_TYPE, "application/json")
+            .header("Access-Control-Allow-Origin", "*")
             .body(Body::from(
                 json!({
                     "error": "GraphQL service not configured"
@@ -395,13 +420,17 @@ async fn handle_graphql_request(
             match client.request(forwarded_req).await {
                 Ok(response) => {
                     log::debug!("✅ GraphQL request forwarded successfully");
-                    Ok(response)
+                    // Add CORS headers to the GraphQL response
+                    let (mut parts, body) = response.into_parts();
+                    parts.headers.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+                    Ok(Response::from_parts(parts, body))
                 }
                 Err(e) => {
                     log::error!("❌ GraphQL forward error: {}", e);
                     Ok(Response::builder()
                         .status(StatusCode::BAD_GATEWAY)
                         .header(CONTENT_TYPE, "application/json")
+                        .header("Access-Control-Allow-Origin", "*")
                         .body(Body::from(
                             json!({
                                 "error": "Backend GraphQL service unavailable",
@@ -418,6 +447,7 @@ async fn handle_graphql_request(
             Ok(Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
                 .body(Body::from(
                     json!({
                         "error": "Invalid request URI",
@@ -467,6 +497,7 @@ fn serve_graphql_playground() -> Response<Body> {
     Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "text/html; charset=utf-8")
+        .header("Access-Control-Allow-Origin", "*")
         .body(Body::from(playground_html))
         .unwrap()
 }
@@ -496,6 +527,7 @@ fn serve_health_check(
     Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
         .body(Body::from(health_status.to_string()))
         .unwrap()
 }
@@ -535,6 +567,7 @@ fn serve_metadata(config_json: Arc<serde_json::Value>) -> Response<Body> {
     Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
         .body(Body::from(config_json.to_string()))
         .unwrap()
 }
@@ -732,6 +765,7 @@ fn serve_welcome_page() -> Response<Body> {
     Response::builder()
         .status(StatusCode::OK)
         .header(CONTENT_TYPE, "text/html; charset=utf-8")
+        .header("Access-Control-Allow-Origin", "*")
         .body(Body::from(welcome_html))
         .unwrap()
 }

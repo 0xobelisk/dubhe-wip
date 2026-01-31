@@ -222,17 +222,18 @@ impl<ExtDB: DatabaseRef> sui_types::storage::BackingPackageStore for CacheDB<Ext
 
 impl<ExtDB: DatabaseRef> sui_types::storage::ObjectStore for CacheDB<ExtDB> {
     fn get_object(&self, id: &ObjectID) -> Option<Object> {
-        println!("==== CacheDB::get_object called for: {} ====", id);
+        
         {
             let cache = self.cache.read().unwrap();
+            println!("==== CacheDB::get_object called for: {} ====", id);
             if let Some(obj) = cache.objects.get(id) {
                 return Some(obj.clone());
             }
         }
 
-        let obj = self.db.object_ref(*id).unwrap();
-        println!("obj from db: {:?}", obj);
-        if let Some(object) = obj {
+        println!("==== BlockChain ::get_object called for: {} ====", id);
+        let obj = self.db.object_ref(*id);
+        if let Ok(Some(object)) = obj {
             let mut cache = self.cache.write().unwrap();
             cache.objects.insert(*id, object.clone());
             return Some(object);
@@ -241,16 +242,21 @@ impl<ExtDB: DatabaseRef> sui_types::storage::ObjectStore for CacheDB<ExtDB> {
     }
 
     fn get_object_by_key(&self, id: &ObjectID, version: SequenceNumber) -> Option<Object> {
-        println!(
-            "==== CacheDB::get_object_by_key called for: {} at version {} ====", id, version
-        );
+        
         {
             let cache = self.cache.read().unwrap();
+            println!(
+                "==== CacheDB::get_object_by_key called for: {} at version {} ====", id, version
+            );
             if let Some(obj) = cache.objects.get(id) {
                 return Some(obj.clone());
             }
         }
 
+
+        println!(
+            "==== BlockChain ::get_object_by_key called for: {} at version {} ====", id, version
+        );
         let obj = self.db.object_ref(*id).unwrap();
         if let Some(object) = obj {
             let mut cache = self.cache.write().unwrap();
@@ -268,10 +274,6 @@ impl<ExtDB: DatabaseRef> sui_types::storage::ChildObjectResolver for CacheDB<Ext
         child_id: &ObjectID,
         version: SequenceNumber,
     ) -> Result<Option<Object>, sui_types::error::SuiError> {
-        println!(
-            "==== CacheDB::read_child_object called for: parent={}, child={}, version={} ====",
-            parent_id, child_id, version
-        );
         // For now, just try to read the child object directly from our object store
         // In a full implementation, you'd need to verify parent-child relationships
         if let Some(obj) = self.get_object(child_id) {

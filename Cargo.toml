@@ -89,3 +89,4 @@ sui-move-build = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet
 sui-move-natives-latest = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }
 shared-crypto = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }
 sui-json-rpc-types = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }
+move-trace-format = { git = "https://github.com/MystenLabs/sui.git", tag = "testnet-v1.58.1" }

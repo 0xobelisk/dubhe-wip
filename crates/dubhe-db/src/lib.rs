@@ -79,7 +79,6 @@ impl DatabaseAsyncRef for DubheDB {
                 show_bcs: true,
                 show_storage_rebate: true,
             }).await?;
-            println!("sui_object_response: {:?}", sui_object_response);
             let sui_object_data = sui_object_response.into_object().map_err(|e| DBTransportError(SuiSdkError::DataError(e.to_string())))?;
             let object: sui_types::object::Object = sui_object_data.try_into().map_err(|e| DBTransportError(SuiSdkError::DataError(format!("Failed to convert SuiObjectData to Object: {:?}", e))))?;
             Ok(Some(object))

@@ -2,24 +2,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use anyhow::{Result, anyhow};
-use dubhe_indexer::{IndexerBuilder, DubheIndexerArgs};
-use dubhe_indexer::proxy::ChannelHandler;
 use dubhe_common::Database;
 use dubhe_common::DubheConfig;
+use dubhe_common::{Event, StoreSetRecord};
 use dubhe_db::{DubheDB, initialize_cache};
 use dubhe_db::{CacheDB, WrapDatabaseAsync};
 use dubhe_db::interface::Database as DBTrait;
-use hyper::{Body, Response, StatusCode};
-use http::header::CONTENT_TYPE;
+use hyper::{Body, Request, Response, Server, StatusCode};
+use hyper::service::{make_service_fn, service_fn};
+use http::header::{CONTENT_TYPE, CACHE_CONTROL};
+use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::path::PathBuf;
+use std::convert::Infallible;
 use sui_types::base_types::{ObjectID, SuiAddress};
 use sui_types::transaction::{CallArg, Command, ObjectArg, ProgrammableTransaction, ProgrammableMoveCall, Argument, Transaction, TransactionData};
 use sui_types::object::Object;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, broadcast};
 use tokio::time::{interval, Duration};
 use bcs;
 use sui_sdk::SuiClientBuilder;
@@ -39,16 +41,22 @@ use hyper::body;
 use bytes::Buf;
 use bs58;
 use base64::{Engine as _, engine::general_purpose};
-
+use std::fs;
+use std::collections::HashMap;
+use sui_types::dynamic_field::DynamicFieldName;
+use serde_json::Number;
+use sui_json_rpc_types::SuiData;
 
 // Configuration struct
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct DubheChannelConfig {
-    #[command(flatten)]
-    indexer_args: DubheIndexerArgs,
     #[arg(long, default_value = "5")]
-    pub sync_time: u64
+    pub sync_time: u64,
+    #[arg(long, default_value = "http://localhost:9000")]
+    pub rpc_url: String,
+    #[arg(long, default_value = "8080")]
+    pub port: u16,
 }
 
 // Submit Request struct
@@ -68,6 +76,56 @@ pub struct SubmitResponse {
     pub success: bool,
     pub message: String,
     pub data: Option<serde_json::Value>,
+}
+
+// Get Table Request struct
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetTableRequest {
+    pub dapp_key: String,
+    pub account: String,
+    pub table: String,
+    pub key: Vec<Vec<u8>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTableResponse {
+    pub message: bool,
+    pub data: Vec<Vec<u8>>,
+}
+
+// Subscribe Table Request struct - supports optional fields for fuzzy matching
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SubscribeTableRequest {
+    #[serde(default)]
+    pub dapp_key: Option<String>,
+    #[serde(default)]
+    pub account: Option<String>,
+    #[serde(default)]
+    pub table: Option<String>,
+    #[serde(default)]
+    pub key: Option<Vec<Vec<u8>>>,
+}
+
+// Subscribe Table Response - contains DataKey and value
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SubscribeTableResponse {
+    pub data_key: DataKey,
+    pub value: Vec<Vec<u8>>,
+}
+
+
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Serialize, Deserialize)]
+pub struct DataKey {
+    pub dapp_key: String,
+    pub account: String,
+    pub table: String,
+    pub key: Vec<Vec<u8>>,
+}
+
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Serialize, Deserialize)]
+pub struct AccountKey {
+    pub dapp_key: String,
+    pub account: String,
 }
 
 // PTB JSON struct
@@ -217,7 +275,13 @@ impl StorageState {
 #[derive(Clone)]
 struct AppState<DB> {
     config: Arc<DubheChannelConfig>,
-    cache_db: Arc<RwLock<CacheDB<DB>>>
+    cache_db: Arc<RwLock<CacheDB<DB>>>,
+    data: Arc<RwLock<HashMap<DataKey, Vec<Vec<u8>>>>>,
+    temp_storage_state: Arc<RwLock<StorageState>>,
+    // Subscription management: use broadcast channel to push matched data
+    subscription_tx: broadcast::Sender<SubscribeTableResponse>,
+    account_nonce: Arc<RwLock<HashMap<String, u64>>>,
+    dapp_data: Arc<RwLock<HashMap<AccountKey, ObjectID>>>,
 }
 
 #[tokio::main]
@@ -226,248 +290,54 @@ async fn main() -> Result<()> {
     env_logger::init();
 
     dotenvy::dotenv().ok();
-    println!("🌟 Dubhe Channel Starting (with Indexer Integration) 🌟");
-
-    let temp_storage_state = Arc::new(RwLock::new(StorageState::new()));
+    println!("🌟 Dubhe Channel Starting (Standalone) 🌟");
 
     // Load configuration
     let config: DubheChannelConfig = DubheChannelConfig::parse();
-
-    // Build Indexer using IndexerBuilder
-    let mut builder = IndexerBuilder::new(config.indexer_args.clone());
-    builder.initialize().await?;
-
-    // Get config for channel handlers
-    let dubhe_config = builder.dubhe_config()
-        .ok_or_else(|| anyhow::anyhow!("DubheConfig not initialized"))?;
+    
+    let temp_storage_state = Arc::new(RwLock::new(StorageState::new()));
     
     // Create CacheDB
     println!("🔄 Initializing CacheDB...");
-    let client = SuiClientBuilder::default().build(&config.indexer_args.rpc_url).await?;
+    let client = SuiClientBuilder::default().build(&config.rpc_url).await?;
     let dubhedb = DubheDB::new(client.clone());
     let wrapped_dubhedb = WrapDatabaseAsync::new(dubhedb)
         .ok_or_else(|| anyhow::anyhow!("Failed to create WrapDatabaseAsync"))?;
-    let mut cache_db = CacheDB::new(wrapped_dubhedb);
-    
-    // Preload all required objects using initialize_cache
-    initialize_cache(
-        &mut cache_db,
-        &client,
-        &dubhe_config.dubhe_object_id,  // dubhe_hub_id
-        &dubhe_config.original_dubhe_package_id,  // dubhe_package_id
-        &dubhe_config.original_package_id         // origin_package_id
-    ).await;
+    let cache_db = CacheDB::new(wrapped_dubhedb);
     
     let cache_db = Arc::new(RwLock::new(cache_db));
     println!("✅ CacheDB initialization complete");
 
-    // Build Cluster
-    let cluster = builder.build_cluster().await?;
+    // Create subscription broadcast channel
+    let (subscription_tx, _) = broadcast::channel::<SubscribeTableResponse>(1000);
     
-    // Build ProxyServer
-    let proxy_server = builder.build_proxy_server().await?;
-    
-    // Start Cluster (indexer) - this returns a JoinHandle
-    let indexer_handle = cluster.run().await?;
-
-    // Register channel special routes
     let app_state = AppState {
         config: Arc::new(config.clone()),
         cache_db: cache_db.clone(),
+        data: Arc::new(RwLock::new(HashMap::new())),
+        temp_storage_state: temp_storage_state.clone(),
+        subscription_tx: subscription_tx.clone(),
+        account_nonce: Arc::new(RwLock::new(HashMap::new())),
+        dapp_data: Arc::new(RwLock::new(HashMap::new())),
     };
-
-    // /submit route (only supports POST JSON)
-    let state_clone = app_state.clone();
-    let dubhe_config_clone = dubhe_config.clone();
-    let database_url_clone = config.indexer_args.database_url.clone();
-    let grpc_subscribers_clone = builder.grpc_subscribers();
-    let temp_storage_state_clone = temp_storage_state.clone();
-    let submit_handler: ChannelHandler = Arc::new(move |req| {
-        let state_clone = state_clone.clone();
-        let dubhe_config_clone = dubhe_config_clone.clone();
-        let database_url = database_url_clone.clone();
-        let grpc_subscribers = grpc_subscribers_clone.clone();
-        let temp_storage_state = temp_storage_state_clone.clone();
-        Box::pin(async move {
-            println!("🔍 Processing /submit request");
-            
-            // Handle OPTIONS preflight request (CORS)
-            if req.method() == hyper::Method::OPTIONS {
-                return Ok(Response::builder()
-                    .status(StatusCode::OK)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .header("Access-Control-Allow-Methods", "POST, OPTIONS")
-                    .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-                    .header("Access-Control-Max-Age", "3600")
-                    .body(Body::empty())
-                    .unwrap());
-            }
-            
-            // Check request method
-            if req.method() != hyper::Method::POST {
-                return Ok(Response::builder()
-                    .status(StatusCode::METHOD_NOT_ALLOWED)
-                    .header(CONTENT_TYPE, "application/json")
-                    .header("Access-Control-Allow-Origin", "*")
-                    .body(Body::from(json!({
-                        "success": false,
-                        "message": "Method not allowed. Only POST is supported",
-                        "data": null
-                    }).to_string()))
-                    .unwrap());
-            }
-            
-            // Read body
-            let whole_body = match body::aggregate(req.into_body()).await {
-                Ok(body) => body,
-                Err(e) => {
-                    return Ok(Response::builder()
-                        .status(StatusCode::BAD_REQUEST)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header("Access-Control-Allow-Origin", "*")
-                        .body(Body::from(json!({
-                            "success": false,
-                            "message": format!("Failed to read body: {}", e),
-                            "data": null
-                        }).to_string()))
-                        .unwrap());
-                }
-            };
-            
-            // Parse JSON
-            let submit_request: Result<SubmitRequest, _> = serde_json::from_reader(whole_body.reader());
-            
-            match submit_request {
-                Ok(req_data) => {
-                    println!("✅ Received submit request:");
-                    println!("  Chain: {}", req_data.chain);
-                    println!("  Sender: {}", req_data.sender);
-                    println!("  Nonce: {:?}", req_data.nonce);
-                    println!("  PTB inputs: {}, commands: {}", req_data.ptb.inputs.len(), req_data.ptb.commands.len());
-                    println!("  Signature: {:?}", req_data.signature);
-                    
-                    // TODO: Actual processing logic can be added here
-                    // Currently only returns success response
-                    let sender = match req_data.chain.as_str() {
-                        "sui" => SuiAddress::from_str(&req_data.sender).unwrap(),
-                        "evm" => evm_to_sui(&req_data.sender).unwrap(),
-                        "solana" => solana_to_sui(&req_data.sender).unwrap(),
-                        _ => panic!("Invalid chain: {}", req_data.chain),
-                    };
-
-                    let tx_digest = get_tx_digest_by_chain(req_data.chain.clone());
-
-                    // Build PTB
-                    let ptb = match convert_ptb_json_to_transaction(&req_data.ptb, &state_clone.cache_db).await {
-                        Ok(ptb) => ptb,
-                        Err(e) => {
-                            println!("❌ Failed to convert PTB: {}", e);
-                            return Ok(Response::builder()
-                                .status(StatusCode::BAD_REQUEST)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header("Access-Control-Allow-Origin", "*")
-                                .body(Body::from(json!({
-                                    "success": false,
-                                    "message": format!("Failed to convert PTB: {}", e),
-                                    "data": null
-                                }).to_string()))
-                                .unwrap());
-                        }
-                    };
-                    
-                    // Execute PTB
-                    println!("🔄 Executing PTB transaction...");
-                    let value = {
-                        let mut cache_db_guard = state_clone.cache_db.write().await;
-                        mock_ptb_shared_sync(
-                            &state_clone.config, 
-                            &ptb, 
-                            &mut *cache_db_guard, 
-                            dubhe_config_clone, 
-                            sender, 
-                            tx_digest, 
-                            grpc_subscribers.clone(),
-                            &temp_storage_state
-                        ).await
-                    };
-                    
-                    match value {
-                        Ok(sqls) => {
-                            let database_channel = Database::new(&database_url).await.unwrap();
-                            for sql in &sqls {
-                                println!("📝 Executing SQL: {:?}", sql);
-                                database_channel.execute(&sql).await.unwrap();
-                            }
-                            
-                            println!("✅ PTB executed successfully, {} SQL statements", sqls.len());
-                            Ok(Response::builder()
-                                .status(StatusCode::OK)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header("Access-Control-Allow-Origin", "*")
-                                .body(Body::from(json!({
-                                    "success": true,
-                                    "message": "Submit request processed successfully",
-                                    "data": {
-                                        "chain": req_data.chain,
-                                        "sender": req_data.sender,
-                                        "nonce": req_data.nonce,
-                                        "tx_digest": format!("{:?}", tx_digest),
-                                        "sql_count": sqls.len(),
-                                    }
-                                }).to_string()))
-                                .unwrap())
-                        },
-                        Err(e) => {
-                            println!("❌ Failed to execute PTB: {}", e);
-                            Ok(Response::builder()
-                                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header("Access-Control-Allow-Origin", "*")
-                                .body(Body::from(json!({
-                                    "success": false,
-                                    "message": format!("Failed to execute PTB: {}", e),
-                                    "data": null
-                                }).to_string()))
-                                .unwrap())
-                        }
-                    }
-                },
-                Err(e) => {
-                    println!("❌ Failed to parse submit request: {}", e);
-                    Ok(Response::builder()
-                        .status(StatusCode::BAD_REQUEST)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header("Access-Control-Allow-Origin", "*")
-                        .body(Body::from(json!({
-                            "success": false,
-                            "message": format!("Invalid JSON body: {}", e),
-                            "data": null
-                        }).to_string()))
-                        .unwrap())
-                }
-            }
-        })
-    });
-    proxy_server.register_channel_handler("/submit".to_string(), submit_handler).await;
 
     // Start periodic storage queue monitoring task (FIFO - one at a time)
     let temp_storage_state_monitor = temp_storage_state.clone();
     let sync_time = config.sync_time;
-    let config_monitor = Arc::new(config.clone());
-    let dubhe_config_monitor = dubhe_config.clone();
-    let monitor_handle = tokio::spawn(async move {
+    
+    tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(sync_time));
         loop {
             interval.tick().await;
             let mut storage_state = temp_storage_state_monitor.write().await;
             
-            println!("\n📦 ========== Storage Queue Monitor ==========");
-            println!("⏰ Time: {:?}", std::time::SystemTime::now());
-            println!("📊 Queue length: {}", storage_state.len());
-            println!("🔢 Total processed counter: {}", storage_state.counter);
+            // println!("\n📦 ========== Storage Queue Monitor ==========");
+            // println!("⏰ Time: {:?}", std::time::SystemTime::now());
+            // println!("📊 Queue length: {}", storage_state.len());
+            // println!("🔢 Total processed counter: {}", storage_state.counter);
             
             if storage_state.is_empty() {
-                println!("✨ Queue is empty, waiting for next cycle...");
+                // println!("✨ Queue is empty, waiting for next cycle...");
             } else {
                 // Pop only the first (oldest) element from the queue
                 if let Some((key, value)) = storage_state.pop_front() {
@@ -484,74 +354,555 @@ async fn main() -> Result<()> {
                     drop(storage_state);
                     
                     // Execute set_storage for this key-value pair
-                    match set_storage(&config_monitor, key.clone(), value.clone(), &dubhe_config_monitor, counter).await {
-                        Ok(_) => {
-                            println!("  ✅ Successfully executed set_storage");
+                    // match set_storage(&config_monitor, key.clone(), value.clone(), &dubhe_config_monitor, counter).await {
+                    //     Ok(_) => {
+                    //         println!("  ✅ Successfully executed set_storage");
                             
-                            // Reset counter after successful transaction
-                            let mut storage_state = temp_storage_state_monitor.write().await;
-                            storage_state.reset_counter();
-                            println!("  🔄 Counter reset to 1");
-                        },
-                        Err(e) => {
-                            println!("  ❌ Failed to execute set_storage: {}", e);
-                        }
-                    }
+                    //         // Reset counter after successful transaction
+                    //         let mut storage_state = temp_storage_state_monitor.write().await;
+                    //         storage_state.reset_counter();
+                    //         println!("  🔄 Counter reset to 1");
+                    //     },
+                    //     Err(e) => {
+                    //         println!("  ❌ Failed to execute set_storage: {}", e);
+                    //     }
+                    // }
                 } else {
                     println!("⚠️  Queue was empty when trying to pop");
                 }
             }
             
-            println!("📦 ==========================================\n");
+            // println!("📦 ==========================================\n");
         }
     });
 
-    // Print startup information
-    println!("\n🚀 Dubhe Channel Starting...");
-    println!("================================");
-    println!("🌐 Proxy Server:     http://0.0.0.0:{}", config.indexer_args.port);
-    println!("📊 GraphQL Endpoint: http://0.0.0.0:{}/graphql", config.indexer_args.port);
-    println!("🏠 Welcome Page:     http://0.0.0.0:{}/welcome", config.indexer_args.port);
-    println!("🎮 Playground:       http://0.0.0.0:{}/playground", config.indexer_args.port);
-    println!("💚 Health Check:     http://0.0.0.0:{}/health", config.indexer_args.port);
-    println!("📋 Metadata:         http://0.0.0.0:{}/metadata", config.indexer_args.port);
-    println!("🔍 Submit:           http://0.0.0.0:{}/submit", config.indexer_args.port);
-    println!("⏱️  Monitor Interval: {} seconds", sync_time);
-    println!("================================\n");
-
-    // Start Proxy Server
-    let database = builder.database()
-        .ok_or_else(|| anyhow::anyhow!("Database not initialized"))?;
-    
-    let proxy_handle = tokio::spawn(async move {
-        if let Err(e) = proxy_server.start(database).await {
-            eprintln!("❌ Proxy server failed: {}", e);
-            std::process::exit(1);
+    // Start HTTP Server
+    let addr = ([0, 0, 0, 0], config.port).into();
+    let make_svc = make_service_fn(move |_conn| {
+        let app_state = app_state.clone();
+        async move {
+            Ok::<_, Infallible>(service_fn(move |req| {
+                handle_request(req, app_state.clone())
+            }))
         }
     });
 
-    tokio::select! {
-        result = proxy_handle => {
-            match result {
-                Ok(_) => println!("✅ Proxy server completed successfully"),
-                Err(e) => println!("❌ Proxy server task failed: {}", e),
-            }
-        }
-        result = indexer_handle => {
-            match result {
-                Ok(_) => println!("✅ Indexer executor completed successfully"),
-                Err(e) => println!("❌ Indexer executor task failed: {}", e),
-            }
-        }
-        result = monitor_handle => {
-            match result {
-                Ok(_) => println!("✅ Storage monitor completed successfully"),
-                Err(e) => println!("❌ Storage monitor task failed: {}", e),
-            }
-        }
+    println!("🚀 Dubhe Channel Server running on http://{}", addr);
+    println!("🔗 http://localhost:8080/submit");
+    println!("🔗 http://localhost:8080/subscribe_table");
+    println!("🔗 http://localhost:8080/get_table");
+
+    let server = Server::bind(&addr).serve(make_svc);
+
+    if let Err(e) = server.await {
+        eprintln!("server error: {}", e);
     }
 
     Ok(())
+}
+
+async fn handle_request<DB>(req: Request<Body>, state: AppState<DB>) -> Result<Response<Body>, Infallible> 
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static
+{
+    // Handle CORS preflight
+            if req.method() == hyper::Method::OPTIONS {
+                return Ok(Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+            .header("Access-Control-Allow-Headers", "*")
+                    .body(Body::empty())
+                    .unwrap());
+            }
+            
+    let path = req.uri().path();
+    match (req.method(), path) {
+        (&hyper::Method::POST, "/submit") => {
+            Ok(handle_submit(req, state).await)
+        },
+        (&hyper::Method::POST, "/get_table") => {
+             Ok(handle_get_table(req, state).await)
+        },
+        (&hyper::Method::POST, "/subscribe_table") => {
+            Ok(handle_subscribe_table(req, state).await)
+        },
+        _ => {
+            Ok(Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::from("Not Found"))
+                .unwrap())
+        }
+    }
+}
+
+async fn handle_submit<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static
+{
+    println!("🔍 Processing /submit request");
+            
+            // Read body
+            let whole_body = match body::aggregate(req.into_body()).await {
+                Ok(body) => body,
+                Err(e) => {
+            return Response::builder()
+                        .status(StatusCode::BAD_REQUEST)
+                        .header(CONTENT_TYPE, "application/json")
+                        .header("Access-Control-Allow-Origin", "*")
+                        .body(Body::from(json!({
+                            "success": false,
+                            "message": format!("Failed to read body: {}", e),
+                            "data": null
+                        }).to_string()))
+                .unwrap();
+                }
+            };
+            
+            // Parse JSON
+            let submit_request: Result<SubmitRequest, _> = serde_json::from_reader(whole_body.reader());
+            
+            match submit_request {
+                Ok(req_data) => {
+                    println!("✅ Received submit request:");
+                    println!("  Chain: {}", req_data.chain);
+                    println!("  Sender: {}", req_data.sender);
+                    println!("  Nonce: {:?}", req_data.nonce);
+                    println!("  PTB inputs: {}, commands: {}", req_data.ptb.inputs.len(), req_data.ptb.commands.len());
+                    println!("  Signature: {:?}", req_data.signature);
+                    
+                    let sender = match req_data.chain.as_str() {
+                        "sui" => SuiAddress::from_str(&req_data.sender).unwrap(),
+                        "evm" => evm_to_sui(&req_data.sender).unwrap(),
+                        "solana" => solana_to_sui(&req_data.sender).unwrap(),
+                        _ => panic!("Invalid chain: {}", req_data.chain),
+                    };
+
+                    // Validate and update nonce
+                    // Nonce must start from 1 and increment sequentially for each account
+                    let account_key = req_data.sender.clone();
+                    
+                    // Get current nonce for this account (0 if account doesn't exist)
+                    let current_nonce = {
+                        let nonce_map = state.account_nonce.read().await;
+                        nonce_map.get(&account_key).copied().unwrap_or(0)
+                    };
+                    
+                    // Expected nonce is current_nonce + 1
+                    let expected_nonce = current_nonce + 1;
+                    
+                    // Nonce is required and must match expected value
+                    match req_data.nonce {
+                        Some(submitted_nonce) => {
+                            if submitted_nonce != expected_nonce {
+                                println!("❌ Invalid nonce for account {}: expected {}, got {}", account_key, expected_nonce, submitted_nonce);
+                                return Response::builder()
+                                    .status(StatusCode::BAD_REQUEST)
+                                    .header(CONTENT_TYPE, "application/json")
+                                    .header("Access-Control-Allow-Origin", "*")
+                                    .body(Body::from(json!({
+                                        "success": false,
+                                        "message": format!("Invalid nonce: expected {}, got {}", expected_nonce, submitted_nonce),
+                                        "data": null
+                                    }).to_string()))
+                                    .unwrap();
+                            }
+                        },
+                        None => {
+                            // Nonce is required
+                            println!("❌ Nonce is required for account {}: expected {}", account_key, expected_nonce);
+                            return Response::builder()
+                                .status(StatusCode::BAD_REQUEST)
+                                .header(CONTENT_TYPE, "application/json")
+                                .header("Access-Control-Allow-Origin", "*")
+                                .body(Body::from(json!({
+                                    "success": false,
+                                    "message": format!("Nonce is required: expected {}", expected_nonce),
+                                    "data": null
+                                }).to_string()))
+                                .unwrap();
+                        }
+                    }
+                    
+                    // Update nonce after validation passes
+                    {
+                        let mut nonce_map = state.account_nonce.write().await;
+                        nonce_map.insert(account_key.clone(), expected_nonce);
+                        println!("✅ Updated nonce for account {} to {}", account_key, expected_nonce);
+                    }
+
+                    let tx_digest = get_tx_digest_by_chain(req_data.chain.clone());
+
+                    // Build PTB
+            let ptb = match convert_ptb_json_to_transaction(&req_data.ptb, &state.cache_db).await {
+                        Ok(ptb) => ptb,
+                        Err(e) => {
+                            println!("❌ Failed to convert PTB: {}", e);
+                    return Response::builder()
+                                .status(StatusCode::BAD_REQUEST)
+                                .header(CONTENT_TYPE, "application/json")
+                                .header("Access-Control-Allow-Origin", "*")
+                                .body(Body::from(json!({
+                                    "success": false,
+                                    "message": format!("Failed to convert PTB: {}", e),
+                                    "data": null
+                                }).to_string()))
+                        .unwrap();
+                        }
+                    };
+                    
+                    // Execute PTB
+                    println!("🔄 Executing PTB transaction...");
+            let value: Result<Vec<Vec<u8>>, anyhow::Error> = Ok(vec![]);
+            let value = {
+                let mut cache_db_guard = state.cache_db.write().await;
+                mock_ptb_shared_sync(
+                    &state.config, 
+                    &ptb, 
+                    &mut *cache_db_guard, 
+                    sender, 
+                    tx_digest, 
+                    &state.temp_storage_state,
+                    &state
+                ).await
+            };
+                    
+                    match value {
+                        Ok(sqls) => {
+                    Response::builder()
+                                .status(StatusCode::OK)
+                                .header(CONTENT_TYPE, "application/json")
+                                .header("Access-Control-Allow-Origin", "*")
+                                .body(Body::from(json!({
+                                    "success": true,
+                                    "message": "Submit request processed successfully",
+                                    "data": {
+                                        "chain": req_data.chain,
+                                        "sender": req_data.sender,
+                                        "nonce": req_data.nonce,
+                                        "tx_digest": format!("{:?}", tx_digest),
+                                        "sql_count": sqls.len(),
+                                    }
+                                }).to_string()))
+                        .unwrap()
+                        },
+                        Err(e) => {
+                            println!("❌ Failed to execute PTB: {}", e);
+                    Response::builder()
+                                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                                .header(CONTENT_TYPE, "application/json")
+                                .header("Access-Control-Allow-Origin", "*")
+                                .body(Body::from(json!({
+                                    "success": false,
+                                    "message": format!("Failed to execute PTB: {}", e),
+                                    "data": null
+                                }).to_string()))
+                        .unwrap()
+                        }
+                    }
+                },
+                Err(e) => {
+                    println!("❌ Failed to parse submit request: {}", e);
+            Response::builder()
+                        .status(StatusCode::BAD_REQUEST)
+                        .header(CONTENT_TYPE, "application/json")
+                        .header("Access-Control-Allow-Origin", "*")
+                        .body(Body::from(json!({
+                            "success": false,
+                            "message": format!("Invalid JSON body: {}", e),
+                            "data": null
+                        }).to_string()))
+                .unwrap()
+        }
+    }
+}
+
+
+async fn handle_get_table<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static
+{
+    println!("🔍 Processing /get_table request");
+    
+    // Read body
+    let whole_body = match body::aggregate(req.into_body()).await {
+        Ok(body) => body,
+        Err(e) => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(json!({
+                    "message": false,
+                    "data": []
+                }).to_string()))
+                .unwrap();
+        }
+    };
+    
+    // Parse JSON
+    let req_data: Result<GetTableRequest, _> = serde_json::from_reader(whole_body.reader());
+    
+    match req_data {
+        Ok(data) => {
+            println!("✅ Received get_table request:");
+            println!("  Dapp Key: {}", data.dapp_key);
+            println!("  Account: {}", data.account);
+            println!("  Table: {:?}", data.table);
+            println!("  Key: {:?}", data.key);
+
+            // TODO: Implement actual logic to fetch data
+            // For now, return mock data as requested "implementation deferred"
+
+            let data_key = DataKey {
+                dapp_key: data.dapp_key,
+                account: data.account,
+                table: data.table,
+                key: data.key,
+            };
+
+            let mut table_data = state.data.read().await.get(&data_key).cloned().unwrap_or_default();
+
+            if table_data.is_empty() {
+                let client = SuiClientBuilder::default().build(&state.config.rpc_url).await.unwrap();
+                let parent_object_id = ObjectID::from_hex_literal("0x0b3baf7b3a0d822da137be8838bd729fce9ad411e590056d3f6d866ebcf049c3").unwrap();
+
+                let account_key = AccountKey {
+                    dapp_key: data_key.dapp_key.clone(),
+                    account: data_key.account.clone(),
+                };
+
+                let dapp_data_key = state.dapp_data.read().await.get(&account_key).cloned();
+                let parent_object_id = match dapp_data_key {
+                    Some(dapp_data_key) => {
+                        dapp_data_key
+                    },
+                    None => { 
+                        let name = DynamicFieldName {    
+                            type_: sui_types::TypeTag::from_str("0x8817b4976b6c607da01cea49d728f71d09274c82e9b163fa20c2382586f8aefc::dapp_service::AccountKey").unwrap(),
+                            value: json!({
+                                "account": data_key.account,
+                                "dapp_key": data_key.dapp_key,
+                            }) 
+                           };
+                           println!("name=============: {:?}", name);
+                           let dynamic_field_object = client.read_api().get_dynamic_field_object(parent_object_id, name).await.unwrap();
+                           println!("dynamic_field_object=============: {:?}", dynamic_field_object.clone().object_id().unwrap());
+                           let parent_object_id = dynamic_field_object.clone().object_id().unwrap();
+                           state.dapp_data.write().await.insert(account_key, parent_object_id);
+                           parent_object_id
+                    }
+                };
+
+           
+                   // dapp data
+
+                let mut value = vec![];
+                value.push(data_key.table.as_bytes().to_vec());
+                value.extend(data_key.key.clone());
+                let name = DynamicFieldName {    
+                type_: sui_types::TypeTag::Vector(Box::new(sui_types::TypeTag::Vector(Box::new(sui_types::TypeTag::U8)))),
+                value: serde_json::Value::Array(
+                   value.iter().map(|v| serde_json::Value::Array(v.iter().map(|v| serde_json::Value::Number(Number::from_u128(u128::from(*v)).unwrap())).collect())).collect()
+                ), 
+               };
+
+                let dynamic_field_object = client.read_api().get_dynamic_field_object(parent_object_id, name).await.unwrap();
+                println!("dynamic_field_object=============: {:?}", dynamic_field_object.clone().into_object().unwrap().content.unwrap().try_into_move().unwrap());
+                let parsed_move_object = dynamic_field_object.clone().into_object().unwrap().content.unwrap().try_into_move().unwrap();
+                let parsed_move_object_value = parsed_move_object.fields.field_value("value").unwrap();
+                // println!("parsed_move_object_value=============: {:?}", parsed_move_object_value.to_json_value());
+                table_data = serde_json::from_str(parsed_move_object_value.to_json_value().to_string().as_str()).unwrap();
+                state.data.write().await.insert(data_key.clone(), table_data.clone());
+            }
+
+
+            
+            let mock_response = GetTableResponse {
+                message: true,
+                data: table_data,
+            };
+
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(serde_json::to_string(&mock_response).unwrap()))
+                .unwrap()
+        },
+        Err(e) => {
+            println!("❌ Failed to parse get_table request: {}", e);
+            Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(json!({
+                    "message": false,
+                    "data": []
+                }).to_string()))
+                .unwrap()
+        }
+    }
+}
+
+// Check if DataKey matches subscription criteria
+fn matches_subscription(data_key: &DataKey, subscription: &SubscribeTableRequest) -> bool {
+    // 1. Match only dapp_key
+    if let Some(ref dapp_key) = subscription.dapp_key {
+        if data_key.dapp_key != *dapp_key {
+            return false;
+        }
+    } else {
+        // If dapp_key is not specified, no match
+        return false;
+    }
+    
+    // 2. Match dapp_key and account
+    if let Some(ref account) = subscription.account {
+        if data_key.account != *account {
+            return false;
+        }
+    }
+    
+    // 3. Match dapp_key, account and table
+    if let Some(ref table) = subscription.table {
+        if data_key.table != *table {
+            return false;
+        }
+    }
+    
+    // 4. Match dapp_key, account, table and key
+    if let Some(ref key) = subscription.key {
+        if data_key.key != *key {
+            return false;
+        }
+    }
+    
+    true
+}
+
+async fn handle_subscribe_table<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static
+{
+    println!("🔍 Processing /subscribe_table request");
+    
+    // Read body
+    let whole_body = match body::aggregate(req.into_body()).await {
+        Ok(body) => body,
+        Err(e) => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(json!({
+                    "error": format!("Failed to read body: {}", e)
+                }).to_string()))
+                .unwrap();
+        }
+    };
+    
+    // Parse JSON
+    let subscription: Result<SubscribeTableRequest, _> = serde_json::from_reader(whole_body.reader());
+    
+    match subscription {
+        Ok(sub) => {
+            println!("✅ Received subscribe_table request:");
+            println!("  Dapp Key: {:?}", sub.dapp_key);
+            println!("  Account: {:?}", sub.account);
+            println!("  Table: {:?}", sub.table);
+            println!("  Key: {:?}", sub.key);
+            
+            // Create subscription receiver
+            let mut rx = state.subscription_tx.subscribe();
+            
+            // Get currently matched data (initial data)
+            let initial_data: Vec<SubscribeTableResponse> = {
+                let data_map = state.data.read().await;
+                let mut matched = Vec::new();
+                for (data_key, value) in data_map.iter() {
+                    if matches_subscription(data_key, &sub) {
+                        matched.push(SubscribeTableResponse {
+                            data_key: data_key.clone(),
+                            value: value.clone(),
+                        });
+                    }
+                }
+                matched
+            };
+            
+            // Create SSE stream: send initial data first, then continuously listen for new data
+            let subscription_clone = sub.clone();
+            let sse_stream = async_stream::stream! {
+                // First send initial data
+                for item in initial_data {
+                    let json = match serde_json::to_string(&item) {
+                        Ok(json) => json,
+                        Err(_) => continue,
+                    };
+                    yield Ok::<_, Infallible>(format!("data: {}\n\n", json));
+                }
+                
+                // Then continuously listen for new data
+                loop {
+                    match rx.recv().await {
+                        Ok(response) => {
+                            // Check if matches subscription criteria
+                            if matches_subscription(&response.data_key, &subscription_clone) {
+                                let json = match serde_json::to_string(&response) {
+                                    Ok(json) => json,
+                                    Err(_) => continue,
+                                };
+                                yield Ok(format!("data: {}\n\n", json));
+                            }
+                        },
+                        Err(broadcast::error::RecvError::Closed) => {
+                            // Channel closed, end stream
+                            break;
+                        },
+                        Err(broadcast::error::RecvError::Lagged(_)) => {
+                            // Skip lagged messages, continue receiving
+                            continue;
+                        }
+                    }
+                }
+            };
+            
+            // Convert stream to hyper Body
+            // hyper 0.14 uses Body::wrap_stream or directly uses Body::from()
+            // If wrap_stream is not available, we need to use other methods
+            use futures_util::StreamExt;
+            let body_stream = sse_stream.map(|result| {
+                result.map(|s| bytes::Bytes::from(s))
+            });
+            let body = Body::wrap_stream(body_stream);
+            
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(CONTENT_TYPE, "text/event-stream")
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Headers", "Cache-Control")
+                .body(body)
+                .unwrap()
+        },
+        Err(e) => {
+            println!("❌ Failed to parse subscribe_table request: {}", e);
+            Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(json!({
+                    "error": format!("Invalid JSON body: {}", e)
+                }).to_string()))
+                .unwrap()
+        }
+    }
 }
 
 
@@ -724,88 +1075,78 @@ async fn mock_ptb_shared_sync<DB>(
     _config: &Arc<DubheChannelConfig>, 
     ptb: &ProgrammableTransaction, 
     cache_db: &mut CacheDB<DB>,
-    dubhe_config: DubheConfig,
     sender: SuiAddress,
     tx_digest: TransactionDigest,
-    grpc_subscribers: Arc<RwLock<std::collections::HashMap<String, Vec<tokio::sync::mpsc::UnboundedSender<dubhe_indexer_grpc::types::TableChange>>>>>,
-    temp_storage_state: &Arc<RwLock<StorageState>>
+    temp_storage_state: &Arc<RwLock<StorageState>>,
+    app_state: &AppState<DB>
 ) -> Result<Vec<String>, anyhow::Error>
 where
-    DB: dubhe_db::interface::DatabaseRef
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static
 {
     println!("🔄 Starting PTB execution...");
     println!("📝 Executing PTB transaction...");
     let (store_set_records, current_checkpoint_timestamp_ms, current_digest) = dubhe_vm::execute_single_ptb_with_store_set_record(ptb, cache_db, sender, tx_digest)?;
     println!("store_set_records: {:?}", store_set_records);
     let mut sql_list = Vec::new();
-    for store_set_record in store_set_records {
-        if dubhe_config
-                            .can_convert_event_to_sql(&store_set_record)
-                            .is_ok() {
-            // Get table name
-            let table_name = store_set_record.table_id().to_string();
-
-            if table_name != "dapp_fee_state" {
-                temp_storage_state.write().await.push(
-                    store_set_record.key_tuple().clone(), 
-                    store_set_record.value_tuple().clone()
-                );
-            }
+    
+    // Parse store_set_records and insert into AppState.data
+    for event in store_set_records {
+        if let Event::StoreSetRecord(store_set_record) = event {
+            println!("store_set_record: {:?}", store_set_record);
             
-            // Convert to proto_struct
-            let mut proto_struct = dubhe_config.convert_event_to_proto_struct(&store_set_record)?;
+            // Build DataKey
+            // account: extract from table_id, remove 0x prefix
+            // table: use first element of key_tuple as UTF-8 string (table name)
+            // key: use remaining elements of key_tuple after skipping the first one
+            let account = if store_set_record.table_id.starts_with("0x") {
+                store_set_record.table_id[2..].to_string()
+            } else {
+                store_set_record.table_id.clone()
+            };
+            let table = store_set_record.key_tuple.first()
+                .map(|bytes| String::from_utf8_lossy(bytes).to_string())
+                .unwrap_or_else(|| String::new());
+            let key = store_set_record.key_tuple.iter()
+                .skip(1)
+                .cloned()
+                .collect();
             
-            // Add extra fields
-            proto_struct.fields.insert(
-                "updated_at_timestamp_ms".to_string(),
-                prost_types::Value {
-                    kind: Some(prost_types::value::Kind::StringValue(
-                        current_checkpoint_timestamp_ms.to_string(),
-                    )),
-                },
-            );
-            proto_struct.fields.insert(
-                "last_update_digest".to_string(),
-                prost_types::Value {
-                    kind: Some(prost_types::value::Kind::StringValue(
-                        current_digest.clone(),
-                    )),
-                },
-            );
-            proto_struct.fields.insert(
-                "is_deleted".to_string(),
-                prost_types::Value {
-                    kind: Some(prost_types::value::Kind::BoolValue(false)),
-                },
-            );
+            let data_key = DataKey {
+                dapp_key: store_set_record.dapp_key.clone(),
+                account,
+                table,
+                key,
+            };
+            
+            // Insert into AppState.data
+            let mut data_map = app_state.data.write().await;
+            let value = store_set_record.value_tuple.clone();
+            println!("✅ Inserted data into AppState.data {:?}, {:?}", data_key, value);
+            data_map.insert(data_key.clone(), value.clone());
+            
+            // Push subscription update
+            let response = SubscribeTableResponse {
+                data_key: data_key.clone(),
+                value: value.clone(),
+            };
+            // Ignore send errors (if no subscribers)
+            let _ = app_state.subscription_tx.send(response);
+            
+            
+            // if dubhe_config
+            //                     .can_convert_event_to_sql(&store_set_record)
+            //                     .is_ok() {
+            //     // Get table name
+            //     let table_name = store_set_record.table_id().to_string();
 
-            println!("proto_struct: {:?}", proto_struct);
-
-            // Send to gRPC subscribers
-            let subscribers = grpc_subscribers.clone();
-            tokio::spawn(async move {
-                let table_change = dubhe_indexer_grpc::types::TableChange {
-                    table_id: table_name.clone(),
-                    data: Some(proto_struct),
-                };
-
-                // Send to GRPC subscribers
-                let subscribers = subscribers.read().await;
-                println!("📤 Subscribers: {:?}", subscribers);
-                if let Some(senders) = subscribers.get(&table_name) {
-                    for sender in senders {
-                        println!(
-                            "📤 Sending table change to GRPC subscriber: {:?}",
-                            table_name
-                        );
-                        let _ = sender.send(table_change.clone());
-                    }
-                }
-            });
-
-            let sql = dubhe_config.convert_event_to_sql(store_set_record, current_checkpoint_timestamp_ms, current_digest.clone())?;
-            println!("sql: {:?}", sql);
-            sql_list.push(sql);
+            //     if table_name != "dapp_fee_state" {
+            //         temp_storage_state.write().await.push(
+            //             store_set_record.key_tuple().clone(), 
+            //             store_set_record.value_tuple().clone()
+            //         );
+            //     }
+            // }
         }
     }
     Ok(sql_list)
@@ -819,7 +1160,7 @@ async fn set_storage(
     dubhe_config: &DubheConfig,
     count: u64,
 ) -> Result<(), anyhow::Error> { 
-    let sui_client = SuiClientBuilder::default().build(&config.indexer_args.rpc_url).await?;
+    let sui_client = SuiClientBuilder::default().build(&config.rpc_url).await?;
 
     let private_key = dotenvy::var("PRIVATE_KEY").unwrap();
     let keypair = SuiKeyPair::decode(&private_key).map_err(|e| anyhow!(e))?;
@@ -1014,5 +1355,74 @@ mod tests {
         let result = hex_string_to_bytes(invalid_hex);
         assert!(result.is_err());
     }
-}
 
+    #[tokio::test]
+    async fn test_get_table_endpoint() {
+        // Configure reqwest client to behave more like curl
+        // Disable auto-compression, auto-redirect and other behaviors that may affect requests
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(30))
+            .redirect(reqwest::redirect::Policy::none()) // Don't auto-follow redirects
+            .build()
+            .expect("Failed to create HTTP client");
+        
+        let key_bytes: Vec<Vec<u8>> = vec![];
+        
+        let request = GetTableRequest {
+            dapp_key: "a1c4e745cc1b345271cd4fa5ea37efd10d58be47c48cb29457a75695fd479365::dapp_key::DappKey".to_string(),
+            account: "15fde77101778fafe8382743171294dfd8e7900a547711ee375379c27a85fd31".to_string(),
+            table: "counter2".to_string(),
+            key: key_bytes,
+        };
+
+
+        println!("📤 Sending request to http://localhost:8080/get_table");
+        println!("📋 Request: {}", serde_json::to_string_pretty(&request).unwrap());
+
+        // let response = client
+        //     .post("http://localhost:8080/get_table")
+        //     .header("Content-Type", "application/json")
+        //     .header("Accept", "application/json")
+        //     .json(&request)
+        //     .send()
+        //     .await;
+
+        // match response {
+        //     Ok(resp) => {
+        //         let status = resp.status();
+        //         println!("📥 Response status: {}", status);
+                
+        //         // Read response body text first for debugging
+        //         let response_text = resp.text().await.unwrap_or_default();
+        //         println!("📄 Response body (raw): {}", if response_text.is_empty() { "<empty>".to_string() } else { response_text.clone() });
+                
+        //         if status.is_success() {
+        //             if response_text.is_empty() {
+        //                 println!("⚠️  Warning: Response body is empty");
+        //                 return;
+        //             }
+                    
+        //             match serde_json::from_str::<serde_json::Value>(&response_text) {
+        //                 Ok(response_json) => {
+        //                     println!("✅ Test passed! Response: {}", serde_json::to_string_pretty(&response_json).unwrap());
+        //                 },
+        //                 Err(e) => {
+        //                     println!("❌ Failed to parse response JSON: {}", e);
+        //                     println!("📄 Response text was: {}", response_text);
+        //                     panic!("Failed to parse response JSON: {}", e);
+        //                 }
+        //             }
+        //         } else {
+        //             println!("❌ Request failed with status {}: {}", status, response_text);
+        //             panic!("Request failed with status: {}", status);
+        //         }
+        //     },
+        //     Err(e) => {
+        //         println!("❌ Failed to send request: {}", e);
+        //         println!("💡 Please ensure the service is running on http://localhost:8080");
+        //         println!("💡 You can run: cargo run --bin dubhe-channel -- --port 8080");
+        //         panic!("Failed to send request: {}", e);
+        //     }
+        // }
+    }
+}
