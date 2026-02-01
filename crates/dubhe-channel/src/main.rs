@@ -93,6 +93,17 @@ pub struct GetTableResponse {
     pub data: Vec<Vec<u8>>,
 }
 
+// Get Nonce Request - query next nonce for an account (same sender as submit)
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetNonceRequest {
+    pub sender: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetNonceResponse {
+    pub nonce: u64,
+}
+
 // Subscribe Table Request struct - supports optional fields for fuzzy matching
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SubscribeTableRequest {
@@ -391,6 +402,8 @@ async fn main() -> Result<()> {
     println!("🔗 http://localhost:8080/submit");
     println!("🔗 http://localhost:8080/subscribe_table");
     println!("🔗 http://localhost:8080/get_table");
+    println!("🔗 http://localhost:8080/nonce");
+    println!("🔗 http://localhost:8080/health");
 
     let server = Server::bind(&addr).serve(make_svc);
 
@@ -419,6 +432,9 @@ where
             
     let path = req.uri().path();
     match (req.method(), path) {
+        (&hyper::Method::GET, "/health") => {
+            Ok(handle_health().await)
+        },
         (&hyper::Method::POST, "/submit") => {
             Ok(handle_submit(req, state).await)
         },
@@ -428,6 +444,9 @@ where
         (&hyper::Method::POST, "/subscribe_table") => {
             Ok(handle_subscribe_table(req, state).await)
         },
+        (&hyper::Method::POST, "/nonce") => {
+            Ok(handle_get_nonce(req, state).await)
+        },
         _ => {
             Ok(Response::builder()
                 .status(StatusCode::NOT_FOUND)
@@ -435,6 +454,15 @@ where
                 .unwrap())
         }
     }
+}
+
+async fn handle_health() -> Response<Body> {
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(Body::from(json!({ "status": "ok", "healthy": true }).to_string()))
+        .unwrap()
 }
 
 async fn handle_submit<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
@@ -905,6 +933,61 @@ where
     }
 }
 
+async fn handle_get_nonce<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static
+{
+    println!("🔍 Processing /nonce request");
+
+    let whole_body = match body::aggregate(req.into_body()).await {
+        Ok(body) => body,
+        Err(e) => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(json!({
+                    "error": format!("Failed to read body: {}", e)
+                }).to_string()))
+                .unwrap();
+        }
+    };
+
+    let req_data: Result<GetNonceRequest, _> = serde_json::from_reader(whole_body.reader());
+
+    match req_data {
+        Ok(data) => {
+            println!("✅ Received get_nonce request: sender={}", data.sender);
+
+            let nonce = {
+                let nonce_map = state.account_nonce.read().await;
+                nonce_map.get(&data.sender).copied().unwrap_or(0) + 1
+            };
+
+            let response = GetNonceResponse { nonce };
+            println!("  -> next nonce: {}", response.nonce);
+
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(serde_json::to_string(&response).unwrap()))
+                .unwrap()
+        }
+        Err(e) => {
+            println!("❌ Failed to parse get_nonce request: {}", e);
+            Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(json!({
+                    "error": format!("Invalid JSON body: {}", e)
+                }).to_string()))
+                .unwrap()
+        }
+    }
+}
 
 fn get_tx_digest_by_chain(chain: String) -> TransactionDigest {
     if chain == "evm" {
