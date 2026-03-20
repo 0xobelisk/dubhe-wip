@@ -11,6 +11,9 @@
   "scripts": {
     "build": "turbo run build",
     "build:packages": "turbo run build --filter='./packages/*'",
+    "channel:infra:down": "docker compose -f docker-compose.channel-shared.yml down",
+    "channel:infra:up": "docker compose -f docker-compose.channel-shared.yml up -d --wait",
+    "channel:run:shared": "./scripts/run-dubhe-channel-shared.sh",
     "clean": "turbo run clean",
     "dev": "turbo run dev",
     "fix:package-json": "sort-package-json package.json 'packages/*/package.json' 'templates/*/package.json' 'templates/*/packages/*/package.json' 'examples/*/package.json' 'examples/*/packages/*/package.json' 'e2e/*/package.json' 'e2e/*/packages/*/package.json' 'docs/package.json' 'test/*/package.json'",

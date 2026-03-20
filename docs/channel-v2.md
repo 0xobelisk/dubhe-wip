@@ -218,6 +218,66 @@ client sdk
 
 The runtime should be able to consume from Redis Streams, NATS JetStream, Kafka, or other adapters without changing application-facing protocol.
 
+## Current Implementation
+
+Today `dubhe-channel` supports two runtime modes:
+
+- in-memory mode for local development and tests
+- shared mode with Redis + NATS JetStream for multi-instance deployment
+
+### Shared mode wiring
+
+- snapshots are stored in Redis via `RedisSnapshotStore`
+- live events are published and replayed from NATS JetStream via `JetStreamEventBus`
+- submit coordination is stored in Redis:
+  - per-account distributed lock
+  - per-account nonce
+  - duplicate submit replay cache
+
+This means multiple `dubhe-channel` instances can safely sit behind a load balancer without double-executing the same sender nonce just because requests land on different nodes.
+
+### Cursor format
+
+`cursor` remains opaque to clients.
+
+Current shared replay uses timestamp-based cursor tokens:
+
+- query returns a millisecond timestamp cursor
+- subscribe can resume from that timestamp through JetStream replay
+- duplicate delivery is still possible at the replay boundary, so application handlers must stay idempotent for `at_least_once` flows
+
+### Config
+
+`dubhe-channel` can be started with:
+
+- `--redis-url`
+- `--nats-url`
+- `--redis-key-prefix`
+- `--nats-stream`
+- `--nats-subject-prefix`
+- `--submit-lock-ttl-ms`
+- `--submit-lock-retry-ms`
+- `--submit-lock-acquire-timeout-ms`
+
+If `--redis-url` and `--nats-url` are both absent, the server falls back to in-memory mode.
+If `--nats-url` is set without `--redis-url`, startup fails because replayable subscribe/query state would not be shared.
+
+### Local shared-mode commands
+
+From the Dubhe workspace root:
+
+```bash
+pnpm channel:infra:up
+pnpm channel:run:shared -- --rpc-url https://rpc-testnet.suiscan.xyz/
+```
+
+Default local ports:
+
+- Redis: `127.0.0.1:16379`
+- NATS: `127.0.0.1:14222`
+- NATS monitor: `127.0.0.1:18222`
+- dubhe-channel: `127.0.0.1:18080`
+
 ## Partitioning
 
 Partitioning is required for horizontal scale. Dubhe should provide the mechanism, but applications choose the partition key.

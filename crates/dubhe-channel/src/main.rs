@@ -14,7 +14,8 @@ use dubhe_channel_runtime::presets::table::{
     event_from_table, snapshot_result as v2_snapshot_result, TableKey as V2TableKey,
 };
 use dubhe_channel_runtime::{
-    AllowAllAuthz, ChannelRuntime, InMemoryEventBus, InMemorySnapshotStore,
+    AllowAllAuthz, ChannelRuntime, InMemoryEventBus, InMemorySnapshotStore, JetStreamEventBus,
+    RedisSnapshotStore,
 };
 use dubhe_common::Database;
 use dubhe_common::DubheConfig;
@@ -27,6 +28,8 @@ use http::header::{CACHE_CONTROL, CONTENT_TYPE};
 use hyper::body;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server, StatusCode};
+use rand::random;
+use redis::{aio::ConnectionManager, AsyncCommands, Script};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Number;
@@ -57,6 +60,7 @@ use sui_types::transaction::{
     Argument, CallArg, Command, ObjectArg, ProgrammableMoveCall, ProgrammableTransaction,
     Transaction, TransactionData,
 };
+use tokio::sync::oneshot;
 use tokio::sync::{broadcast, RwLock};
 use tokio::time::{interval, Duration};
 
@@ -72,6 +76,22 @@ struct DubheChannelConfig {
     pub port: u16,
     #[arg(long, default_value = "300")]
     pub submit_replay_ttl_secs: u64,
+    #[arg(long)]
+    pub redis_url: Option<String>,
+    #[arg(long)]
+    pub nats_url: Option<String>,
+    #[arg(long, default_value = "dubhe:channel")]
+    pub redis_key_prefix: String,
+    #[arg(long, default_value = "DUBHE_CHANNEL")]
+    pub nats_stream: String,
+    #[arg(long, default_value = "dubhe.channel")]
+    pub nats_subject_prefix: String,
+    #[arg(long, default_value = "30000")]
+    pub submit_lock_ttl_ms: u64,
+    #[arg(long, default_value = "25")]
+    pub submit_lock_retry_ms: u64,
+    #[arg(long, default_value = "5000")]
+    pub submit_lock_acquire_timeout_ms: u64,
 }
 
 // Submit Request struct
@@ -343,10 +363,11 @@ struct SubmitReplayKey {
     nonce: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct SubmitReplayEntry {
     request_fingerprint: String,
     response_body: String,
+    #[serde(skip, default = "Instant::now")]
     recorded_at: Instant,
 }
 
@@ -355,6 +376,237 @@ struct SubmitRouteResult {
     status: StatusCode,
     body: String,
     replayed: bool,
+}
+
+#[derive(Clone)]
+struct RedisSubmitCoordinator {
+    connection: ConnectionManager,
+    key_prefix: String,
+    lock_ttl_ms: u64,
+    lock_retry_ms: u64,
+    lock_acquire_timeout_ms: u64,
+}
+
+struct RedisSubmitLockLease {
+    coordinator: RedisSubmitCoordinator,
+    key: String,
+    token: String,
+    stop_tx: Option<oneshot::Sender<()>>,
+    renew_task: Option<tokio::task::JoinHandle<()>>,
+}
+
+enum SubmitAccountGuard {
+    Local(tokio::sync::OwnedMutexGuard<()>),
+    Redis(RedisSubmitLockLease),
+}
+
+impl RedisSubmitCoordinator {
+    async fn connect(
+        redis_url: &str,
+        key_prefix: impl Into<String>,
+        lock_ttl_ms: u64,
+        lock_retry_ms: u64,
+        lock_acquire_timeout_ms: u64,
+    ) -> Result<Self> {
+        let client = redis::Client::open(redis_url)?;
+        let connection = client.get_connection_manager().await?;
+
+        Ok(Self {
+            connection,
+            key_prefix: key_prefix.into(),
+            lock_ttl_ms,
+            lock_retry_ms,
+            lock_acquire_timeout_ms,
+        })
+    }
+
+    fn nonce_key(&self, account_key: &str) -> String {
+        format!("{}:submit:nonce:{}", self.key_prefix, account_key)
+    }
+
+    fn lock_key(&self, account_key: &str) -> String {
+        format!("{}:submit:lock:{}", self.key_prefix, account_key)
+    }
+
+    fn replay_key(&self, key: &SubmitReplayKey) -> String {
+        format!(
+            "{}:submit:replay:{}:{}:{}",
+            self.key_prefix, key.chain, key.sender, key.nonce
+        )
+    }
+
+    async fn current_nonce(&self, account_key: &str) -> Result<u64> {
+        let mut connection = self.connection.clone();
+        let value: Option<u64> = connection.get(self.nonce_key(account_key)).await?;
+        Ok(value.unwrap_or(0))
+    }
+
+    async fn replay_entry(
+        &self,
+        replay_key: &SubmitReplayKey,
+    ) -> Result<Option<SubmitReplayEntry>> {
+        let mut connection = self.connection.clone();
+        let value: Option<String> = connection.get(self.replay_key(replay_key)).await?;
+        value
+            .map(|value| serde_json::from_str(&value))
+            .transpose()
+            .map_err(Into::into)
+    }
+
+    async fn record_success(
+        &self,
+        account_key: &str,
+        nonce: u64,
+        replay_key: Option<&SubmitReplayKey>,
+        replay_entry: &SubmitReplayEntry,
+        replay_ttl_secs: u64,
+    ) -> Result<()> {
+        let nonce_key = self.nonce_key(account_key);
+        let mut connection = self.connection.clone();
+
+        if let Some(replay_key) = replay_key {
+            let replay_value = serde_json::to_string(replay_entry)?;
+            let replay_key = self.replay_key(replay_key);
+            let script = Script::new(
+                r#"
+                redis.call("SET", KEYS[1], ARGV[1])
+                redis.call("SET", KEYS[2], ARGV[2], "EX", ARGV[3])
+                return 1
+                "#,
+            );
+
+            let _: i32 = script
+                .key(nonce_key)
+                .key(replay_key)
+                .arg(nonce)
+                .arg(replay_value)
+                .arg(replay_ttl_secs)
+                .invoke_async(&mut connection)
+                .await?;
+            return Ok(());
+        }
+
+        let _: () = connection.set(nonce_key, nonce).await?;
+        Ok(())
+    }
+
+    async fn acquire_account_lock(&self, account_key: &str) -> Result<RedisSubmitLockLease> {
+        let key = self.lock_key(account_key);
+        let token = format!("{:032x}", random::<u128>());
+        let deadline =
+            tokio::time::Instant::now() + Duration::from_millis(self.lock_acquire_timeout_ms);
+
+        loop {
+            let mut connection = self.connection.clone();
+            let acquired: Option<String> = redis::cmd("SET")
+                .arg(&key)
+                .arg(&token)
+                .arg("NX")
+                .arg("PX")
+                .arg(self.lock_ttl_ms)
+                .query_async(&mut connection)
+                .await?;
+
+            if acquired.is_some() {
+                let coordinator = self.clone();
+                let renew_key = key.clone();
+                let renew_token = token.clone();
+                let (stop_tx, mut stop_rx) = oneshot::channel();
+                let renew_interval_ms = std::cmp::max(1_000, coordinator.lock_ttl_ms / 3);
+                let renew_task = tokio::spawn(async move {
+                    loop {
+                        tokio::select! {
+                            _ = tokio::time::sleep(Duration::from_millis(renew_interval_ms)) => {
+                                if coordinator.renew_lock(&renew_key, &renew_token).await.is_err() {
+                                    break;
+                                }
+                            }
+                            _ = &mut stop_rx => {
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                return Ok(RedisSubmitLockLease {
+                    coordinator: self.clone(),
+                    key,
+                    token,
+                    stop_tx: Some(stop_tx),
+                    renew_task: Some(renew_task),
+                });
+            }
+
+            if tokio::time::Instant::now() >= deadline {
+                return Err(anyhow!(
+                    "timed out acquiring submit lock for {}",
+                    account_key
+                ));
+            }
+
+            tokio::time::sleep(Duration::from_millis(self.lock_retry_ms)).await;
+        }
+    }
+
+    async fn renew_lock(&self, key: &str, token: &str) -> Result<()> {
+        let script = Script::new(
+            r#"
+            if redis.call("GET", KEYS[1]) == ARGV[1] then
+              return redis.call("PEXPIRE", KEYS[1], ARGV[2])
+            end
+            return 0
+            "#,
+        );
+        let mut connection = self.connection.clone();
+        let renewed: i32 = script
+            .key(key)
+            .arg(token)
+            .arg(self.lock_ttl_ms)
+            .invoke_async(&mut connection)
+            .await?;
+
+        if renewed == 0 {
+            return Err(anyhow!("submit lock lost for {}", key));
+        }
+
+        Ok(())
+    }
+
+    async fn release_lock(&self, key: &str, token: &str) -> Result<()> {
+        let script = Script::new(
+            r#"
+            if redis.call("GET", KEYS[1]) == ARGV[1] then
+              return redis.call("DEL", KEYS[1])
+            end
+            return 0
+            "#,
+        );
+        let mut connection = self.connection.clone();
+        let _: i32 = script
+            .key(key)
+            .arg(token)
+            .invoke_async(&mut connection)
+            .await?;
+        Ok(())
+    }
+}
+
+impl Drop for RedisSubmitLockLease {
+    fn drop(&mut self) {
+        if let Some(stop_tx) = self.stop_tx.take() {
+            let _ = stop_tx.send(());
+        }
+        if let Some(renew_task) = self.renew_task.take() {
+            renew_task.abort();
+        }
+
+        let coordinator = self.coordinator.clone();
+        let key = self.key.clone();
+        let token = self.token.clone();
+        tokio::spawn(async move {
+            let _ = coordinator.release_lock(&key, &token).await;
+        });
+    }
 }
 
 trait SubmitExecutor<DB>: Send + Sync
@@ -406,9 +658,76 @@ struct AppState<DB> {
     account_nonce: Arc<RwLock<HashMap<String, u64>>>,
     submit_account_locks: Arc<RwLock<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>,
     submit_replay_cache: Arc<RwLock<HashMap<SubmitReplayKey, SubmitReplayEntry>>>,
+    submit_coordinator: Option<Arc<RedisSubmitCoordinator>>,
     dapp_data: Arc<RwLock<HashMap<AccountKey, ObjectID>>>,
     v2_runtime: Arc<ChannelRuntime>,
     submit_executor: Arc<dyn SubmitExecutor<DB>>,
+}
+
+async fn build_channel_runtime(config: &DubheChannelConfig) -> Result<Arc<ChannelRuntime>> {
+    if let (Some(redis_url), Some(nats_url)) = (&config.redis_url, &config.nats_url) {
+        println!(
+            "🛰️  Channel runtime backend: Redis snapshot store + NATS JetStream ({}, {})",
+            config.redis_key_prefix, config.nats_stream
+        );
+        let snapshot_store =
+            RedisSnapshotStore::connect(redis_url, format!("{}:runtime", config.redis_key_prefix))
+                .await
+                .map_err(|error| anyhow!(error.to_string()))?;
+        let event_bus = JetStreamEventBus::connect(
+            nats_url,
+            config.nats_stream.clone(),
+            config.nats_subject_prefix.clone(),
+        )
+        .await
+        .map_err(|error| anyhow!(error.to_string()))?;
+
+        return Ok(Arc::new(ChannelRuntime::new(
+            Arc::new(event_bus),
+            Arc::new(snapshot_store),
+            Arc::new(AllowAllAuthz),
+        )));
+    }
+
+    if config.nats_url.is_some() && config.redis_url.is_none() {
+        return Err(anyhow!(
+            "nats_url requires redis_url because snapshot/query state must be shared"
+        ));
+    }
+
+    println!("🧠 Channel runtime backend: in-memory");
+    Ok(Arc::new(ChannelRuntime::new(
+        Arc::new(InMemoryEventBus::new(1000)),
+        Arc::new(InMemorySnapshotStore::new()),
+        Arc::new(AllowAllAuthz),
+    )))
+}
+
+async fn build_submit_coordinator(
+    config: &DubheChannelConfig,
+) -> Result<Option<Arc<RedisSubmitCoordinator>>> {
+    match &config.redis_url {
+        Some(redis_url) => {
+            println!(
+                "🔐 Submit coordinator backend: Redis ({})",
+                config.redis_key_prefix
+            );
+            Ok(Some(Arc::new(
+                RedisSubmitCoordinator::connect(
+                    redis_url,
+                    format!("{}:coord", config.redis_key_prefix),
+                    config.submit_lock_ttl_ms,
+                    config.submit_lock_retry_ms,
+                    config.submit_lock_acquire_timeout_ms,
+                )
+                .await?,
+            )))
+        }
+        None => {
+            println!("🔐 Submit coordinator backend: in-memory");
+            Ok(None)
+        }
+    }
 }
 
 #[tokio::main]
@@ -437,11 +756,8 @@ async fn main() -> Result<()> {
 
     // Create subscription broadcast channel
     let (subscription_tx, _) = broadcast::channel::<SubscribeTableResponse>(1000);
-    let v2_runtime = Arc::new(ChannelRuntime::new(
-        Arc::new(InMemoryEventBus::new(1000)),
-        Arc::new(InMemorySnapshotStore::new()),
-        Arc::new(AllowAllAuthz),
-    ));
+    let v2_runtime = build_channel_runtime(&config).await?;
+    let submit_coordinator = build_submit_coordinator(&config).await?;
 
     let app_state = AppState {
         config: Arc::new(config.clone()),
@@ -452,6 +768,7 @@ async fn main() -> Result<()> {
         account_nonce: Arc::new(RwLock::new(HashMap::new())),
         submit_account_locks: Arc::new(RwLock::new(HashMap::new())),
         submit_replay_cache: Arc::new(RwLock::new(HashMap::new())),
+        submit_coordinator,
         dapp_data: Arc::new(RwLock::new(HashMap::new())),
         v2_runtime,
         submit_executor: Arc::new(VmSubmitExecutor),
@@ -715,6 +1032,124 @@ where
         .entry(account_key.to_string())
         .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
         .clone()
+}
+
+async fn acquire_submit_account_guard<DB>(
+    state: &AppState<DB>,
+    account_key: &str,
+) -> Result<SubmitAccountGuard, SubmitRouteResult>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if let Some(coordinator) = &state.submit_coordinator {
+        return coordinator
+            .acquire_account_lock(account_key)
+            .await
+            .map(SubmitAccountGuard::Redis)
+            .map_err(|error| {
+                submit_error_result(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    format!("Failed to acquire submit lock: {}", error),
+                    None,
+                )
+            });
+    }
+
+    let account_lock = submit_account_lock(state, account_key).await;
+    Ok(SubmitAccountGuard::Local(account_lock.lock_owned().await))
+}
+
+async fn current_account_nonce<DB>(
+    state: &AppState<DB>,
+    account_key: &str,
+) -> Result<u64, SubmitRouteResult>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if let Some(coordinator) = &state.submit_coordinator {
+        return coordinator
+            .current_nonce(account_key)
+            .await
+            .map_err(|error| {
+                submit_error_result(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    format!("Failed to read submit nonce: {}", error),
+                    None,
+                )
+            });
+    }
+
+    let nonce_map = state.account_nonce.read().await;
+    Ok(nonce_map.get(account_key).copied().unwrap_or(0))
+}
+
+async fn replay_cache_entry<DB>(
+    state: &AppState<DB>,
+    replay_key: &SubmitReplayKey,
+) -> Result<Option<SubmitReplayEntry>, SubmitRouteResult>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if let Some(coordinator) = &state.submit_coordinator {
+        return coordinator.replay_entry(replay_key).await.map_err(|error| {
+            submit_error_result(
+                StatusCode::SERVICE_UNAVAILABLE,
+                format!("Failed to read submit replay cache: {}", error),
+                None,
+            )
+        });
+    }
+
+    let mut replay_cache = state.submit_replay_cache.write().await;
+    cleanup_submit_replay_cache(&mut replay_cache, submit_replay_ttl(&state.config));
+    Ok(replay_cache.get(replay_key).cloned())
+}
+
+async fn record_submit_success<DB>(
+    state: &AppState<DB>,
+    account_key: &str,
+    nonce: u64,
+    replay_key: Option<&SubmitReplayKey>,
+    replay_entry: SubmitReplayEntry,
+) -> Result<(), SubmitRouteResult>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if let Some(coordinator) = &state.submit_coordinator {
+        return coordinator
+            .record_success(
+                account_key,
+                nonce,
+                replay_key,
+                &replay_entry,
+                state.config.submit_replay_ttl_secs,
+            )
+            .await
+            .map_err(|error| {
+                submit_error_result(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    format!("Failed to persist submit state: {}", error),
+                    None,
+                )
+            });
+    }
+
+    {
+        let mut nonce_map = state.account_nonce.write().await;
+        nonce_map.insert(account_key.to_string(), nonce);
+    }
+
+    if let Some(replay_key) = replay_key {
+        let mut replay_cache = state.submit_replay_cache.write().await;
+        cleanup_submit_replay_cache(&mut replay_cache, submit_replay_ttl(&state.config));
+        replay_cache.insert(replay_key.clone(), replay_entry);
+    }
+
+    Ok(())
 }
 
 fn to_v2_table_key(data_key: &DataKey) -> V2TableKey {
@@ -1024,8 +1459,10 @@ where
     match submit_request {
         Ok(req_data) => {
             let account_key = req_data.sender.clone();
-            let account_lock = submit_account_lock(&state, &account_key).await;
-            let _account_guard = account_lock.lock().await;
+            let _account_guard = match acquire_submit_account_guard(&state, &account_key).await {
+                Ok(guard) => guard,
+                Err(result) => return submit_route_response(result),
+            };
             submit_route_response(process_submit_request_locked(&state, req_data).await)
         }
         Err(e) => {
@@ -1073,10 +1510,9 @@ where
 
     let replay_key = submit_replay_key(&req_data);
     if let Some(replay_key) = replay_key.clone() {
-        let cached_response = {
-            let mut replay_cache = state.submit_replay_cache.write().await;
-            cleanup_submit_replay_cache(&mut replay_cache, submit_replay_ttl(&state.config));
-            replay_cache.get(&replay_key).cloned()
+        let cached_response = match replay_cache_entry(state, &replay_key).await {
+            Ok(cached_response) => cached_response,
+            Err(result) => return result,
         };
 
         if let Some(cached_response) = cached_response {
@@ -1138,9 +1574,9 @@ where
         }
     };
 
-    let current_nonce = {
-        let nonce_map = state.account_nonce.read().await;
-        nonce_map.get(&account_key).copied().unwrap_or(0)
+    let current_nonce = match current_account_nonce(state, &account_key).await {
+        Ok(current_nonce) => current_nonce,
+        Err(result) => return result,
     };
     let expected_nonce = current_nonce + 1;
 
@@ -1203,14 +1639,6 @@ where
     match execution {
         Ok(outcome) => {
             apply_submit_execution_outcome(state, &outcome).await;
-            {
-                let mut nonce_map = state.account_nonce.write().await;
-                nonce_map.insert(account_key.clone(), expected_nonce);
-                println!(
-                    "✅ Updated nonce for account {} to {}",
-                    account_key, expected_nonce
-                );
-            }
 
             let response_body = submit_response_body(
                 true,
@@ -1224,18 +1652,28 @@ where
                 })),
             );
 
-            if let Some(replay_key) = replay_key {
-                let mut replay_cache = state.submit_replay_cache.write().await;
-                cleanup_submit_replay_cache(&mut replay_cache, submit_replay_ttl(&state.config));
-                replay_cache.insert(
-                    replay_key,
-                    SubmitReplayEntry {
-                        request_fingerprint: request_fingerprint.clone(),
-                        response_body: response_body.clone(),
-                        recorded_at: Instant::now(),
-                    },
-                );
+            let replay_entry = SubmitReplayEntry {
+                request_fingerprint: request_fingerprint.clone(),
+                response_body: response_body.clone(),
+                recorded_at: Instant::now(),
+            };
+
+            if let Err(result) = record_submit_success(
+                state,
+                &account_key,
+                expected_nonce,
+                replay_key.as_ref(),
+                replay_entry,
+            )
+            .await
+            {
+                return result;
             }
+
+            println!(
+                "✅ Updated nonce for account {} to {}",
+                account_key, expected_nonce
+            );
 
             SubmitRouteResult {
                 status: StatusCode::OK,
@@ -1310,8 +1748,10 @@ where
         ));
     }
 
-    let account_lock = submit_account_lock(&state, &sender).await;
-    let _account_guard = account_lock.lock().await;
+    let _account_guard = match acquire_submit_account_guard(&state, &sender).await {
+        Ok(guard) => guard,
+        Err(result) => return submit_route_response(result),
+    };
 
     let mut items = Vec::with_capacity(req_data.requests.len());
     let mut batch_success = true;
@@ -1842,9 +2282,9 @@ where
         Ok(data) => {
             println!("✅ Received get_nonce request: sender={}", data.sender);
 
-            let nonce = {
-                let nonce_map = state.account_nonce.read().await;
-                nonce_map.get(&data.sender).copied().unwrap_or(0) + 1
+            let nonce = match current_account_nonce(&state, &data.sender).await {
+                Ok(current_nonce) => current_nonce + 1,
+                Err(result) => return submit_route_response(result),
             };
 
             let response = GetNonceResponse { nonce };
@@ -2060,7 +2500,7 @@ where
 {
     println!("🔄 Starting PTB execution...");
     println!("📝 Executing PTB transaction...");
-    let (store_set_records, current_checkpoint_timestamp_ms, current_digest) =
+    let (store_set_records, current_checkpoint_timestamp_ms, _current_digest) =
         dubhe_vm::execute_single_ptb_with_store_set_record(ptb, cache_db, sender, tx_digest)?;
     println!("store_set_records: {:?}", store_set_records);
     let mut sql_list = Vec::new();
@@ -2092,7 +2532,7 @@ where
         sqls: std::mem::take(&mut sql_list),
         store_set_records: applied_records,
         checkpoint_ts_ms: current_checkpoint_timestamp_ms,
-        cursor_opaque: current_digest.to_string(),
+        cursor_opaque: current_checkpoint_timestamp_ms.to_string(),
     })
 }
 
@@ -2302,6 +2742,14 @@ mod tests {
                 rpc_url: "http://unused-for-tests".to_string(),
                 port: 0,
                 submit_replay_ttl_secs: 300,
+                redis_url: None,
+                nats_url: None,
+                redis_key_prefix: "dubhe:test".to_string(),
+                nats_stream: "DUBHE_TEST".to_string(),
+                nats_subject_prefix: "dubhe.test".to_string(),
+                submit_lock_ttl_ms: 30_000,
+                submit_lock_retry_ms: 25,
+                submit_lock_acquire_timeout_ms: 5_000,
             }),
             cache_db: Arc::new(RwLock::new(CacheDB::new(EmptyDB::default()))),
             data: Arc::new(RwLock::new(HashMap::new())),
@@ -2310,6 +2758,7 @@ mod tests {
             account_nonce: Arc::new(RwLock::new(HashMap::new())),
             submit_account_locks: Arc::new(RwLock::new(HashMap::new())),
             submit_replay_cache: Arc::new(RwLock::new(HashMap::new())),
+            submit_coordinator: None,
             dapp_data: Arc::new(RwLock::new(HashMap::new())),
             v2_runtime: Arc::new(ChannelRuntime::new(
                 Arc::new(InMemoryEventBus::new(32)),

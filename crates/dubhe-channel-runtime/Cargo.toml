@@ -5,9 +5,14 @@ edition = "2021"
 
 [dependencies]
 async-trait = { workspace = true }
+async-nats = "0.46.0"
 futures-util = { workspace = true }
+hex = "0.4"
+redis = { version = "0.27.6", features = ["tokio-comp", "connection-manager"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = "0.10"
+time = "0.3"
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 
