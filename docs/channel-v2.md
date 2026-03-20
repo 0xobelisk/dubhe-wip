@@ -324,6 +324,18 @@ pnpm channel:bench -- \
   --query-body '{"query":{"entity":"table","key":"{\"dapp_key\":\"...\",\"account\":\"...\",\"table\":\"position\",\"key\":[]}","scope":{}}}'
 ```
 
+To benchmark the real Numeron `submit -> feed` path through the browser dev harness:
+
+```bash
+pnpm channel:bench:numeron-submit
+```
+
+You can raise the sample count with:
+
+```bash
+NUMERON_SUBMIT_BENCH_SAMPLES=12 NUMERON_SUBMIT_BENCH_MAX_ATTEMPTS=60 pnpm channel:bench:numeron-submit
+```
+
 To verify Redis-backed cross-instance duplicate-submit coordination from Rust:
 
 ```bash

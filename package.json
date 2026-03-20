@@ -12,6 +12,7 @@
     "build": "turbo run build",
     "build:packages": "turbo run build --filter='./packages/*'",
     "channel:bench": "node ./scripts/bench-channel-v2.mjs",
+    "channel:bench:numeron-submit": "./scripts/bench-numeron-submit-e2e.sh",
     "channel:infra:down": "docker compose -f docker-compose.channel-shared.yml down",
     "channel:infra:up": "docker compose -f docker-compose.channel-shared.yml up -d --wait",
     "channel:run:shared": "./scripts/run-dubhe-channel-shared.sh",
