@@ -303,6 +303,27 @@ To smoke-test the Numeron integration after the web app is already running local
 pnpm channel:smoke:numeron
 ```
 
+To benchmark shared endpoints locally across one or more nodes:
+
+```bash
+pnpm channel:bench -- --urls http://127.0.0.1:18080,http://127.0.0.1:18081 --endpoint nonce --concurrency 64 --requests 2000
+```
+
+Supported endpoints:
+
+- `health`
+- `nonce`
+- `query`
+
+`query` requires an explicit body:
+
+```bash
+pnpm channel:bench -- \
+  --urls http://127.0.0.1:18080 \
+  --endpoint query \
+  --query-body '{"query":{"entity":"table","key":"{\"dapp_key\":\"...\",\"account\":\"...\",\"table\":\"position\",\"key\":[]}","scope":{}}}'
+```
+
 To verify Redis-backed cross-instance duplicate-submit coordination from Rust:
 
 ```bash
