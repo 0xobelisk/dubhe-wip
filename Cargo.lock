@@ -2506,6 +2506,8 @@ dependencies = [
  "clap",
  "colored",
  "dotenvy",
+ "dubhe-channel-core",
+ "dubhe-channel-runtime",
  "dubhe-common",
  "dubhe-db",
  "dubhe-indexer",
@@ -2526,6 +2528,7 @@ dependencies = [
  "reqwest 0.11.27",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "shared-crypto",
  "sui-indexer-alt-framework",
  "sui-json-rpc-types",
@@ -2538,6 +2541,30 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "url",
+]
+
+[[package]]
+name = "dubhe-channel-core"
+version = "1.2.0-pre.56"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures-util",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "dubhe-channel-runtime"
+version = "1.2.0-pre.56"
+dependencies = [
+ "async-trait",
+ "dubhe-channel-core",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]

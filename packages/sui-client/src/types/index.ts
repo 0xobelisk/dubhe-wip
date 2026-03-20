@@ -45,9 +45,50 @@ export type DubheParams = {
   secretKey?: string;
   fullnodeUrls?: string[];
   faucetUrl?: string;
+  channelUrl?: string;
+  indexerUrl?: string;
   networkType?: NetworkType;
   packageId?: string;
   metadata?: SuiMoveNormalizedModules;
+};
+
+export type ChannelChain = 'sui' | 'evm' | 'solana';
+
+export type ChannelSubmitRequest = {
+  chain: ChannelChain;
+  sender: string;
+  nonce: number;
+  ptb: unknown;
+  signature?: string;
+};
+
+export type ChannelSubmitResultData = {
+  chain: string;
+  sender: string;
+  nonce: number;
+  tx_digest: string;
+  sql_count: number;
+};
+
+export type ChannelSubmitResponse = {
+  success: boolean;
+  message: string;
+  data?: ChannelSubmitResultData | null;
+};
+
+export type ChannelSubmitBatchItemResponse = {
+  index: number;
+  status: number;
+  success: boolean;
+  replayed: boolean;
+  message: string;
+  data?: ChannelSubmitResultData | null;
+};
+
+export type ChannelSubmitBatchResponse = {
+  success: boolean;
+  message: string;
+  data: ChannelSubmitBatchItemResponse[];
 };
 
 export type SchemaFieldType = {

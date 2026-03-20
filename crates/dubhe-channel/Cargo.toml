@@ -38,6 +38,8 @@ sui-indexer-alt-framework = { workspace = true }
 dubhe-state = { path = "../dubhe-state" }
 dubhe-db = { path = "../dubhe-db" }
 dubhe-vm = { path = "../dubhe-vm" }
+dubhe-channel-core = { path = "../dubhe-channel-core" }
+dubhe-channel-runtime = { path = "../dubhe-channel-runtime" }
 dubhe-indexer = { path = "../dubhe-indexer" }
 dubhe-indexer-grpc = { path = "../dubhe-indexer-grpc" }
 dubhe-common = { workspace = true }
@@ -56,6 +58,7 @@ bs58 = "0.5"
 base64 = "0.21"
 futures-util = "0.3"
 async-stream = "0.3"
+sha2 = "0.10"
 
 [dev-dependencies]
 reqwest = { version = "0.11", features = ["json"] }

@@ -18,6 +18,9 @@ import { SuiContractFactory } from './libs/suiContractFactory';
 import { SuiMoveMoudleFuncType } from './libs/suiContractFactory/types';
 import { getDefaultURL, NetworkConfig } from './libs/suiInteractor';
 import {
+  ChannelSubmitBatchResponse,
+  ChannelSubmitRequest,
+  ChannelSubmitResponse,
   ContractQuery,
   ContractTx,
   DerivePathParams,
@@ -122,6 +125,7 @@ export class Dubhe {
   public packageId: string | undefined;
   public metadata: SuiMoveNormalizedModules | undefined;
   public projectName: string | undefined;
+  public channelUrl: string | undefined;
 
   readonly #query: MapMoudleFuncQuery = {};
   readonly #tx: MapMoudleFuncTx = {};
@@ -144,6 +148,8 @@ export class Dubhe {
     secretKey,
     networkType,
     fullnodeUrls,
+    channelUrl,
+    indexerUrl,
     packageId,
     metadata
   }: DubheParams = {}) {
@@ -158,6 +164,7 @@ export class Dubhe {
     this.suiInteractor = new SuiInteractor(fullnodeUrls, networkType);
 
     this.packageId = packageId ? normalizePackageId(packageId) : undefined;
+    this.channelUrl = channelUrl ?? indexerUrl;
     if (metadata !== undefined) {
       this.metadata = metadata as SuiMoveNormalizedModules;
 
@@ -1436,6 +1443,10 @@ export class Dubhe {
       this.suiInteractor = new SuiInteractor(newFullnodeUrls, newNetworkType);
     }
 
+    if (config.channelUrl !== undefined || config.indexerUrl !== undefined) {
+      this.channelUrl = config.channelUrl ?? config.indexerUrl;
+    }
+
     // Update package ID and metadata, rebuild tx/query builders if needed
     const packageIdChanged = config.packageId !== undefined && config.packageId !== this.packageId;
     const metadataChanged = config.metadata !== undefined && config.metadata !== this.metadata;
@@ -1653,6 +1664,212 @@ export class Dubhe {
     return this.suiInteractor.waitForTransaction({ digest });
   }
 
+  async waitForIndexerTransaction(digest: string) {
+    return this.waitForTransaction(digest);
+  }
+
+  setChannelUrl(channelUrl: string) {
+    this.channelUrl = channelUrl.replace(/\/$/, '');
+  }
+
+  getChannelUrl() {
+    if (!this.channelUrl) {
+      throw new Error('channelUrl is not configured');
+    }
+    return this.channelUrl.replace(/\/$/, '');
+  }
+
+  async latestNonce(sender?: string): Promise<number> {
+    const result = await this.#channelPost<{ nonce: number }>('/v2/nonce', {
+      sender: sender ?? this.getAddress()
+    });
+    return Number(result.nonce ?? 0);
+  }
+
+  async queryChannelTable({
+    dappKey,
+    account,
+    table,
+    key
+  }: {
+    dappKey?: string;
+    account?: string;
+    table: string;
+    key: number[][];
+  }): Promise<{ message: boolean; data: number[][] }> {
+    const tableKey = this.#buildChannelTableKey({ dappKey, account, table, key });
+    const result = await this.#channelPost<{
+      found?: boolean;
+      message?: boolean;
+      data?: { value?: number[][] } | number[][];
+    }>('/v2/query', {
+      query: {
+        entity: 'table',
+        key: JSON.stringify(tableKey),
+        scope: {}
+      }
+    });
+
+    return {
+      message: Boolean(result.found ?? result.message ?? false),
+      data: Array.isArray(result.data) ? result.data : result.data?.value ?? []
+    };
+  }
+
+  async subscribeChannelTable(
+    {
+      dappKey,
+      account,
+      table,
+      key
+    }: {
+      dappKey?: string;
+      account?: string;
+      table?: string;
+      key?: number[][];
+    },
+    handlers: {
+      onOpen?: () => void;
+      onMessage?: (data: {
+        dapp_key: string;
+        account: string;
+        table: string;
+        key: number[][];
+        value: number[][];
+      }) => void;
+      onError?: (error: Error) => void;
+      onClose?: () => void;
+    } = {}
+  ): Promise<() => void> {
+    const controller = new AbortController();
+    const filters: Record<string, string> = {};
+    if (dappKey) filters.dapp_key = dappKey;
+    if (account) filters.account = account.replace(/^0x/, '');
+    if (table) filters.table = table;
+    if (key) filters.key = JSON.stringify(key);
+
+    const response = await fetch(`${this.getChannelUrl()}/v2/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream'
+      },
+      body: JSON.stringify({
+        spec: {
+          topics: ['table'],
+          filters,
+          semantics: 'AtLeastOnce'
+        }
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Channel subscribe failed: ${response.status}`);
+    }
+
+    handlers.onOpen?.();
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    void (async () => {
+      let buffer = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let separatorIndex = buffer.indexOf('\n\n');
+          while (separatorIndex !== -1) {
+            const rawEvent = buffer.slice(0, separatorIndex);
+            buffer = buffer.slice(separatorIndex + 2);
+            separatorIndex = buffer.indexOf('\n\n');
+
+            const dataLines = rawEvent
+              .split('\n')
+              .filter((line) => line.startsWith('data:'))
+              .map((line) => line.slice(5).trim());
+
+            if (dataLines.length === 0) continue;
+
+            const payload = JSON.parse(dataLines.join('\n'));
+            const tablePayload = payload?.payload ?? payload;
+            const dataKey = tablePayload?.data_key ?? tablePayload?.dataKey;
+            if (dataKey && tablePayload?.value) {
+              handlers.onMessage?.({
+                dapp_key: dataKey.dapp_key,
+                account: dataKey.account,
+                table: dataKey.table,
+                key: dataKey.key,
+                value: tablePayload.value
+              });
+            }
+          }
+        }
+        handlers.onClose?.();
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          handlers.onError?.(error as Error);
+        }
+      }
+    })();
+
+    return () => {
+      controller.abort();
+      handlers.onClose?.();
+    };
+  }
+
+  async submitToChannel({
+    tx,
+    nonce,
+    sender
+  }: {
+    tx: Transaction | SuiTx;
+    nonce?: number;
+    sender?: string;
+  }): Promise<ChannelSubmitResponse> {
+    const channelSender = sender ?? this.getAddress();
+    const resolvedNonce = nonce ?? (await this.latestNonce(channelSender));
+    const payload = this.#buildChannelSubmitPayload({
+      tx,
+      sender: channelSender,
+      nonce: resolvedNonce
+    });
+
+    return this.#channelPost<ChannelSubmitResponse>('/v2/submit', payload);
+  }
+
+  async submitBatchToChannel({
+    txs,
+    sender,
+    startNonce
+  }: {
+    txs: (Transaction | SuiTx)[];
+    sender?: string;
+    startNonce?: number;
+  }): Promise<ChannelSubmitBatchResponse> {
+    if (txs.length === 0) {
+      throw new Error('submitBatchToChannel requires at least one transaction');
+    }
+
+    const channelSender = sender ?? this.getAddress();
+    const resolvedStartNonce = startNonce ?? (await this.latestNonce(channelSender));
+    const requests = txs.map((tx, index) =>
+      this.#buildChannelSubmitPayload({
+        tx,
+        sender: channelSender,
+        nonce: resolvedStartNonce + index
+      })
+    );
+
+    return this.#channelPost<ChannelSubmitBatchResponse>('/v2/submit_batch', {
+      requests
+    });
+  }
+
   /**
    * Transfer the given amount of SUI to the recipient
    * @param recipient
@@ -1851,6 +2068,89 @@ export class Dubhe {
 
   async entity_key_from_u256(x: number) {
     return numberToAddressHex(x);
+  }
+
+  #defaultDappKey() {
+    if (!this.packageId) {
+      throw new Error('packageId is not configured');
+    }
+    return `${this.packageId.replace(/^0x/, '')}::dapp_key::DappKey`;
+  }
+
+  #buildChannelTableKey({
+    dappKey,
+    account,
+    table,
+    key
+  }: {
+    dappKey?: string;
+    account?: string;
+    table: string;
+    key: number[][];
+  }) {
+    return {
+      dapp_key: dappKey ?? this.#defaultDappKey(),
+      account: (account ?? this.getAddress()).replace(/^0x/, ''),
+      table,
+      key
+    };
+  }
+
+  #detectChannelChain(address: string): 'sui' | 'evm' | 'solana' {
+    const cleanAddress = address.startsWith('0x') ? address.slice(2) : address;
+    if (
+      address.startsWith('0x') &&
+      cleanAddress.length === 64 &&
+      /^[0-9a-fA-F]+$/.test(cleanAddress)
+    ) {
+      return 'sui';
+    }
+    if (
+      address.startsWith('0x') &&
+      cleanAddress.length === 40 &&
+      /^[0-9a-fA-F]+$/.test(cleanAddress)
+    ) {
+      return 'evm';
+    }
+    if (!address.startsWith('0x') && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+      return 'solana';
+    }
+    return 'sui';
+  }
+
+  #buildChannelSubmitPayload({
+    tx,
+    sender,
+    nonce
+  }: {
+    tx: Transaction | SuiTx;
+    sender: string;
+    nonce: number;
+  }): ChannelSubmitRequest {
+    const txBlock = tx instanceof SuiTx ? tx.tx : tx;
+    return {
+      chain: this.#detectChannelChain(sender),
+      sender,
+      nonce,
+      ptb: (txBlock as Transaction & { getData: () => unknown }).getData(),
+      signature: 'base64_encoded_signature_placeholder'
+    };
+  }
+
+  async #channelPost<T>(path: string, body: unknown): Promise<T> {
+    const response = await fetch(`${this.getChannelUrl()}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Channel request failed: ${response.status} ${await response.text()}`);
+    }
+
+    return (await response.json()) as T;
   }
 
   // async formatData(type: string, value: Buffer | number[] | Uint8Array) {

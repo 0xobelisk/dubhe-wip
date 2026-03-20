@@ -2,6 +2,8 @@
 resolver = "2"
 
 members = [
+  "crates/dubhe-channel-core",
+  "crates/dubhe-channel-runtime",
   "crates/dubhe-indexer",
   "crates/dubhe-common",
   "crates/dubhe-indexer-grpc",
