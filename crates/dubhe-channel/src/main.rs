@@ -2674,8 +2674,10 @@ mod tests {
     use dubhe_db::interface::EmptyDB;
     use hyper::body::{to_bytes, HttpBody as _};
     use std::collections::VecDeque;
+    use std::env;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;
+    use std::time::{SystemTime, UNIX_EPOCH};
     use tokio::time::timeout;
 
     #[derive(Clone)]
@@ -2767,6 +2769,84 @@ mod tests {
             )),
             submit_executor: executor,
         }
+    }
+
+    fn local_test_redis_url() -> String {
+        env::var("DUBHE_TEST_REDIS_URL")
+            .unwrap_or_else(|_| "redis://127.0.0.1:16379/".to_string())
+    }
+
+    fn unique_test_prefix(label: &str) -> String {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock before unix epoch")
+            .as_nanos();
+        format!("dubhe:test:{}:{}", label, now)
+    }
+
+    async fn clear_test_redis_namespace(redis_url: &str, key_prefix: &str) -> Result<()> {
+        let client = redis::Client::open(redis_url)?;
+        let mut connection = client.get_multiplexed_async_connection().await?;
+        let pattern = format!("{}*", key_prefix);
+        let keys: Vec<String> = redis::cmd("KEYS")
+            .arg(pattern)
+            .query_async(&mut connection)
+            .await?;
+
+        if !keys.is_empty() {
+            let _: () = redis::cmd("DEL").arg(keys).query_async(&mut connection).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn test_state_with_redis_executor(
+        key_prefix: &str,
+        executor: Arc<dyn SubmitExecutor<EmptyDB>>,
+    ) -> Result<AppState<EmptyDB>> {
+        let (subscription_tx, _) = broadcast::channel::<SubscribeTableResponse>(32);
+        let redis_url = local_test_redis_url();
+
+        Ok(AppState {
+            config: Arc::new(DubheChannelConfig {
+                sync_time: 5,
+                rpc_url: "http://unused-for-tests".to_string(),
+                port: 0,
+                submit_replay_ttl_secs: 300,
+                redis_url: Some(redis_url.clone()),
+                nats_url: None,
+                redis_key_prefix: key_prefix.to_string(),
+                nats_stream: "DUBHE_TEST".to_string(),
+                nats_subject_prefix: "dubhe.test".to_string(),
+                submit_lock_ttl_ms: 30_000,
+                submit_lock_retry_ms: 25,
+                submit_lock_acquire_timeout_ms: 5_000,
+            }),
+            cache_db: Arc::new(RwLock::new(CacheDB::new(EmptyDB::default()))),
+            data: Arc::new(RwLock::new(HashMap::new())),
+            temp_storage_state: Arc::new(RwLock::new(StorageState::new())),
+            subscription_tx,
+            account_nonce: Arc::new(RwLock::new(HashMap::new())),
+            submit_account_locks: Arc::new(RwLock::new(HashMap::new())),
+            submit_replay_cache: Arc::new(RwLock::new(HashMap::new())),
+            submit_coordinator: Some(Arc::new(
+                RedisSubmitCoordinator::connect(
+                    &redis_url,
+                    format!("{}:coord", key_prefix),
+                    30_000,
+                    25,
+                    5_000,
+                )
+                .await?,
+            )),
+            dapp_data: Arc::new(RwLock::new(HashMap::new())),
+            v2_runtime: Arc::new(ChannelRuntime::new(
+                Arc::new(InMemoryEventBus::new(32)),
+                Arc::new(InMemorySnapshotStore::new()),
+                Arc::new(AllowAllAuthz),
+            )),
+            submit_executor: executor,
+        })
     }
 
     fn test_submit_request(sender: &str, nonce: u64, marker: [u8; 3]) -> SubmitRequest {
@@ -3324,6 +3404,141 @@ mod tests {
                 .count(),
             1
         );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    #[ignore = "requires local Redis at 127.0.0.1:16379"]
+    async fn test_submit_cross_instance_duplicate_requests_only_execute_once_with_redis() {
+        let redis_url = local_test_redis_url();
+        let key_prefix = unique_test_prefix("cross-instance");
+        clear_test_redis_namespace(&redis_url, &key_prefix)
+            .await
+            .unwrap();
+
+        let record = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-redis-cluster".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![9, 9]],
+            value_tuple: vec![vec![4, 2]],
+        };
+        let executor = Arc::new(FakeSubmitExecutor::with_delay(
+            vec![SubmitExecutionOutcome {
+                sqls: vec!["noop".to_string()],
+                store_set_records: vec![record],
+                checkpoint_ts_ms: 123,
+                cursor_opaque: "digest-redis-cluster".to_string(),
+            }],
+            std::time::Duration::from_millis(100),
+        ));
+
+        let state_one = test_state_with_redis_executor(&key_prefix, executor.clone())
+            .await
+            .unwrap();
+        let state_two = test_state_with_redis_executor(&key_prefix, executor.clone())
+            .await
+            .unwrap();
+
+        let request = SubmitRequest {
+            chain: "sui".to_string(),
+            sender: "0x0000000000000000000000000000000000000000000000000000000000009999"
+                .to_string(),
+            nonce: Some(1),
+            ptb: PtbJson {
+                version: 1,
+                sender: None,
+                expiration: None,
+                gas_data: None,
+                inputs: vec![PtbInput::Pure {
+                    data: PureData {
+                        pure: PureInner {
+                            bytes: base64::engine::general_purpose::STANDARD.encode([9u8, 9, 9]),
+                        },
+                    },
+                }],
+                commands: vec![],
+            },
+            signature: None,
+        };
+        let request_body = serde_json::to_vec(&request).unwrap();
+
+        let task_one = tokio::spawn({
+            let state = state_one.clone();
+            let body = request_body.clone();
+            async move {
+                handle_request(
+                    Request::builder()
+                        .method(hyper::Method::POST)
+                        .uri("/v2/submit")
+                        .header(CONTENT_TYPE, "application/json")
+                        .body(Body::from(body))
+                        .unwrap(),
+                    state,
+                )
+                .await
+                .unwrap()
+            }
+        });
+
+        let task_two = tokio::spawn({
+            let state = state_two.clone();
+            async move {
+                handle_request(
+                    Request::builder()
+                        .method(hyper::Method::POST)
+                        .uri("/v2/submit")
+                        .header(CONTENT_TYPE, "application/json")
+                        .body(Body::from(request_body))
+                        .unwrap(),
+                    state,
+                )
+                .await
+                .unwrap()
+            }
+        });
+
+        let response_one = task_one.await.unwrap();
+        let response_two = task_two.await.unwrap();
+
+        assert_eq!(response_one.status(), StatusCode::OK);
+        assert_eq!(response_two.status(), StatusCode::OK);
+        assert_eq!(executor.call_count(), 1);
+
+        let replay_headers = [
+            response_one
+                .headers()
+                .get("X-Dubhe-Replayed")
+                .and_then(|value| value.to_str().ok()),
+            response_two
+                .headers()
+                .get("X-Dubhe-Replayed")
+                .and_then(|value| value.to_str().ok()),
+        ];
+        assert_eq!(
+            replay_headers
+                .iter()
+                .filter(|header| header == &&Some("true"))
+                .count(),
+            1
+        );
+
+        let shared_nonce = current_account_nonce(&state_two, &request.sender)
+            .await
+            .unwrap();
+        assert_eq!(shared_nonce, 1);
+
+        let replay_key = submit_replay_key(&request).unwrap();
+        let replay_entry = state_one
+            .submit_coordinator
+            .as_ref()
+            .unwrap()
+            .replay_entry(&replay_key)
+            .await
+            .unwrap();
+        assert!(replay_entry.is_some());
+
+        clear_test_redis_namespace(&redis_url, &key_prefix)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]

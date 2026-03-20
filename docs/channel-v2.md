@@ -278,6 +278,39 @@ Default local ports:
 - NATS monitor: `127.0.0.1:18222`
 - dubhe-channel: `127.0.0.1:18080`
 
+### Local cluster validation
+
+To run multiple shared `dubhe-channel` nodes against the same Redis + NATS backend:
+
+```bash
+pnpm channel:run:shared:cluster -- --rpc-url https://rpc-testnet.suiscan.xyz/
+```
+
+Default cluster ports:
+
+- `18080`
+- `18081`
+
+You can override them with:
+
+```bash
+DUBHE_CHANNEL_CLUSTER_PORTS="18080 18081 18082" pnpm channel:run:shared:cluster -- --rpc-url https://rpc-testnet.suiscan.xyz/
+```
+
+To smoke-test the Numeron integration after the web app is already running locally:
+
+```bash
+pnpm channel:smoke:numeron
+```
+
+To verify Redis-backed cross-instance duplicate-submit coordination from Rust:
+
+```bash
+pnpm channel:test:redis-multi-instance
+```
+
+That test is intentionally marked ignored because it expects a local Redis server at `127.0.0.1:16379`.
+
 ## Partitioning
 
 Partitioning is required for horizontal scale. Dubhe should provide the mechanism, but applications choose the partition key.
