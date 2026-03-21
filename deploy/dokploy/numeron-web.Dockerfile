@@ -1,7 +1,6 @@
 FROM node:22-bookworm-slim
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
@@ -44,6 +43,8 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter web build
 
 WORKDIR /app/numeron-channel-mvp/apps/web
+
+ENV NODE_ENV=production
 
 EXPOSE 3000
 
