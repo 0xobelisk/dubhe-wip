@@ -26,7 +26,9 @@ ENV NEXT_PUBLIC_CHANNEL_REGISTER_SENDER=$NEXT_PUBLIC_CHANNEL_REGISTER_SENDER
 ENV NEXT_PUBLIC_FAST_MOVE_DURATION_MS=$NEXT_PUBLIC_FAST_MOVE_DURATION_MS
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable
 
