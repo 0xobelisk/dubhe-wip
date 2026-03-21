@@ -98,7 +98,7 @@ impl Event {
     pub fn value_tuple(&self) -> &Vec<Vec<u8>> {
         match self {
             Event::StoreSetRecord(event) => &event.value_tuple,
-           _ => unreachable!(),
+            _ => unreachable!(),
         }
     }
 

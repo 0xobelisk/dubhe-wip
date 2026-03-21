@@ -8,7 +8,8 @@ use bs58;
 use bytes::Buf;
 use clap::Parser;
 use dubhe_channel_core::{
-    AuthContext, Cursor, FilterValue, SnapshotQuery, SnapshotResult, SubscriptionSpec,
+    AuthContext, Cursor, EventEnvelope, FilterValue, SnapshotQuery, SnapshotResult,
+    SubscriptionSpec,
 };
 use dubhe_channel_runtime::presets::table::{
     event_from_table, snapshot_result as v2_snapshot_result, TableKey as V2TableKey,
@@ -169,6 +170,11 @@ pub struct V2QueryRequest {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct V2SubscribeRequest {
     pub spec: SubscriptionSpec,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct V2PublishRequest {
+    pub event: EventEnvelope,
 }
 
 // Subscribe Table Request struct - supports optional fields for fuzzy matching
@@ -847,6 +853,7 @@ async fn main() -> Result<()> {
     println!("🔗 http://localhost:8080/nonce");
     println!("🔗 http://localhost:8080/v2/query");
     println!("🔗 http://localhost:8080/v2/subscribe");
+    println!("🔗 http://localhost:8080/v2/publish");
     println!("🔗 http://localhost:8080/v2/submit");
     println!("🔗 http://localhost:8080/v2/submit_batch");
     println!("🔗 http://localhost:8080/v2/nonce");
@@ -893,6 +900,7 @@ where
         (&hyper::Method::POST, "/v2/nonce") => Ok(handle_get_nonce(req, state).await),
         (&hyper::Method::POST, "/v2/query") => Ok(handle_v2_query(req, state).await),
         (&hyper::Method::POST, "/v2/subscribe") => Ok(handle_v2_subscribe(req, state).await),
+        (&hyper::Method::POST, "/v2/publish") => Ok(handle_v2_publish(req, state).await),
         _ => Ok(Response::builder()
             .status(StatusCode::NOT_FOUND)
             .body(Body::from("Not Found"))
@@ -2252,6 +2260,68 @@ where
     }
 }
 
+async fn handle_v2_publish<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    let whole_body = match body::aggregate(req.into_body()).await {
+        Ok(body) => body,
+        Err(e) => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(
+                    json!({ "error": format!("Failed to read body: {}", e) }).to_string(),
+                ))
+                .unwrap();
+        }
+    };
+
+    let request: Result<V2PublishRequest, _> = serde_json::from_reader(whole_body.reader());
+    match request {
+        Ok(request) => {
+            let mut event = request.event;
+            if event.id.is_empty() {
+                event.id = format!("evt-{:016x}", random::<u64>());
+            }
+            if event.ts_ms == 0 {
+                event.ts_ms = now_ts_ms();
+            }
+
+            match state
+                .v2_runtime
+                .publish(&v2_auth_context(), event.clone())
+                .await
+            {
+                Ok(()) => Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body(Body::from(serde_json::to_string(&event).unwrap()))
+                    .unwrap(),
+                Err(error) => Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body(Body::from(
+                        json!({ "error": error.to_string() }).to_string(),
+                    ))
+                    .unwrap(),
+            }
+        }
+        Err(error) => Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(CONTENT_TYPE, "application/json")
+            .header("Access-Control-Allow-Origin", "*")
+            .body(Body::from(
+                json!({ "error": format!("Invalid JSON body: {}", error) }).to_string(),
+            ))
+            .unwrap(),
+    }
+}
+
 async fn handle_get_nonce<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
 where
     DB: dubhe_db::interface::DatabaseRef + 'static,
@@ -2772,8 +2842,7 @@ mod tests {
     }
 
     fn local_test_redis_url() -> String {
-        env::var("DUBHE_TEST_REDIS_URL")
-            .unwrap_or_else(|_| "redis://127.0.0.1:16379/".to_string())
+        env::var("DUBHE_TEST_REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:16379/".to_string())
     }
 
     fn unique_test_prefix(label: &str) -> String {
@@ -2794,7 +2863,10 @@ mod tests {
             .await?;
 
         if !keys.is_empty() {
-            let _: () = redis::cmd("DEL").arg(keys).query_async(&mut connection).await?;
+            let _: () = redis::cmd("DEL")
+                .arg(keys)
+                .query_async(&mut connection)
+                .await?;
         }
 
         Ok(())
@@ -3848,6 +3920,102 @@ mod tests {
             payload.data.unwrap()["value"],
             serde_json::to_value(record.value_tuple).unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn test_v2_publish_route_emits_subscription_event() {
+        let state = test_state();
+        let subscribe_response = handle_request(
+            Request::builder()
+                .method(hyper::Method::POST)
+                .uri("/v2/subscribe")
+                .header(CONTENT_TYPE, "application/json")
+                .header("Accept", "text/event-stream")
+                .body(Body::from(
+                    serde_json::to_vec(&V2SubscribeRequest {
+                        spec: SubscriptionSpec {
+                            topics: vec!["movement_intent".to_string()],
+                            filters: {
+                                let mut filters = BTreeMap::new();
+                                filters.insert(
+                                    "dapp_key".to_string(),
+                                    FilterValue::String("demo::dapp_key::DappKey".to_string()),
+                                );
+                                filters
+                            },
+                            cursor: None,
+                            semantics: dubhe_channel_core::DeliverySemantics::Ephemeral,
+                        },
+                    })
+                    .unwrap(),
+                ))
+                .unwrap(),
+            state.clone(),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(subscribe_response.status(), StatusCode::OK);
+        let mut subscribe_body = subscribe_response.into_body();
+
+        let publish_response = handle_request(
+            Request::builder()
+                .method(hyper::Method::POST)
+                .uri("/v2/publish")
+                .header(CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    serde_json::to_vec(&V2PublishRequest {
+                        event: EventEnvelope {
+                            id: String::new(),
+                            topic: "movement_intent".to_string(),
+                            partition_key: "0xplayer-intent".to_string(),
+                            kind: "move".to_string(),
+                            ts_ms: 0,
+                            payload: json!({
+                                "player": "0xplayer-intent",
+                                "x": 7,
+                                "y": 11,
+                                "direction": "RIGHT",
+                            }),
+                            metadata: {
+                                let mut metadata = BTreeMap::new();
+                                metadata.insert(
+                                    "dapp_key".to_string(),
+                                    "demo::dapp_key::DappKey".to_string(),
+                                );
+                                metadata
+                                    .insert("player".to_string(), "0xplayer-intent".to_string());
+                                metadata
+                            },
+                        },
+                    })
+                    .unwrap(),
+                ))
+                .unwrap(),
+            state,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(publish_response.status(), StatusCode::OK);
+        let publish_body = to_bytes(publish_response.into_body()).await.unwrap();
+        let published_event: EventEnvelope = serde_json::from_slice(&publish_body).unwrap();
+        assert_eq!(published_event.topic, "movement_intent");
+        assert_eq!(published_event.kind, "move");
+        assert!(!published_event.id.is_empty());
+        assert!(published_event.ts_ms > 0);
+
+        let live_chunk = timeout(Duration::from_secs(1), subscribe_body.data())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        let live_text = String::from_utf8(live_chunk.to_vec()).unwrap();
+        assert!(live_text.contains(r#""topic":"movement_intent""#));
+        assert!(live_text.contains(r#""kind":"move""#));
+        assert!(live_text.contains(r#""partition_key":"0xplayer-intent""#));
+        assert!(live_text.contains(r#""direction":"RIGHT""#));
+        assert!(live_text.contains(r#""dapp_key":"demo::dapp_key::DappKey""#));
     }
 
     #[tokio::test]

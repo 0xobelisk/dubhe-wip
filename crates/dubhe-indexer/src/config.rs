@@ -71,16 +71,16 @@ impl DubheConfig {
         let config_content = fs::read_to_string(&args.config)
             .map_err(|e| anyhow::anyhow!(format!("Failed to read config file: {}", e)))?;
 
-        let config: DubheConfig =
-            if args.config.ends_with(".yaml") || args.config.ends_with(".yml") {
-                serde_yaml::from_str(&config_content)
-                    .map_err(|e| anyhow::anyhow!(format!("YAML parsing error: {}", e)))?
-            } else if args.config.ends_with(".toml") {
-                toml::from_str(&config_content)
-                    .map_err(|e| anyhow::anyhow!(format!("TOML parsing error: {}", e)))?
-            } else {
-                return Err(anyhow::anyhow!("Unsupported config file format"));
-            };
+        let config: DubheConfig = if args.config.ends_with(".yaml") || args.config.ends_with(".yml")
+        {
+            serde_yaml::from_str(&config_content)
+                .map_err(|e| anyhow::anyhow!(format!("YAML parsing error: {}", e)))?
+        } else if args.config.ends_with(".toml") {
+            toml::from_str(&config_content)
+                .map_err(|e| anyhow::anyhow!(format!("TOML parsing error: {}", e)))?
+        } else {
+            return Err(anyhow::anyhow!("Unsupported config file format"));
+        };
 
         Ok(config)
     }

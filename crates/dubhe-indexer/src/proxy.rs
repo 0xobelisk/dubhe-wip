@@ -14,7 +14,14 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
 
 // Channel 路由处理函数类型
-pub type ChannelHandler = Arc<dyn Fn(Request<Body>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response<Body>, Infallible>> + Send>> + Send + Sync>;
+pub type ChannelHandler = Arc<
+    dyn Fn(
+            Request<Body>,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<Response<Body>, Infallible>> + Send>,
+        > + Send
+        + Sync,
+>;
 
 /// Main Proxy Server following Torii architecture pattern
 /// Routes requests to independent GraphQL and gRPC services based on content type and path
@@ -74,8 +81,14 @@ impl ProxyServer {
             let config_json = self.config_json.clone();
 
             tokio::spawn(async move {
-                if let Err(e) =
-                    start_grpc_service(grpc_addr, grpc_subscribers, database, config_json, shutdown_rx).await
+                if let Err(e) = start_grpc_service(
+                    grpc_addr,
+                    grpc_subscribers,
+                    database,
+                    config_json,
+                    shutdown_rx,
+                )
+                .await
                 {
                     log::error!("❌ gRPC service failed: {}", e);
                 }
@@ -123,7 +136,16 @@ impl ProxyServer {
                     let config_json = config_json.clone();
                     let channel_handlers = channel_handlers.clone();
                     async move {
-                        handle_request(remote_addr, req, grpc_addr, graphql_addr, version, config_json, channel_handlers).await
+                        handle_request(
+                            remote_addr,
+                            req,
+                            grpc_addr,
+                            graphql_addr,
+                            version,
+                            config_json,
+                            channel_handlers,
+                        )
+                        .await
                     }
                 }))
             }
@@ -177,14 +199,15 @@ async fn handle_request(
     // Check for channel special routes first
     let handler_opt = {
         let handlers = channel_handlers.read().await;
-        handlers.iter()
+        handlers
+            .iter()
             .find(|(route_path, _)| path.starts_with(route_path.as_str()))
             .map(|(route_path, handler)| {
                 log::info!("🎯 Routing to channel handler: {}", route_path);
                 handler.clone()
             })
     };
-    
+
     if let Some(handler) = handler_opt {
         return handler(req).await;
     }
@@ -192,13 +215,19 @@ async fn handle_request(
     // Check if it's a gRPC request
     // gRPC requests typically have paths like "/dubhe_grpc.DubheGrpc/MethodName"
     // Support both standard gRPC and gRPC-Web (application/grpc-web, application/grpc-web-text)
-    let is_grpc = path.starts_with("/dubhe_grpc") 
-        || headers.get(CONTENT_TYPE).and_then(|v| v.to_str().ok())
+    let is_grpc = path.starts_with("/dubhe_grpc")
+        || headers
+            .get(CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
             .map(|ct| ct.starts_with("application/grpc-web") || ct.starts_with("application/grpc"))
             .unwrap_or(false);
-    
+
     if is_grpc {
-        log::info!("🔌 Routing gRPC request: {} (content-type: {:?})", path, headers.get(CONTENT_TYPE));
+        log::info!(
+            "🔌 Routing gRPC request: {} (content-type: {:?})",
+            path,
+            headers.get(CONTENT_TYPE)
+        );
         return handle_grpc_request(req, grpc_addr).await;
     }
 
@@ -324,7 +353,10 @@ async fn handle_grpc_request(
             .header("grpc-status", "14") // UNAVAILABLE
             .header("grpc-message", "gRPC service not configured")
             .header("Access-Control-Allow-Origin", "*")
-            .header("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin")
+            .header(
+                "Access-Control-Expose-Headers",
+                "grpc-status, grpc-message, grpc-status-details-bin",
+            )
             .body(Body::empty())
             .unwrap());
     };
@@ -350,8 +382,15 @@ async fn handle_grpc_request(
                     log::debug!("✅ gRPC request forwarded successfully");
                     // Add CORS headers to the gRPC response
                     let (mut parts, body) = response.into_parts();
-                    parts.headers.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
-                    parts.headers.insert("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin".parse().unwrap());
+                    parts
+                        .headers
+                        .insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+                    parts.headers.insert(
+                        "Access-Control-Expose-Headers",
+                        "grpc-status, grpc-message, grpc-status-details-bin"
+                            .parse()
+                            .unwrap(),
+                    );
                     Ok(Response::from_parts(parts, body))
                 }
                 Err(e) => {
@@ -362,7 +401,10 @@ async fn handle_grpc_request(
                         .header("grpc-status", "14") // UNAVAILABLE
                         .header("grpc-message", "Backend gRPC service unavailable")
                         .header("Access-Control-Allow-Origin", "*")
-                        .header("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin")
+                        .header(
+                            "Access-Control-Expose-Headers",
+                            "grpc-status, grpc-message, grpc-status-details-bin",
+                        )
                         .body(Body::empty())
                         .unwrap())
                 }
@@ -376,7 +418,10 @@ async fn handle_grpc_request(
                 .header("grpc-status", "3") // INVALID_ARGUMENT
                 .header("grpc-message", "Invalid request URI")
                 .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Expose-Headers", "grpc-status, grpc-message, grpc-status-details-bin")
+                .header(
+                    "Access-Control-Expose-Headers",
+                    "grpc-status, grpc-message, grpc-status-details-bin",
+                )
                 .body(Body::empty())
                 .unwrap())
         }
@@ -422,7 +467,9 @@ async fn handle_graphql_request(
                     log::debug!("✅ GraphQL request forwarded successfully");
                     // Add CORS headers to the GraphQL response
                     let (mut parts, body) = response.into_parts();
-                    parts.headers.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+                    parts
+                        .headers
+                        .insert("Access-Control-Allow-Origin", "*".parse().unwrap());
                     Ok(Response::from_parts(parts, body))
                 }
                 Err(e) => {
@@ -778,10 +825,10 @@ async fn start_grpc_service(
     config_json: Arc<serde_json::Value>,
     mut shutdown_rx: broadcast::Receiver<()>,
 ) -> Result<()> {
+    use dubhe_common::DubheConfig;
     use dubhe_indexer_grpc::grpc::DubheGrpcService;
     use dubhe_indexer_grpc::types::dubhe_grpc_server::DubheGrpcServer;
     use tonic::transport::Server;
-    use dubhe_common::DubheConfig;
 
     // Parse DubheConfig from JSON
     let dubhe_config = Arc::new(DubheConfig::from_json(config_json.as_ref().clone())?);

@@ -1,19 +1,17 @@
+use crate::interface::{Database, DatabaseRef, EmptyDB};
 use core::convert::Infallible;
-use crate::interface::{
-    Database, DatabaseRef, EmptyDB,
-};
-use std::collections::HashMap;
-use sui_types::base_types::ObjectID;
-use sui_json_rpc_types::SuiObjectData;
 use std::collections::hash_map::Entry;
-use sui_types::move_package::MovePackage;
-use sui_types::storage::PackageObject;
-use sui_types::error::SuiResult;
-use sui_types::error::SuiError;
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use sui_json_rpc_types::SuiObjectData;
+use sui_types::base_types::ObjectID;
 use sui_types::base_types::SequenceNumber;
+use sui_types::error::SuiError;
+use sui_types::error::SuiResult;
+use sui_types::move_package::MovePackage;
 use sui_types::object::Object;
 use sui_types::storage::ObjectStore;
+use sui_types::storage::PackageObject;
 
 /// A [Database] implementation that stores all state changes in memory.
 pub type InMemoryDB = CacheDB<EmptyDB>;
@@ -74,7 +72,7 @@ impl<ExtDb> CacheDB<CacheDB<ExtDb>> {
             Ok(rwlock) => rwlock.into_inner().unwrap(),
             Err(arc) => arc.read().unwrap().clone(),
         };
-        
+
         let mut inner = self.db;
         let mut inner_cache = inner.cache.write().unwrap();
         inner_cache.objects.extend(outer_cache.objects);
@@ -121,16 +119,16 @@ impl<ExtDB: DatabaseRef> CacheDB<ExtDB> {
                 return Ok(obj.clone());
             }
         }
-        
+
         // Cache miss, load from database
         let obj = self.db.object_ref(address)?.unwrap();
-        
+
         // Write to cache
         {
             let mut cache = self.cache.write().unwrap();
             cache.objects.insert(address, obj.clone());
         }
-        
+
         Ok(obj)
     }
 
@@ -151,17 +149,17 @@ impl<ExtDB: DatabaseRef> Database for CacheDB<ExtDB> {
                 return Ok(Some(obj.clone()));
             }
         }
-        
+
         // Cache miss, load from database
         let obj = self.db.object_ref(address)?;
-        
+
         if let Some(ref object) = obj {
             // Write to cache
             let mut cache = self.cache.write().unwrap();
             cache.objects.insert(address, object.clone());
             return Ok(Some(object.clone()));
         }
-        
+
         Ok(None)
     }
 
@@ -183,19 +181,18 @@ impl<ExtDB: DatabaseRef> DatabaseRef for CacheDB<ExtDB> {
                 return Ok(Some(obj.clone()));
             }
         }
-    
+
         self.db.object_ref(address)
     }
 }
 
-
 impl<ExtDB: DatabaseRef> sui_types::storage::BackingPackageStore for CacheDB<ExtDB> {
-    fn get_package_object(
-        &self,
-        package_id: &ObjectID,
-    ) -> SuiResult<Option<PackageObject>> {
-        println!("==== CacheDB::get_package_object called for: {} ====", package_id);
-        
+    fn get_package_object(&self, package_id: &ObjectID) -> SuiResult<Option<PackageObject>> {
+        println!(
+            "==== CacheDB::get_package_object called for: {} ====",
+            package_id
+        );
+
         // 1. 首先尝试从缓存中读取
         {
             let cache = self.cache.read().unwrap();
@@ -203,26 +200,29 @@ impl<ExtDB: DatabaseRef> sui_types::storage::BackingPackageStore for CacheDB<Ext
                 return Ok(Some(PackageObject::new(obj.clone())));
             }
         }
-        
+
         // 2. 缓存未命中，从数据库加载
-        let obj = self.db.object_ref(*package_id).map_err(|e| SuiError::BadObjectType { error: e.to_string() })?;
+        let obj = self
+            .db
+            .object_ref(*package_id)
+            .map_err(|e| SuiError::BadObjectType {
+                error: e.to_string(),
+            })?;
         if let Some(object) = obj {
             {
                 let mut cache = self.cache.write().unwrap();
                 cache.objects.insert(*package_id, object.clone());
                 println!("💾 Cached package: {}", package_id);
             }
-        
+
             return Ok(Some(PackageObject::new(object)));
         };
         Ok(None)
-        
     }
 }
 
 impl<ExtDB: DatabaseRef> sui_types::storage::ObjectStore for CacheDB<ExtDB> {
     fn get_object(&self, id: &ObjectID) -> Option<Object> {
-        
         {
             let cache = self.cache.read().unwrap();
             println!("==== CacheDB::get_object called for: {} ====", id);
@@ -242,20 +242,20 @@ impl<ExtDB: DatabaseRef> sui_types::storage::ObjectStore for CacheDB<ExtDB> {
     }
 
     fn get_object_by_key(&self, id: &ObjectID, version: SequenceNumber) -> Option<Object> {
-        
         {
             let cache = self.cache.read().unwrap();
             println!(
-                "==== CacheDB::get_object_by_key called for: {} at version {} ====", id, version
+                "==== CacheDB::get_object_by_key called for: {} at version {} ====",
+                id, version
             );
             if let Some(obj) = cache.objects.get(id) {
                 return Some(obj.clone());
             }
         }
 
-
         println!(
-            "==== BlockChain ::get_object_by_key called for: {} at version {} ====", id, version
+            "==== BlockChain ::get_object_by_key called for: {} at version {} ====",
+            id, version
         );
         let obj = self.db.object_ref(*id).unwrap();
         if let Some(object) = obj {
@@ -315,7 +315,10 @@ impl<ExtDB: DatabaseRef> sui_types::storage::ParentSync for CacheDB<ExtDB> {
         SequenceNumber,
         sui_types::base_types::ObjectDigest,
     )> {
-        println!("==== CacheDB::get_latest_parent_entry_ref_deprecated called for: {} ====", object_id);
+        println!(
+            "==== CacheDB::get_latest_parent_entry_ref_deprecated called for: {} ====",
+            object_id
+        );
         // For our simple implementation, just return the object's own ref if it exists
         if let Some(obj) = self.get_object(&object_id) {
             let object_ref = obj.compute_object_reference();
@@ -332,10 +335,10 @@ impl<ExtDB: DatabaseRef> sui_types::storage::ParentSync for CacheDB<ExtDB> {
 mod tests {
     use super::{CacheDB, EmptyDB};
     use crate::interface::Database;
-    use sui_types::base_types::ObjectID;
-    use sui_types::base_types::ObjectDigest;
-    use sui_types::base_types::SequenceNumber;
     use sui_json_rpc_types::SuiObjectData;
+    use sui_types::base_types::ObjectDigest;
+    use sui_types::base_types::ObjectID;
+    use sui_types::base_types::SequenceNumber;
 
     // #[test]
     // fn test_insert_object() {

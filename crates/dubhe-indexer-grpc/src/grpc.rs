@@ -20,7 +20,11 @@ pub struct DubheGrpcService {
 }
 
 impl DubheGrpcService {
-    pub fn new(subscribers: GrpcSubscribers, database: Arc<Database>, dubhe_config: Arc<DubheConfig>) -> Self {
+    pub fn new(
+        subscribers: GrpcSubscribers,
+        database: Arc<Database>,
+        dubhe_config: Arc<DubheConfig>,
+    ) -> Self {
         Self {
             subscribers,
             database,
@@ -486,7 +490,9 @@ impl DubheGrpc for DubheGrpcService {
         // Determine which tables to subscribe to
         let table_ids = if req.table_ids.is_empty() {
             // If empty, subscribe to all tables
-            let all_tables: Vec<String> = self.dubhe_config.tables
+            let all_tables: Vec<String> = self
+                .dubhe_config
+                .tables
                 .iter()
                 .map(|table| table.name.clone())
                 .collect();
@@ -501,7 +507,11 @@ impl DubheGrpc for DubheGrpcService {
             let mut subscribers = self.subscribers.write().await;
             let senders = subscribers.entry(table_id.clone()).or_insert_with(Vec::new);
             senders.push(tx.clone());
-            println!("✅ Added subscriber for table: {} (total: {})", table_id, senders.len());
+            println!(
+                "✅ Added subscriber for table: {} (total: {})",
+                table_id,
+                senders.len()
+            );
         }
 
         // Convert UnboundedReceiver<TableChange> to UnboundedReceiver<Result<TableChange, Status>>
@@ -518,16 +528,23 @@ impl DubheGrpc for DubheGrpcService {
                     break;
                 }
             }
-            
+
             // Client disconnected - clean up subscribers
-            println!("🧹 Client disconnected, cleaning up subscriptions for tables: {:?}", table_ids_clone);
+            println!(
+                "🧹 Client disconnected, cleaning up subscriptions for tables: {:?}",
+                table_ids_clone
+            );
             let mut subscribers = subscribers_clone.write().await;
             for table_id in &table_ids_clone {
                 if let Some(senders) = subscribers.get_mut(table_id) {
                     // Remove all closed senders
                     senders.retain(|sender| !sender.is_closed());
-                    println!("🧹 Cleaned up table '{}', remaining subscribers: {}", table_id, senders.len());
-                    
+                    println!(
+                        "🧹 Cleaned up table '{}', remaining subscribers: {}",
+                        table_id,
+                        senders.len()
+                    );
+
                     // Remove empty entries
                     if senders.is_empty() {
                         subscribers.remove(table_id);

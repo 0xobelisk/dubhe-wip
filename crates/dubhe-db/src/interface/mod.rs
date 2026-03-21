@@ -4,15 +4,13 @@ mod empty_db;
 pub use async_db::*;
 pub use empty_db::*;
 
+use anyhow::Result;
 use auto_impl::auto_impl;
-use sui_json_rpc_types::SuiObjectData;
 use core::error::Error;
+use std::convert::Infallible;
+use sui_json_rpc_types::SuiObjectData;
 use sui_types::base_types::ObjectID;
 use sui_types::object::Object;
-use anyhow::Result;
-use std::convert::Infallible;
-
-
 
 /// Database error marker is needed to implement From conversion for Error type.
 pub trait DBErrorMarker {}

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Dubhe Indexer Library
-//! 
+//!
 //! 提供索引器的核心功能，包括：
 //! - 事件处理和索引
 //! - gRPC 和 GraphQL 服务
@@ -16,23 +16,23 @@ pub mod proxy;
 pub mod worker;
 
 // 重新导出常用类型
+use anyhow::Result;
 pub use args::DubheIndexerArgs;
 pub use config::DubheConfig;
-pub use handlers::DubheEventHandler;
-pub use proxy::ProxyServer;
-pub use worker::{DubheIndexerWorker, GrpcSubscribers};
 pub use dubhe_common::StoreSetRecord;
-use anyhow::Result;
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use dubhe_common::{Database, DubheConfig as DubheConfigCommon};
 pub use dubhe_indexer_graphql::TableChange;
 pub use dubhe_indexer_grpc::types::TableChange as GrpcTableChange;
-use dubhe_common::{Database, DubheConfig as DubheConfigCommon};
+pub use handlers::DubheEventHandler;
+pub use proxy::ProxyServer;
 use rand::Rng;
+use std::collections::HashMap;
 use std::net::{SocketAddr, TcpListener};
-use url::Url;
+use std::sync::Arc;
 use sui_indexer_alt_framework::IndexerArgs as FrameworkIndexerArgs;
+use tokio::sync::{mpsc, RwLock};
+use url::Url;
+pub use worker::{DubheIndexerWorker, GrpcSubscribers};
 
 /// 订阅者类型别名
 pub type GraphQLSubscribers = Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<TableChange>>>>>;
@@ -125,10 +125,16 @@ impl IndexerBuilder {
     }
 
     /// 构建并启动 Indexer Cluster
-    pub async fn build_cluster(&self) -> Result<sui_indexer_alt_framework::cluster::IndexerCluster> {
-        let dubhe_config = self.dubhe_config.as_ref()
+    pub async fn build_cluster(
+        &self,
+    ) -> Result<sui_indexer_alt_framework::cluster::IndexerCluster> {
+        let dubhe_config = self
+            .dubhe_config
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Must call initialize() first"))?;
-        let database = self.database.as_ref()
+        let database = self
+            .database
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Must call initialize() first"))?;
 
         let (local_ingestion_path, remote_store_url) = self.args.get_checkpoint_url()?;
@@ -145,7 +151,10 @@ impl IndexerBuilder {
                 first_checkpoint: Some(dubhe_config.start_checkpoint.parse::<u64>().unwrap()),
                 ..Default::default()
             };
-            println!("🔄 Starting from first checkpoint: {}", dubhe_config.start_checkpoint);
+            println!(
+                "🔄 Starting from first checkpoint: {}",
+                dubhe_config.start_checkpoint
+            );
             sui_indexer_alt_framework::cluster::IndexerCluster::builder()
                 .with_indexer_args(indexer_args)
                 .with_database_url(Url::parse(&self.args.database_url).unwrap())
@@ -170,10 +179,7 @@ impl IndexerBuilder {
 
         // 注册 pipeline
         cluster
-            .sequential_pipeline(
-                dubhe_event_handler,
-                Default::default(),
-            )
+            .sequential_pipeline(dubhe_event_handler, Default::default())
             .await?;
 
         Ok(cluster)
@@ -181,7 +187,9 @@ impl IndexerBuilder {
 
     /// 创建 ProxyServer
     pub async fn build_proxy_server(&self) -> Result<ProxyServer> {
-        let config_json = self.config_json.as_ref()
+        let config_json = self
+            .config_json
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Must call initialize() first"))?;
 
         // 随机分配后端服务端口
@@ -201,8 +209,7 @@ impl IndexerBuilder {
             }
         };
 
-        let server_addr = format!("0.0.0.0:{}", self.args.port)
-            .parse::<SocketAddr>()?;
+        let server_addr = format!("0.0.0.0:{}", self.args.port).parse::<SocketAddr>()?;
 
         Ok(ProxyServer::new(
             server_addr,
@@ -220,12 +227,30 @@ impl IndexerBuilder {
         println!("================================");
         println!("🌐 Proxy Server:     http://0.0.0.0:{}", self.args.port);
         println!("🔌 gRPC Service:     http://0.0.0.0:{} (direct)", grpc_port);
-        println!("   Via Proxy:        http://0.0.0.0:{}/dubhe_grpc.*", self.args.port);
-        println!("📊 GraphQL Endpoint: http://0.0.0.0:{}/graphql", self.args.port);
-        println!("🏠 Welcome Page:     http://0.0.0.0:{}/welcome", self.args.port);
-        println!("🎮 Playground:       http://0.0.0.0:{}/playground", self.args.port);
-        println!("💚 Health Check:     http://0.0.0.0:{}/health", self.args.port);
-        println!("📋 Metadata:         http://0.0.0.0:{}/metadata", self.args.port);
+        println!(
+            "   Via Proxy:        http://0.0.0.0:{}/dubhe_grpc.*",
+            self.args.port
+        );
+        println!(
+            "📊 GraphQL Endpoint: http://0.0.0.0:{}/graphql",
+            self.args.port
+        );
+        println!(
+            "🏠 Welcome Page:     http://0.0.0.0:{}/welcome",
+            self.args.port
+        );
+        println!(
+            "🎮 Playground:       http://0.0.0.0:{}/playground",
+            self.args.port
+        );
+        println!(
+            "💚 Health Check:     http://0.0.0.0:{}/health",
+            self.args.port
+        );
+        println!(
+            "📋 Metadata:         http://0.0.0.0:{}/metadata",
+            self.args.port
+        );
         println!("\n💡 For gRPC clients, use: http://localhost:{}", grpc_port);
     }
 
@@ -254,4 +279,3 @@ impl IndexerBuilder {
         self.graphql_subscribers.clone()
     }
 }
-

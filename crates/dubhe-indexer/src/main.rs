@@ -20,14 +20,15 @@ async fn main() -> Result<()> {
 
     // 构建 ProxyServer
     let proxy_server = builder.build_proxy_server().await?;
-    
+
     // 打印启动信息（提取 grpc_port 用于日志）
     builder.print_startup_info(8081);
 
     // 启动 Proxy Server
-    let database = builder.database()
+    let database = builder
+        .database()
         .ok_or_else(|| anyhow::anyhow!("Database not initialized"))?;
-    
+
     let proxy_handle = tokio::spawn(async move {
         if let Err(e) = proxy_server.start(database).await {
             log::error!("❌ Proxy server failed: {}", e);

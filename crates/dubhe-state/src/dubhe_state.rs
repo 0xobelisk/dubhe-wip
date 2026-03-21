@@ -1,14 +1,14 @@
 use anyhow::Result;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::str::FromStr;
+use sui_json_rpc_types::SuiObjectData;
+use sui_types::base_types::SuiAddress;
 use sui_types::base_types::{ObjectID, SequenceNumber};
 use sui_types::execution::{DynamicallyLoadedObjectMetadata, ExecutionResults};
 use sui_types::move_package::MovePackage;
 use sui_types::object::Object;
 use sui_types::storage::PackageObject;
-use sui_json_rpc_types::SuiObjectData;
-use sui_types::base_types::SuiAddress;
-use std::collections::BTreeSet;
-use std::str::FromStr;
 use sui_types::TypeTag;
 
 #[derive(Debug)]
@@ -61,7 +61,10 @@ impl sui_types::storage::BackingPackageStore for DubheState {
         &self,
         package_id: &ObjectID,
     ) -> sui_types::error::SuiResult<Option<sui_types::storage::PackageObject>> {
-        println!("==== DubheState::get_package_object called for: {} ====", package_id);
+        println!(
+            "==== DubheState::get_package_object called for: {} ====",
+            package_id
+        );
 
         // First check if we have the package in our packages map
         if let Some(package) = self.packages.get(package_id) {
@@ -87,7 +90,8 @@ impl sui_types::storage::ObjectStore for DubheState {
 
     fn get_object_by_key(&self, id: &ObjectID, version: SequenceNumber) -> Option<Object> {
         println!(
-            "==== DubheState::get_object_by_key called for: {} at version {} ====", id, version
+            "==== DubheState::get_object_by_key called for: {} at version {} ====",
+            id, version
         );
         if let Some(obj) = self.objects.get(id) {
             if obj.version() == version {
@@ -168,7 +172,10 @@ impl sui_types::storage::ParentSync for DubheState {
         SequenceNumber,
         sui_types::base_types::ObjectDigest,
     )> {
-        println!("==== DubheState::get_latest_parent_entry_ref_deprecated called for: {} ====", object_id);
+        println!(
+            "==== DubheState::get_latest_parent_entry_ref_deprecated called for: {} ====",
+            object_id
+        );
         // For our simple implementation, just return the object's own ref if it exists
         if let Some(obj) = self.objects.get(&object_id) {
             let object_ref = obj.compute_object_reference();

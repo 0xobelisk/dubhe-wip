@@ -303,7 +303,12 @@ pub struct DubheConfig {
 }
 
 impl DubheConfig {
-    pub fn new(original_package_id: String, dubhe_object_id: String, original_dubhe_package_id: String, start_checkpoint: String) -> Self {
+    pub fn new(
+        original_package_id: String,
+        dubhe_object_id: String,
+        original_dubhe_package_id: String,
+        start_checkpoint: String,
+    ) -> Self {
         Self {
             fields: Vec::new(),
             enums: Vec::new(),
@@ -632,14 +637,22 @@ impl DubheConfig {
         let dubhe_object_id = dubhe_config_json
             .dubhe_object_id
             .ok_or(anyhow::anyhow!("No dubhe object id found in config file"))?;
-        let original_dubhe_package_id = dubhe_config_json
-            .original_dubhe_package_id
-            .ok_or(anyhow::anyhow!("No original dubhe package id found in config file"))?;
+        let original_dubhe_package_id =
+            dubhe_config_json
+                .original_dubhe_package_id
+                .ok_or(anyhow::anyhow!(
+                    "No original dubhe package id found in config file"
+                ))?;
         let start_checkpoint = dubhe_config_json
             .start_checkpoint
             .ok_or(anyhow::anyhow!("No start checkpoint found in config file"))?;
 
-        let mut dubhe_config = Self::new(original_package_id, dubhe_object_id, original_dubhe_package_id, start_checkpoint);
+        let mut dubhe_config = Self::new(
+            original_package_id,
+            dubhe_object_id,
+            original_dubhe_package_id,
+            start_checkpoint,
+        );
 
         /// handle enums
         for enum_ in dubhe_config_json.enums {
@@ -802,7 +815,7 @@ impl DubheConfig {
     }
 
     pub fn can_convert_event_to_sql(&self, event: &Event) -> Result<()> {
-      if event.table_id() == "storage_submit" {
+        if event.table_id() == "storage_submit" {
             return Ok(());
         }
 
@@ -1232,7 +1245,9 @@ impl TableMetadata {
         }
 
         if dubhe_config_json.original_dubhe_package_id.is_none() {
-            return Err(anyhow::anyhow!("No original dubhe package id found in config file"));
+            return Err(anyhow::anyhow!(
+                "No original dubhe package id found in config file"
+            ));
         }
 
         if dubhe_config_json.start_checkpoint.is_none() {
@@ -1248,7 +1263,13 @@ impl TableMetadata {
             .parse::<u64>()
             .unwrap_or(0);
 
-        Ok((original_package_id, dubhe_object_id, original_dubhe_package_id, start_checkpoint, final_tables))
+        Ok((
+            original_package_id,
+            dubhe_object_id,
+            original_dubhe_package_id,
+            start_checkpoint,
+            final_tables,
+        ))
     }
 
     pub fn is_enum(field_type: &str) -> bool {

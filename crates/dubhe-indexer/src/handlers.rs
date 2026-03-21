@@ -14,8 +14,9 @@ use dubhe_indexer_graphql::TableChange;
 use dubhe_indexer_grpc::types::TableChange as GrpcTableChange;
 use move_core_types::u256::U256;
 use std::collections::BTreeMap;
-use std::collections::HashMap;  
+use std::collections::HashMap;
 
+use prost_types::Value;
 use std::str::FromStr;
 use std::sync::Arc;
 use sui_indexer_alt_framework::{
@@ -24,7 +25,6 @@ use sui_indexer_alt_framework::{
 use sui_types::base_types::ObjectID;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
-use prost_types::Value;
 
 pub type GrpcSubscribers =
     Arc<RwLock<HashMap<String, Vec<mpsc::UnboundedSender<GrpcTableChange>>>>>;
@@ -141,17 +141,22 @@ impl Processor for DubheEventHandler {
 
                                 println!("================ table_name: {:?}", table_name);
                                 println!("================ parsed_event: {:?}", parsed_event);
-                                let mut proto_struct = prost_types::Struct { fields: BTreeMap::new() };
+                                let mut proto_struct = prost_types::Struct {
+                                    fields: BTreeMap::new(),
+                                };
 
-
-                                let dapp_key_bsc_bytes = parsed_event.value_tuple().clone()[0].clone();
+                                let dapp_key_bsc_bytes =
+                                    parsed_event.value_tuple().clone()[0].clone();
                                 let keys_bcs_bytes = parsed_event.value_tuple().clone()[1].clone();
-                                let values_bcs_bytes = parsed_event.value_tuple().clone()[2].clone();
+                                let values_bcs_bytes =
+                                    parsed_event.value_tuple().clone()[2].clone();
                                 let fee_bcs_bytes = parsed_event.value_tuple().clone()[3].clone();
 
-                                let dapp_key: String = bcs::from_bytes(&dapp_key_bsc_bytes).unwrap();
+                                let dapp_key: String =
+                                    bcs::from_bytes(&dapp_key_bsc_bytes).unwrap();
                                 let keys: Vec<Vec<u8>> = bcs::from_bytes(&keys_bcs_bytes).unwrap();
-                                let values: Vec<Vec<u8>> = bcs::from_bytes(&values_bcs_bytes).unwrap();
+                                let values: Vec<Vec<u8>> =
+                                    bcs::from_bytes(&values_bcs_bytes).unwrap();
                                 let fee: U256 = bcs::from_bytes(&fee_bcs_bytes).unwrap();
 
                                 println!("================ dapp_key: {:?}", dapp_key);

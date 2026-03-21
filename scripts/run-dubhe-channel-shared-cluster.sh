@@ -3,6 +3,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ "${1:-}" = "--" ]; then
+  shift
+fi
+
 PORTS_STRING="${DUBHE_CHANNEL_CLUSTER_PORTS:-18080 18081}"
 
 IFS=' ' read -r -a PORTS <<< "$PORTS_STRING"

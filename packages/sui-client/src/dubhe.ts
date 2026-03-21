@@ -18,6 +18,10 @@ import { SuiContractFactory } from './libs/suiContractFactory';
 import { SuiMoveMoudleFuncType } from './libs/suiContractFactory/types';
 import { getDefaultURL, NetworkConfig } from './libs/suiInteractor';
 import {
+  ChannelEventEnvelope,
+  ChannelFilterValue,
+  ChannelPublishEventInput,
+  ChannelSubscriptionSpec,
   ChannelSubmitBatchResponse,
   ChannelSubmitRequest,
   ChannelSubmitResponse,
@@ -1741,85 +1745,88 @@ export class Dubhe {
       onClose?: () => void;
     } = {}
   ): Promise<() => void> {
-    const controller = new AbortController();
-    const filters: Record<string, string> = {};
+    const filters: Record<string, ChannelFilterValue> = {};
     if (dappKey) filters.dapp_key = dappKey;
     if (account) filters.account = account.replace(/^0x/, '');
     if (table) filters.table = table;
     if (key) filters.key = JSON.stringify(key);
 
-    const response = await fetch(`${this.getChannelUrl()}/v2/subscribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream'
+    return this.#channelSubscribe<ChannelEventEnvelope>(
+      {
+        topics: ['table'],
+        filters,
+        semantics: 'AtLeastOnce'
       },
-      body: JSON.stringify({
-        spec: {
-          topics: ['table'],
-          filters,
-          semantics: 'AtLeastOnce'
-        }
-      }),
-      signal: controller.signal
-    });
-
-    if (!response.ok || !response.body) {
-      throw new Error(`Channel subscribe failed: ${response.status}`);
-    }
-
-    handlers.onOpen?.();
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    void (async () => {
-      let buffer = '';
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          let separatorIndex = buffer.indexOf('\n\n');
-          while (separatorIndex !== -1) {
-            const rawEvent = buffer.slice(0, separatorIndex);
-            buffer = buffer.slice(separatorIndex + 2);
-            separatorIndex = buffer.indexOf('\n\n');
-
-            const dataLines = rawEvent
-              .split('\n')
-              .filter((line) => line.startsWith('data:'))
-              .map((line) => line.slice(5).trim());
-
-            if (dataLines.length === 0) continue;
-
-            const payload = JSON.parse(dataLines.join('\n'));
-            const tablePayload = payload?.payload ?? payload;
-            const dataKey = tablePayload?.data_key ?? tablePayload?.dataKey;
-            if (dataKey && tablePayload?.value) {
-              handlers.onMessage?.({
-                dapp_key: dataKey.dapp_key,
-                account: dataKey.account,
-                table: dataKey.table,
-                key: dataKey.key,
-                value: tablePayload.value
-              });
-            }
+      {
+        onOpen: handlers.onOpen,
+        onError: handlers.onError,
+        onClose: handlers.onClose,
+        onMessage: (payload) => {
+          const tablePayload = (payload?.payload ?? payload) as {
+            data_key?: {
+              dapp_key: string;
+              account: string;
+              table: string;
+              key: number[][];
+            };
+            dataKey?: {
+              dapp_key: string;
+              account: string;
+              table: string;
+              key: number[][];
+            };
+            value?: number[][];
+          };
+          const dataKey = tablePayload?.data_key ?? tablePayload?.dataKey;
+          if (dataKey && tablePayload?.value) {
+            handlers.onMessage?.({
+              dapp_key: dataKey.dapp_key,
+              account: dataKey.account,
+              table: dataKey.table,
+              key: dataKey.key,
+              value: tablePayload.value
+            });
           }
         }
-        handlers.onClose?.();
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          handlers.onError?.(error as Error);
+      }
+    );
+  }
+
+  async subscribeChannel(
+    spec: ChannelSubscriptionSpec,
+    handlers: {
+      onOpen?: () => void;
+      onMessage?: (data: ChannelEventEnvelope) => void;
+      onError?: (error: Error) => void;
+      onClose?: () => void;
+    } = {}
+  ): Promise<() => void> {
+    return this.#channelSubscribe<ChannelEventEnvelope>(spec, handlers);
+  }
+
+  async publishChannelEvent({
+    id,
+    topic,
+    partitionKey,
+    kind,
+    tsMs,
+    payload,
+    metadata
+  }: ChannelPublishEventInput): Promise<ChannelEventEnvelope> {
+    return this.#channelPost<ChannelEventEnvelope>('/v2/publish', {
+      event: {
+        id: id ?? '',
+        topic,
+        partition_key: partitionKey,
+        kind,
+        ts_ms: tsMs ?? 0,
+        payload: payload ?? null,
+        metadata: {
+          ...(this.packageId ? { dapp_key: this.#defaultDappKey() } : {}),
+          ...(metadata ?? {})
         }
       }
-    })();
-
-    return () => {
-      controller.abort();
-      handlers.onClose?.();
-    };
+    });
   }
 
   async submitToChannel({
@@ -2151,6 +2158,87 @@ export class Dubhe {
     }
 
     return (await response.json()) as T;
+  }
+
+  async #channelSubscribe<T>(
+    spec: ChannelSubscriptionSpec,
+    handlers: {
+      onOpen?: () => void;
+      onMessage?: (data: T) => void;
+      onError?: (error: Error) => void;
+      onClose?: () => void;
+    } = {}
+  ): Promise<() => void> {
+    const controller = new AbortController();
+    let isClosed = false;
+    const closeOnce = () => {
+      if (isClosed) {
+        return;
+      }
+      isClosed = true;
+      handlers.onClose?.();
+    };
+
+    const response = await fetch(`${this.getChannelUrl()}/v2/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream'
+      },
+      body: JSON.stringify({ spec }),
+      signal: controller.signal
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Channel subscribe failed: ${response.status}`);
+    }
+
+    handlers.onOpen?.();
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    void (async () => {
+      let buffer = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+          buffer += decoder.decode(value, { stream: true });
+
+          let separatorIndex = buffer.indexOf('\n\n');
+          while (separatorIndex !== -1) {
+            const rawEvent = buffer.slice(0, separatorIndex);
+            buffer = buffer.slice(separatorIndex + 2);
+            separatorIndex = buffer.indexOf('\n\n');
+
+            const dataLines = rawEvent
+              .split('\n')
+              .filter((line) => line.startsWith('data:'))
+              .map((line) => line.slice(5).trim());
+
+            if (dataLines.length === 0) {
+              continue;
+            }
+
+            handlers.onMessage?.(JSON.parse(dataLines.join('\n')) as T);
+          }
+        }
+        closeOnce();
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          handlers.onError?.(error as Error);
+        }
+        closeOnce();
+      }
+    })();
+
+    return () => {
+      controller.abort();
+      closeOnce();
+    };
   }
 
   // async formatData(type: string, value: Buffer | number[] | Uint8Array) {

@@ -24,16 +24,17 @@ bash "$PWCLI" eval 'async () => await window.__numeronDebug.selectCurrentPlayerA
 bash "$PWCLI" eval 'async () => {
   const directions = ["RIGHT", "DOWN", "LEFT", "UP"];
   for (const direction of directions) {
-    await window.__numeronDebug.move(direction);
-    const deadline = Date.now() + 4000;
-    while (Date.now() < deadline) {
-      const state = window.__numeronDebug.getState();
-      if (state.world && state.world.feedEntries && state.world.feedEntries.length > 0) {
-        return state;
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      const result = await window.__numeronDebug.measureMoveSettlement(direction, {
+        source: "subscription",
+        summaries: ["position", "item_dropped"],
+        timeoutMs: 4000,
+      });
+      return result;
+    } catch (error) {
+      console.warn(`Move ${direction} did not produce a subscription update`, error);
     }
   }
-  throw new Error("No feed entries observed after movement attempts");
+  throw new Error("No subscription-driven position/item_dropped updates observed after movement attempts");
 }'
 bash "$PWCLI" eval '() => window.render_game_to_text()'

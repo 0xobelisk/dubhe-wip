@@ -91,6 +91,41 @@ export type ChannelSubmitBatchResponse = {
   data: ChannelSubmitBatchItemResponse[];
 };
 
+export type ChannelDeliverySemantics = 'Ephemeral' | 'SnapshotOnly' | 'AtLeastOnce';
+
+export type ChannelFilterValue = string | string[];
+
+export type ChannelCursor = {
+  opaque: string;
+};
+
+export type ChannelEventEnvelope = {
+  id: string;
+  topic: string;
+  partition_key: string;
+  kind: string;
+  ts_ms: number;
+  payload: unknown;
+  metadata: Record<string, string>;
+};
+
+export type ChannelSubscriptionSpec = {
+  topics?: string[];
+  filters?: Record<string, ChannelFilterValue>;
+  cursor?: ChannelCursor | null;
+  semantics: ChannelDeliverySemantics;
+};
+
+export type ChannelPublishEventInput = {
+  id?: string;
+  topic: string;
+  partitionKey: string;
+  kind: string;
+  tsMs?: number;
+  payload?: unknown;
+  metadata?: Record<string, string>;
+};
+
 export type SchemaFieldType = {
   schemas: {
     type: string;

@@ -1,0 +1,104 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    restart: unless-stopped
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8222/healthz >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  dubhe-channel:
+    build:
+      context: .
+      dockerfile: deploy/dokploy/dubhe-channel.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    environment:
+      DUBHE_CHANNEL_PORT: 8080
+      DUBHE_CHANNEL_REDIS_URL: redis://redis:6379/
+      DUBHE_CHANNEL_NATS_URL: nats://nats:4222
+      DUBHE_CHANNEL_REDIS_PREFIX: ${DUBHE_CHANNEL_REDIS_PREFIX:-dubhe:channel:numeron:testnet}
+      DUBHE_CHANNEL_NATS_STREAM: ${DUBHE_CHANNEL_NATS_STREAM:-DUBHE_CHANNEL}
+      DUBHE_CHANNEL_NATS_SUBJECT_PREFIX: ${DUBHE_CHANNEL_NATS_SUBJECT_PREFIX:-dubhe.channel}
+      DUBHE_CHANNEL_RPC_URL: ${DUBHE_CHANNEL_RPC_URL:-https://rpc-testnet.suiscan.xyz/}
+    command:
+      - --port
+      - "8080"
+      - --redis-url
+      - redis://redis:6379/
+      - --nats-url
+      - nats://nats:4222
+      - --redis-key-prefix
+      - ${DUBHE_CHANNEL_REDIS_PREFIX:-dubhe:channel:numeron:testnet}
+      - --nats-stream
+      - ${DUBHE_CHANNEL_NATS_STREAM:-DUBHE_CHANNEL}
+      - --nats-subject-prefix
+      - ${DUBHE_CHANNEL_NATS_SUBJECT_PREFIX:-dubhe.channel}
+      - --rpc-url
+      - ${DUBHE_CHANNEL_RPC_URL:-https://rpc-testnet.suiscan.xyz/}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  numeron-web:
+    build:
+      context: .
+      dockerfile: deploy/dokploy/numeron-web.Dockerfile
+      args:
+        NUMERON_REPO_URL: ${NUMERON_REPO_URL:-https://github.com/0xobelisk/numeron-channel-mvp.git}
+        NUMERON_REPO_REF: ${NUMERON_REPO_REF:-main}
+        NEXT_PUBLIC_PRIVATE_KEY: ${NEXT_PUBLIC_PRIVATE_KEY}
+        NEXT_PUBLIC_CHANNEL_URL: ${CHANNEL_PUBLIC_URL}
+        NEXT_PUBLIC_CHANNEL_FEED_UI: ${NEXT_PUBLIC_CHANNEL_FEED_UI:-true}
+        NEXT_PUBLIC_CHANNEL_VERBOSE_LOGS: ${NEXT_PUBLIC_CHANNEL_VERBOSE_LOGS:-true}
+        NEXT_PUBLIC_REMOTE_INTENT_MOVE_DURATION_MS: ${NEXT_PUBLIC_REMOTE_INTENT_MOVE_DURATION_MS:-56}
+        NEXT_PUBLIC_FORCE_CHANNEL_SUBMIT: ${NEXT_PUBLIC_FORCE_CHANNEL_SUBMIT:-true}
+        NEXT_PUBLIC_CHANNEL_REGISTER_SENDER: ${NEXT_PUBLIC_CHANNEL_REGISTER_SENDER:-}
+        NEXT_PUBLIC_FAST_MOVE_DURATION_MS: ${NEXT_PUBLIC_FAST_MOVE_DURATION_MS:-48}
+    restart: unless-stopped
+    depends_on:
+      dubhe-channel:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXT_PUBLIC_PRIVATE_KEY: ${NEXT_PUBLIC_PRIVATE_KEY}
+      NEXT_PUBLIC_CHANNEL_URL: ${CHANNEL_PUBLIC_URL}
+      NEXT_PUBLIC_CHANNEL_FEED_UI: ${NEXT_PUBLIC_CHANNEL_FEED_UI:-true}
+      NEXT_PUBLIC_CHANNEL_VERBOSE_LOGS: ${NEXT_PUBLIC_CHANNEL_VERBOSE_LOGS:-true}
+      NEXT_PUBLIC_REMOTE_INTENT_MOVE_DURATION_MS: ${NEXT_PUBLIC_REMOTE_INTENT_MOVE_DURATION_MS:-56}
+      NEXT_PUBLIC_FORCE_CHANNEL_SUBMIT: ${NEXT_PUBLIC_FORCE_CHANNEL_SUBMIT:-true}
+      NEXT_PUBLIC_CHANNEL_REGISTER_SENDER: ${NEXT_PUBLIC_CHANNEL_REGISTER_SENDER:-}
+      NEXT_PUBLIC_FAST_MOVE_DURATION_MS: ${NEXT_PUBLIC_FAST_MOVE_DURATION_MS:-48}
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  redis_data:
+  nats_data:

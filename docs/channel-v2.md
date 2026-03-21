@@ -330,11 +330,39 @@ To benchmark the real Numeron `submit -> feed` path through the browser dev harn
 pnpm channel:bench:numeron-submit
 ```
 
+This benchmark now measures strict subscription-driven settlement only:
+
+- it ignores the local `submit` feed entry added when `/v2/submit` returns
+- it waits for a subscription entry whose summary is `position` or `item_dropped`
+- failed movement attempts are reported separately and excluded from the latency percentiles
+
 You can raise the sample count with:
 
 ```bash
 NUMERON_SUBMIT_BENCH_SAMPLES=12 NUMERON_SUBMIT_BENCH_MAX_ATTEMPTS=60 pnpm channel:bench:numeron-submit
 ```
+
+To run a concurrent browser-side write benchmark against Numeron:
+
+```bash
+pnpm channel:bench:numeron-submit:concurrent -- --concurrency 4 --target-samples 16
+```
+
+To benchmark the same write path across a two-node shared cluster:
+
+```bash
+pnpm channel:bench:numeron-submit:cluster
+```
+
+Useful knobs:
+
+- `--directions RIGHT,LEFT`
+- `--player-addresses 0xabc...,0xdef...`
+- `--channel-urls http://127.0.0.1:18080,http://127.0.0.1:18081`
+- `--settle-timeout-ms 8000`
+
+If `--player-addresses` is omitted, all workers reuse the current local Numeron player.
+The benchmark runs isolated browser contexts and reports successful settlement samples separately from timed-out movement attempts.
 
 To verify Redis-backed cross-instance duplicate-submit coordination from Rust:
 

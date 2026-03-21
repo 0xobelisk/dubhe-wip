@@ -19,6 +19,8 @@ async () => {
   const maxAttempts = ${MAX_ATTEMPTS};
   const directions = ["RIGHT", "DOWN", "LEFT", "UP"];
   const latencies = [];
+  const samples = [];
+  const failures = [];
   let attempts = 0;
 
   const percentile = (values, p) => {
@@ -33,21 +35,24 @@ async () => {
   while (latencies.length < targetSamples && attempts < maxAttempts) {
     const direction = directions[attempts % directions.length];
     attempts += 1;
-    const before = window.__numeronDebug.getState();
-    const beforeCount = before.world?.feedEntries?.length ?? 0;
-    const start = performance.now();
-
-    await window.__numeronDebug.move(direction);
-
-    const deadline = performance.now() + 8000;
-    while (performance.now() < deadline) {
-      const state = window.__numeronDebug.getState();
-      const feedEntries = state.world?.feedEntries ?? [];
-      if (feedEntries.length > beforeCount) {
-        latencies.push(performance.now() - start);
-        break;
-      }
-      await new Promise(resolve => setTimeout(resolve, 50));
+    try {
+      const result = await window.__numeronDebug.measureMoveSettlement(direction, {
+        source: "subscription",
+        summaries: ["position", "item_dropped"],
+        timeoutMs: 8000,
+      });
+      latencies.push(result.latencyMs);
+      samples.push({
+        direction,
+        latencyMs: result.latencyMs,
+        matchedEntry: result.matchedEntry,
+      });
+    } catch (error) {
+      failures.push({
+        direction,
+        error: String(error),
+        state: window.__numeronDebug.getState(),
+      });
     }
   }
 
@@ -62,6 +67,7 @@ async () => {
     targetSamples,
     attempts,
     collected: latencies.length,
+    failures,
     latencyMs: {
       min: Math.min(...latencies),
       p50: percentile(latencies, 50),
@@ -70,6 +76,7 @@ async () => {
       max: Math.max(...latencies),
       avg: sum / latencies.length,
     },
+    samples,
     finalState: window.__numeronDebug.getState(),
   };
 }

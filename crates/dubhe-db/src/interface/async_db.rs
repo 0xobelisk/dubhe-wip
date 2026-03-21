@@ -1,11 +1,11 @@
 //! Async database interface.
+use crate::interface::DBErrorMarker;
 use crate::interface::{Database, DatabaseRef};
 use core::{error::Error, future::Future};
-use tokio::runtime::{Handle, Runtime};
 use sui_json_rpc_types::SuiObjectData;
 use sui_types::base_types::ObjectID;
 use sui_types::object::Object;
-use crate::interface::DBErrorMarker;
+use tokio::runtime::{Handle, Runtime};
 
 /// The async Sui database interface
 ///
