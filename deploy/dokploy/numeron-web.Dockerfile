@@ -33,12 +33,18 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY packages/sui-client ./packages/sui-client
+WORKDIR /app/packages/sui-client
+
+RUN pnpm install --no-frozen-lockfile
+RUN pnpm build
+
+WORKDIR /app
+
 RUN git clone --depth 1 --branch "$NUMERON_REPO_REF" "$NUMERON_REPO_URL" /app/numeron-channel-mvp
 
 WORKDIR /app/numeron-channel-mvp
 
 RUN pnpm install --frozen-lockfile
-RUN cd /app/packages/sui-client && pnpm build
 RUN pnpm --filter web build
 
 WORKDIR /app/numeron-channel-mvp/apps/web
