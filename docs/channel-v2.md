@@ -314,6 +314,7 @@ Supported endpoints:
 - `health`
 - `nonce`
 - `query`
+- `subscribe`
 
 `query` requires an explicit body:
 
@@ -322,6 +323,18 @@ pnpm channel:bench -- \
   --urls http://127.0.0.1:18080 \
   --endpoint query \
   --query-body '{"query":{"entity":"table","key":"{\"dapp_key\":\"...\",\"account\":\"...\",\"table\":\"position\",\"key\":[]}","scope":{}}}'
+```
+
+`subscribe` requires an explicit V2 subscription body and keeps each SSE connection open for `--hold-ms`:
+
+```bash
+pnpm channel:bench -- \
+  --urls https://channel.obelisk.build \
+  --endpoint subscribe \
+  --concurrency 50 \
+  --requests 50 \
+  --hold-ms 15000 \
+  --subscribe-body '{"spec":{"topics":["table"],"filters":{"dapp_key":"...::dapp_key::DappKey","table":"position"},"semantics":"AtLeastOnce"}}'
 ```
 
 To benchmark the real Numeron `submit -> feed` path through the browser dev harness:
@@ -348,6 +361,26 @@ To run a concurrent browser-side write benchmark against Numeron:
 pnpm channel:bench:numeron-submit:concurrent -- --concurrency 4 --target-samples 16
 ```
 
+To benchmark the currently deployed public Numeron app with auto-generated players:
+
+```bash
+pnpm channel:bench:numeron-submit:public -- --concurrency 4 --target-samples 16
+```
+
+To run a conservative community-readiness suite against the hosted public stack:
+
+```bash
+pnpm channel:bench:community
+```
+
+That suite combines:
+
+- `v2/nonce` burst latency
+- `v2/subscribe` concurrent SSE connection capacity
+- real browser-side multi-player `submit -> settlement` latency
+
+The JSON output includes a conservative recommendation for how many simultaneous active movers and live subscribers the environment has actually passed.
+
 To benchmark the same write path across a two-node shared cluster:
 
 ```bash
@@ -357,11 +390,14 @@ pnpm channel:bench:numeron-submit:cluster
 Useful knobs:
 
 - `--directions RIGHT,LEFT`
+- `--random-players false`
 - `--player-addresses 0xabc...,0xdef...`
 - `--channel-urls http://127.0.0.1:18080,http://127.0.0.1:18081`
 - `--settle-timeout-ms 8000`
 
-If `--player-addresses` is omitted, all workers reuse the current local Numeron player.
+If `--player-addresses` and `--player-private-keys` are both omitted, the concurrent benchmark now generates a fresh browser identity per worker and reuses the app's configured register sender for first-time player registration.
+For the hosted public Numeron benchmark command, do not hardcode an arbitrary player address as the register sender.
+Make sure the hosted app exposes the correct `NEXT_PUBLIC_CHANNEL_REGISTER_SENDER`, or pass `--register-sender` explicitly when validating a misconfigured preview.
 The benchmark runs isolated browser contexts and reports successful settlement samples separately from timed-out movement attempts.
 
 To verify Redis-backed cross-instance duplicate-submit coordination from Rust:
@@ -404,6 +440,74 @@ Current `dubhe-channel` should remain supported as a V1-compatible preset:
 - current `/submit` can be preserved as a compatibility command path
 
 This keeps existing applications functional while allowing V2-native applications to use richer semantics.
+
+## Intent Compile Backends (Sui / RISC-V)
+
+`dubhe-channel` now supports backend-selectable intent compilation while keeping `/submit` unchanged.
+
+- `/intent/compile` and `/v2/intent/compile` accept a business intent payload and return:
+  - canonical Sui PTB (`data.ptb`)
+  - resolved nonce
+  - a ready-to-submit payload (`data.submit`) for existing `/submit`
+- response now includes `data.backend` to indicate which compiler backend was used.
+
+Runtime backend selection:
+
+- `DUBHE_EXECUTION_BACKEND=sui|riscv` (default: `sui`)
+- `DUBHE_INTENT_BACKEND=sui|riscv` (default: same as execution backend)
+
+Example startup:
+
+```bash
+DUBHE_EXECUTION_BACKEND=riscv DUBHE_INTENT_BACKEND=riscv pnpm channel:run:shared -- --rpc-url https://rpc-testnet.suiscan.xyz/
+```
+
+Intent pipeline:
+
+```text
+intent payload -> compiler backend (sui|riscv) -> canonical Sui PTB -> /submit
+```
+
+`riscv` backend now executes a deterministic preflight kernel before commit:
+
+- build deterministic artifact (`data.artifact`) from intent/PTB
+- run preflight checks (object resolution, input bounds, supported command set)
+- commit through existing Sui execution path after preflight passes
+
+This keeps chain semantics stable while making backend behavior auditable and parity-testable.
+
+### Parity benchmark
+
+Run parity/e2e benchmark between two running channel instances (one `sui` backend, one `riscv` backend):
+
+```bash
+pnpm channel:bench:intent-parity \
+  --sui-url http://127.0.0.1:18080 \
+  --riscv-url http://127.0.0.1:18081 \
+  --samples 20
+```
+
+The script reports:
+
+- PTB output parity rate (`sui` vs `riscv`)
+- compile latency p50/p95
+- submit latency p50/p95
+- failure and mismatch samples
+
+## Recommended Simulation Scenario
+
+For local and testnet closure tests, use a minimal but realistic loop:
+
+1. `counter_system::inc` move-call intent (state mutation)
+2. compile through `/intent/compile` and submit via returned `data.submit`
+3. verify nonce progression and table/snapshot updates via query/subscribe
+
+This scenario validates end-to-end:
+
+- intent compilation
+- backend switching (`sui` vs `riscv`)
+- nonce resolution
+- submit execution and observable state change
 
 ## Migration Plan
 
