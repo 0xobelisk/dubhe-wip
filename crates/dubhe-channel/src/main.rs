@@ -33,6 +33,7 @@ use hyper::body;
 use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server, StatusCode};
+use move_core_types::u256::U256;
 use rand::random;
 use redis::{aio::ConnectionManager, AsyncCommands, Script};
 use serde::{Deserialize, Serialize};
@@ -91,6 +92,7 @@ const OPS_DEAD_LETTER_HANDOFF_PATH: &str = "/ops/materialization/dead_letter/han
 const OPS_DEAD_LETTER_ESCALATION_ACK_PATH: &str = "/ops/materialization/dead_letter/escalation_ack";
 const OPS_DEAD_LETTER_ESCALATION_NOTIFY_PATH: &str =
     "/ops/materialization/dead_letter/escalation_notify";
+const OPS_CHAIN_COMMIT_STATUS_PATH: &str = "/ops/materialization/chain_commit/status";
 const OPS_ALERTS_PATH: &str = "/ops/alerts";
 const OPS_ALERTS_DISPATCH_PATH: &str = "/ops/alerts/dispatch";
 const OPS_WRITE_GATE_PATH: &str = "/ops/runtime/write_gate";
@@ -133,6 +135,11 @@ const DEAD_LETTER_ERROR_CLASS_SAMPLE_LIMIT: usize = 20;
 const READY_SLO_SHORT_WINDOW_MS: u64 = 5 * 60 * 1000;
 const READY_SLO_LONG_WINDOW_MS: u64 = 15 * 60 * 1000;
 const READY_SLO_TARGET_BPS: u64 = 9_900;
+const CHAIN_COMMIT_OUTBOX_BATCH_SIZE: usize = 256;
+const CHAIN_COMMIT_MARKER_TTL_SECS: u64 = 24 * 60 * 60;
+const CHAIN_COMMIT_ENABLED_ENV: &str = "DUBHE_CHANNEL_CHAIN_COMMIT_ENABLED";
+const CHAIN_COMMIT_DUBHE_CONFIG_PATH_ENV: &str = "DUBHE_CHANNEL_DUBHE_CONFIG_PATH";
+const CHAIN_COMMIT_PRIVATE_KEY_ENV: &str = "PRIVATE_KEY";
 
 #[derive(Debug, Clone)]
 struct RequestContext {
@@ -1681,6 +1688,18 @@ struct SubmitMaterializationOutboxEntry {
     last_error: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SubmitChainCommitOutboxEntry {
+    commit_id: String,
+    request_id: String,
+    tenant_namespace: Option<String>,
+    checkpoint_ts_ms: u64,
+    cursor_opaque: String,
+    store_set_record: StoreSetRecord,
+    attempts: u64,
+    last_error: String,
+}
+
 #[derive(Debug, Clone, Default)]
 struct DeadLetterErrorClassSummary {
     sample_size: usize,
@@ -2009,6 +2028,27 @@ struct AppMetrics {
     submit_materialization_dead_letter_replay_escalation_notification_read_failures_total:
         AtomicU64,
     submit_materialization_dead_letter_replay_history_read_failures_total: AtomicU64,
+    submit_chain_commit_failures_total: AtomicU64,
+    submit_chain_commit_outbox_size: AtomicU64,
+    submit_chain_commit_outbox_enqueued_total: AtomicU64,
+    submit_chain_commit_outbox_retries_total: AtomicU64,
+    submit_chain_commit_outbox_recovered_total: AtomicU64,
+    submit_chain_commit_outbox_dropped_total: AtomicU64,
+    submit_chain_commit_dead_letter_size: AtomicU64,
+    submit_chain_commit_dead_letter_enqueued_total: AtomicU64,
+    submit_chain_commit_redis_enqueue_total: AtomicU64,
+    submit_chain_commit_redis_enqueue_failures_total: AtomicU64,
+    submit_chain_commit_redis_drain_total: AtomicU64,
+    submit_chain_commit_redis_drain_failures_total: AtomicU64,
+    submit_chain_commit_redis_requeue_total: AtomicU64,
+    submit_chain_commit_redis_requeue_failures_total: AtomicU64,
+    submit_chain_commit_redis_dead_letter_total: AtomicU64,
+    submit_chain_commit_redis_dead_letter_failures_total: AtomicU64,
+    submit_chain_commit_marker_check_failures_total: AtomicU64,
+    submit_chain_commit_marker_write_failures_total: AtomicU64,
+    submit_chain_commit_marker_skipped_total: AtomicU64,
+    submit_chain_commit_writer_lease_acquired_total: AtomicU64,
+    submit_chain_commit_writer_lease_conflicts_total: AtomicU64,
     ready_state: AtomicU64,
     ready_degraded_transitions_total: AtomicU64,
     ready_slo_short_window_observed_ms: AtomicU64,
@@ -2229,6 +2269,27 @@ impl Default for AppMetrics {
             submit_materialization_dead_letter_replay_history_read_failures_total: AtomicU64::new(
                 0,
             ),
+            submit_chain_commit_failures_total: AtomicU64::new(0),
+            submit_chain_commit_outbox_size: AtomicU64::new(0),
+            submit_chain_commit_outbox_enqueued_total: AtomicU64::new(0),
+            submit_chain_commit_outbox_retries_total: AtomicU64::new(0),
+            submit_chain_commit_outbox_recovered_total: AtomicU64::new(0),
+            submit_chain_commit_outbox_dropped_total: AtomicU64::new(0),
+            submit_chain_commit_dead_letter_size: AtomicU64::new(0),
+            submit_chain_commit_dead_letter_enqueued_total: AtomicU64::new(0),
+            submit_chain_commit_redis_enqueue_total: AtomicU64::new(0),
+            submit_chain_commit_redis_enqueue_failures_total: AtomicU64::new(0),
+            submit_chain_commit_redis_drain_total: AtomicU64::new(0),
+            submit_chain_commit_redis_drain_failures_total: AtomicU64::new(0),
+            submit_chain_commit_redis_requeue_total: AtomicU64::new(0),
+            submit_chain_commit_redis_requeue_failures_total: AtomicU64::new(0),
+            submit_chain_commit_redis_dead_letter_total: AtomicU64::new(0),
+            submit_chain_commit_redis_dead_letter_failures_total: AtomicU64::new(0),
+            submit_chain_commit_marker_check_failures_total: AtomicU64::new(0),
+            submit_chain_commit_marker_write_failures_total: AtomicU64::new(0),
+            submit_chain_commit_marker_skipped_total: AtomicU64::new(0),
+            submit_chain_commit_writer_lease_acquired_total: AtomicU64::new(0),
+            submit_chain_commit_writer_lease_conflicts_total: AtomicU64::new(0),
             ready_state: AtomicU64::new(1),
             ready_degraded_transitions_total: AtomicU64::new(0),
             ready_slo_short_window_observed_ms: AtomicU64::new(0),
@@ -2583,6 +2644,92 @@ impl AppMetrics {
                 .load(Ordering::Relaxed),
             if hosted_mode { 1 } else { 0 },
         );
+
+        output.push_str(&format!(
+            concat!(
+                "# TYPE dubhe_channel_submit_chain_commit_failures_total counter\n",
+                "dubhe_channel_submit_chain_commit_failures_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_outbox_size gauge\n",
+                "dubhe_channel_submit_chain_commit_outbox_size {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_outbox_enqueued_total counter\n",
+                "dubhe_channel_submit_chain_commit_outbox_enqueued_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_outbox_retries_total counter\n",
+                "dubhe_channel_submit_chain_commit_outbox_retries_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_outbox_recovered_total counter\n",
+                "dubhe_channel_submit_chain_commit_outbox_recovered_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_outbox_dropped_total counter\n",
+                "dubhe_channel_submit_chain_commit_outbox_dropped_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_dead_letter_size gauge\n",
+                "dubhe_channel_submit_chain_commit_dead_letter_size {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_dead_letter_enqueued_total counter\n",
+                "dubhe_channel_submit_chain_commit_dead_letter_enqueued_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_enqueue_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_enqueue_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_enqueue_failures_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_enqueue_failures_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_drain_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_drain_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_drain_failures_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_drain_failures_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_requeue_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_requeue_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_requeue_failures_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_requeue_failures_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_dead_letter_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_dead_letter_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_redis_dead_letter_failures_total counter\n",
+                "dubhe_channel_submit_chain_commit_redis_dead_letter_failures_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_marker_check_failures_total counter\n",
+                "dubhe_channel_submit_chain_commit_marker_check_failures_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_marker_write_failures_total counter\n",
+                "dubhe_channel_submit_chain_commit_marker_write_failures_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_marker_skipped_total counter\n",
+                "dubhe_channel_submit_chain_commit_marker_skipped_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_writer_lease_acquired_total counter\n",
+                "dubhe_channel_submit_chain_commit_writer_lease_acquired_total {}\n",
+                "# TYPE dubhe_channel_submit_chain_commit_writer_lease_conflicts_total counter\n",
+                "dubhe_channel_submit_chain_commit_writer_lease_conflicts_total {}\n",
+            ),
+            self.submit_chain_commit_failures_total.load(Ordering::Relaxed),
+            self.submit_chain_commit_outbox_size.load(Ordering::Relaxed),
+            self.submit_chain_commit_outbox_enqueued_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_outbox_retries_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_outbox_recovered_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_outbox_dropped_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_dead_letter_size.load(Ordering::Relaxed),
+            self.submit_chain_commit_dead_letter_enqueued_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_enqueue_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_enqueue_failures_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_drain_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_drain_failures_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_requeue_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_requeue_failures_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_dead_letter_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_redis_dead_letter_failures_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_marker_check_failures_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_marker_write_failures_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_marker_skipped_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_writer_lease_acquired_total
+                .load(Ordering::Relaxed),
+            self.submit_chain_commit_writer_lease_conflicts_total
+                .load(Ordering::Relaxed),
+        ));
 
         output.push_str(&format!(
             concat!(
@@ -3381,7 +3528,22 @@ struct ReadyEvaluation {
     dead_letter_error_class_alert_active: bool,
     dead_letter_dominant_error_class: Option<String>,
     dead_letter_replay_internal_alert_active: bool,
+    chain_commit_enabled: bool,
+    chain_commit_outbox_alert_active: bool,
+    chain_commit_dead_letter_alert_active: bool,
     reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct ChainCommitStatusSnapshot {
+    enabled: bool,
+    outbox_backend: String,
+    dead_letter_backend: String,
+    writer_lease_backend: String,
+    outbox_size: u64,
+    dead_letter_size: u64,
+    writer_lease_owner: Option<ReplayLeaseOwnerInfo>,
+    writer_lease_ttl_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -4773,6 +4935,28 @@ impl RedisSubmitCoordinator {
         )))
     }
 
+    async fn inspect_chain_commit_writer_lease(
+        &self,
+    ) -> Result<Option<(ReplayLeaseOwnerInfo, i64)>> {
+        let key = self.chain_commit_writer_lease_key();
+        let mut connection = self.connection.clone();
+        let value: Option<String> = connection.get(&key).await?;
+        let Some(value) = value else {
+            return Ok(None);
+        };
+        let ttl_ms: i64 = connection.pttl(&key).await?;
+        let token: ReplayLeaseToken = serde_json::from_str(&value)?;
+        Ok(Some((
+            ReplayLeaseOwnerInfo {
+                request_id: token.request_id,
+                holder: token.holder,
+                acquired_at_ms: token.acquired_at_ms,
+                backend: "redis".to_string(),
+            },
+            ttl_ms.max(0),
+        )))
+    }
+
     async fn inspect_dead_letter_replay_status(&self) -> Result<Option<DeadLetterReplayStatus>> {
         let key = self.replay_status_key();
         let mut connection = self.connection.clone();
@@ -5870,6 +6054,25 @@ impl RedisSubmitCoordinator {
         format!("{}:submit:materialization:outbox", self.key_prefix)
     }
 
+    fn chain_commit_outbox_key(&self) -> String {
+        format!("{}:submit:chain_commit:outbox", self.key_prefix)
+    }
+
+    fn chain_commit_dead_letter_key(&self) -> String {
+        format!("{}:submit:chain_commit:dead_letter", self.key_prefix)
+    }
+
+    fn chain_commit_writer_lease_key(&self) -> String {
+        format!("{}:submit:chain_commit:writer:lease", self.key_prefix)
+    }
+
+    fn chain_commit_marker_key(&self, commit_id: &str) -> String {
+        format!(
+            "{}:submit:chain_commit:marker:{}",
+            self.key_prefix, commit_id
+        )
+    }
+
     fn materialization_dead_letter_key(&self) -> String {
         format!("{}:submit:materialization:dead_letter", self.key_prefix)
     }
@@ -6041,6 +6244,117 @@ impl RedisSubmitCoordinator {
         Ok(drained)
     }
 
+    async fn chain_commit_outbox_len(&self) -> Result<u64> {
+        let mut connection = self.connection.clone();
+        let len: u64 = connection.llen(self.chain_commit_outbox_key()).await?;
+        Ok(len)
+    }
+
+    async fn chain_commit_dead_letter_len(&self) -> Result<u64> {
+        let mut connection = self.connection.clone();
+        let len: u64 = connection.llen(self.chain_commit_dead_letter_key()).await?;
+        Ok(len)
+    }
+
+    async fn enqueue_chain_commit_entry(
+        &self,
+        entry: &SubmitChainCommitOutboxEntry,
+    ) -> Result<u64> {
+        let mut connection = self.connection.clone();
+        let payload = serde_json::to_string(entry)?;
+        let len: u64 = connection
+            .rpush(self.chain_commit_outbox_key(), payload)
+            .await?;
+        Ok(len)
+    }
+
+    async fn enqueue_chain_commit_dead_letter_entry(
+        &self,
+        entry: &SubmitChainCommitOutboxEntry,
+    ) -> Result<u64> {
+        let mut connection = self.connection.clone();
+        let payload = serde_json::to_string(entry)?;
+        let len: u64 = connection
+            .rpush(self.chain_commit_dead_letter_key(), payload)
+            .await?;
+        Ok(len)
+    }
+
+    async fn requeue_chain_commit_entries(
+        &self,
+        entries: &[SubmitChainCommitOutboxEntry],
+    ) -> Result<u64> {
+        if entries.is_empty() {
+            return self.chain_commit_outbox_len().await;
+        }
+
+        let payloads = entries
+            .iter()
+            .map(serde_json::to_string)
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut connection = self.connection.clone();
+        let len: u64 = connection
+            .rpush(self.chain_commit_outbox_key(), payloads)
+            .await?;
+        Ok(len)
+    }
+
+    async fn drain_chain_commit_entries(
+        &self,
+        max_entries: usize,
+    ) -> Result<Vec<SubmitChainCommitOutboxEntry>> {
+        let mut drained = Vec::new();
+        let key = self.chain_commit_outbox_key();
+        let mut connection = self.connection.clone();
+
+        for _ in 0..max_entries {
+            let value: Option<String> = connection.lpop(&key, None).await?;
+            let Some(value) = value else {
+                break;
+            };
+            drained.push(serde_json::from_str(&value)?);
+        }
+
+        Ok(drained)
+    }
+
+    async fn peek_chain_commit_dead_letter_entries(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<SubmitChainCommitOutboxEntry>> {
+        if limit == 0 {
+            return Ok(Vec::new());
+        }
+
+        let key = self.chain_commit_dead_letter_key();
+        let mut connection = self.connection.clone();
+        let values: Vec<String> = connection.lrange(&key, 0, (limit as isize) - 1).await?;
+        values
+            .into_iter()
+            .map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .collect()
+    }
+
+    async fn chain_commit_was_committed(&self, commit_id: &str) -> Result<bool> {
+        let key = self.chain_commit_marker_key(commit_id);
+        let mut connection = self.connection.clone();
+        let present: bool = connection.exists(key).await?;
+        Ok(present)
+    }
+
+    async fn mark_chain_commit_committed(&self, commit_id: &str, ttl_secs: u64) -> Result<()> {
+        let key = self.chain_commit_marker_key(commit_id);
+        let mut connection = self.connection.clone();
+        let _: () = redis::cmd("SET")
+            .arg(key)
+            .arg("1")
+            .arg("EX")
+            .arg(ttl_secs.max(1))
+            .query_async(&mut connection)
+            .await?;
+        Ok(())
+    }
+
     async fn acquire_account_lock(&self, account_key: &str) -> Result<RedisSubmitLockLease> {
         let key = self.lock_key(account_key);
         self.acquire_named_lock(&key, &format!("submit lock for {}", account_key))
@@ -6060,6 +6374,22 @@ impl RedisSubmitCoordinator {
             nonce: format!("{:032x}", random::<u128>()),
         })?;
         self.acquire_named_lock_with_token(&key, "dead-letter replay lease", token)
+            .await
+    }
+
+    async fn acquire_chain_commit_writer_lease(
+        &self,
+        request_id: &str,
+        holder: &str,
+    ) -> Result<RedisSubmitLockLease> {
+        let key = self.chain_commit_writer_lease_key();
+        let token = serde_json::to_string(&ReplayLeaseToken {
+            request_id: request_id.to_string(),
+            holder: holder.to_string(),
+            acquired_at_ms: now_ts_ms(),
+            nonce: format!("{:032x}", random::<u128>()),
+        })?;
+        self.acquire_named_lock_with_token(&key, "chain commit writer lease", token)
             .await
     }
 
@@ -6261,6 +6591,67 @@ fn resolve_execution_backend_from_env(
     }
 }
 
+fn env_var_is_truthy(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
+}
+
+fn load_chain_commit_dubhe_config() -> Result<Option<Arc<DubheConfig>>> {
+    let enabled = std::env::var(CHAIN_COMMIT_ENABLED_ENV)
+        .ok()
+        .map(|value| env_var_is_truthy(&value))
+        .unwrap_or(false);
+    if !enabled {
+        println!(
+            "🔗 Chain commit writer disabled (set {}=true to enable)",
+            CHAIN_COMMIT_ENABLED_ENV
+        );
+        return Ok(None);
+    }
+
+    if std::env::var(CHAIN_COMMIT_PRIVATE_KEY_ENV).is_err() {
+        return Err(anyhow!(
+            "{}=true requires {} to be set",
+            CHAIN_COMMIT_ENABLED_ENV,
+            CHAIN_COMMIT_PRIVATE_KEY_ENV
+        ));
+    }
+
+    let path = std::env::var(CHAIN_COMMIT_DUBHE_CONFIG_PATH_ENV)
+        .unwrap_or_else(|_| "dubhe.config.json".to_string());
+    let payload = fs::read_to_string(&path).map_err(|error| {
+        anyhow!(
+            "failed reading {}='{}': {}",
+            CHAIN_COMMIT_DUBHE_CONFIG_PATH_ENV,
+            path,
+            error
+        )
+    })?;
+    let json_value: serde_json::Value = serde_json::from_str(&payload).map_err(|error| {
+        anyhow!(
+            "failed parsing dubhe config {}='{}': {}",
+            CHAIN_COMMIT_DUBHE_CONFIG_PATH_ENV,
+            path,
+            error
+        )
+    })?;
+    let dubhe_config = DubheConfig::from_json(json_value).map_err(|error| {
+        anyhow!(
+            "failed loading DubheConfig from {}='{}': {}",
+            CHAIN_COMMIT_DUBHE_CONFIG_PATH_ENV,
+            path,
+            error
+        )
+    })?;
+    println!(
+        "🔗 Chain commit writer enabled ({}='{}')",
+        CHAIN_COMMIT_DUBHE_CONFIG_PATH_ENV, path
+    );
+    Ok(Some(Arc::new(dubhe_config)))
+}
+
 #[derive(Debug, Clone)]
 struct IntentCompileOutcome {
     ptb: PtbJson,
@@ -6441,6 +6832,61 @@ where
     }
 }
 
+#[async_trait]
+trait ChainCommitExecutor<DB>: Send + Sync
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    async fn commit(
+        &self,
+        config: &Arc<DubheChannelConfig>,
+        dubhe_config: &DubheConfig,
+        table_id: String,
+        key_tuple: Vec<Vec<u8>>,
+        value_tuple: Vec<Vec<u8>>,
+        checkpoint_ts_ms: u64,
+    ) -> Result<(), anyhow::Error>;
+}
+
+#[derive(Clone, Default)]
+struct SuiChainCommitExecutor;
+
+#[async_trait]
+impl<DB> ChainCommitExecutor<DB> for SuiChainCommitExecutor
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    async fn commit(
+        &self,
+        config: &Arc<DubheChannelConfig>,
+        dubhe_config: &DubheConfig,
+        table_id: String,
+        key_tuple: Vec<Vec<u8>>,
+        value_tuple: Vec<Vec<u8>>,
+        checkpoint_ts_ms: u64,
+    ) -> Result<(), anyhow::Error> {
+        set_storage(
+            config,
+            table_id,
+            key_tuple,
+            value_tuple,
+            dubhe_config,
+            checkpoint_ts_ms,
+        )
+        .await
+    }
+}
+
+fn build_chain_commit_executor<DB>() -> Arc<dyn ChainCommitExecutor<DB>>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    Arc::new(SuiChainCommitExecutor)
+}
+
 // Global application state
 struct AppState<DB> {
     config: Arc<DubheChannelConfig>,
@@ -6459,10 +6905,16 @@ struct AppState<DB> {
     execution_backend: ExecutionBackendKind,
     intent_compiler: Arc<dyn IntentCompiler>,
     submit_executor: Arc<dyn SubmitExecutor<DB>>,
+    chain_commit_executor: Arc<dyn ChainCommitExecutor<DB>>,
     metrics: Arc<AppMetrics>,
     sse_connection_state: Arc<RwLock<SseConnectionState>>,
     request_admission_state: Arc<RwLock<RequestAdmissionState>>,
     topic_governance_state: Arc<RwLock<TopicGovernanceState>>,
+    chain_commit_dubhe_config: Option<Arc<DubheConfig>>,
+    submit_chain_commit_outbox: Arc<RwLock<VecDeque<SubmitChainCommitOutboxEntry>>>,
+    submit_chain_commit_dead_letter: Arc<RwLock<VecDeque<SubmitChainCommitOutboxEntry>>>,
+    submit_chain_commit_writer_lock: Arc<tokio::sync::Mutex<()>>,
+    submit_chain_commit_writer_owner: Arc<RwLock<Option<ReplayLeaseOwnerInfo>>>,
     submit_materialization_outbox: Arc<RwLock<VecDeque<SubmitMaterializationOutboxEntry>>>,
     submit_materialization_dead_letter: Arc<RwLock<VecDeque<SubmitMaterializationOutboxEntry>>>,
     submit_materialization_dead_letter_replay_lock: Arc<tokio::sync::Mutex<()>>,
@@ -6538,10 +6990,16 @@ impl<DB> Clone for AppState<DB> {
             execution_backend: self.execution_backend,
             intent_compiler: self.intent_compiler.clone(),
             submit_executor: self.submit_executor.clone(),
+            chain_commit_executor: self.chain_commit_executor.clone(),
             metrics: self.metrics.clone(),
             sse_connection_state: self.sse_connection_state.clone(),
             request_admission_state: self.request_admission_state.clone(),
             topic_governance_state: self.topic_governance_state.clone(),
+            chain_commit_dubhe_config: self.chain_commit_dubhe_config.clone(),
+            submit_chain_commit_outbox: self.submit_chain_commit_outbox.clone(),
+            submit_chain_commit_dead_letter: self.submit_chain_commit_dead_letter.clone(),
+            submit_chain_commit_writer_lock: self.submit_chain_commit_writer_lock.clone(),
+            submit_chain_commit_writer_owner: self.submit_chain_commit_writer_owner.clone(),
             submit_materialization_outbox: self.submit_materialization_outbox.clone(),
             submit_materialization_dead_letter: self.submit_materialization_dead_letter.clone(),
             submit_materialization_dead_letter_replay_lock: self
@@ -6731,6 +7189,7 @@ async fn main() -> Result<()> {
     let v2_runtime = build_channel_runtime(&config).await?;
     let submit_coordinator = build_submit_coordinator(&config).await?;
     let metrics = Arc::new(AppMetrics::default());
+    let chain_commit_dubhe_config = load_chain_commit_dubhe_config()?;
 
     let app_state = AppState {
         config: Arc::new(config.clone()),
@@ -6748,10 +7207,16 @@ async fn main() -> Result<()> {
         execution_backend,
         intent_compiler: build_intent_compiler(intent_backend),
         submit_executor: build_submit_executor(execution_backend),
+        chain_commit_executor: build_chain_commit_executor(),
         metrics,
         sse_connection_state: Arc::new(RwLock::new(SseConnectionState::default())),
         request_admission_state: Arc::new(RwLock::new(RequestAdmissionState::default())),
         topic_governance_state: Arc::new(RwLock::new(TopicGovernanceState::default())),
+        chain_commit_dubhe_config,
+        submit_chain_commit_outbox: Arc::new(RwLock::new(VecDeque::new())),
+        submit_chain_commit_dead_letter: Arc::new(RwLock::new(VecDeque::new())),
+        submit_chain_commit_writer_lock: Arc::new(tokio::sync::Mutex::new(())),
+        submit_chain_commit_writer_owner: Arc::new(RwLock::new(None)),
         submit_materialization_outbox: Arc::new(RwLock::new(VecDeque::new())),
         submit_materialization_dead_letter: Arc::new(RwLock::new(VecDeque::new())),
         submit_materialization_dead_letter_replay_lock: Arc::new(tokio::sync::Mutex::new(())),
@@ -6895,6 +7360,20 @@ async fn main() -> Result<()> {
             process_submit_materialization_outbox_once(&submit_materialization_state).await;
         }
     });
+
+    if app_state.chain_commit_dubhe_config.is_some() {
+        let submit_chain_commit_state = app_state.clone();
+        let submit_chain_commit_retry_interval_ms = config.submit_materialization_retry_interval_ms;
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_millis(
+                submit_chain_commit_retry_interval_ms.max(1),
+            ));
+            loop {
+                interval.tick().await;
+                process_submit_chain_commit_outbox_once(&submit_chain_commit_state).await;
+            }
+        });
+    }
 
     let dead_letter_auto_replay_interval_ms =
         config.submit_materialization_dead_letter_auto_replay_interval_ms;
@@ -7242,6 +7721,7 @@ where
             && path != OPS_DEAD_LETTER_ENTRIES_PATH
             && path != OPS_DEAD_LETTER_REPLAY_HISTORY_PATH
             && path != OPS_DEAD_LETTER_HANDOFF_PATH
+            && path != OPS_CHAIN_COMMIT_STATUS_PATH
         {
             match resolve_request_tenant(&req, &state.config) {
                 Ok(tenant) => {
@@ -7425,6 +7905,9 @@ where
         (&hyper::Method::GET, OPS_DEAD_LETTER_STATUS_PATH) => {
             handle_dead_letter_status(req, state).await
         }
+        (&hyper::Method::GET, OPS_CHAIN_COMMIT_STATUS_PATH) => {
+            handle_ops_chain_commit_status(req, state).await
+        }
         (&hyper::Method::GET, OPS_DEAD_LETTER_ENTRIES_PATH) => {
             handle_dead_letter_entries(req, state).await
         }
@@ -7488,6 +7971,7 @@ where
     let dead_letter_limit = state
         .config
         .submit_materialization_ready_max_dead_letter_size;
+    let chain_commit_snapshot = collect_chain_commit_status_snapshot(state).await;
     let runtime_drill_state = current_ops_runtime_drill_state(state).await.ok();
     let runtime_drill_active = runtime_drill_state
         .as_ref()
@@ -7777,6 +8261,24 @@ where
             _ => false,
         }
     };
+    let chain_commit_outbox_alert_active = chain_commit_snapshot.enabled
+        && outbox_limit > 0
+        && chain_commit_snapshot.outbox_size > outbox_limit;
+    if chain_commit_outbox_alert_active {
+        reasons.push(format!(
+            "submit_chain_commit_outbox_size={} exceeds configured limit {}",
+            chain_commit_snapshot.outbox_size, outbox_limit
+        ));
+    }
+    let chain_commit_dead_letter_alert_active = chain_commit_snapshot.enabled
+        && dead_letter_limit > 0
+        && chain_commit_snapshot.dead_letter_size > dead_letter_limit;
+    if chain_commit_dead_letter_alert_active {
+        reasons.push(format!(
+            "submit_chain_commit_dead_letter_size={} exceeds configured limit {}",
+            chain_commit_snapshot.dead_letter_size, dead_letter_limit
+        ));
+    }
 
     ReadyEvaluation {
         ready: !(runtime_drill_degrades_ready
@@ -7785,7 +8287,9 @@ where
             || outbox_alert_active
             || dead_letter_alert_active
             || dead_letter_error_summary.alert_active
-            || dead_letter_replay_internal_alert_active),
+            || dead_letter_replay_internal_alert_active
+            || chain_commit_outbox_alert_active
+            || chain_commit_dead_letter_alert_active),
         write_gate_disabled,
         write_gate_operator: write_gate_state
             .as_ref()
@@ -7864,6 +8368,9 @@ where
         dead_letter_error_class_alert_active: dead_letter_error_summary.alert_active,
         dead_letter_dominant_error_class: dead_letter_error_summary.dominant_class,
         dead_letter_replay_internal_alert_active,
+        chain_commit_enabled: chain_commit_snapshot.enabled,
+        chain_commit_outbox_alert_active,
+        chain_commit_dead_letter_alert_active,
         reasons,
     }
 }
@@ -8254,6 +8761,8 @@ where
 {
     refresh_submit_materialization_outbox_size(state).await;
     refresh_submit_materialization_dead_letter_size(state).await;
+    refresh_submit_chain_commit_outbox_size(state).await;
+    refresh_submit_chain_commit_dead_letter_size(state).await;
     let outbox_size = state
         .metrics
         .submit_materialization_outbox_size
@@ -8314,6 +8823,8 @@ where
 {
     refresh_submit_materialization_outbox_size(state).await;
     refresh_submit_materialization_dead_letter_size(state).await;
+    refresh_submit_chain_commit_outbox_size(state).await;
+    refresh_submit_chain_commit_dead_letter_size(state).await;
     let outbox_size = state
         .metrics
         .submit_materialization_outbox_size
@@ -8322,6 +8833,7 @@ where
         .metrics
         .submit_materialization_dead_letter_size
         .load(Ordering::Relaxed);
+    let chain_commit_status = collect_chain_commit_status_snapshot(state).await;
     let ready_evaluation = evaluate_ready_state(state, outbox_size, dead_letter_size).await;
     update_ready_metrics(&state.metrics, &ready_evaluation);
     let ready_slo = observe_ready_slo_snapshot(state, ready_evaluation.ready).await;
@@ -8427,6 +8939,23 @@ where
                     "outbox_size": outbox_size,
                     "dead_letter_size": dead_letter_size,
                 },
+                "chain_commit": {
+                    "enabled": chain_commit_status.enabled,
+                    "retry_interval_ms": state.config.submit_materialization_retry_interval_ms,
+                    "max_attempts": state.config.submit_materialization_max_attempts,
+                    "outbox_batch_size": CHAIN_COMMIT_OUTBOX_BATCH_SIZE,
+                    "marker_ttl_secs": CHAIN_COMMIT_MARKER_TTL_SECS,
+                    "outbox_backend": chain_commit_status.outbox_backend,
+                    "dead_letter_backend": chain_commit_status.dead_letter_backend,
+                    "writer_lease_backend": chain_commit_status.writer_lease_backend,
+                    "outbox_size": chain_commit_status.outbox_size,
+                    "dead_letter_size": chain_commit_status.dead_letter_size,
+                    "writer_lease": {
+                        "active": chain_commit_status.writer_lease_owner.is_some(),
+                        "owner": chain_commit_status.writer_lease_owner,
+                        "ttl_ms": chain_commit_status.writer_lease_ttl_ms,
+                    },
+                },
                 "alerts": {
                     "ops_runtime_profile_active": ready_evaluation.runtime_profile_active,
                     "ops_runtime_profile_name": ready_evaluation.runtime_profile_name,
@@ -8452,6 +8981,9 @@ where
                     "submit_materialization_dead_letter_error_class_active": ready_evaluation.dead_letter_error_class_alert_active,
                     "submit_materialization_dead_letter_dominant_error_class": ready_evaluation.dead_letter_dominant_error_class,
                     "submit_materialization_dead_letter_replay_internal_active": ready_evaluation.dead_letter_replay_internal_alert_active,
+                    "submit_chain_commit_enabled": ready_evaluation.chain_commit_enabled,
+                    "submit_chain_commit_outbox_active": ready_evaluation.chain_commit_outbox_alert_active,
+                    "submit_chain_commit_dead_letter_active": ready_evaluation.chain_commit_dead_letter_alert_active,
                     "reasons": ready_evaluation.reasons,
                 },
                 "ready_slo": ready_slo_snapshot_to_json(&ready_slo),
@@ -8518,6 +9050,8 @@ where
 {
     refresh_submit_materialization_outbox_size(state).await;
     refresh_submit_materialization_dead_letter_size(state).await;
+    refresh_submit_chain_commit_outbox_size(state).await;
+    refresh_submit_chain_commit_dead_letter_size(state).await;
     let outbox_size = state
         .metrics
         .submit_materialization_outbox_size
@@ -17544,6 +18078,11 @@ enum RolloutActionRedispatchLeaseGuard {
     Redis(RedisSubmitLockLease),
 }
 
+enum ChainCommitWriterLeaseGuard {
+    Local(tokio::sync::OwnedMutexGuard<()>),
+    Redis(RedisSubmitLockLease),
+}
+
 async fn current_ops_runtime_rollout_controller_state<DB>(
     state: &AppState<DB>,
 ) -> Result<OpsRuntimeRolloutControllerState, String>
@@ -17647,6 +18186,58 @@ where
                 "runtime rollout traffic action redispatch lease already held".to_string()
             }),
     }
+}
+
+async fn acquire_chain_commit_writer_lease<DB>(
+    state: &AppState<DB>,
+    request_id: &str,
+) -> Result<ChainCommitWriterLeaseGuard, String>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    let holder = replay_lease_holder_identity();
+    if let Some(coordinator) = &state.submit_coordinator {
+        return coordinator
+            .acquire_chain_commit_writer_lease(request_id, &holder)
+            .await
+            .map(|lease| {
+                state
+                    .metrics
+                    .submit_chain_commit_writer_lease_acquired_total
+                    .fetch_add(1, Ordering::Relaxed);
+                ChainCommitWriterLeaseGuard::Redis(lease)
+            })
+            .map_err(|error| {
+                let message = error.to_string();
+                if message.contains("already held") || message.contains("timed out acquiring") {
+                    state
+                        .metrics
+                        .submit_chain_commit_writer_lease_conflicts_total
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+                message
+            });
+    }
+
+    state
+        .submit_chain_commit_writer_lock
+        .clone()
+        .try_lock_owned()
+        .map(|guard| {
+            state
+                .metrics
+                .submit_chain_commit_writer_lease_acquired_total
+                .fetch_add(1, Ordering::Relaxed);
+            ChainCommitWriterLeaseGuard::Local(guard)
+        })
+        .map_err(|_error| {
+            state
+                .metrics
+                .submit_chain_commit_writer_lease_conflicts_total
+                .fetch_add(1, Ordering::Relaxed);
+            "submit chain commit writer lease already held".to_string()
+        })
 }
 
 fn is_ops_admin_authorized<DB>(req: &Request<Body>, state: &AppState<DB>) -> bool
@@ -26370,6 +26961,90 @@ where
     }
 }
 
+async fn handle_ops_chain_commit_status<DB>(
+    req: Request<Body>,
+    state: AppState<DB>,
+) -> Response<Body>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if state.config.ops_admin_token.is_none() {
+        return ops_admin_not_found_response();
+    }
+    if !is_ops_admin_authorized(&req, &state) {
+        return ops_admin_unauthorized_response();
+    }
+
+    let limit = query_param_usize(&req, "limit").unwrap_or(20).clamp(1, 100);
+    let snapshot = collect_chain_commit_status_snapshot(&state).await;
+    let dead_letter_entries = match current_chain_commit_dead_letter_entries(&state, limit).await {
+        Ok(entries) => entries,
+        Err(error) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .header(CONTENT_TYPE, "application/json")
+                .header("Access-Control-Allow-Origin", "*")
+                .body(Body::from(json!({ "error": error }).to_string()))
+                .unwrap();
+        }
+    };
+
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .body(Body::from(
+            json!({
+                "enabled": snapshot.enabled,
+                "retry_policy": {
+                    "retry_interval_ms": state.config.submit_materialization_retry_interval_ms,
+                    "max_attempts": state.config.submit_materialization_max_attempts,
+                },
+                "idempotency": {
+                    "marker_ttl_secs": CHAIN_COMMIT_MARKER_TTL_SECS,
+                    "marker_backend": if state.submit_coordinator.is_some() { "redis" } else { "in-memory" },
+                },
+                "outbox": {
+                    "backend": snapshot.outbox_backend,
+                    "batch_size": CHAIN_COMMIT_OUTBOX_BATCH_SIZE,
+                    "size": snapshot.outbox_size,
+                },
+                "dead_letter": {
+                    "backend": snapshot.dead_letter_backend,
+                    "size": snapshot.dead_letter_size,
+                    "limit": limit,
+                    "count": dead_letter_entries.len(),
+                    "has_more": snapshot.dead_letter_size > dead_letter_entries.len() as u64,
+                    "entries": dead_letter_entries.into_iter().map(|entry| {
+                        json!({
+                            "commit_id": entry.commit_id,
+                            "request_id": entry.request_id,
+                            "tenant_namespace": entry.tenant_namespace,
+                            "checkpoint_ts_ms": entry.checkpoint_ts_ms,
+                            "cursor_opaque": entry.cursor_opaque,
+                            "table_id": entry.store_set_record.table_id,
+                            "attempts": entry.attempts,
+                            "last_error": entry.last_error,
+                        })
+                    }).collect::<Vec<_>>(),
+                },
+                "writer_lease": {
+                    "backend": snapshot.writer_lease_backend,
+                    "active": snapshot.writer_lease_owner.is_some(),
+                    "owner": snapshot.writer_lease_owner,
+                    "ttl_ms": snapshot.writer_lease_ttl_ms,
+                },
+                "config": {
+                    "dubhe_config_loaded": state.chain_commit_dubhe_config.is_some(),
+                    "rpc_url": state.config.rpc_url,
+                },
+            })
+            .to_string(),
+        ))
+        .unwrap()
+}
+
 async fn handle_dead_letter_status<DB>(req: Request<Body>, state: AppState<DB>) -> Response<Body>
 where
     DB: dubhe_db::interface::DatabaseRef + 'static,
@@ -28018,6 +28693,46 @@ fn outbox_tenant_from_namespace(namespace: Option<&str>) -> Option<ResolvedTenan
     })
 }
 
+fn chain_commit_id_from_record(
+    store_set_record: &StoreSetRecord,
+    tenant: Option<&ResolvedTenant>,
+    cursor_opaque: &str,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(
+        tenant
+            .and_then(ResolvedTenant::namespace)
+            .unwrap_or("-")
+            .as_bytes(),
+    );
+    hasher.update(cursor_opaque.as_bytes());
+    hasher.update(store_set_record.table_id.as_bytes());
+    for key in &store_set_record.key_tuple {
+        hasher.update((key.len() as u64).to_le_bytes());
+        hasher.update(key);
+    }
+    for value in &store_set_record.value_tuple {
+        hasher.update((value.len() as u64).to_le_bytes());
+        hasher.update(value);
+    }
+    format!("{:x}", hasher.finalize())
+}
+
+fn split_chain_commit_table_and_keys(store_set_record: &StoreSetRecord) -> (String, Vec<Vec<u8>>) {
+    if let Some((table_id_bytes, key_tail)) = store_set_record.key_tuple.split_first() {
+        if let Ok(table_id) = String::from_utf8(table_id_bytes.clone()) {
+            if !table_id.is_empty() {
+                return (table_id, key_tail.to_vec());
+            }
+        }
+    }
+
+    (
+        store_set_record.table_id.clone(),
+        store_set_record.key_tuple.clone(),
+    )
+}
+
 fn set_submit_materialization_outbox_size(metrics: &AppMetrics, size: usize) {
     metrics
         .submit_materialization_outbox_size
@@ -28027,6 +28742,18 @@ fn set_submit_materialization_outbox_size(metrics: &AppMetrics, size: usize) {
 fn set_submit_materialization_dead_letter_size(metrics: &AppMetrics, size: usize) {
     metrics
         .submit_materialization_dead_letter_size
+        .store(size as u64, Ordering::Relaxed);
+}
+
+fn set_submit_chain_commit_outbox_size(metrics: &AppMetrics, size: usize) {
+    metrics
+        .submit_chain_commit_outbox_size
+        .store(size as u64, Ordering::Relaxed);
+}
+
+fn set_submit_chain_commit_dead_letter_size(metrics: &AppMetrics, size: usize) {
+    metrics
+        .submit_chain_commit_dead_letter_size
         .store(size as u64, Ordering::Relaxed);
 }
 
@@ -28048,6 +28775,154 @@ where
         .read()
         .await
         .len()
+}
+
+async fn local_submit_chain_commit_outbox_size<DB>(app_state: &AppState<DB>) -> usize
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    app_state.submit_chain_commit_outbox.read().await.len()
+}
+
+async fn local_submit_chain_commit_dead_letter_size<DB>(app_state: &AppState<DB>) -> usize
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    app_state.submit_chain_commit_dead_letter.read().await.len()
+}
+
+async fn current_submit_chain_commit_outbox_size<DB>(app_state: &AppState<DB>) -> u64
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator.chain_commit_outbox_len().await {
+            Ok(size) => size,
+            Err(error) => {
+                println!(
+                    "submit.chain_commit.size_refresh_failed backend=redis queue=outbox error={}",
+                    error
+                );
+                local_submit_chain_commit_outbox_size(app_state).await as u64
+            }
+        }
+    } else {
+        local_submit_chain_commit_outbox_size(app_state).await as u64
+    }
+}
+
+async fn current_submit_chain_commit_dead_letter_size<DB>(app_state: &AppState<DB>) -> u64
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator.chain_commit_dead_letter_len().await {
+            Ok(size) => size,
+            Err(error) => {
+                println!(
+                    "submit.chain_commit.size_refresh_failed backend=redis queue=dead_letter error={}",
+                    error
+                );
+                local_submit_chain_commit_dead_letter_size(app_state).await as u64
+            }
+        }
+    } else {
+        local_submit_chain_commit_dead_letter_size(app_state).await as u64
+    }
+}
+
+async fn current_chain_commit_writer_owner<DB>(
+    state: &AppState<DB>,
+) -> Result<Option<(ReplayLeaseOwnerInfo, Option<i64>)>, String>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if let Some(coordinator) = &state.submit_coordinator {
+        return coordinator
+            .inspect_chain_commit_writer_lease()
+            .await
+            .map(|value| value.map(|(info, ttl_ms)| (info, Some(ttl_ms))))
+            .map_err(|error| error.to_string());
+    }
+
+    Ok(state
+        .submit_chain_commit_writer_owner
+        .read()
+        .await
+        .clone()
+        .map(|info| (info, None)))
+}
+
+async fn current_chain_commit_dead_letter_entries<DB>(
+    state: &AppState<DB>,
+    limit: usize,
+) -> Result<Vec<SubmitChainCommitOutboxEntry>, String>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+
+    if let Some(coordinator) = &state.submit_coordinator {
+        return coordinator
+            .peek_chain_commit_dead_letter_entries(limit)
+            .await
+            .map_err(|error| error.to_string());
+    }
+
+    let dead_letter = state.submit_chain_commit_dead_letter.read().await;
+    Ok(dead_letter.iter().take(limit).cloned().collect())
+}
+
+async fn collect_chain_commit_status_snapshot<DB>(state: &AppState<DB>) -> ChainCommitStatusSnapshot
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    let mut snapshot = ChainCommitStatusSnapshot {
+        enabled: state.chain_commit_dubhe_config.is_some(),
+        outbox_backend: if state.submit_coordinator.is_some() {
+            "redis".to_string()
+        } else {
+            "in-memory".to_string()
+        },
+        dead_letter_backend: if state.submit_coordinator.is_some() {
+            "redis".to_string()
+        } else {
+            "in-memory".to_string()
+        },
+        writer_lease_backend: if state.submit_coordinator.is_some() {
+            "redis".to_string()
+        } else {
+            "in-memory".to_string()
+        },
+        outbox_size: current_submit_chain_commit_outbox_size(state).await,
+        dead_letter_size: current_submit_chain_commit_dead_letter_size(state).await,
+        writer_lease_owner: None,
+        writer_lease_ttl_ms: None,
+    };
+
+    match current_chain_commit_writer_owner(state).await {
+        Ok(owner) => {
+            snapshot.writer_lease_owner = owner.as_ref().map(|(info, _)| info.clone());
+            snapshot.writer_lease_ttl_ms = owner.and_then(|(_, ttl_ms)| ttl_ms);
+        }
+        Err(error) => {
+            println!(
+                "submit.chain_commit.writer_lease_inspect_failed backend={} error={}",
+                snapshot.writer_lease_backend, error
+            );
+        }
+    }
+
+    snapshot
 }
 
 async fn refresh_submit_materialization_outbox_size<DB>(app_state: &AppState<DB>)
@@ -28092,6 +28967,50 @@ where
         local_submit_materialization_dead_letter_size(app_state).await
     };
     set_submit_materialization_dead_letter_size(&app_state.metrics, size);
+}
+
+async fn refresh_submit_chain_commit_outbox_size<DB>(app_state: &AppState<DB>)
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    let size = if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator.chain_commit_outbox_len().await {
+            Ok(size) => size as usize,
+            Err(error) => {
+                println!(
+                    "submit.chain_commit.size_refresh_failed backend=redis queue=outbox error={}",
+                    error
+                );
+                local_submit_chain_commit_outbox_size(app_state).await
+            }
+        }
+    } else {
+        local_submit_chain_commit_outbox_size(app_state).await
+    };
+    set_submit_chain_commit_outbox_size(&app_state.metrics, size);
+}
+
+async fn refresh_submit_chain_commit_dead_letter_size<DB>(app_state: &AppState<DB>)
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    let size = if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator.chain_commit_dead_letter_len().await {
+            Ok(size) => size as usize,
+            Err(error) => {
+                println!(
+                    "submit.chain_commit.size_refresh_failed backend=redis queue=dead_letter error={}",
+                    error
+                );
+                local_submit_chain_commit_dead_letter_size(app_state).await
+            }
+        }
+    } else {
+        local_submit_chain_commit_dead_letter_size(app_state).await
+    };
+    set_submit_chain_commit_dead_letter_size(&app_state.metrics, size);
 }
 
 async fn enqueue_submit_materialization_outbox<DB>(
@@ -28284,6 +29203,414 @@ async fn enqueue_submit_materialization_dead_letter<DB>(
         error_class.as_str(),
         error,
     );
+}
+
+async fn enqueue_submit_chain_commit_outbox<DB>(
+    app_state: &AppState<DB>,
+    store_set_record: &StoreSetRecord,
+    checkpoint_ts_ms: u64,
+    cursor_opaque: &str,
+    tenant: Option<&ResolvedTenant>,
+    request_id: &str,
+) where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if app_state.chain_commit_dubhe_config.is_none() {
+        return;
+    }
+
+    let entry = SubmitChainCommitOutboxEntry {
+        commit_id: chain_commit_id_from_record(store_set_record, tenant, cursor_opaque),
+        request_id: request_id.to_string(),
+        tenant_namespace: tenant
+            .and_then(ResolvedTenant::namespace)
+            .map(str::to_string),
+        checkpoint_ts_ms,
+        cursor_opaque: cursor_opaque.to_string(),
+        store_set_record: store_set_record.clone(),
+        attempts: 0,
+        last_error: String::new(),
+    };
+
+    let mut persisted_to_redis = false;
+    if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator.enqueue_chain_commit_entry(&entry).await {
+            Ok(outbox_len) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_redis_enqueue_total
+                    .fetch_add(1, Ordering::Relaxed);
+                set_submit_chain_commit_outbox_size(&app_state.metrics, outbox_len as usize);
+                persisted_to_redis = true;
+            }
+            Err(error) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_redis_enqueue_failures_total
+                    .fetch_add(1, Ordering::Relaxed);
+                println!(
+                    "submit.chain_commit.enqueue_failed request_id={} tenant={} table_id={} backend=redis error={}",
+                    request_id,
+                    tenant.and_then(ResolvedTenant::namespace).unwrap_or("-"),
+                    store_set_record.table_id,
+                    error
+                );
+            }
+        }
+    }
+
+    if !persisted_to_redis {
+        let mut outbox = app_state.submit_chain_commit_outbox.write().await;
+        outbox.push_back(entry.clone());
+        let outbox_len = outbox.len();
+        drop(outbox);
+        set_submit_chain_commit_outbox_size(&app_state.metrics, outbox_len);
+    }
+    app_state
+        .metrics
+        .submit_chain_commit_outbox_enqueued_total
+        .fetch_add(1, Ordering::Relaxed);
+
+    println!(
+        "submit.chain_commit.enqueued request_id={} tenant={} table_id={} commit_id={} attempts=0",
+        request_id,
+        tenant.and_then(ResolvedTenant::namespace).unwrap_or("-"),
+        store_set_record.table_id,
+        entry.commit_id
+    );
+}
+
+async fn requeue_submit_chain_commit_outbox_entries<DB>(
+    app_state: &AppState<DB>,
+    entries: &mut Vec<SubmitChainCommitOutboxEntry>,
+    request_id: &str,
+    source: &'static str,
+) where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if entries.is_empty() {
+        refresh_submit_chain_commit_outbox_size(app_state).await;
+        return;
+    }
+
+    let mut persisted_to_redis = false;
+    if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator.requeue_chain_commit_entries(entries).await {
+            Ok(outbox_len) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_redis_requeue_total
+                    .fetch_add(1, Ordering::Relaxed);
+                set_submit_chain_commit_outbox_size(&app_state.metrics, outbox_len as usize);
+                persisted_to_redis = true;
+            }
+            Err(error) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_redis_requeue_failures_total
+                    .fetch_add(1, Ordering::Relaxed);
+                println!(
+                    "submit.chain_commit.requeue_failed request_id={} source={} backend=redis error={}",
+                    request_id, source, error
+                );
+            }
+        }
+    }
+
+    if !persisted_to_redis {
+        let mut outbox = app_state.submit_chain_commit_outbox.write().await;
+        outbox.extend(entries.drain(..));
+    }
+    refresh_submit_chain_commit_outbox_size(app_state).await;
+}
+
+async fn enqueue_submit_chain_commit_dead_letter<DB>(
+    app_state: &AppState<DB>,
+    entry: SubmitChainCommitOutboxEntry,
+) where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    let tenant = entry.tenant_namespace.clone();
+    let table_id = entry.store_set_record.table_id.clone();
+    let request_id = entry.request_id.clone();
+    let attempts = entry.attempts;
+    let error = entry.last_error.clone();
+
+    let mut persisted_to_redis = false;
+    if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator
+            .enqueue_chain_commit_dead_letter_entry(&entry)
+            .await
+        {
+            Ok(dead_letter_len) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_redis_dead_letter_total
+                    .fetch_add(1, Ordering::Relaxed);
+                set_submit_chain_commit_dead_letter_size(
+                    &app_state.metrics,
+                    dead_letter_len as usize,
+                );
+                persisted_to_redis = true;
+            }
+            Err(redis_error) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_redis_dead_letter_failures_total
+                    .fetch_add(1, Ordering::Relaxed);
+                println!(
+                    "submit.chain_commit.dead_letter_enqueue_failed request_id={} tenant={} table_id={} backend=redis error={}",
+                    request_id,
+                    tenant.as_deref().unwrap_or("-"),
+                    table_id,
+                    redis_error,
+                );
+            }
+        }
+    }
+
+    if !persisted_to_redis {
+        let mut dead_letter = app_state.submit_chain_commit_dead_letter.write().await;
+        dead_letter.push_back(entry);
+        let dead_letter_len = dead_letter.len();
+        drop(dead_letter);
+        set_submit_chain_commit_dead_letter_size(&app_state.metrics, dead_letter_len);
+    }
+    app_state
+        .metrics
+        .submit_chain_commit_dead_letter_enqueued_total
+        .fetch_add(1, Ordering::Relaxed);
+
+    println!(
+        "submit.chain_commit.dead_lettered request_id={} tenant={} table_id={} attempts={} error={}",
+        request_id,
+        tenant.as_deref().unwrap_or("-"),
+        table_id,
+        attempts,
+        error,
+    );
+}
+
+async fn commit_chain_commit_outbox_entry<DB>(
+    app_state: &AppState<DB>,
+    entry: &SubmitChainCommitOutboxEntry,
+) -> Result<(), anyhow::Error>
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    let Some(dubhe_config) = app_state.chain_commit_dubhe_config.as_ref() else {
+        return Ok(());
+    };
+    let (table_id, key_tuple) = split_chain_commit_table_and_keys(&entry.store_set_record);
+    if table_id.is_empty() {
+        return Err(anyhow!(
+            "missing table id in store_set_record key_tuple for commit_id={}",
+            entry.commit_id
+        ));
+    }
+    app_state
+        .chain_commit_executor
+        .commit(
+            &app_state.config,
+            dubhe_config.as_ref(),
+            table_id,
+            key_tuple,
+            entry.store_set_record.value_tuple.clone(),
+            entry.checkpoint_ts_ms.max(1),
+        )
+        .await
+}
+
+async fn process_submit_chain_commit_outbox_once<DB>(app_state: &AppState<DB>)
+where
+    DB: dubhe_db::interface::DatabaseRef + 'static,
+    <DB as dubhe_db::interface::DatabaseRef>::Error: Send + Sync + 'static,
+{
+    if app_state.chain_commit_dubhe_config.is_none() {
+        return;
+    }
+
+    let request_id = format!("chain-commit-writer-{}", now_ts_ms());
+    let lease = match acquire_chain_commit_writer_lease(app_state, &request_id).await {
+        Ok(lease) => lease,
+        Err(error) => {
+            if !error.contains("already held") && !error.contains("timed out acquiring") {
+                println!(
+                    "submit.chain_commit.lease_acquire_failed request_id={} error={}",
+                    request_id, error
+                );
+            }
+            return;
+        }
+    };
+    let local_writer_lease_acquired = matches!(&lease, ChainCommitWriterLeaseGuard::Local(_));
+    if local_writer_lease_acquired {
+        *app_state.submit_chain_commit_writer_owner.write().await = Some(ReplayLeaseOwnerInfo {
+            request_id: request_id.clone(),
+            holder: replay_lease_holder_identity(),
+            acquired_at_ms: now_ts_ms(),
+            backend: "in-memory".to_string(),
+        });
+    }
+
+    let mut pending_entries = if let Some(coordinator) = &app_state.submit_coordinator {
+        match coordinator
+            .drain_chain_commit_entries(CHAIN_COMMIT_OUTBOX_BATCH_SIZE)
+            .await
+        {
+            Ok(entries) => {
+                if !entries.is_empty() {
+                    app_state
+                        .metrics
+                        .submit_chain_commit_redis_drain_total
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+                entries
+            }
+            Err(error) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_redis_drain_failures_total
+                    .fetch_add(1, Ordering::Relaxed);
+                println!(
+                    "submit.chain_commit.drain_failed request_id={} backend=redis error={}",
+                    request_id, error
+                );
+                Vec::new()
+            }
+        }
+    } else {
+        Vec::new()
+    };
+
+    {
+        let mut outbox = app_state.submit_chain_commit_outbox.write().await;
+        pending_entries.extend(outbox.drain(..));
+    }
+    refresh_submit_chain_commit_outbox_size(app_state).await;
+
+    if pending_entries.is_empty() {
+        if local_writer_lease_acquired {
+            *app_state.submit_chain_commit_writer_owner.write().await = None;
+        }
+        drop(lease);
+        return;
+    }
+
+    let mut requeue = VecDeque::new();
+    for mut entry in pending_entries {
+        if let Some(coordinator) = &app_state.submit_coordinator {
+            match coordinator
+                .chain_commit_was_committed(&entry.commit_id)
+                .await
+            {
+                Ok(true) => {
+                    app_state
+                        .metrics
+                        .submit_chain_commit_marker_skipped_total
+                        .fetch_add(1, Ordering::Relaxed);
+                    println!(
+                        "submit.chain_commit.skipped_already_committed request_id={} commit_id={}",
+                        entry.request_id, entry.commit_id
+                    );
+                    continue;
+                }
+                Ok(false) => {}
+                Err(error) => {
+                    app_state
+                        .metrics
+                        .submit_chain_commit_marker_check_failures_total
+                        .fetch_add(1, Ordering::Relaxed);
+                    println!(
+                        "submit.chain_commit.marker_check_failed request_id={} commit_id={} error={}",
+                        entry.request_id, entry.commit_id, error
+                    );
+                }
+            }
+        }
+
+        app_state
+            .metrics
+            .submit_chain_commit_outbox_retries_total
+            .fetch_add(1, Ordering::Relaxed);
+        match commit_chain_commit_outbox_entry(app_state, &entry).await {
+            Ok(()) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_outbox_recovered_total
+                    .fetch_add(1, Ordering::Relaxed);
+                if let Some(coordinator) = &app_state.submit_coordinator {
+                    if let Err(error) = coordinator
+                        .mark_chain_commit_committed(&entry.commit_id, CHAIN_COMMIT_MARKER_TTL_SECS)
+                        .await
+                    {
+                        app_state
+                            .metrics
+                            .submit_chain_commit_marker_write_failures_total
+                            .fetch_add(1, Ordering::Relaxed);
+                        println!(
+                            "submit.chain_commit.marker_write_failed request_id={} commit_id={} error={}",
+                            entry.request_id, entry.commit_id, error
+                        );
+                    }
+                }
+                println!(
+                    "submit.chain_commit.committed request_id={} tenant={} table_id={} commit_id={} attempts={}",
+                    entry.request_id,
+                    entry.tenant_namespace.as_deref().unwrap_or("-"),
+                    entry.store_set_record.table_id,
+                    entry.commit_id,
+                    entry.attempts + 1
+                );
+            }
+            Err(error) => {
+                app_state
+                    .metrics
+                    .submit_chain_commit_failures_total
+                    .fetch_add(1, Ordering::Relaxed);
+                entry.attempts += 1;
+                entry.last_error = error.to_string();
+                if entry.attempts >= app_state.config.submit_materialization_max_attempts {
+                    app_state
+                        .metrics
+                        .submit_chain_commit_outbox_dropped_total
+                        .fetch_add(1, Ordering::Relaxed);
+                    enqueue_submit_chain_commit_dead_letter(app_state, entry).await;
+                } else {
+                    println!(
+                        "submit.chain_commit.retry_scheduled request_id={} tenant={} table_id={} commit_id={} attempts={} error={}",
+                        entry.request_id,
+                        entry.tenant_namespace.as_deref().unwrap_or("-"),
+                        entry.store_set_record.table_id,
+                        entry.commit_id,
+                        entry.attempts,
+                        entry.last_error
+                    );
+                    requeue.push_back(entry);
+                }
+            }
+        }
+    }
+
+    if !requeue.is_empty() {
+        let mut requeue_vec = requeue.into_iter().collect::<Vec<_>>();
+        requeue_submit_chain_commit_outbox_entries(
+            app_state,
+            &mut requeue_vec,
+            "submit-chain-commit-worker",
+            "chain_commit_outbox",
+        )
+        .await;
+    }
+    refresh_submit_chain_commit_dead_letter_size(app_state).await;
+    if local_writer_lease_acquired {
+        *app_state.submit_chain_commit_writer_owner.write().await = None;
+    }
+    drop(lease);
 }
 
 async fn drain_submit_materialization_dead_letter_entries<DB>(
@@ -28653,6 +29980,16 @@ async fn apply_store_set_record<DB>(
         )
         .await;
     }
+
+    enqueue_submit_chain_commit_outbox(
+        app_state,
+        store_set_record,
+        checkpoint_ts_ms,
+        &cursor.opaque,
+        tenant,
+        request_id,
+    )
+    .await;
 }
 
 async fn apply_submit_execution_outcome<DB>(
@@ -31472,6 +32809,7 @@ where
 
 async fn set_storage(
     config: &Arc<DubheChannelConfig>,
+    table_id: String,
     key_tuple: Vec<Vec<u8>>,
     value_tuple: Vec<Vec<u8>>,
     dubhe_config: &DubheConfig,
@@ -31479,10 +32817,13 @@ async fn set_storage(
 ) -> Result<(), anyhow::Error> {
     let sui_client = SuiClientBuilder::default().build(&config.rpc_url).await?;
 
-    let private_key = dotenvy::var("PRIVATE_KEY").unwrap();
+    let private_key = dotenvy::var(CHAIN_COMMIT_PRIVATE_KEY_ENV).map_err(|_| {
+        anyhow!(
+            "{} must be set when chain commit writer is enabled",
+            CHAIN_COMMIT_PRIVATE_KEY_ENV
+        )
+    })?;
     let keypair = SuiKeyPair::decode(&private_key).map_err(|e| anyhow!(e))?;
-
-    println!("private_key: {:?}", private_key);
 
     let mut keystore = InMemKeystore::default();
     InMemKeystore::import(&mut keystore, Some("hello".to_string()), keypair).await?;
@@ -31490,8 +32831,7 @@ async fn set_storage(
         .addresses()
         .first()
         .ok_or(anyhow!("No sender found"))?;
-    println!("sender: {:?}", sender);
-    println!("count: {:?}", count);
+
     // we need to find the coin we will use as gas
     let coins = sui_client
         .coin_read_api()
@@ -31526,13 +32866,9 @@ async fn set_storage(
 
     let input_values = CallArg::Pure(bcs::to_bytes(&value_tuple).unwrap());
 
-    let input_count = CallArg::Pure(bcs::to_bytes(&count).unwrap());
+    let input_count = CallArg::Pure(bcs::to_bytes(&U256::from(count)).unwrap());
 
-    let input_table_id = if key_tuple.len() == 0 {
-        CallArg::Pure(bcs::to_bytes(&"item_dropped".to_string()).unwrap())
-    } else {
-        CallArg::Pure(bcs::to_bytes(&"position".to_string()).unwrap())
-    };
+    let input_table_id = CallArg::Pure(bcs::to_bytes(&table_id).unwrap());
     let mut ptb = ProgrammableTransactionBuilder::new();
     ptb.input(input_object)?;
     ptb.input(input_table_id)?;
@@ -31579,8 +32915,6 @@ async fn set_storage(
     let signature = keystore
         .sign_secure(&sender, &tx_data, Intent::sui_transaction())
         .await?;
-
-    println!("signature: {:?}", signature);
 
     // 5) execute the transaction
     print!("Executing the transaction...");
@@ -31661,6 +32995,49 @@ mod tests {
                 .unwrap()
                 .pop_front()
                 .ok_or_else(|| anyhow!("missing fake submit outcome"))
+        }
+    }
+
+    #[derive(Clone)]
+    struct FakeChainCommitExecutor {
+        outcomes: Arc<Mutex<VecDeque<std::result::Result<(), String>>>>,
+        calls: Arc<AtomicUsize>,
+    }
+
+    impl FakeChainCommitExecutor {
+        fn new(outcomes: Vec<std::result::Result<(), String>>) -> Self {
+            Self {
+                outcomes: Arc::new(Mutex::new(VecDeque::from(outcomes))),
+                calls: Arc::new(AtomicUsize::new(0)),
+            }
+        }
+
+        fn always_ok() -> Self {
+            Self::new(Vec::new())
+        }
+
+        fn call_count(&self) -> usize {
+            self.calls.load(Ordering::SeqCst)
+        }
+    }
+
+    #[async_trait]
+    impl ChainCommitExecutor<EmptyDB> for FakeChainCommitExecutor {
+        async fn commit(
+            &self,
+            _config: &Arc<DubheChannelConfig>,
+            _dubhe_config: &DubheConfig,
+            _table_id: String,
+            _key_tuple: Vec<Vec<u8>>,
+            _value_tuple: Vec<Vec<u8>>,
+            _checkpoint_ts_ms: u64,
+        ) -> Result<(), anyhow::Error> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            match self.outcomes.lock().unwrap().pop_front() {
+                Some(Ok(())) => Ok(()),
+                Some(Err(error)) => Err(anyhow!(error)),
+                None => Ok(()),
+            }
         }
     }
 
@@ -31897,10 +33274,16 @@ mod tests {
             execution_backend: ExecutionBackendKind::Sui,
             intent_compiler: build_intent_compiler(ExecutionBackendKind::Sui),
             submit_executor: executor,
+            chain_commit_executor: build_chain_commit_executor(),
             metrics: Arc::new(AppMetrics::default()),
             sse_connection_state: Arc::new(RwLock::new(SseConnectionState::default())),
             request_admission_state: Arc::new(RwLock::new(RequestAdmissionState::default())),
             topic_governance_state: Arc::new(RwLock::new(TopicGovernanceState::default())),
+            chain_commit_dubhe_config: None,
+            submit_chain_commit_outbox: Arc::new(RwLock::new(VecDeque::new())),
+            submit_chain_commit_dead_letter: Arc::new(RwLock::new(VecDeque::new())),
+            submit_chain_commit_writer_lock: Arc::new(tokio::sync::Mutex::new(())),
+            submit_chain_commit_writer_owner: Arc::new(RwLock::new(None)),
             submit_materialization_outbox: Arc::new(RwLock::new(VecDeque::new())),
             submit_materialization_dead_letter: Arc::new(RwLock::new(VecDeque::new())),
             submit_materialization_dead_letter_replay_lock: Arc::new(tokio::sync::Mutex::new(())),
@@ -32261,10 +33644,16 @@ mod tests {
             execution_backend: ExecutionBackendKind::Sui,
             intent_compiler: build_intent_compiler(ExecutionBackendKind::Sui),
             submit_executor: executor,
+            chain_commit_executor: build_chain_commit_executor(),
             metrics: Arc::new(AppMetrics::default()),
             sse_connection_state: Arc::new(RwLock::new(SseConnectionState::default())),
             request_admission_state: Arc::new(RwLock::new(RequestAdmissionState::default())),
             topic_governance_state: Arc::new(RwLock::new(TopicGovernanceState::default())),
+            chain_commit_dubhe_config: None,
+            submit_chain_commit_outbox: Arc::new(RwLock::new(VecDeque::new())),
+            submit_chain_commit_dead_letter: Arc::new(RwLock::new(VecDeque::new())),
+            submit_chain_commit_writer_lock: Arc::new(tokio::sync::Mutex::new(())),
+            submit_chain_commit_writer_owner: Arc::new(RwLock::new(None)),
             submit_materialization_outbox: Arc::new(RwLock::new(VecDeque::new())),
             submit_materialization_dead_letter: Arc::new(RwLock::new(VecDeque::new())),
             submit_materialization_dead_letter_replay_lock: Arc::new(tokio::sync::Mutex::new(())),
@@ -32381,6 +33770,23 @@ mod tests {
             response_body: format!("response-{tag}"),
             recorded_at: Instant::now(),
         }
+    }
+
+    fn test_chain_commit_dubhe_config() -> Arc<DubheConfig> {
+        Arc::new(DubheConfig::new(
+            "0x1".to_string(),
+            "0x2".to_string(),
+            "0x3".to_string(),
+            "0".to_string(),
+        ))
+    }
+
+    fn enable_chain_commit_for_test(
+        state: &mut AppState<EmptyDB>,
+        executor: Arc<dyn ChainCommitExecutor<EmptyDB>>,
+    ) {
+        state.chain_commit_dubhe_config = Some(test_chain_commit_dubhe_config());
+        state.chain_commit_executor = executor;
     }
 
     #[test]
@@ -33316,6 +34722,40 @@ mod tests {
         assert!(metrics_text.contains("dubhe_channel_submit_materialization_dead_letter_size 0"));
         assert!(metrics_text
             .contains("dubhe_channel_submit_materialization_dead_letter_enqueued_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_failures_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_outbox_size 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_outbox_enqueued_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_outbox_retries_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_outbox_recovered_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_outbox_dropped_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_dead_letter_size 0"));
+        assert!(
+            metrics_text.contains("dubhe_channel_submit_chain_commit_dead_letter_enqueued_total 0")
+        );
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_redis_enqueue_total 0"));
+        assert!(metrics_text
+            .contains("dubhe_channel_submit_chain_commit_redis_enqueue_failures_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_redis_drain_total 0"));
+        assert!(
+            metrics_text.contains("dubhe_channel_submit_chain_commit_redis_drain_failures_total 0")
+        );
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_redis_requeue_total 0"));
+        assert!(metrics_text
+            .contains("dubhe_channel_submit_chain_commit_redis_requeue_failures_total 0"));
+        assert!(
+            metrics_text.contains("dubhe_channel_submit_chain_commit_redis_dead_letter_total 0")
+        );
+        assert!(metrics_text
+            .contains("dubhe_channel_submit_chain_commit_redis_dead_letter_failures_total 0"));
+        assert!(metrics_text
+            .contains("dubhe_channel_submit_chain_commit_marker_check_failures_total 0"));
+        assert!(metrics_text
+            .contains("dubhe_channel_submit_chain_commit_marker_write_failures_total 0"));
+        assert!(metrics_text.contains("dubhe_channel_submit_chain_commit_marker_skipped_total 0"));
+        assert!(metrics_text
+            .contains("dubhe_channel_submit_chain_commit_writer_lease_acquired_total 0"));
+        assert!(metrics_text
+            .contains("dubhe_channel_submit_chain_commit_writer_lease_conflicts_total 0"));
         assert!(metrics_text
             .contains("dubhe_channel_submit_materialization_runtime_snapshot_duration_ms_count 0"));
         assert!(metrics_text
@@ -33623,6 +35063,318 @@ mod tests {
                 .submit_materialization_outbox_alert_active
                 .load(Ordering::Relaxed),
             1
+        );
+    }
+
+    #[tokio::test]
+    async fn test_ready_reports_chain_commit_alerts_when_backlog_exceeds_threshold() {
+        let mut state = test_state();
+        {
+            let mut config = (*state.config).clone();
+            config.submit_materialization_ready_max_outbox_size = 1;
+            state.config = Arc::new(config);
+        }
+        enable_chain_commit_for_test(&mut state, Arc::new(FakeChainCommitExecutor::always_ok()));
+
+        let record_one = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-chain-ready-one".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![1]],
+            value_tuple: vec![vec![1, 1]],
+        };
+        let record_two = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-chain-ready-two".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![2]],
+            value_tuple: vec![vec![2, 2]],
+        };
+
+        enqueue_submit_chain_commit_outbox(
+            &state,
+            &record_one,
+            1,
+            "digest-chain-ready-1",
+            None,
+            "chain-ready-1",
+        )
+        .await;
+        enqueue_submit_chain_commit_outbox(
+            &state,
+            &record_two,
+            2,
+            "digest-chain-ready-2",
+            None,
+            "chain-ready-2",
+        )
+        .await;
+
+        let response = handle_request(
+            Request::builder()
+                .method(hyper::Method::GET)
+                .uri("/ready")
+                .body(Body::empty())
+                .unwrap(),
+            state,
+        )
+        .await
+        .unwrap();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let body = to_bytes(response.into_body()).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["chain_commit"]["enabled"], true);
+        assert_eq!(payload["chain_commit"]["outbox_size"], 2);
+        assert_eq!(payload["alerts"]["submit_chain_commit_outbox_active"], true);
+        assert!(payload["alerts"]["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| reason
+                .as_str()
+                .unwrap_or_default()
+                .contains("submit_chain_commit_outbox_size")));
+    }
+
+    #[tokio::test]
+    async fn test_ops_chain_commit_status_endpoint_reports_snapshot() {
+        let mut state = test_state();
+        {
+            let mut config = (*state.config).clone();
+            config.ops_admin_token = Some("ops-secret".to_string());
+            state.config = Arc::new(config);
+        }
+        enable_chain_commit_for_test(&mut state, Arc::new(FakeChainCommitExecutor::always_ok()));
+
+        let record = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-chain-status".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![7]],
+            value_tuple: vec![vec![7, 7]],
+        };
+        enqueue_submit_chain_commit_outbox(
+            &state,
+            &record,
+            7,
+            "digest-chain-status",
+            None,
+            "chain-status-outbox",
+        )
+        .await;
+        enqueue_submit_chain_commit_dead_letter(
+            &state,
+            SubmitChainCommitOutboxEntry {
+                commit_id: "commit-dead-letter".to_string(),
+                request_id: "chain-status-dead-letter".to_string(),
+                tenant_namespace: None,
+                checkpoint_ts_ms: 8,
+                cursor_opaque: "digest-chain-status-dead-letter".to_string(),
+                store_set_record: record.clone(),
+                attempts: 2,
+                last_error: "synthetic error".to_string(),
+            },
+        )
+        .await;
+        *state.submit_chain_commit_writer_owner.write().await = Some(ReplayLeaseOwnerInfo {
+            request_id: "chain-status-lease".to_string(),
+            holder: "pid:test".to_string(),
+            acquired_at_ms: 42,
+            backend: "in-memory".to_string(),
+        });
+
+        let response = handle_request(
+            Request::builder()
+                .method(hyper::Method::GET)
+                .uri(format!("{}?limit=1", OPS_CHAIN_COMMIT_STATUS_PATH))
+                .header(OPS_ADMIN_TOKEN_HEADER, "ops-secret")
+                .body(Body::empty())
+                .unwrap(),
+            state,
+        )
+        .await
+        .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body()).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["enabled"], true);
+        assert_eq!(payload["outbox"]["size"], 1);
+        assert_eq!(payload["dead_letter"]["size"], 1);
+        assert_eq!(payload["dead_letter"]["count"], 1);
+        assert_eq!(payload["dead_letter"]["entries"][0]["attempts"], 2);
+        assert_eq!(payload["writer_lease"]["active"], true);
+        assert_eq!(
+            payload["writer_lease"]["owner"]["request_id"],
+            "chain-status-lease"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_submit_chain_commit_outbox_retries_then_dead_letters_after_max_attempts() {
+        let mut state = test_state();
+        {
+            let mut config = (*state.config).clone();
+            config.submit_materialization_max_attempts = 2;
+            state.config = Arc::new(config);
+        }
+        let chain_executor = Arc::new(FakeChainCommitExecutor::new(vec![
+            Err("synthetic chain commit failure-1".to_string()),
+            Err("synthetic chain commit failure-2".to_string()),
+        ]));
+        enable_chain_commit_for_test(&mut state, chain_executor.clone());
+
+        let record = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-chain-dead-letter".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![3]],
+            value_tuple: vec![vec![3, 3]],
+        };
+        enqueue_submit_chain_commit_outbox(
+            &state,
+            &record,
+            33,
+            "digest-chain-dead-letter",
+            None,
+            "chain-dead-letter-request",
+        )
+        .await;
+
+        process_submit_chain_commit_outbox_once(&state).await;
+        assert_eq!(state.submit_chain_commit_outbox.read().await.len(), 1);
+        assert_eq!(state.submit_chain_commit_dead_letter.read().await.len(), 0);
+
+        process_submit_chain_commit_outbox_once(&state).await;
+        assert_eq!(state.submit_chain_commit_outbox.read().await.len(), 0);
+        assert_eq!(state.submit_chain_commit_dead_letter.read().await.len(), 1);
+        assert_eq!(chain_executor.call_count(), 2);
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_enqueued_total
+                .load(Ordering::Relaxed),
+            1
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_retries_total
+                .load(Ordering::Relaxed),
+            2
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_failures_total
+                .load(Ordering::Relaxed),
+            2
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_dropped_total
+                .load(Ordering::Relaxed),
+            1
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_dead_letter_enqueued_total
+                .load(Ordering::Relaxed),
+            1
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_size
+                .load(Ordering::Relaxed),
+            0
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_dead_letter_size
+                .load(Ordering::Relaxed),
+            1
+        );
+
+        let dead_letter_entry = state.submit_chain_commit_dead_letter.read().await[0].clone();
+        assert_eq!(dead_letter_entry.attempts, 2);
+        assert!(dead_letter_entry
+            .last_error
+            .contains("synthetic chain commit failure-2"));
+    }
+
+    #[tokio::test]
+    async fn test_submit_chain_commit_metrics_track_successful_commit() {
+        let mut state = test_state();
+        let chain_executor = Arc::new(FakeChainCommitExecutor::always_ok());
+        enable_chain_commit_for_test(&mut state, chain_executor.clone());
+
+        let record = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-chain-metrics-ok".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![4]],
+            value_tuple: vec![vec![4, 4]],
+        };
+        enqueue_submit_chain_commit_outbox(
+            &state,
+            &record,
+            44,
+            "digest-chain-metrics-ok",
+            None,
+            "chain-metrics-ok-request",
+        )
+        .await;
+
+        process_submit_chain_commit_outbox_once(&state).await;
+
+        assert_eq!(chain_executor.call_count(), 1);
+        assert_eq!(state.submit_chain_commit_outbox.read().await.len(), 0);
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_enqueued_total
+                .load(Ordering::Relaxed),
+            1
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_retries_total
+                .load(Ordering::Relaxed),
+            1
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_recovered_total
+                .load(Ordering::Relaxed),
+            1
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_failures_total
+                .load(Ordering::Relaxed),
+            0
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_dead_letter_enqueued_total
+                .load(Ordering::Relaxed),
+            0
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_outbox_size
+                .load(Ordering::Relaxed),
+            0
+        );
+        assert_eq!(
+            state
+                .metrics
+                .submit_chain_commit_dead_letter_size
+                .load(Ordering::Relaxed),
+            0
         );
     }
 
@@ -45891,6 +47643,121 @@ mod tests {
                 .load(Ordering::Relaxed),
             1
         );
+
+        clear_test_redis_namespace(&redis_url, &key_prefix)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    #[ignore = "requires local Redis at 127.0.0.1:16379"]
+    async fn test_submit_chain_commit_outbox_persists_across_instances_with_redis_and_executes_once(
+    ) {
+        let redis_url = local_test_redis_url();
+        let key_prefix = unique_test_prefix("chain-commit-cross-instance");
+        clear_test_redis_namespace(&redis_url, &key_prefix)
+            .await
+            .unwrap();
+
+        let chain_executor = Arc::new(FakeChainCommitExecutor::always_ok());
+        let mut state_one = test_state_with_redis_executor(&key_prefix, Arc::new(VmSubmitExecutor))
+            .await
+            .unwrap();
+        let mut state_two = test_state_with_redis_executor(&key_prefix, Arc::new(VmSubmitExecutor))
+            .await
+            .unwrap();
+        enable_chain_commit_for_test(&mut state_one, chain_executor.clone());
+        enable_chain_commit_for_test(&mut state_two, chain_executor.clone());
+
+        let record = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-chain-redis".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![9]],
+            value_tuple: vec![vec![6, 9]],
+        };
+        enqueue_submit_chain_commit_outbox(
+            &state_one,
+            &record,
+            99,
+            "digest-chain-redis",
+            None,
+            "chain-redis-request",
+        )
+        .await;
+
+        let coordinator = state_one.submit_coordinator.as_ref().unwrap();
+        assert_eq!(coordinator.chain_commit_outbox_len().await.unwrap(), 1);
+
+        let task_one = tokio::spawn({
+            let state = state_one.clone();
+            async move {
+                process_submit_chain_commit_outbox_once(&state).await;
+            }
+        });
+        let task_two = tokio::spawn({
+            let state = state_two.clone();
+            async move {
+                process_submit_chain_commit_outbox_once(&state).await;
+            }
+        });
+        task_one.await.unwrap();
+        task_two.await.unwrap();
+
+        let commit_id = chain_commit_id_from_record(&record, None, "digest-chain-redis");
+        assert_eq!(chain_executor.call_count(), 1);
+        assert_eq!(coordinator.chain_commit_outbox_len().await.unwrap(), 0);
+        assert!(coordinator
+            .chain_commit_was_committed(&commit_id)
+            .await
+            .unwrap());
+
+        clear_test_redis_namespace(&redis_url, &key_prefix)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires local Redis at 127.0.0.1:16379"]
+    async fn test_submit_chain_commit_skips_previously_committed_marker_with_redis() {
+        let redis_url = local_test_redis_url();
+        let key_prefix = unique_test_prefix("chain-commit-marker");
+        clear_test_redis_namespace(&redis_url, &key_prefix)
+            .await
+            .unwrap();
+
+        let chain_executor = Arc::new(FakeChainCommitExecutor::always_ok());
+        let mut state = test_state_with_redis_executor(&key_prefix, Arc::new(VmSubmitExecutor))
+            .await
+            .unwrap();
+        enable_chain_commit_for_test(&mut state, chain_executor.clone());
+
+        let record = StoreSetRecord {
+            dapp_key: "demo::dapp_key::DappKey".to_string(),
+            table_id: "0xplayer-chain-marker".to_string(),
+            key_tuple: vec![b"position".to_vec(), vec![5]],
+            value_tuple: vec![vec![5, 5]],
+        };
+        enqueue_submit_chain_commit_outbox(
+            &state,
+            &record,
+            77,
+            "digest-chain-marker",
+            None,
+            "chain-marker-request",
+        )
+        .await;
+
+        let commit_id = chain_commit_id_from_record(&record, None, "digest-chain-marker");
+        let coordinator = state.submit_coordinator.as_ref().unwrap();
+        coordinator
+            .mark_chain_commit_committed(&commit_id, CHAIN_COMMIT_MARKER_TTL_SECS)
+            .await
+            .unwrap();
+
+        process_submit_chain_commit_outbox_once(&state).await;
+
+        assert_eq!(chain_executor.call_count(), 0);
+        assert_eq!(coordinator.chain_commit_outbox_len().await.unwrap(), 0);
 
         clear_test_redis_namespace(&redis_url, &key_prefix)
             .await
